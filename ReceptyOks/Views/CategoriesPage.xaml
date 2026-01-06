@@ -3,7 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:ReceptyOks.ViewModels"
              xmlns:data="clr-namespace:ReceptyOks.Data"
-             xmlns:icons="clr-namespace:UraniumUI.Icons.MaterialIcons;assembly=UraniumUI.Icons.MaterialIcons"
+             xmlns:icons="clr-namespace:UraniumUI.Icons.MaterialSymbols;assembly=UraniumUI.Icons.MaterialSymbols"
              xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
              x:Class="ReceptyOks.Views.CategoriesPage"
              x:DataType="vm:CategoriesViewModel"
@@ -53,8 +53,8 @@
                                 HorizontalOptions="Center">
                             <Image HeightRequest="40" WidthRequest="40" HorizontalOptions="Center" VerticalOptions="Center">
                                 <Image.Source>
-                                    <FontImageSource Glyph="{x:Static icons:MaterialRegular.Folder_off}"
-                                                     FontFamily="MaterialRegular"
+                                    <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Folder_off}"
+                                                     FontFamily="MaterialSymbolsOutlined"
                                                      Color="{StaticResource Gray400}"
                                                      Size="40"/>
                                 </Image.Source>
@@ -78,8 +78,8 @@
                                 HorizontalOptions="Center"
                                 Margin="0,8,0,0">
                             <Button.ImageSource>
-                                <FontImageSource Glyph="{x:Static icons:MaterialRegular.Add}"
-                                                 FontFamily="MaterialRegular"
+                                <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Add}"
+                                                 FontFamily="MaterialSymbolsOutlined"
                                                  Color="White"
                                                  Size="20"/>
                             </Button.ImageSource>
@@ -119,8 +119,8 @@
                                                VerticalOptions="Center"
                                                Opacity="0.9">
                                             <Image.Source>
-                                                <FontImageSource Glyph="{x:Static icons:MaterialRegular.Folder}"
-                                                                 FontFamily="MaterialRegular"
+                                                <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Folder}"
+                                                                 FontFamily="MaterialSymbolsOutlined"
                                                                  Color="White"
                                                                  Size="48"/>
                                             </Image.Source>
@@ -141,8 +141,8 @@
                                             </Border.Behaviors>
                                             <Image HeightRequest="18" WidthRequest="18">
                                                 <Image.Source>
-                                                    <FontImageSource Glyph="{x:Static icons:MaterialRegular.Edit}"
-                                                                     FontFamily="MaterialRegular"
+                                                    <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Edit}"
+                                                                     FontFamily="MaterialSymbolsOutlined"
                                                                      Color="White"
                                                                      Size="18"/>
                                                 </Image.Source>
@@ -190,8 +190,8 @@
                 <Shadow Brush="{StaticResource Primary}" Offset="0,6" Radius="16" Opacity="0.4"/>
             </Button.Shadow>
             <Button.ImageSource>
-                <FontImageSource Glyph="{x:Static icons:MaterialRegular.Create_new_folder}"
-                                 FontFamily="MaterialRegular"
+                <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Create_new_folder}"
+                                 FontFamily="MaterialSymbolsOutlined"
                                  Color="White"
                                  Size="28"/>
             </Button.ImageSource>

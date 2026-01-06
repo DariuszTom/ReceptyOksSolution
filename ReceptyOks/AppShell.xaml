@@ -4,7 +4,7 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:views="clr-namespace:ReceptyOks.Views"
-    xmlns:icons="clr-namespace:UraniumUI.Icons.MaterialIcons;assembly=UraniumUI.Icons.MaterialIcons"
+    xmlns:icons="clr-namespace:UraniumUI.Icons.MaterialSymbols;assembly=UraniumUI.Icons.MaterialSymbols"
     Title="ReceptyOks"
     Shell.TabBarBackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}"
     Shell.TabBarTitleColor="{StaticResource Primary}"
@@ -22,8 +22,8 @@
     <TabBar>
         <Tab Title="Przepisy">
             <Tab.Icon>
-                <FontImageSource Glyph="{x:Static icons:MaterialRegular.Restaurant_menu}"
-                                 FontFamily="MaterialRegular"
+                <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Restaurant_menu}"
+                                 FontFamily="MaterialSymbolsOutlined"
                                  Size="24"/>
             </Tab.Icon>
             <ShellContent
@@ -33,8 +33,8 @@
         
         <Tab Title="Kategorie">
             <Tab.Icon>
-                <FontImageSource Glyph="{x:Static icons:MaterialRegular.Folder}"
-                                 FontFamily="MaterialRegular"
+                <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Folder}"
+                                 FontFamily="MaterialSymbolsOutlined"
                                  Size="24"/>
             </Tab.Icon>
             <ShellContent

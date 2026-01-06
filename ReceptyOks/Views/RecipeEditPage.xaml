@@ -4,7 +4,7 @@
              xmlns:vm="clr-namespace:ReceptyOks.ViewModels"
              xmlns:data="clr-namespace:ReceptyOks.Data"
              xmlns:material="http://schemas.enisn-projects.io/dotnet/maui/uraniumui/material"
-             xmlns:icons="clr-namespace:UraniumUI.Icons.MaterialIcons;assembly=UraniumUI.Icons.MaterialIcons"
+             xmlns:icons="clr-namespace:UraniumUI.Icons.MaterialSymbols;assembly=UraniumUI.Icons.MaterialSymbols"
              xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
              xmlns:controls="clr-namespace:ReceptyOks.Controls"
              x:Class="ReceptyOks.Views.RecipeEditPage"
@@ -46,8 +46,8 @@
                                          IsVisible="{Binding ImagePreview, Converter={StaticResource IsNullConverter}}">
                         <Image HeightRequest="48" WidthRequest="48">
                             <Image.Source>
-                                <FontImageSource Glyph="{x:Static icons:MaterialRegular.Add_a_photo}"
-                                                 FontFamily="MaterialRegular"
+                                <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Add_a_photo}"
+                                                 FontFamily="MaterialSymbolsOutlined"
                                                  Color="{StaticResource Gray400}"
                                                  Size="48"/>
                             </Image.Source>
@@ -67,8 +67,8 @@
                         CornerRadius="20"
                         Padding="16,8">
                     <Button.ImageSource>
-                        <FontImageSource Glyph="{x:Static icons:MaterialRegular.Photo_library}"
-                                         FontFamily="MaterialRegular"
+                        <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Photo_library}"
+                                         FontFamily="MaterialSymbolsOutlined"
                                          Color="{StaticResource Primary}"
                                          Size="20"/>
                     </Button.ImageSource>
@@ -80,8 +80,8 @@
                         CornerRadius="20"
                         Padding="16,8">
                     <Button.ImageSource>
-                        <FontImageSource Glyph="{x:Static icons:MaterialRegular.Camera_alt}"
-                                         FontFamily="MaterialRegular"
+                        <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Photo_camera}"
+                                         FontFamily="MaterialSymbolsOutlined"
                                          Color="{StaticResource Primary}"
                                          Size="20"/>
                     </Button.ImageSource>
@@ -91,7 +91,7 @@
             <!-- Tytuł -->
             <material:TextField Title="Tytuł *" 
                                 Text="{Binding Title}" 
-                                Icon="{FontImageSource Glyph={x:Static icons:MaterialRegular.Title}, FontFamily=MaterialRegular, Size=20}"
+                                Icon="{FontImageSource Glyph={x:Static icons:MaterialOutlined.Title}, FontFamily=MaterialSymbolsOutlined, Size=20}"
                                 AllowClear="True"/>
 
             <!-- Opis -->
@@ -103,7 +103,7 @@
                                   ItemsSource="{Binding Categories}"
                                   SelectedItem="{Binding SelectedCategory}"
                                   ItemDisplayBinding="{Binding Name}"
-                                  Icon="{FontImageSource Glyph={x:Static icons:MaterialRegular.Category}, FontFamily=MaterialRegular, Size=20}"/>
+                                  Icon="{FontImageSource Glyph={x:Static icons:MaterialOutlined.Category}, FontFamily=MaterialSymbolsOutlined, Size=20}"/>
 
             <!-- Czasy i porcje -->
             <Label Text="Szczegóły" FontSize="16" FontAttributes="Bold" Margin="0,8,0,0"/>
@@ -112,17 +112,17 @@
                                     Title="Przygotowanie (min)"
                                     Text="{Binding PreparationTimeMinutes}" 
                                     Keyboard="Numeric"
-                                    Icon="{FontImageSource Glyph={x:Static icons:MaterialRegular.Schedule}, FontFamily=MaterialRegular, Size=18}"/>
+                                    Icon="{FontImageSource Glyph={x:Static icons:MaterialOutlined.Schedule}, FontFamily=MaterialSymbolsOutlined, Size=18}"/>
                 <material:TextField Grid.Column="1"
                                     Title="Gotowanie (min)"
                                     Text="{Binding CookingTimeMinutes}" 
                                     Keyboard="Numeric"
-                                    Icon="{FontImageSource Glyph={x:Static icons:MaterialRegular.Outdoor_grill}, FontFamily=MaterialRegular, Size=18}"/>
+                                    Icon="{FontImageSource Glyph={x:Static icons:MaterialOutlined.Outdoor_grill}, FontFamily=MaterialSymbolsOutlined, Size=18}"/>
                 <material:TextField Grid.Column="2"
                                     Title="Porcje"
                                     Text="{Binding Servings}" 
                                     Keyboard="Numeric"
-                                    Icon="{FontImageSource Glyph={x:Static icons:MaterialRegular.Group}, FontFamily=MaterialRegular, Size=18}"/>
+                                    Icon="{FontImageSource Glyph={x:Static icons:MaterialOutlined.Group}, FontFamily=MaterialSymbolsOutlined, Size=18}"/>
             </Grid>
 
             <!-- Składniki -->
@@ -134,8 +134,8 @@
                         CornerRadius="20"
                         Padding="12,6">
                     <Button.ImageSource>
-                        <FontImageSource Glyph="{x:Static icons:MaterialRegular.Add}"
-                                         FontFamily="MaterialRegular"
+                        <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Add}"
+                                         FontFamily="MaterialSymbolsOutlined"
                                          Color="White"
                                          Size="18"/>
                     </Button.ImageSource>
@@ -163,8 +163,8 @@
                                         Command="{Binding Source={RelativeSource AncestorType={x:Type vm:RecipeEditViewModel}}, Path=RemoveIngredientCommand}"
                                         CommandParameter="{Binding .}">
                                     <Button.ImageSource>
-                                        <FontImageSource Glyph="{x:Static icons:MaterialRegular.Delete}"
-                                                         FontFamily="MaterialRegular"
+                                        <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Delete}"
+                                                         FontFamily="MaterialSymbolsOutlined"
                                                          Color="#E53935"
                                                          Size="22"/>
                                     </Button.ImageSource>
@@ -209,8 +209,8 @@
                         Text="Zapisz" 
                         Command="{Binding SaveCommand}">
                     <Button.ImageSource>
-                        <FontImageSource Glyph="{x:Static icons:MaterialRegular.Save}"
-                                         FontFamily="MaterialRegular"
+                        <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Save}"
+                                         FontFamily="MaterialSymbolsOutlined"
                                          Color="White"
                                          Size="18"/>
                     </Button.ImageSource>

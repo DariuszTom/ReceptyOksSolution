@@ -2,7 +2,7 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:ReceptyOks.ViewModels"
-             xmlns:icons="clr-namespace:UraniumUI.Icons.MaterialIcons;assembly=UraniumUI.Icons.MaterialIcons"
+             xmlns:icons="clr-namespace:UraniumUI.Icons.MaterialSymbols;assembly=UraniumUI.Icons.MaterialSymbols"
              xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
              x:Class="ReceptyOks.Views.RecipeDetailPage"
              x:DataType="vm:RecipeDetailViewModel"
@@ -27,8 +27,8 @@
                            HorizontalOptions="Center"
                            IsVisible="{Binding RecipeImage, Converter={StaticResource IsNullConverter}}">
                         <Image.Source>
-                            <FontImageSource Glyph="{x:Static icons:MaterialRegular.Restaurant}"
-                                             FontFamily="MaterialRegular"
+                            <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Restaurant}"
+                                             FontFamily="MaterialSymbolsOutlined"
                                              Color="{StaticResource Gray400}"
                                              Size="80"/>
                         </Image.Source>
@@ -55,8 +55,8 @@
                         <HorizontalStackLayout Spacing="6">
                             <Image HeightRequest="16" WidthRequest="16">
                                 <Image.Source>
-                                    <FontImageSource Glyph="{x:Static icons:MaterialRegular.Schedule}"
-                                                     FontFamily="MaterialRegular"
+                                    <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Schedule}"
+                                                     FontFamily="MaterialSymbolsOutlined"
                                                      Color="White"
                                                      Size="16"/>
                                 </Image.Source>
@@ -99,8 +99,8 @@
                                 <HorizontalStackLayout Spacing="6">
                                     <Image HeightRequest="16" WidthRequest="16">
                                         <Image.Source>
-                                            <FontImageSource Glyph="{x:Static icons:MaterialRegular.Category}"
-                                                             FontFamily="MaterialRegular"
+                                            <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Category}"
+                                                             FontFamily="MaterialSymbolsOutlined"
                                                              Color="White"
                                                              Size="16"/>
                                         </Image.Source>
@@ -129,8 +129,8 @@
                                 <VerticalStackLayout Spacing="8" HorizontalOptions="Center">
                                     <Image HeightRequest="28" WidthRequest="28" HorizontalOptions="Center">
                                         <Image.Source>
-                                            <FontImageSource Glyph="{x:Static icons:MaterialRegular.Schedule}"
-                                                             FontFamily="MaterialRegular"
+                                            <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Schedule}"
+                                                             FontFamily="MaterialSymbolsOutlined"
                                                              Color="{StaticResource Primary}"
                                                              Size="28"/>
                                         </Image.Source>
@@ -155,8 +155,8 @@
                                 <VerticalStackLayout Spacing="8" HorizontalOptions="Center">
                                     <Image HeightRequest="28" WidthRequest="28" HorizontalOptions="Center">
                                         <Image.Source>
-                                            <FontImageSource Glyph="{x:Static icons:MaterialRegular.Local_fire_department}"
-                                                             FontFamily="MaterialRegular"
+                                            <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Local_fire_department}"
+                                                             FontFamily="MaterialSymbolsOutlined"
                                                              Color="#FF6B35"
                                                              Size="28"/>
                                         </Image.Source>
@@ -181,8 +181,8 @@
                                 <VerticalStackLayout Spacing="8" HorizontalOptions="Center">
                                     <Image HeightRequest="28" WidthRequest="28" HorizontalOptions="Center">
                                         <Image.Source>
-                                            <FontImageSource Glyph="{x:Static icons:MaterialRegular.Group}"
-                                                             FontFamily="MaterialRegular"
+                                            <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Group}"
+                                                             FontFamily="MaterialSymbolsOutlined"
                                                              Color="{StaticResource Primary}"
                                                              Size="28"/>
                                         </Image.Source>
@@ -204,8 +204,8 @@
                                         WidthRequest="36">
                                     <Image HeightRequest="20" WidthRequest="20" HorizontalOptions="Center" VerticalOptions="Center">
                                         <Image.Source>
-                                            <FontImageSource Glyph="{x:Static icons:MaterialRegular.Shopping_basket}"
-                                                             FontFamily="MaterialRegular"
+                                            <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Shopping_basket}"
+                                                             FontFamily="MaterialSymbolsOutlined"
                                                              Color="White"
                                                              Size="20"/>
                                         </Image.Source>
@@ -231,8 +231,8 @@
                                                         WidthRequest="28">
                                                     <Image HeightRequest="16" WidthRequest="16" HorizontalOptions="Center" VerticalOptions="Center">
                                                         <Image.Source>
-                                                            <FontImageSource Glyph="{x:Static icons:MaterialRegular.Check}"
-                                                                             FontFamily="MaterialRegular"
+                                                            <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Check}"
+                                                                             FontFamily="MaterialSymbolsOutlined"
                                                                              Color="{StaticResource Primary}"
                                                                              Size="16"/>
                                                         </Image.Source>
@@ -260,8 +260,8 @@
                                         WidthRequest="36">
                                     <Image HeightRequest="20" WidthRequest="20" HorizontalOptions="Center" VerticalOptions="Center">
                                         <Image.Source>
-                                            <FontImageSource Glyph="{x:Static icons:MaterialRegular.Menu_book}"
-                                                             FontFamily="MaterialRegular"
+                                            <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Menu_book}"
+                                                             FontFamily="MaterialSymbolsOutlined"
                                                              Color="White"
                                                              Size="20"/>
                                         </Image.Source>
@@ -305,8 +305,8 @@
                 </Border.Behaviors>
                 <Image HeightRequest="22" WidthRequest="22" HorizontalOptions="Center" VerticalOptions="Center">
                     <Image.Source>
-                        <FontImageSource Glyph="{x:Static icons:MaterialRegular.Arrow_back}"
-                                         FontFamily="MaterialRegular"
+                        <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Arrow_back}"
+                                         FontFamily="MaterialSymbolsOutlined"
                                          Color="White"
                                          Size="22"/>
                     </Image.Source>
@@ -329,8 +329,8 @@
                 </Border.Behaviors>
                 <Image HeightRequest="22" WidthRequest="22" HorizontalOptions="Center" VerticalOptions="Center">
                     <Image.Source>
-                        <FontImageSource Glyph="{x:Static icons:MaterialRegular.Edit}"
-                                         FontFamily="MaterialRegular"
+                        <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Edit}"
+                                         FontFamily="MaterialSymbolsOutlined"
                                          Color="White"
                                          Size="22"/>
                     </Image.Source>
@@ -352,8 +352,8 @@
                 </Border.Behaviors>
                 <Image HeightRequest="22" WidthRequest="22" HorizontalOptions="Center" VerticalOptions="Center">
                     <Image.Source>
-                        <FontImageSource Glyph="{x:Static icons:MaterialRegular.Delete}"
-                                         FontFamily="MaterialRegular"
+                        <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Delete}"
+                                         FontFamily="MaterialSymbolsOutlined"
                                          Color="#FF6B6B"
                                          Size="22"/>
                     </Image.Source>
