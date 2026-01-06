@@ -21,10 +21,15 @@ jobs:
       with:
         dotnet-version: 10.0.x
     - name: Restore workloads
-      run: dotnet workload restore
+      run: dotnet workload restore --skip-sign-check
     - name: Restore dependencies
       run: dotnet restore
     - name: Build
-      run: dotnet build --no-restore
+      # Only build Android on Ubuntu since iOS/macOS workloads require macOS
+      run: dotnet build ReceptyOks/ReceptyOks.csproj -f net10.0-android --no-restore
+    - name: Build API
+      run: dotnet build ReceptyOks.Api/ReceptyOks.Api.csproj --no-restore
+    - name: Build Shared
+      run: dotnet build ReceptyOks.Shared/ReceptyOks.Shared.csproj --no-restore
     - name: Test
       run: dotnet test --no-build --verbosity normal
