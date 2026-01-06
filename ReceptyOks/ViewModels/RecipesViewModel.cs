@@ -83,6 +83,12 @@ public partial class RecipesViewModel : ObservableObject
         await Shell.Current.GoToAsync($"{nameof(Views.RecipeDetailPage)}?id={recipe.Id}");
     }
 
+    [RelayCommand]
+    private void ClearSearch()
+    {
+        SearchQuery = string.Empty;
+    }
+
     partial void OnSearchQueryChanged(string value)
     {
         LoadRecipesCommand.Execute(null);

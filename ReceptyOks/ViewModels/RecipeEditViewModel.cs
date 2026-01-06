@@ -18,9 +18,6 @@ public partial class RecipeEditViewModel : ObservableObject
     private string title = string.Empty;
 
     [ObservableProperty]
-    private string description = string.Empty;
-
-    [ObservableProperty]
     private string instructions = string.Empty;
 
     [ObservableProperty]
@@ -90,7 +87,6 @@ public partial class RecipeEditViewModel : ObservableObject
         if (recipe is null) return;
 
         Title = recipe.Title;
-        Description = recipe.Description;
         Instructions = recipe.Instructions;
         PreparationTimeMinutes = recipe.PreparationTimeMinutes;
         CookingTimeMinutes = recipe.CookingTimeMinutes;
@@ -130,11 +126,12 @@ public partial class RecipeEditViewModel : ObservableObject
     {
         try
         {
-            var result = await Microsoft.Maui.Media.MediaPicker.PickPhotoAsync(new Microsoft.Maui.Media.MediaPickerOptions
+            var photos = await MediaPicker.Default.PickPhotosAsync(new MediaPickerOptions
             {
                 Title = "Wybierz zdjêcie przepisu"
             });
 
+            var result = photos?.FirstOrDefault();
             if (result is not null)
             {
                 using var stream = await result.OpenReadAsync();
@@ -155,7 +152,16 @@ public partial class RecipeEditViewModel : ObservableObject
     {
         try
         {
-            var result = await Microsoft.Maui.Media.MediaPicker.CapturePhotoAsync();
+            if (!MediaPicker.Default.IsCaptureSupported)
+            {
+                await Shell.Current.DisplayAlertAsync("B³¹d", "Aparat nie jest dostêpny na tym urz¹dzeniu", "OK");
+                return;
+            }
+
+            var result = await MediaPicker.Default.CapturePhotoAsync(new MediaPickerOptions
+            {
+                Title = "Zrób zdjêcie przepisu"
+            });
 
             if (result is not null)
             {
@@ -200,7 +206,7 @@ public partial class RecipeEditViewModel : ObservableObject
         {
             Id = _isNewRecipe ? Guid.NewGuid() : _existingId,
             Title = Title,
-            Description = Description,
+            Description = string.Empty,
             Instructions = Instructions,
             PreparationTimeMinutes = PreparationTimeMinutes,
             CookingTimeMinutes = CookingTimeMinutes,

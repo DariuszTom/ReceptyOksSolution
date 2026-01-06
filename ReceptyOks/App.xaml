@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:local="clr-namespace:ReceptyOks"
              xmlns:converters="clr-namespace:ReceptyOks.Converters"
+             xmlns:uranium="http://schemas.enisn-projects.io/dotnet/maui/uraniumui"
              x:Class="ReceptyOks.App">
     <Application.Resources>
         <ResourceDictionary>

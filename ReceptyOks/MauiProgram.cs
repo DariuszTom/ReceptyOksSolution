@@ -3,6 +3,8 @@ using ReceptyOks.Data;
 using ReceptyOks.Services;
 using ReceptyOks.ViewModels;
 using ReceptyOks.Views;
+using UraniumUI;
+using CommunityToolkit.Maui;
 
 namespace ReceptyOks;
 
@@ -13,10 +15,14 @@ public static class MauiProgram
 		var builder = MauiApp.CreateBuilder();
 		builder
 			.UseMauiApp<App>()
-			.ConfigureFonts(fonts =>
+			.UseMauiCommunityToolkit()
+            .UseUraniumUI()
+            .UseUraniumUIMaterial()
+            .ConfigureFonts(fonts =>
 			{
 				fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
 				fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
+				fonts.AddMaterialIconFonts();
 			});
 
 		// Database

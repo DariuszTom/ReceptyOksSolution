@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using ReceptyOks.Api.Data;
 using ReceptyOks.Api.Endpoints;
+using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,7 +16,7 @@ var dbPath = Path.Combine(dataFolder, "recipes.db");
 builder.Services.AddDbContext<RecipeDbContext>(options =>
     options.UseSqlite($"Data Source={dbPath}"));
 
-// OpenAPI/Swagger
+// OpenAPI
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
@@ -30,13 +31,14 @@ using (var scope = app.Services.CreateScope())
 // Aspire health checks etc.
 app.MapDefaultEndpoints();
 
-// Swagger UI w development
+// Scalar UI w development (nowoczesna alternatywa dla Swagger UI w .NET 10)
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
-    app.UseSwaggerUI(options =>
+    app.MapScalarApiReference(options =>
     {
-        options.SwaggerEndpoint("/openapi/v1.json", "ReceptyOks API v1");
+        options.Title = "ReceptyOks API";
+        options.Theme = ScalarTheme.BluePlanet;
     });
 }
 

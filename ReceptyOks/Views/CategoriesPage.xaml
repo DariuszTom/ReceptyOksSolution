@@ -3,69 +3,198 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:ReceptyOks.ViewModels"
              xmlns:data="clr-namespace:ReceptyOks.Data"
+             xmlns:icons="clr-namespace:UraniumUI.Icons.MaterialIcons;assembly=UraniumUI.Icons.MaterialIcons"
+             xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
              x:Class="ReceptyOks.Views.CategoriesPage"
              x:DataType="vm:CategoriesViewModel"
-             Title="Kategorie">
+             Shell.NavBarIsVisible="False"
+             BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark=#121212}">
 
-    <Grid RowDefinitions="*">
-        <RefreshView IsRefreshing="{Binding IsRefreshing}"
-                     Command="{Binding LoadCategoriesCommand}">
+    <Grid RowDefinitions="Auto,*">
+        
+        <!-- Custom Header -->
+        <Grid Grid.Row="0" 
+              Padding="20,16"
+              BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}">
+            <Grid.Shadow>
+                <Shadow Brush="{StaticResource Gray400Brush}" Offset="0,2" Radius="4" Opacity="0.1"/>
+            </Grid.Shadow>
+            <VerticalStackLayout VerticalOptions="Center">
+                <Label Text="Kategorie" 
+                       FontSize="24" 
+                       FontAttributes="Bold"
+                       TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"/>
+                <Label Text="Organizuj swoje przepisy" 
+                       FontSize="14"
+                       TextColor="{StaticResource Gray500}"/>
+            </VerticalStackLayout>
+        </Grid>
+
+        <!-- Categories Grid -->
+        <RefreshView Grid.Row="1" 
+                     IsRefreshing="{Binding IsRefreshing}"
+                     Command="{Binding LoadCategoriesCommand}"
+                     RefreshColor="{StaticResource Primary}">
             <CollectionView ItemsSource="{Binding Categories}"
-                            EmptyView="Brak kategorii. Dodaj pierwszą!">
+                            Margin="12,16,12,0">
+                <CollectionView.ItemsLayout>
+                    <GridItemsLayout Orientation="Vertical" 
+                                     Span="2" 
+                                     HorizontalItemSpacing="12"
+                                     VerticalItemSpacing="12"/>
+                </CollectionView.ItemsLayout>
+                <CollectionView.EmptyView>
+                    <VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center" Spacing="16" Padding="40">
+                        <Border BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray600}}"
+                                StrokeThickness="0"
+                                StrokeShape="RoundRectangle 40"
+                                HeightRequest="80"
+                                WidthRequest="80"
+                                HorizontalOptions="Center">
+                            <Image HeightRequest="40" WidthRequest="40" HorizontalOptions="Center" VerticalOptions="Center">
+                                <Image.Source>
+                                    <FontImageSource Glyph="{x:Static icons:MaterialRegular.Folder_off}"
+                                                     FontFamily="MaterialRegular"
+                                                     Color="{StaticResource Gray400}"
+                                                     Size="40"/>
+                                </Image.Source>
+                            </Image>
+                        </Border>
+                        <Label Text="Brak kategorii" 
+                               FontSize="18" 
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource Gray500}"
+                               HorizontalOptions="Center"/>
+                        <Label Text="Utwórz kategorie, aby lepiej organizować swoje przepisy" 
+                               FontSize="14"
+                               TextColor="{StaticResource Gray400}"
+                               HorizontalOptions="Center"
+                               HorizontalTextAlignment="Center"/>
+                        <Button Text="Dodaj kategorię"
+                                Command="{Binding AddCategoryCommand}"
+                                BackgroundColor="{StaticResource Primary}"
+                                CornerRadius="24"
+                                Padding="24,12"
+                                HorizontalOptions="Center"
+                                Margin="0,8,0,0">
+                            <Button.ImageSource>
+                                <FontImageSource Glyph="{x:Static icons:MaterialRegular.Add}"
+                                                 FontFamily="MaterialRegular"
+                                                 Color="White"
+                                                 Size="20"/>
+                            </Button.ImageSource>
+                        </Button>
+                    </VerticalStackLayout>
+                </CollectionView.EmptyView>
                 <CollectionView.ItemTemplate>
                     <DataTemplate x:DataType="data:CategoryLocal">
-                        <Frame Margin="10,5" Padding="15" CornerRadius="10">
-                            <Frame.GestureRecognizers>
-                                <TapGestureRecognizer 
+                        <Border StrokeThickness="0"
+                                StrokeShape="RoundRectangle 20"
+                                Padding="0"
+                                HeightRequest="160"
+                                BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}">
+                            <Border.Behaviors>
+                                <toolkit:TouchBehavior 
+                                    PressedScale="0.96"
+                                    PressedOpacity="0.9"
                                     Command="{Binding Source={RelativeSource AncestorType={x:Type vm:CategoriesViewModel}}, Path=ViewRecipesInCategoryCommand}"
                                     CommandParameter="{Binding .}"/>
-                            </Frame.GestureRecognizers>
-                            <Grid ColumnDefinitions="Auto,*,Auto">
-                                <Frame Grid.Column="0" 
-                                       BackgroundColor="{StaticResource Primary}"
-                                       CornerRadius="25"
-                                       HeightRequest="50"
-                                       WidthRequest="50"
-                                       Padding="0">
-                                    <Label Text="📁" 
-                                           FontSize="24" 
-                                           HorizontalOptions="Center" 
-                                           VerticalOptions="Center"/>
-                                </Frame>
-                                <VerticalStackLayout Grid.Column="1" Margin="15,0" VerticalOptions="Center">
+                            </Border.Behaviors>
+                            <Border.Shadow>
+                                <Shadow Brush="{StaticResource Gray400Brush}"
+                                        Offset="0,4"
+                                        Radius="12"
+                                        Opacity="0.12"/>
+                            </Border.Shadow>
+                            <Grid RowDefinitions="*,Auto">
+                                <!-- Category Icon Area -->
+                                <Border Grid.Row="0" 
+                                        StrokeThickness="0"
+                                        StrokeShape="RoundRectangle 20,20,0,0"
+                                        BackgroundColor="{StaticResource Primary}"
+                                        Opacity="0.9">
+                                    <Grid>
+                                        <Image HeightRequest="48" WidthRequest="48" 
+                                               HorizontalOptions="Center" 
+                                               VerticalOptions="Center"
+                                               Opacity="0.9">
+                                            <Image.Source>
+                                                <FontImageSource Glyph="{x:Static icons:MaterialRegular.Folder}"
+                                                                 FontFamily="MaterialRegular"
+                                                                 Color="White"
+                                                                 Size="48"/>
+                                            </Image.Source>
+                                        </Image>
+                                        <!-- Edit button -->
+                                        <Border HorizontalOptions="End"
+                                                VerticalOptions="Start"
+                                                Margin="8"
+                                                Padding="8"
+                                                StrokeThickness="0"
+                                                StrokeShape="RoundRectangle 16"
+                                                BackgroundColor="#40FFFFFF">
+                                            <Border.Behaviors>
+                                                <toolkit:TouchBehavior 
+                                                    PressedScale="0.9"
+                                                    Command="{Binding Source={RelativeSource AncestorType={x:Type vm:CategoriesViewModel}}, Path=EditCategoryCommand}"
+                                                    CommandParameter="{Binding .}"/>
+                                            </Border.Behaviors>
+                                            <Image HeightRequest="18" WidthRequest="18">
+                                                <Image.Source>
+                                                    <FontImageSource Glyph="{x:Static icons:MaterialRegular.Edit}"
+                                                                     FontFamily="MaterialRegular"
+                                                                     Color="White"
+                                                                     Size="18"/>
+                                                </Image.Source>
+                                            </Image>
+                                        </Border>
+                                    </Grid>
+                                </Border>
+                                
+                                <!-- Category Info -->
+                                <VerticalStackLayout Grid.Row="1" 
+                                                     Spacing="2" 
+                                                     Padding="14,12"
+                                                     BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}">
                                     <Label Text="{Binding Name}" 
-                                           FontSize="16" 
-                                           FontAttributes="Bold"/>
+                                           FontSize="15" 
+                                           FontAttributes="Bold"
+                                           TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"
+                                           LineBreakMode="TailTruncation"
+                                           MaxLines="1"/>
                                     <Label Text="{Binding Description}" 
                                            FontSize="12" 
-                                           TextColor="Gray"
+                                           TextColor="{StaticResource Gray500}"
+                                           LineBreakMode="TailTruncation"
+                                           MaxLines="1"
                                            IsVisible="{Binding Description, Converter={StaticResource IsNotNullConverter}}"/>
                                 </VerticalStackLayout>
-                                <ImageButton Grid.Column="2" 
-                                             Source="edit.png"
-                                             Command="{Binding Source={RelativeSource AncestorType={x:Type vm:CategoriesViewModel}}, Path=EditCategoryCommand}"
-                                             CommandParameter="{Binding .}"
-                                             HeightRequest="24" 
-                                             WidthRequest="24"
-                                             VerticalOptions="Center"/>
                             </Grid>
-                        </Frame>
+                        </Border>
                     </DataTemplate>
                 </CollectionView.ItemTemplate>
             </CollectionView>
         </RefreshView>
 
         <!-- FAB - Add button -->
-        <Button Text="+"
-                FontSize="24"
-                WidthRequest="60"
-                HeightRequest="60"
-                CornerRadius="30"
+        <Button Grid.Row="1"
+                WidthRequest="64"
+                HeightRequest="64"
+                CornerRadius="32"
                 BackgroundColor="{StaticResource Primary}"
-                TextColor="White"
                 HorizontalOptions="End"
                 VerticalOptions="End"
-                Margin="20"
-                Command="{Binding AddCategoryCommand}"/>
+                Margin="20,20,20,24"
+                Command="{Binding AddCategoryCommand}">
+            <Button.Shadow>
+                <Shadow Brush="{StaticResource Primary}" Offset="0,6" Radius="16" Opacity="0.4"/>
+            </Button.Shadow>
+            <Button.ImageSource>
+                <FontImageSource Glyph="{x:Static icons:MaterialRegular.Create_new_folder}"
+                                 FontFamily="MaterialRegular"
+                                 Color="White"
+                                 Size="28"/>
+            </Button.ImageSource>
+        </Button>
     </Grid>
 </ContentPage>

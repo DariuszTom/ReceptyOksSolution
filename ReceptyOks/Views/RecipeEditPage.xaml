@@ -3,6 +3,9 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:ReceptyOks.ViewModels"
              xmlns:data="clr-namespace:ReceptyOks.Data"
+             xmlns:material="http://schemas.enisn-projects.io/dotnet/maui/uraniumui/material"
+             xmlns:icons="clr-namespace:UraniumUI.Icons.MaterialIcons;assembly=UraniumUI.Icons.MaterialIcons"
+             xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
              x:Class="ReceptyOks.Views.RecipeEditPage"
              x:DataType="vm:RecipeEditViewModel"
              Title="{Binding PageTitle}">
@@ -12,132 +15,196 @@
     </ContentPage.ToolbarItems>
 
     <ScrollView>
-        <VerticalStackLayout Spacing="15" Padding="15">
+        <VerticalStackLayout Spacing="16" Padding="16">
             
-            <!-- Zdjďż˝cie -->
-            <Frame CornerRadius="15" 
-                   Padding="0" 
-                   IsClippedToBounds="True"
-                   HeightRequest="150"
-                   BackgroundColor="LightGray">
+            <!-- Zdjęcie -->
+            <Border StrokeShape="RoundRectangle 16" 
+                    Padding="0"
+                    HeightRequest="180"
+                    BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray600}}"
+                    StrokeThickness="0">
+                <Border.Shadow>
+                    <Shadow Brush="{StaticResource Gray400Brush}"
+                            Offset="0,2"
+                            Radius="8"
+                            Opacity="0.1"/>
+                </Border.Shadow>
+                <Border.Behaviors>
+                    <toolkit:TouchBehavior 
+                        PressedScale="0.98"
+                        PressedOpacity="0.9"
+                        Command="{Binding PickImageCommand}"/>
+                </Border.Behaviors>
                 <Grid>
                     <Image Source="{Binding ImagePreview}" 
                            Aspect="AspectFill"
                            IsVisible="{Binding ImagePreview, Converter={StaticResource IsNotNullConverter}}"/>
-                    <Label Text="?? Dodaj zdjďż˝cie" 
-                           HorizontalOptions="Center" 
-                           VerticalOptions="Center"
-                           IsVisible="{Binding ImagePreview, Converter={StaticResource IsNullConverter}}"/>
-                    <Grid.GestureRecognizers>
-                        <TapGestureRecognizer Command="{Binding PickImageCommand}"/>
-                    </Grid.GestureRecognizers>
+                    <VerticalStackLayout HorizontalOptions="Center" 
+                                         VerticalOptions="Center"
+                                         Spacing="8"
+                                         IsVisible="{Binding ImagePreview, Converter={StaticResource IsNullConverter}}">
+                        <Image HeightRequest="48" WidthRequest="48">
+                            <Image.Source>
+                                <FontImageSource Glyph="{x:Static icons:MaterialRegular.Add_a_photo}"
+                                                 FontFamily="MaterialRegular"
+                                                 Color="{StaticResource Gray400}"
+                                                 Size="48"/>
+                            </Image.Source>
+                        </Image>
+                        <Label Text="Dodaj zdjęcie" 
+                               FontSize="14"
+                               TextColor="{StaticResource Gray500}"/>
+                    </VerticalStackLayout>
                 </Grid>
-            </Frame>
+            </Border>
             
-            <HorizontalStackLayout Spacing="10" HorizontalOptions="Center">
-                <Button Text="Wybierz zdjďż˝cie" Command="{Binding PickImageCommand}"/>
-                <Button Text="Zrďż˝b zdjďż˝cie" Command="{Binding TakePhotoCommand}"/>
+            <HorizontalStackLayout Spacing="12" HorizontalOptions="Center">
+                <Button Command="{Binding PickImageCommand}"
+                        BackgroundColor="Transparent"
+                        BorderColor="{StaticResource Primary}"
+                        BorderWidth="1"
+                        CornerRadius="20"
+                        Padding="16,8">
+                    <Button.ImageSource>
+                        <FontImageSource Glyph="{x:Static icons:MaterialRegular.Photo_library}"
+                                         FontFamily="MaterialRegular"
+                                         Color="{StaticResource Primary}"
+                                         Size="20"/>
+                    </Button.ImageSource>
+                </Button>
+                <Button Command="{Binding TakePhotoCommand}"
+                        BackgroundColor="Transparent"
+                        BorderColor="{StaticResource Primary}"
+                        BorderWidth="1"
+                        CornerRadius="20"
+                        Padding="16,8">
+                    <Button.ImageSource>
+                        <FontImageSource Glyph="{x:Static icons:MaterialRegular.Camera_alt}"
+                                         FontFamily="MaterialRegular"
+                                         Color="{StaticResource Primary}"
+                                         Size="20"/>
+                    </Button.ImageSource>
+                </Button>
             </HorizontalStackLayout>
 
-            <!-- Tytuďż˝ -->
-            <VerticalStackLayout>
-                <Label Text="Tytuďż˝ *" FontSize="12" TextColor="Gray"/>
-                <Entry Text="{Binding Title}" Placeholder="Nazwa przepisu"/>
-            </VerticalStackLayout>
-
-            <!-- Opis -->
-            <VerticalStackLayout>
-                <Label Text="Opis" FontSize="12" TextColor="Gray"/>
-                <Editor Text="{Binding Description}" 
-                        Placeholder="Krďż˝tki opis przepisu"
-                        HeightRequest="80"
-                        AutoSize="TextChanges"/>
-            </VerticalStackLayout>
+            <!-- Tytuł -->
+            <material:TextField Title="Tytuł *" 
+                                Text="{Binding Title}" 
+                                Icon="{FontImageSource Glyph={x:Static icons:MaterialRegular.Title}, FontFamily=MaterialRegular, Size=20}"
+                                AllowClear="True"/>
 
             <!-- Kategoria -->
-            <VerticalStackLayout>
-                <Label Text="Kategoria" FontSize="12" TextColor="Gray"/>
-                <Picker ItemsSource="{Binding Categories}"
-                        SelectedItem="{Binding SelectedCategory}"
-                        ItemDisplayBinding="{Binding Name}"
-                        Title="Wybierz kategoriďż˝"/>
-            </VerticalStackLayout>
+            <material:PickerField Title="Kategoria"
+                                  ItemsSource="{Binding Categories}"
+                                  SelectedItem="{Binding SelectedCategory}"
+                                  ItemDisplayBinding="{Binding Name}"
+                                  Icon="{FontImageSource Glyph={x:Static icons:MaterialRegular.Category}, FontFamily=MaterialRegular, Size=20}"/>
 
             <!-- Czasy i porcje -->
-            <Grid ColumnDefinitions="*,*,*" ColumnSpacing="10">
-                <VerticalStackLayout Grid.Column="0">
-                    <Label Text="Przygotowanie (min)" FontSize="10" TextColor="Gray"/>
-                    <Entry Text="{Binding PreparationTimeMinutes}" Keyboard="Numeric"/>
-                </VerticalStackLayout>
-                <VerticalStackLayout Grid.Column="1">
-                    <Label Text="Gotowanie (min)" FontSize="10" TextColor="Gray"/>
-                    <Entry Text="{Binding CookingTimeMinutes}" Keyboard="Numeric"/>
-                </VerticalStackLayout>
-                <VerticalStackLayout Grid.Column="2">
-                    <Label Text="Porcje" FontSize="10" TextColor="Gray"/>
-                    <Entry Text="{Binding Servings}" Keyboard="Numeric"/>
-                </VerticalStackLayout>
+            <Label Text="Szczegóły" FontSize="16" FontAttributes="Bold" Margin="0,8,0,0"/>
+            <Grid ColumnDefinitions="*,*,*" ColumnSpacing="12">
+                <material:TextField Grid.Column="0"
+                                    Title="Przygotowanie (min)"
+                                    Text="{Binding PreparationTimeMinutes}" 
+                                    Keyboard="Numeric"
+                                    Icon="{FontImageSource Glyph={x:Static icons:MaterialRegular.Schedule}, FontFamily=MaterialRegular, Size=18}"/>
+                <material:TextField Grid.Column="1"
+                                    Title="Gotowanie (min)"
+                                    Text="{Binding CookingTimeMinutes}" 
+                                    Keyboard="Numeric"
+                                    Icon="{FontImageSource Glyph={x:Static icons:MaterialRegular.Outdoor_grill}, FontFamily=MaterialRegular, Size=18}"/>
+                <material:TextField Grid.Column="2"
+                                    Title="Porcje"
+                                    Text="{Binding Servings}" 
+                                    Keyboard="Numeric"
+                                    Icon="{FontImageSource Glyph={x:Static icons:MaterialRegular.Group}, FontFamily=MaterialRegular, Size=18}"/>
             </Grid>
 
-            <!-- Skďż˝adniki -->
-            <Grid ColumnDefinitions="*,Auto">
-                <Label Text="Skďż˝adniki" FontSize="18" FontAttributes="Bold" VerticalOptions="Center"/>
-                <Button Grid.Column="1" Text="+ Dodaj" Command="{Binding AddIngredientCommand}"/>
+            <!-- Składniki -->
+            <Grid ColumnDefinitions="*,Auto" Margin="0,16,0,0">
+                <Label Text="Składniki" FontSize="18" FontAttributes="Bold" VerticalOptions="Center"/>
+                <Button Grid.Column="1" 
+                        Command="{Binding AddIngredientCommand}"
+                        BackgroundColor="{StaticResource Primary}"
+                        CornerRadius="20"
+                        Padding="12,6">
+                    <Button.ImageSource>
+                        <FontImageSource Glyph="{x:Static icons:MaterialRegular.Add}"
+                                         FontFamily="MaterialRegular"
+                                         Color="White"
+                                         Size="18"/>
+                    </Button.ImageSource>
+                </Button>
             </Grid>
 
             <CollectionView ItemsSource="{Binding Ingredients}">
                 <CollectionView.ItemTemplate>
                     <DataTemplate x:DataType="vm:EditableIngredient">
-                        <Frame Padding="10" Margin="0,5" CornerRadius="10">
-                            <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
-                                <Picker Grid.Row="0" Grid.Column="0"
-                                        ItemsSource="{Binding Source={RelativeSource AncestorType={x:Type vm:RecipeEditViewModel}}, Path=AvailableIngredients}"
-                                        SelectedItem="{Binding SelectedIngredient}"
-                                        ItemDisplayBinding="{Binding Name}"
-                                        Title="Skďż˝adnik"/>
+                        <Border Stroke="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray600}}"
+                                StrokeThickness="1"
+                                StrokeShape="RoundRectangle 12"
+                                Padding="12" 
+                                Margin="0,6"
+                                BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}">
+                            <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" RowSpacing="10">
+                                <material:PickerField Grid.Row="0" Grid.Column="0"
+                                                      Title="Składnik"
+                                                      ItemsSource="{Binding Source={RelativeSource AncestorType={x:Type vm:RecipeEditViewModel}}, Path=AvailableIngredients}"
+                                                      SelectedItem="{Binding SelectedIngredient}"
+                                                      ItemDisplayBinding="{Binding Name}"/>
                                 <Button Grid.Row="0" Grid.Column="1" 
-                                        Text="?" 
                                         BackgroundColor="Transparent"
-                                        TextColor="Red"
+                                        VerticalOptions="Center"
                                         Command="{Binding Source={RelativeSource AncestorType={x:Type vm:RecipeEditViewModel}}, Path=RemoveIngredientCommand}"
-                                        CommandParameter="{Binding .}"/>
+                                        CommandParameter="{Binding .}">
+                                    <Button.ImageSource>
+                                        <FontImageSource Glyph="{x:Static icons:MaterialRegular.Delete}"
+                                                         FontFamily="MaterialRegular"
+                                                         Color="#E53935"
+                                                         Size="22"/>
+                                    </Button.ImageSource>
+                                </Button>
                                 <Grid Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" 
-                                      ColumnDefinitions="*,*,2*" ColumnSpacing="5" Margin="0,5,0,0">
-                                    <Entry Grid.Column="0" 
-                                           Text="{Binding Quantity}" 
-                                           Placeholder="Iloďż˝ďż˝" 
-                                           Keyboard="Numeric"/>
-                                    <Entry Grid.Column="1" 
-                                           Text="{Binding Unit}" 
-                                           Placeholder="Jednostka"/>
-                                    <Entry Grid.Column="2" 
-                                           Text="{Binding Notes}" 
-                                           Placeholder="Uwagi (opcjonalne)"/>
+                                      ColumnDefinitions="*,*,2*" ColumnSpacing="8">
+                                    <material:TextField Grid.Column="0" 
+                                                        Title="Ilość"
+                                                        Text="{Binding Quantity}" 
+                                                        Keyboard="Numeric"/>
+                                    <material:TextField Grid.Column="1" 
+                                                        Title="Jednostka"
+                                                        Text="{Binding Unit}"/>
+                                    <material:TextField Grid.Column="2" 
+                                                        Title="Uwagi"
+                                                        Text="{Binding Notes}"/>
                                 </Grid>
                             </Grid>
-                        </Frame>
+                        </Border>
                     </DataTemplate>
                 </CollectionView.ItemTemplate>
             </CollectionView>
 
             <!-- Instrukcje -->
-            <VerticalStackLayout>
-                <Label Text="Przygotowanie" FontSize="18" FontAttributes="Bold"/>
-                <Editor Text="{Binding Instructions}" 
-                        Placeholder="Opisz krok po kroku jak przygotowaďż˝ danie..."
-                        HeightRequest="200"
-                        AutoSize="TextChanges"/>
-            </VerticalStackLayout>
+            <Label Text="Przygotowanie" FontSize="18" FontAttributes="Bold" Margin="0,16,0,0"/>
+            <material:EditorField Title="Instrukcje" 
+                                  Text="{Binding Instructions}"/>
 
             <!-- Przyciski -->
-            <Grid ColumnDefinitions="*,*" ColumnSpacing="10" Margin="0,20,0,0">
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="12" Margin="0,24,0,20">
                 <Button Grid.Column="0" 
                         Text="Anuluj" 
-                        BackgroundColor="Gray"
+                        BackgroundColor="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray600}}"
+                        TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray200}}"
                         Command="{Binding CancelCommand}"/>
                 <Button Grid.Column="1" 
                         Text="Zapisz" 
-                        Command="{Binding SaveCommand}"/>
+                        Command="{Binding SaveCommand}">
+                    <Button.ImageSource>
+                        <FontImageSource Glyph="{x:Static icons:MaterialRegular.Save}"
+                                         FontFamily="MaterialRegular"
+                                         Color="White"
+                                         Size="18"/>
+                    </Button.ImageSource>
+                </Button>
             </Grid>
 
         </VerticalStackLayout>

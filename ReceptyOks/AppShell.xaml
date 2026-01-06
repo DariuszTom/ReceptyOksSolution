@@ -4,20 +4,43 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:views="clr-namespace:ReceptyOks.Views"
-    Title="ReceptyOks">
+    xmlns:icons="clr-namespace:UraniumUI.Icons.MaterialIcons;assembly=UraniumUI.Icons.MaterialIcons"
+    Title="ReceptyOks"
+    Shell.TabBarBackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}"
+    Shell.TabBarTitleColor="{StaticResource Primary}"
+    Shell.TabBarUnselectedColor="{StaticResource Gray400}"
+    Shell.NavBarHasShadow="True"
+    Shell.BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}"
+    Shell.ForegroundColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}">
+
+    <Shell.Resources>
+        <Style x:Key="BaseStyle" TargetType="Element">
+            <Setter Property="Shell.TabBarBackgroundColor" Value="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}" />
+        </Style>
+    </Shell.Resources>
 
     <TabBar>
-        <ShellContent
-            Title="Przepisy"
-            Icon="recipe.png"
-            ContentTemplate="{DataTemplate views:RecipesPage}"
-            Route="RecipesPage" />
+        <Tab Title="Przepisy">
+            <Tab.Icon>
+                <FontImageSource Glyph="{x:Static icons:MaterialRegular.Restaurant_menu}"
+                                 FontFamily="MaterialRegular"
+                                 Size="24"/>
+            </Tab.Icon>
+            <ShellContent
+                ContentTemplate="{DataTemplate views:RecipesPage}"
+                Route="RecipesPage" />
+        </Tab>
         
-        <ShellContent
-            Title="Kategorie"
-            Icon="category.png"
-            ContentTemplate="{DataTemplate views:CategoriesPage}"
-            Route="CategoriesPage" />
+        <Tab Title="Kategorie">
+            <Tab.Icon>
+                <FontImageSource Glyph="{x:Static icons:MaterialRegular.Folder}"
+                                 FontFamily="MaterialRegular"
+                                 Size="24"/>
+            </Tab.Icon>
+            <ShellContent
+                ContentTemplate="{DataTemplate views:CategoriesPage}"
+                Route="CategoriesPage" />
+        </Tab>
     </TabBar>
 
 </Shell>
