@@ -54,6 +54,7 @@ public partial class RecipeEditViewModel : ObservableObject
     private string pageTitle = "Nowy przepis";
 
     private Guid _existingId;
+    private bool _isInitialized = false;
 
     public RecipeEditViewModel(LocalDatabase database)
     {
@@ -69,16 +70,25 @@ public partial class RecipeEditViewModel : ObservableObject
             PageTitle = "Edytuj przepis";
             LoadExistingRecipeCommand.Execute(id);
         }
+        else if (!_isInitialized)
+        {
+            // Jeœli nie ma ID (nowy przepis) i jeszcze nie zainicjalizowano, za³aduj kategorie i sk³adniki
+            InitializeCommand.Execute(null);
+        }
     }
 
     [RelayCommand]
     private async Task InitializeAsync()
     {
+        if (_isInitialized) return;
+
         var cats = await _database.GetCategoriesAsync();
         Categories = new ObservableCollection<CategoryLocal>(cats);
 
         var ings = await _database.GetIngredientsAsync();
         AvailableIngredients = new ObservableCollection<IngredientLocal>(ings);
+
+        _isInitialized = true;
     }
 
     [RelayCommand]

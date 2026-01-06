@@ -17,7 +17,7 @@
 
     <ScrollView>
         <VerticalStackLayout Spacing="16" Padding="16">
-            
+
             <!-- Zdjęcie -->
             <Border StrokeShape="RoundRectangle 16" 
                     Padding="0"
@@ -58,7 +58,7 @@
                     </VerticalStackLayout>
                 </Grid>
             </Border>
-            
+
             <HorizontalStackLayout Spacing="12" HorizontalOptions="Center">
                 <Button Command="{Binding PickImageCommand}"
                         BackgroundColor="Transparent"
@@ -99,30 +99,79 @@
                                   Text="{Binding Description}"/>
 
             <!-- Kategoria -->
-            <material:PickerField Title="Kategoria"
-                                  ItemsSource="{Binding Categories}"
-                                  SelectedItem="{Binding SelectedCategory}"
-                                  ItemDisplayBinding="{Binding Name}"
-                                  Icon="{FontImageSource Glyph={x:Static icons:MaterialOutlined.Category}, FontFamily=MaterialSymbolsOutlined, Size=20}"/>
+            <VerticalStackLayout Spacing="4">
+                <Label Text="Kategoria" FontSize="14" TextColor="{StaticResource Gray500}"/>
+                <Border Stroke="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray600}}"
+                        StrokeThickness="1"
+                        StrokeShape="RoundRectangle 8"
+                        Padding="12,8"
+                        BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}">
+                    <Grid ColumnDefinitions="Auto,*,Auto">
+                        <Image Grid.Column="0" 
+                               HeightRequest="20" 
+                               WidthRequest="20"
+                               Margin="0,0,8,0"
+                               VerticalOptions="Center">
+                            <Image.Source>
+                                <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Category}"
+                                                 FontFamily="MaterialSymbolsOutlined"
+                                                 Color="{StaticResource Primary}"
+                                                 Size="20"/>
+                            </Image.Source>
+                        </Image>
+                        <Picker Grid.Column="1"
+                                ItemsSource="{Binding Categories}"
+                                SelectedItem="{Binding SelectedCategory}"
+                                VerticalOptions="Center"
+                                BackgroundColor="Transparent"
+                                TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}">
+                            <Picker.ItemDisplayBinding>
+                                <Binding>
+                                    <Binding.Converter>
+                                        <StaticResource Key="CategoryDisplayConverter"/>
+                                    </Binding.Converter>
+                                </Binding>
+                            </Picker.ItemDisplayBinding>
+                        </Picker>
+                        <Image Grid.Column="2" 
+                               HeightRequest="16" 
+                               WidthRequest="16"
+                               VerticalOptions="Center">
+                            <Image.Source>
+                                <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Arrow_drop_down}"
+                                                 FontFamily="MaterialSymbolsOutlined"
+                                                 Color="{StaticResource Gray400}"
+                                                 Size="16"/>
+                            </Image.Source>
+                        </Image>
+                    </Grid>
+                </Border>
+            </VerticalStackLayout>
 
             <!-- Czasy i porcje -->
             <Label Text="Szczegóły" FontSize="16" FontAttributes="Bold" Margin="0,8,0,0"/>
             <Grid ColumnDefinitions="*,*,*" ColumnSpacing="12">
-                <material:TextField Grid.Column="0"
-                                    Title="Przygotowanie (min)"
-                                    Text="{Binding PreparationTimeMinutes}" 
-                                    Keyboard="Numeric"
-                                    Icon="{FontImageSource Glyph={x:Static icons:MaterialOutlined.Schedule}, FontFamily=MaterialSymbolsOutlined, Size=18}"/>
-                <material:TextField Grid.Column="1"
-                                    Title="Gotowanie (min)"
-                                    Text="{Binding CookingTimeMinutes}" 
-                                    Keyboard="Numeric"
-                                    Icon="{FontImageSource Glyph={x:Static icons:MaterialOutlined.Outdoor_grill}, FontFamily=MaterialSymbolsOutlined, Size=18}"/>
-                <material:TextField Grid.Column="2"
-                                    Title="Porcje"
-                                    Text="{Binding Servings}" 
-                                    Keyboard="Numeric"
-                                    Icon="{FontImageSource Glyph={x:Static icons:MaterialOutlined.Group}, FontFamily=MaterialSymbolsOutlined, Size=18}"/>
+                <VerticalStackLayout Grid.Column="0" Spacing="4">
+                    <Label Text="Przygotowanie (min)" FontSize="14"/>
+                    <HorizontalStackLayout>
+                        <Entry Text="{Binding PreparationTimeMinutes, Mode=TwoWay}" Keyboard="Numeric" WidthRequest="60"/>
+                        <Stepper Value="{Binding PreparationTimeMinutes, Mode=TwoWay}" Minimum="0" Maximum="1000" Increment="1" WidthRequest="120"/>
+                    </HorizontalStackLayout>
+                </VerticalStackLayout>
+                <VerticalStackLayout Grid.Column="1" Spacing="4">
+                    <Label Text="Gotowanie (min)" FontSize="14"/>
+                    <HorizontalStackLayout>
+                        <Entry Text="{Binding CookingTimeMinutes, Mode=TwoWay}" Keyboard="Numeric" WidthRequest="60"/>
+                        <Stepper Value="{Binding CookingTimeMinutes, Mode=TwoWay}" Minimum="0" Maximum="1000" Increment="1" WidthRequest="120"/>
+                    </HorizontalStackLayout>
+                </VerticalStackLayout>
+                <VerticalStackLayout Grid.Column="2" Spacing="4">
+                    <Label Text="Porcje" FontSize="14"/>
+                    <HorizontalStackLayout>
+                        <Entry Text="{Binding Servings, Mode=TwoWay}" Keyboard="Numeric" WidthRequest="60"/>
+                        <Stepper Value="{Binding Servings, Mode=TwoWay}" Minimum="1" Maximum="100" Increment="1" WidthRequest="120"/>
+                    </HorizontalStackLayout>
+                </VerticalStackLayout>
             </Grid>
 
             <!-- Składniki -->
@@ -220,4 +269,3 @@
         </VerticalStackLayout>
     </ScrollView>
 </ContentPage>
-

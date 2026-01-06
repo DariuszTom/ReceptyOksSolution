@@ -10,12 +10,14 @@ public partial class RecipeEditPage : ContentPage
         BindingContext = viewModel;
     }
 
-    protected override void OnAppearing()
+    protected override async void OnAppearing()
     {
         base.OnAppearing();
-        if (BindingContext is RecipeEditViewModel vm && string.IsNullOrEmpty(vm.RecipeIdParam))
+        if (BindingContext is RecipeEditViewModel vm)
         {
-            vm.InitializeCommand.Execute(null);
+            // Zawsze wywo³aj inicjalizacjê przy pojawieniu siê strony
+            // InitializeAsync sprawdzi czy ju¿ jest zainicjalizowane
+            await vm.InitializeCommand.ExecuteAsync(null);
         }
     }
 }
