@@ -31,7 +31,8 @@ public partial class CategoryEditViewModel : ObservableObject, IQueryAttributabl
         "dessert.png",
         "dinner1.png",
         "dinner2.png",
-        "muffin.png"
+        "muffin.png",
+        "soup.png"
     ];
 
     public CategoryEditViewModel(LocalDatabase database)

@@ -117,16 +117,8 @@
                     
                     <FlexLayout Wrap="Wrap" 
                                 JustifyContent="Start"
-                                AlignItems="Center">
-                        <BindableLayout.ItemsSource>
-                            <x:Array Type="{x:Type x:String}">
-                                <x:String>breakfast.png</x:String>
-                                <x:String>dessert.png</x:String>
-                                <x:String>dinner1.png</x:String>
-                                <x:String>dinner2.png</x:String>
-                                <x:String>muffin.png</x:String>
-                            </x:Array>
-                        </BindableLayout.ItemsSource>
+                                AlignItems="Center"
+                                BindableLayout.ItemsSource="{Binding AvailableIcons}">
                         <BindableLayout.ItemTemplate>
                             <DataTemplate x:DataType="x:String">
                                 <Border Margin="0,0,12,12"
