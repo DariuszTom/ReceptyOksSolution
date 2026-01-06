@@ -106,7 +106,7 @@
                      Command="{Binding LoadRecipesCommand}"
                      RefreshColor="{StaticResource Primary}">
             <CollectionView ItemsSource="{Binding Recipes}"
-                            Margin="8,4,8,4">
+                Margin="8,8,8,8">
                 <CollectionView.EmptyView>
                     <VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center" Spacing="16" Padding="40">
                         <Border BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray600}}"
@@ -155,7 +155,7 @@
                         <Border Stroke="Transparent"
                                 StrokeThickness="0"
                                 StrokeShape="RoundRectangle 16"
-                                Margin="16,6" 
+                                Margin="16,6,16,16"
                                 Padding="0"
                                 BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}">
                             <Border.Shadow>
@@ -176,7 +176,17 @@
                                         StrokeThickness="0"
                                         BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray600}}">
                                     <Grid>
-                                        <Image Aspect="AspectFill" VerticalOptions="Center" HorizontalOptions="Center">
+                                        <!-- Główne zdjęcie z bazy (byte[]) -->
+                                        <Image Aspect="AspectFill"
+                                               VerticalOptions="Center"
+                                               HorizontalOptions="Center"
+                                               Source="{Binding Image, Converter={StaticResource ByteArrayToImageSourceConverter}}" />
+
+                                        <!-- Fallback ikona, gdy nie ma zdjęcia w bazie -->
+                                        <Image Aspect="AspectFill"
+                                               VerticalOptions="Center"
+                                               HorizontalOptions="Center"
+                                               IsVisible="{Binding Image, Converter={StaticResource IsNullOrEmptyBytesConverter}}">
                                             <Image.Source>
                                                 <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Restaurant}"
                                                                  FontFamily="MaterialSymbolsOutlined"
@@ -184,6 +194,7 @@
                                                                  Size="60"/>
                                             </Image.Source>
                                         </Image>
+
                                         <!-- Time badge -->
                                         <Border HorizontalOptions="End"
                                                 VerticalOptions="Start"

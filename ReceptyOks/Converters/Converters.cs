@@ -1,4 +1,5 @@
 using System.Globalization;
+using Microsoft.Maui.Controls;
 
 namespace ReceptyOks.Converters;
 
@@ -32,17 +33,17 @@ public class ByteArrayToImageSourceConverter : IValueConverter
 {
     public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        if (value is byte[] bytes && bytes.Length > 0)
+        if (value is not byte[] bytes || bytes.Length == 0)
         {
-            return ImageSource.FromStream(() => new MemoryStream(bytes));
+            return null; // brak obrazu -> null
         }
-        return null;
+
+        // tworzymy ImageSource ze streamu
+        return ImageSource.FromStream(() => new MemoryStream(bytes));
     }
 
-    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
-    {
-        throw new NotImplementedException();
-    }
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => throw new NotImplementedException();
 }
 
 public class IconSelectionConverter : IMultiValueConverter
@@ -90,4 +91,21 @@ public class HasCategoryIconConverter : IValueConverter
     {
         throw new NotImplementedException();
     }
+}
+
+/// <summary>
+/// Zwraca true gdy wartoœæ jest null lub pusta tablica bajtów.
+/// U¿ywany do pokazania fallback ikony.
+/// </summary>
+public class IsNullOrEmptyBytesConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (value is null) return true;
+        if (value is byte[] bytes && bytes.Length == 0) return true;
+        return false;
+    }
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => throw new NotImplementedException();
 }

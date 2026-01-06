@@ -18,6 +18,7 @@
             <converters:ByteArrayToImageSourceConverter x:Key="ByteArrayToImageSourceConverter"/>
             <converters:IconSelectionConverter x:Key="IconSelectionConverter"/>
             <converters:HasCategoryIconConverter x:Key="HasCategoryIconConverter"/>
+            <converters:IsNullOrEmptyBytesConverter x:Key="IsNullOrEmptyBytesConverter" />
         </ResourceDictionary>
     </Application.Resources>
 </Application>
