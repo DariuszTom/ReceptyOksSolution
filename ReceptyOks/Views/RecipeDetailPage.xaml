@@ -111,6 +111,12 @@
                                            FontAttributes="Bold"/>
                                 </HorizontalStackLayout>
                             </Border>
+                            
+                            <!-- Description -->
+                            <Label Text="{Binding Recipe.Description}" 
+                                   FontSize="15" 
+                                   TextColor="{StaticResource Gray500}"
+                                   LineHeight="1.5"/>
                         </VerticalStackLayout>
 
                         <!-- Quick Stats -->

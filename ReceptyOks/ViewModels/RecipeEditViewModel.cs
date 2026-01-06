@@ -18,6 +18,9 @@ public partial class RecipeEditViewModel : ObservableObject
     private string title = string.Empty;
 
     [ObservableProperty]
+    private string description = string.Empty;
+
+    [ObservableProperty]
     private string instructions = string.Empty;
 
     [ObservableProperty]
@@ -87,6 +90,7 @@ public partial class RecipeEditViewModel : ObservableObject
         if (recipe is null) return;
 
         Title = recipe.Title;
+        Description = recipe.Description;
         Instructions = recipe.Instructions;
         PreparationTimeMinutes = recipe.PreparationTimeMinutes;
         CookingTimeMinutes = recipe.CookingTimeMinutes;
@@ -206,7 +210,7 @@ public partial class RecipeEditViewModel : ObservableObject
         {
             Id = _isNewRecipe ? Guid.NewGuid() : _existingId,
             Title = Title,
-            Description = string.Empty,
+            Description = Description,
             Instructions = Instructions,
             PreparationTimeMinutes = PreparationTimeMinutes,
             CookingTimeMinutes = CookingTimeMinutes,

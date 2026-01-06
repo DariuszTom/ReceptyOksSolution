@@ -6,6 +6,7 @@
              xmlns:material="http://schemas.enisn-projects.io/dotnet/maui/uraniumui/material"
              xmlns:icons="clr-namespace:UraniumUI.Icons.MaterialIcons;assembly=UraniumUI.Icons.MaterialIcons"
              xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+             xmlns:controls="clr-namespace:ReceptyOks.Controls"
              x:Class="ReceptyOks.Views.RecipeEditPage"
              x:DataType="vm:RecipeEditViewModel"
              Title="{Binding PageTitle}">
@@ -92,6 +93,10 @@
                                 Text="{Binding Title}" 
                                 Icon="{FontImageSource Glyph={x:Static icons:MaterialRegular.Title}, FontFamily=MaterialRegular, Size=20}"
                                 AllowClear="True"/>
+
+            <!-- Opis -->
+            <material:EditorField Title="Opis" 
+                                  Text="{Binding Description}"/>
 
             <!-- Kategoria -->
             <material:PickerField Title="Kategoria"
@@ -183,10 +188,15 @@
                 </CollectionView.ItemTemplate>
             </CollectionView>
 
-            <!-- Instrukcje -->
+            <!-- Instrukcje - Rich Text Editor -->
             <Label Text="Przygotowanie" FontSize="18" FontAttributes="Bold" Margin="0,16,0,0"/>
-            <material:EditorField Title="Instrukcje" 
-                                  Text="{Binding Instructions}"/>
+            <Border Stroke="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray600}}"
+                    StrokeThickness="1"
+                    StrokeShape="RoundRectangle 12"
+                    HeightRequest="350"
+                    BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}">
+                <controls:RichTextEditor HtmlContent="{Binding Instructions}"/>
+            </Border>
 
             <!-- Przyciski -->
             <Grid ColumnDefinitions="*,*" ColumnSpacing="12" Margin="0,24,0,20">
