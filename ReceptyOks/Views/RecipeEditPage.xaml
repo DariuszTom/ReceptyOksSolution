@@ -106,7 +106,7 @@
                         StrokeShape="RoundRectangle 8"
                         Padding="12,8"
                         BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}">
-                    <Grid ColumnDefinitions="Auto,*,Auto">
+                    <Grid ColumnDefinitions="Auto,*">
                         <Image Grid.Column="0" 
                                HeightRequest="20" 
                                WidthRequest="20"
@@ -122,28 +122,11 @@
                         <Picker Grid.Column="1"
                                 ItemsSource="{Binding Categories}"
                                 SelectedItem="{Binding SelectedCategory}"
+                                ItemDisplayBinding="{Binding Name}"
                                 VerticalOptions="Center"
+                                HorizontalOptions="FillAndExpand"
                                 BackgroundColor="Transparent"
-                                TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}">
-                            <Picker.ItemDisplayBinding>
-                                <Binding>
-                                    <Binding.Converter>
-                                        <StaticResource Key="CategoryDisplayConverter"/>
-                                    </Binding.Converter>
-                                </Binding>
-                            </Picker.ItemDisplayBinding>
-                        </Picker>
-                        <Image Grid.Column="2" 
-                               HeightRequest="16" 
-                               WidthRequest="16"
-                               VerticalOptions="Center">
-                            <Image.Source>
-                                <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Arrow_drop_down}"
-                                                 FontFamily="MaterialSymbolsOutlined"
-                                                 Color="{StaticResource Gray400}"
-                                                 Size="16"/>
-                            </Image.Source>
-                        </Image>
+                                TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"/>
                     </Grid>
                 </Border>
             </VerticalStackLayout>
