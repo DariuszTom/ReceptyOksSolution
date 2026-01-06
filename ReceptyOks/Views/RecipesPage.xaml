@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:ReceptyOks.ViewModels"
+             xmlns:data="clr-namespace:ReceptyOks.Data"
+             x:Class="ReceptyOks.Views.RecipesPage"
+             x:DataType="vm:RecipesViewModel"
+             Title="Przepisy">
+
+    <Shell.TitleView>
+        <Grid ColumnDefinitions="*,Auto,Auto" Padding="0,0,10,0">
+            <Label Text="Przepisy" 
+                   VerticalOptions="Center" 
+                   FontSize="18" 
+                   FontAttributes="Bold"/>
+            <ActivityIndicator Grid.Column="1" 
+                               IsRunning="{Binding IsSyncing}" 
+                               IsVisible="{Binding IsSyncing}"
+                               HeightRequest="20" 
+                               WidthRequest="20"
+                               Margin="0,0,10,0"/>
+            <ImageButton Grid.Column="2" 
+                         Source="sync.png"
+                         Command="{Binding SyncCommand}"
+                         HeightRequest="24" 
+                         WidthRequest="24"/>
+        </Grid>
+    </Shell.TitleView>
+
+    <Grid RowDefinitions="Auto,*">
+        <!-- Search bar -->
+        <SearchBar Grid.Row="0" 
+                   Placeholder="Szukaj przepis�w..."
+                   Text="{Binding SearchQuery}"
+                   SearchCommand="{Binding LoadRecipesCommand}"/>
+
+        <!-- Recipe list -->
+        <RefreshView Grid.Row="1" 
+                     IsRefreshing="{Binding IsRefreshing}"
+                     Command="{Binding LoadRecipesCommand}">
+            <CollectionView ItemsSource="{Binding Recipes}"
+                            EmptyView="Brak przepis�w. Dodaj pierwszy!">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="data:RecipeLocal">
+                        <Frame Margin="10,5" Padding="10" CornerRadius="10">
+                            <Frame.GestureRecognizers>
+                                <TapGestureRecognizer 
+                                    Command="{Binding Source={RelativeSource AncestorType={x:Type vm:RecipesViewModel}}, Path=GoToRecipeDetailCommand}"
+                                    CommandParameter="{Binding .}"/>
+                            </Frame.GestureRecognizers>
+                            <Grid ColumnDefinitions="80,*" ColumnSpacing="10">
+                                <!-- Thumbnail -->
+                                <Frame Grid.Column="0" 
+                                       CornerRadius="8" 
+                                       Padding="0" 
+                                       IsClippedToBounds="True"
+                                       HeightRequest="80"
+                                       WidthRequest="80">
+                                    <Image Aspect="AspectFill">
+                                        <Image.Source>
+                                            <FontImageSource Glyph="&#xf0f5;" 
+                                                             FontFamily="FontAwesome"
+                                                             Color="Gray"/>
+                                        </Image.Source>
+                                    </Image>
+                                </Frame>
+                                
+                                <!-- Info -->
+                                <VerticalStackLayout Grid.Column="1" Spacing="4">
+                                    <Label Text="{Binding Title}" 
+                                           FontSize="16" 
+                                           FontAttributes="Bold"
+                                           LineBreakMode="TailTruncation"/>
+                                    <Label Text="{Binding Description}" 
+                                           FontSize="12" 
+                                           TextColor="Gray"
+                                           MaxLines="2"
+                                           LineBreakMode="TailTruncation"/>
+                                    <HorizontalStackLayout Spacing="15">
+                                        <Label FontSize="11" TextColor="Gray">
+                                            <Label.FormattedText>
+                                                <FormattedString>
+                                                    <Span Text="? "/>
+                                                    <Span Text="{Binding PreparationTimeMinutes}"/>
+                                                    <Span Text=" min"/>
+                                                </FormattedString>
+                                            </Label.FormattedText>
+                                        </Label>
+                                        <Label FontSize="11" TextColor="Gray">
+                                            <Label.FormattedText>
+                                                <FormattedString>
+                                                    <Span Text="?? "/>
+                                                    <Span Text="{Binding Servings}"/>
+                                                    <Span Text=" porcji"/>
+                                                </FormattedString>
+                                            </Label.FormattedText>
+                                        </Label>
+                                    </HorizontalStackLayout>
+                                </VerticalStackLayout>
+                            </Grid>
+                        </Frame>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </RefreshView>
+
+        <!-- FAB - Add button -->
+        <Button Grid.Row="1"
+                Text="+"
+                FontSize="24"
+                WidthRequest="60"
+                HeightRequest="60"
+                CornerRadius="30"
+                BackgroundColor="{StaticResource Primary}"
+                TextColor="White"
+                HorizontalOptions="End"
+                VerticalOptions="End"
+                Margin="20"
+                Command="{Binding GoToAddRecipeCommand}"/>
+    </Grid>
+</ContentPage>

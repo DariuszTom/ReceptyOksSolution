@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:ReceptyOks.ViewModels"
+             x:Class="ReceptyOks.Views.RecipeDetailPage"
+             x:DataType="vm:RecipeDetailViewModel"
+             Title="{Binding Recipe.Title}">
+
+    <Shell.TitleView>
+        <Grid ColumnDefinitions="*,Auto,Auto" Padding="0,0,10,0">
+            <Label Text="{Binding Recipe.Title}" 
+                   VerticalOptions="Center" 
+                   FontSize="18" 
+                   FontAttributes="Bold"
+                   LineBreakMode="TailTruncation"/>
+            <ImageButton Grid.Column="1" 
+                         Source="edit.png"
+                         Command="{Binding EditRecipeCommand}"
+                         HeightRequest="24" 
+                         WidthRequest="24"
+                         Margin="0,0,10,0"/>
+            <ImageButton Grid.Column="2" 
+                         Source="delete.png"
+                         Command="{Binding DeleteRecipeCommand}"
+                         HeightRequest="24" 
+                         WidthRequest="24"/>
+        </Grid>
+    </Shell.TitleView>
+
+    <ScrollView>
+        <VerticalStackLayout Spacing="15" Padding="15">
+            <!-- Obraz -->
+            <Frame CornerRadius="15" 
+                   Padding="0" 
+                   IsClippedToBounds="True"
+                   HeightRequest="200"
+                   IsVisible="{Binding RecipeImage, Converter={StaticResource IsNotNullConverter}}">
+                <Image Source="{Binding RecipeImage}" 
+                       Aspect="AspectFill"/>
+            </Frame>
+
+            <!-- Kategoria -->
+            <Frame BackgroundColor="{StaticResource Primary}" 
+                   Padding="10,5" 
+                   CornerRadius="15"
+                   HorizontalOptions="Start"
+                   IsVisible="{Binding Category, Converter={StaticResource IsNotNullConverter}}">
+                <Label Text="{Binding Category.Name}" 
+                       TextColor="White" 
+                       FontSize="12"/>
+            </Frame>
+
+            <!-- Opis -->
+            <Label Text="{Binding Recipe.Description}" 
+                   FontSize="14" 
+                   TextColor="Gray"/>
+
+            <!-- Info czasowe -->
+            <Grid ColumnDefinitions="*,*,*" ColumnSpacing="10">
+                <Frame Grid.Column="0" Padding="10" CornerRadius="10">
+                    <VerticalStackLayout HorizontalOptions="Center">
+                        <Label Text="?" FontSize="20" HorizontalOptions="Center"/>
+                        <Label Text="Przygotowanie" FontSize="10" TextColor="Gray" HorizontalOptions="Center"/>
+                        <Label FontSize="14" FontAttributes="Bold" HorizontalOptions="Center">
+                            <Label.FormattedText>
+                                <FormattedString>
+                                    <Span Text="{Binding Recipe.PreparationTimeMinutes}"/>
+                                    <Span Text=" min"/>
+                                </FormattedString>
+                            </Label.FormattedText>
+                        </Label>
+                    </VerticalStackLayout>
+                </Frame>
+                <Frame Grid.Column="1" Padding="10" CornerRadius="10">
+                    <VerticalStackLayout HorizontalOptions="Center">
+                        <Label Text="??" FontSize="20" HorizontalOptions="Center"/>
+                        <Label Text="Gotowanie" FontSize="10" TextColor="Gray" HorizontalOptions="Center"/>
+                        <Label FontSize="14" FontAttributes="Bold" HorizontalOptions="Center">
+                            <Label.FormattedText>
+                                <FormattedString>
+                                    <Span Text="{Binding Recipe.CookingTimeMinutes}"/>
+                                    <Span Text=" min"/>
+                                </FormattedString>
+                            </Label.FormattedText>
+                        </Label>
+                    </VerticalStackLayout>
+                </Frame>
+                <Frame Grid.Column="2" Padding="10" CornerRadius="10">
+                    <VerticalStackLayout HorizontalOptions="Center">
+                        <Label Text="??" FontSize="20" HorizontalOptions="Center"/>
+                        <Label Text="Porcje" FontSize="10" TextColor="Gray" HorizontalOptions="Center"/>
+                        <Label Text="{Binding Recipe.Servings}" FontSize="14" FontAttributes="Bold" HorizontalOptions="Center"/>
+                    </VerticalStackLayout>
+                </Frame>
+            </Grid>
+
+            <!-- Sk�adniki -->
+            <Label Text="Sk�adniki" FontSize="18" FontAttributes="Bold" Margin="0,10,0,0"/>
+            <CollectionView ItemsSource="{Binding Ingredients}">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="vm:RecipeIngredientDisplay">
+                        <Grid ColumnDefinitions="Auto,*" Padding="5,3">
+                            <Label Text="�" FontSize="14" VerticalOptions="Center"/>
+                            <Label Grid.Column="1" 
+                                   Text="{Binding DisplayText}" 
+                                   FontSize="14"
+                                   VerticalOptions="Center"/>
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <!-- Instrukcje -->
+            <Label Text="Przygotowanie" FontSize="18" FontAttributes="Bold" Margin="0,10,0,0"/>
+            <Label Text="{Binding Recipe.Instructions}" FontSize="14"/>
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

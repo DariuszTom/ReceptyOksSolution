@@ -15,6 +15,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\ReceptyOks.Api\ReceptyOks.Api.csproj" />
     <ProjectReference Include="..\ReceptyOks\ReceptyOks.csproj">
       <SetTargetFramework>TargetFramework=net10.0</SetTargetFramework>
     </ProjectReference>

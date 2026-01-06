@@ -1,4 +1,5 @@
 <Solution>
+  <Project Path="ReceptyOks.Shared/ReceptyOks.Shared.csproj" />
   <Project Path="ReceptyOks/ReceptyOks.csproj" />
   <Project Path="ReceptyOksSolution.AppHost/ReceptyOksSolution.AppHost.csproj" />
   <Project Path="ReceptyOksSolution.ServiceDefaults/ReceptyOksSolution.ServiceDefaults.csproj" />

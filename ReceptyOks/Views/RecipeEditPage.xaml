@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:ReceptyOks.ViewModels"
+             xmlns:data="clr-namespace:ReceptyOks.Data"
+             x:Class="ReceptyOks.Views.RecipeEditPage"
+             x:DataType="vm:RecipeEditViewModel"
+             Title="{Binding PageTitle}">
+
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="Zapisz" Command="{Binding SaveCommand}"/>
+    </ContentPage.ToolbarItems>
+
+    <ScrollView>
+        <VerticalStackLayout Spacing="15" Padding="15">
+            
+            <!-- Zdj�cie -->
+            <Frame CornerRadius="15" 
+                   Padding="0" 
+                   IsClippedToBounds="True"
+                   HeightRequest="150"
+                   BackgroundColor="LightGray">
+                <Grid>
+                    <Image Source="{Binding ImagePreview}" 
+                           Aspect="AspectFill"
+                           IsVisible="{Binding ImagePreview, Converter={StaticResource IsNotNullConverter}}"/>
+                    <Label Text="?? Dodaj zdj�cie" 
+                           HorizontalOptions="Center" 
+                           VerticalOptions="Center"
+                           IsVisible="{Binding ImagePreview, Converter={StaticResource IsNullConverter}}"/>
+                    <Grid.GestureRecognizers>
+                        <TapGestureRecognizer Command="{Binding PickImageCommand}"/>
+                    </Grid.GestureRecognizers>
+                </Grid>
+            </Frame>
+            
+            <HorizontalStackLayout Spacing="10" HorizontalOptions="Center">
+                <Button Text="Wybierz zdj�cie" Command="{Binding PickImageCommand}"/>
+                <Button Text="Zr�b zdj�cie" Command="{Binding TakePhotoCommand}"/>
+            </HorizontalStackLayout>
+
+            <!-- Tytu� -->
+            <VerticalStackLayout>
+                <Label Text="Tytu� *" FontSize="12" TextColor="Gray"/>
+                <Entry Text="{Binding Title}" Placeholder="Nazwa przepisu"/>
+            </VerticalStackLayout>
+
+            <!-- Opis -->
+            <VerticalStackLayout>
+                <Label Text="Opis" FontSize="12" TextColor="Gray"/>
+                <Editor Text="{Binding Description}" 
+                        Placeholder="Kr�tki opis przepisu"
+                        HeightRequest="80"
+                        AutoSize="TextChanges"/>
+            </VerticalStackLayout>
+
+            <!-- Kategoria -->
+            <VerticalStackLayout>
+                <Label Text="Kategoria" FontSize="12" TextColor="Gray"/>
+                <Picker ItemsSource="{Binding Categories}"
+                        SelectedItem="{Binding SelectedCategory}"
+                        ItemDisplayBinding="{Binding Name}"
+                        Title="Wybierz kategori�"/>
+            </VerticalStackLayout>
+
+            <!-- Czasy i porcje -->
+            <Grid ColumnDefinitions="*,*,*" ColumnSpacing="10">
+                <VerticalStackLayout Grid.Column="0">
+                    <Label Text="Przygotowanie (min)" FontSize="10" TextColor="Gray"/>
+                    <Entry Text="{Binding PreparationTimeMinutes}" Keyboard="Numeric"/>
+                </VerticalStackLayout>
+                <VerticalStackLayout Grid.Column="1">
+                    <Label Text="Gotowanie (min)" FontSize="10" TextColor="Gray"/>
+                    <Entry Text="{Binding CookingTimeMinutes}" Keyboard="Numeric"/>
+                </VerticalStackLayout>
+                <VerticalStackLayout Grid.Column="2">
+                    <Label Text="Porcje" FontSize="10" TextColor="Gray"/>
+                    <Entry Text="{Binding Servings}" Keyboard="Numeric"/>
+                </VerticalStackLayout>
+            </Grid>
+
+            <!-- Sk�adniki -->
+            <Grid ColumnDefinitions="*,Auto">
+                <Label Text="Sk�adniki" FontSize="18" FontAttributes="Bold" VerticalOptions="Center"/>
+                <Button Grid.Column="1" Text="+ Dodaj" Command="{Binding AddIngredientCommand}"/>
+            </Grid>
+
+            <CollectionView ItemsSource="{Binding Ingredients}">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="vm:EditableIngredient">
+                        <Frame Padding="10" Margin="0,5" CornerRadius="10">
+                            <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+                                <Picker Grid.Row="0" Grid.Column="0"
+                                        ItemsSource="{Binding Source={RelativeSource AncestorType={x:Type vm:RecipeEditViewModel}}, Path=AvailableIngredients}"
+                                        SelectedItem="{Binding SelectedIngredient}"
+                                        ItemDisplayBinding="{Binding Name}"
+                                        Title="Sk�adnik"/>
+                                <Button Grid.Row="0" Grid.Column="1" 
+                                        Text="?" 
+                                        BackgroundColor="Transparent"
+                                        TextColor="Red"
+                                        Command="{Binding Source={RelativeSource AncestorType={x:Type vm:RecipeEditViewModel}}, Path=RemoveIngredientCommand}"
+                                        CommandParameter="{Binding .}"/>
+                                <Grid Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" 
+                                      ColumnDefinitions="*,*,2*" ColumnSpacing="5" Margin="0,5,0,0">
+                                    <Entry Grid.Column="0" 
+                                           Text="{Binding Quantity}" 
+                                           Placeholder="Ilo��" 
+                                           Keyboard="Numeric"/>
+                                    <Entry Grid.Column="1" 
+                                           Text="{Binding Unit}" 
+                                           Placeholder="Jednostka"/>
+                                    <Entry Grid.Column="2" 
+                                           Text="{Binding Notes}" 
+                                           Placeholder="Uwagi (opcjonalne)"/>
+                                </Grid>
+                            </Grid>
+                        </Frame>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <!-- Instrukcje -->
+            <VerticalStackLayout>
+                <Label Text="Przygotowanie" FontSize="18" FontAttributes="Bold"/>
+                <Editor Text="{Binding Instructions}" 
+                        Placeholder="Opisz krok po kroku jak przygotowa� danie..."
+                        HeightRequest="200"
+                        AutoSize="TextChanges"/>
+            </VerticalStackLayout>
+
+            <!-- Przyciski -->
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="10" Margin="0,20,0,0">
+                <Button Grid.Column="0" 
+                        Text="Anuluj" 
+                        BackgroundColor="Gray"
+                        Command="{Binding CancelCommand}"/>
+                <Button Grid.Column="1" 
+                        Text="Zapisz" 
+                        Command="{Binding SaveCommand}"/>
+            </Grid>
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

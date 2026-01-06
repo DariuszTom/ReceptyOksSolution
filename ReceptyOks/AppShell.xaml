@@ -3,12 +3,21 @@
     x:Class="ReceptyOks.AppShell"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    xmlns:local="clr-namespace:ReceptyOks"
+    xmlns:views="clr-namespace:ReceptyOks.Views"
     Title="ReceptyOks">
 
-    <ShellContent
-        Title="Home"
-        ContentTemplate="{DataTemplate local:MainPage}"
-        Route="MainPage" />
+    <TabBar>
+        <ShellContent
+            Title="Przepisy"
+            Icon="recipe.png"
+            ContentTemplate="{DataTemplate views:RecipesPage}"
+            Route="RecipesPage" />
+        
+        <ShellContent
+            Title="Kategorie"
+            Icon="category.png"
+            ContentTemplate="{DataTemplate views:CategoriesPage}"
+            Route="CategoriesPage" />
+    </TabBar>
 
 </Shell>

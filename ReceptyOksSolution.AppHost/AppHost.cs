@@ -1,5 +1,9 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
-builder.AddProject<Projects.ReceptyOks>("receptyoks");
+var api = builder.AddProject<Projects.ReceptyOks_Api>("receptyoks-api");
+
+builder.AddProject<Projects.ReceptyOks>("receptyoks")
+    .WithReference(api)
+    .WaitFor(api);
 
 builder.Build().Run();

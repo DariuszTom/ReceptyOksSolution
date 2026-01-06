@@ -1,4 +1,8 @@
 ﻿using Microsoft.Extensions.Logging;
+using ReceptyOks.Data;
+using ReceptyOks.Services;
+using ReceptyOks.ViewModels;
+using ReceptyOks.Views;
 
 namespace ReceptyOks;
 
@@ -14,6 +18,27 @@ public static class MauiProgram
 				fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
 				fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
 			});
+
+		// Database
+		builder.Services.AddSingleton<LocalDatabase>();
+		
+		// HTTP Client
+		builder.Services.AddSingleton<HttpClient>();
+		
+		// Services
+		builder.Services.AddSingleton<SyncService>();
+		
+		// ViewModels
+		builder.Services.AddTransient<RecipesViewModel>();
+		builder.Services.AddTransient<RecipeDetailViewModel>();
+		builder.Services.AddTransient<RecipeEditViewModel>();
+		builder.Services.AddTransient<CategoriesViewModel>();
+		
+		// Views
+		builder.Services.AddTransient<RecipesPage>();
+		builder.Services.AddTransient<RecipeDetailPage>();
+		builder.Services.AddTransient<RecipeEditPage>();
+		builder.Services.AddTransient<CategoriesPage>();
 
 #if DEBUG
 		builder.Logging.AddDebug();
