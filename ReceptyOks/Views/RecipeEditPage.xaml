@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8" ?>
+﻿<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:ReceptyOks.ViewModels"
@@ -14,7 +14,7 @@
     <ScrollView>
         <VerticalStackLayout Spacing="15" Padding="15">
             
-            <!-- Zdj�cie -->
+            <!-- Zdjďż˝cie -->
             <Frame CornerRadius="15" 
                    Padding="0" 
                    IsClippedToBounds="True"
@@ -24,7 +24,7 @@
                     <Image Source="{Binding ImagePreview}" 
                            Aspect="AspectFill"
                            IsVisible="{Binding ImagePreview, Converter={StaticResource IsNotNullConverter}}"/>
-                    <Label Text="?? Dodaj zdj�cie" 
+                    <Label Text="?? Dodaj zdjďż˝cie" 
                            HorizontalOptions="Center" 
                            VerticalOptions="Center"
                            IsVisible="{Binding ImagePreview, Converter={StaticResource IsNullConverter}}"/>
@@ -35,13 +35,13 @@
             </Frame>
             
             <HorizontalStackLayout Spacing="10" HorizontalOptions="Center">
-                <Button Text="Wybierz zdj�cie" Command="{Binding PickImageCommand}"/>
-                <Button Text="Zr�b zdj�cie" Command="{Binding TakePhotoCommand}"/>
+                <Button Text="Wybierz zdjďż˝cie" Command="{Binding PickImageCommand}"/>
+                <Button Text="Zrďż˝b zdjďż˝cie" Command="{Binding TakePhotoCommand}"/>
             </HorizontalStackLayout>
 
-            <!-- Tytu� -->
+            <!-- Tytuďż˝ -->
             <VerticalStackLayout>
-                <Label Text="Tytu� *" FontSize="12" TextColor="Gray"/>
+                <Label Text="Tytuďż˝ *" FontSize="12" TextColor="Gray"/>
                 <Entry Text="{Binding Title}" Placeholder="Nazwa przepisu"/>
             </VerticalStackLayout>
 
@@ -49,7 +49,7 @@
             <VerticalStackLayout>
                 <Label Text="Opis" FontSize="12" TextColor="Gray"/>
                 <Editor Text="{Binding Description}" 
-                        Placeholder="Kr�tki opis przepisu"
+                        Placeholder="Krďż˝tki opis przepisu"
                         HeightRequest="80"
                         AutoSize="TextChanges"/>
             </VerticalStackLayout>
@@ -60,7 +60,7 @@
                 <Picker ItemsSource="{Binding Categories}"
                         SelectedItem="{Binding SelectedCategory}"
                         ItemDisplayBinding="{Binding Name}"
-                        Title="Wybierz kategori�"/>
+                        Title="Wybierz kategoriďż˝"/>
             </VerticalStackLayout>
 
             <!-- Czasy i porcje -->
@@ -79,9 +79,9 @@
                 </VerticalStackLayout>
             </Grid>
 
-            <!-- Sk�adniki -->
+            <!-- Skďż˝adniki -->
             <Grid ColumnDefinitions="*,Auto">
-                <Label Text="Sk�adniki" FontSize="18" FontAttributes="Bold" VerticalOptions="Center"/>
+                <Label Text="Skďż˝adniki" FontSize="18" FontAttributes="Bold" VerticalOptions="Center"/>
                 <Button Grid.Column="1" Text="+ Dodaj" Command="{Binding AddIngredientCommand}"/>
             </Grid>
 
@@ -94,7 +94,7 @@
                                         ItemsSource="{Binding Source={RelativeSource AncestorType={x:Type vm:RecipeEditViewModel}}, Path=AvailableIngredients}"
                                         SelectedItem="{Binding SelectedIngredient}"
                                         ItemDisplayBinding="{Binding Name}"
-                                        Title="Sk�adnik"/>
+                                        Title="Skďż˝adnik"/>
                                 <Button Grid.Row="0" Grid.Column="1" 
                                         Text="?" 
                                         BackgroundColor="Transparent"
@@ -105,7 +105,7 @@
                                       ColumnDefinitions="*,*,2*" ColumnSpacing="5" Margin="0,5,0,0">
                                     <Entry Grid.Column="0" 
                                            Text="{Binding Quantity}" 
-                                           Placeholder="Ilo��" 
+                                           Placeholder="Iloďż˝ďż˝" 
                                            Keyboard="Numeric"/>
                                     <Entry Grid.Column="1" 
                                            Text="{Binding Unit}" 
@@ -124,7 +124,7 @@
             <VerticalStackLayout>
                 <Label Text="Przygotowanie" FontSize="18" FontAttributes="Bold"/>
                 <Editor Text="{Binding Instructions}" 
-                        Placeholder="Opisz krok po kroku jak przygotowa� danie..."
+                        Placeholder="Opisz krok po kroku jak przygotowaďż˝ danie..."
                         HeightRequest="200"
                         AutoSize="TextChanges"/>
             </VerticalStackLayout>
@@ -143,3 +143,4 @@
         </VerticalStackLayout>
     </ScrollView>
 </ContentPage>
+

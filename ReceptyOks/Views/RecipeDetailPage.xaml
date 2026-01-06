@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8" ?>
+﻿<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:ReceptyOks.ViewModels"
@@ -73,7 +73,7 @@
                 </Frame>
                 <Frame Grid.Column="1" Padding="10" CornerRadius="10">
                     <VerticalStackLayout HorizontalOptions="Center">
-                        <Label Text="??" FontSize="20" HorizontalOptions="Center"/>
+                        <Label Text="🍽" FontSize="20" HorizontalOptions="Center"/>
                         <Label Text="Gotowanie" FontSize="10" TextColor="Gray" HorizontalOptions="Center"/>
                         <Label FontSize="14" FontAttributes="Bold" HorizontalOptions="Center">
                             <Label.FormattedText>
@@ -87,15 +87,15 @@
                 </Frame>
                 <Frame Grid.Column="2" Padding="10" CornerRadius="10">
                     <VerticalStackLayout HorizontalOptions="Center">
-                        <Label Text="??" FontSize="20" HorizontalOptions="Center"/>
+                        <Label Text="🍽" FontSize="20" HorizontalOptions="Center"/>
                         <Label Text="Porcje" FontSize="10" TextColor="Gray" HorizontalOptions="Center"/>
                         <Label Text="{Binding Recipe.Servings}" FontSize="14" FontAttributes="Bold" HorizontalOptions="Center"/>
                     </VerticalStackLayout>
                 </Frame>
             </Grid>
 
-            <!-- Sk�adniki -->
-            <Label Text="Sk�adniki" FontSize="18" FontAttributes="Bold" Margin="0,10,0,0"/>
+            <!-- Składniki -->
+            <Label Text="Składniki" FontSize="18" FontAttributes="Bold" Margin="0,10,0,0"/>
             <CollectionView ItemsSource="{Binding Ingredients}">
                 <CollectionView.ItemTemplate>
                     <DataTemplate x:DataType="vm:RecipeIngredientDisplay">

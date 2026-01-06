@@ -30,7 +30,7 @@
     <Grid RowDefinitions="Auto,*">
         <!-- Search bar -->
         <SearchBar Grid.Row="0" 
-                   Placeholder="Szukaj przepis�w..."
+                   Placeholder="Szukaj przepisów..."
                    Text="{Binding SearchQuery}"
                    SearchCommand="{Binding LoadRecipesCommand}"/>
 
@@ -39,7 +39,7 @@
                      IsRefreshing="{Binding IsRefreshing}"
                      Command="{Binding LoadRecipesCommand}">
             <CollectionView ItemsSource="{Binding Recipes}"
-                            EmptyView="Brak przepis�w. Dodaj pierwszy!">
+                            EmptyView="Brak przepisów. Dodaj pierwszy!">
                 <CollectionView.ItemTemplate>
                     <DataTemplate x:DataType="data:RecipeLocal">
                         <Frame Margin="10,5" Padding="10" CornerRadius="10">
@@ -80,7 +80,7 @@
                                         <Label FontSize="11" TextColor="Gray">
                                             <Label.FormattedText>
                                                 <FormattedString>
-                                                    <Span Text="? "/>
+                                                    <Span Text="⏱ "/>
                                                     <Span Text="{Binding PreparationTimeMinutes}"/>
                                                     <Span Text=" min"/>
                                                 </FormattedString>
@@ -89,7 +89,7 @@
                                         <Label FontSize="11" TextColor="Gray">
                                             <Label.FormattedText>
                                                 <FormattedString>
-                                                    <Span Text="?? "/>
+                                                    <Span Text="🍽 "/>
                                                     <Span Text="{Binding Servings}"/>
                                                     <Span Text=" porcji"/>
                                                 </FormattedString>
