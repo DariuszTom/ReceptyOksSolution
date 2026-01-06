@@ -83,10 +83,18 @@ public partial class RecipeEditViewModel : ObservableObject
         if (_isInitialized) return;
 
         var cats = await _database.GetCategoriesAsync();
-        Categories = new ObservableCollection<CategoryLocal>(cats);
+        Categories.Clear();
+        foreach (var cat in cats)
+        {
+            Categories.Add(cat);
+        }
 
         var ings = await _database.GetIngredientsAsync();
-        AvailableIngredients = new ObservableCollection<IngredientLocal>(ings);
+        AvailableIngredients.Clear();
+        foreach (var ing in ings)
+        {
+            AvailableIngredients.Add(ing);
+        }
 
         _isInitialized = true;
     }

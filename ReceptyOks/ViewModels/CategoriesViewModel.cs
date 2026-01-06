@@ -75,6 +75,6 @@ public partial class CategoriesViewModel : ObservableObject
     [RelayCommand]
     private async Task ViewRecipesInCategoryAsync(CategoryLocal category)
     {
-        await Shell.Current.GoToAsync($"{nameof(Views.RecipesPage)}?categoryId={category.Id}&categoryName={category.Name}");
+        await EditCategoryAsync(category);
     }
 }
