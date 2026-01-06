@@ -58,11 +58,11 @@ public partial class RecipesViewModel : ObservableObject
             if (result.Success)
             {
                 await LoadRecipesAsync();
-                await Shell.Current.DisplayAlert("Synchronizacja", result.Message, "OK");
+                await Shell.Current.DisplayAlertAsync("Synchronizacja", result.Message, "OK");
             }
             else
             {
-                await Shell.Current.DisplayAlert("B³¹d", result.Message, "OK");
+                await Shell.Current.DisplayAlertAsync("B³¹d", result.Message, "OK");
             }
         }
         finally

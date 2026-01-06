@@ -90,7 +90,7 @@ public partial class RecipeDetailViewModel : ObservableObject
     {
         if (Recipe is null) return;
 
-        bool confirm = await Shell.Current.DisplayAlert(
+        bool confirm = await Shell.Current.DisplayAlertAsync(
             "Usuwanie przepisu",
             $"Czy na pewno chcesz usun¹æ '{Recipe.Title}'?",
             "Tak", "Nie");

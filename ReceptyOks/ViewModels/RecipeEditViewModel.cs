@@ -146,7 +146,7 @@ public partial class RecipeEditViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            await Shell.Current.DisplayAlert("B³¹d", $"Nie uda³o siê wybraæ zdjêcia: {ex.Message}", "OK");
+            await Shell.Current.DisplayAlertAsync("B³¹d", $"Nie uda³o siê wybraæ zdjêcia: {ex.Message}", "OK");
         }
     }
 
@@ -168,7 +168,7 @@ public partial class RecipeEditViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            await Shell.Current.DisplayAlert("B³¹d", $"Nie uda³o siê zrobiæ zdjêcia: {ex.Message}", "OK");
+            await Shell.Current.DisplayAlertAsync("B³¹d", $"Nie uda³o siê zrobiæ zdjêcia: {ex.Message}", "OK");
         }
     }
 
@@ -192,7 +192,7 @@ public partial class RecipeEditViewModel : ObservableObject
     {
         if (string.IsNullOrWhiteSpace(Title))
         {
-            await Shell.Current.DisplayAlert("B³¹d", "Podaj tytu³ przepisu", "OK");
+            await Shell.Current.DisplayAlertAsync("B³¹d", "Podaj tytu³ przepisu", "OK");
             return;
         }
 
