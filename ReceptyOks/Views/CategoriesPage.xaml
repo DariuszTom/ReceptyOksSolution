@@ -31,150 +31,143 @@
         </Grid>
 
         <!-- Categories Grid -->
-        <RefreshView Grid.Row="1" 
-                     IsRefreshing="{Binding IsRefreshing}"
-                     Command="{Binding LoadCategoriesCommand}"
-                     RefreshColor="{StaticResource Primary}">
-            <CollectionView ItemsSource="{Binding Categories}"
-                            Margin="12,16,12,0">
-                <CollectionView.ItemsLayout>
-                    <GridItemsLayout Orientation="Vertical" 
-                                     Span="2" 
-                                     HorizontalItemSpacing="12"
-                                     VerticalItemSpacing="12"/>
-                </CollectionView.ItemsLayout>
-                <CollectionView.EmptyView>
-                    <VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center" Spacing="16" Padding="40">
-                        <Border BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray600}}"
-                                StrokeThickness="0"
-                                StrokeShape="RoundRectangle 40"
-                                HeightRequest="80"
-                                WidthRequest="80"
-                                HorizontalOptions="Center">
-                            <Image HeightRequest="40" WidthRequest="40" HorizontalOptions="Center" VerticalOptions="Center">
-                                <Image.Source>
-                                    <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Folder_off}"
-                                                     FontFamily="MaterialSymbolsOutlined"
-                                                     Color="{StaticResource Gray400}"
-                                                     Size="40"/>
-                                </Image.Source>
-                            </Image>
-                        </Border>
-                        <Label Text="Brak kategorii" 
-                               FontSize="18" 
-                               FontAttributes="Bold"
-                               TextColor="{StaticResource Gray500}"
-                               HorizontalOptions="Center"/>
-                        <Label Text="Utwórz kategorie, aby lepiej organizować swoje przepisy" 
-                               FontSize="14"
-                               TextColor="{StaticResource Gray400}"
-                               HorizontalOptions="Center"
-                               HorizontalTextAlignment="Center"/>
-                        <Button Text="Dodaj kategorię"
-                                Command="{Binding AddCategoryCommand}"
-                                BackgroundColor="{StaticResource Primary}"
-                                CornerRadius="24"
-                                Padding="24,12"
-                                HorizontalOptions="Center"
-                                Margin="0,8,0,0">
-                            <Button.ImageSource>
-                                <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Add}"
+        <CollectionView Grid.Row="1"
+                        ItemsSource="{Binding Categories}"
+                        Margin="12,16,12,0"
+                        BackgroundColor="Transparent">
+            <CollectionView.ItemsLayout>
+                <GridItemsLayout Orientation="Vertical" 
+                                 Span="2" 
+                                 HorizontalItemSpacing="12"
+                                 VerticalItemSpacing="12"/>
+            </CollectionView.ItemsLayout>
+            <CollectionView.EmptyView>
+                <VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center" Spacing="16" Padding="40">
+                    <Border BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray600}}"
+                            StrokeThickness="0"
+                            StrokeShape="RoundRectangle 40"
+                            HeightRequest="80"
+                            WidthRequest="80"
+                            HorizontalOptions="Center">
+                        <Image HeightRequest="40" WidthRequest="40" HorizontalOptions="Center" VerticalOptions="Center">
+                            <Image.Source>
+                                <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Folder_off}"
                                                  FontFamily="MaterialSymbolsOutlined"
-                                                 Color="White"
-                                                 Size="20"/>
-                            </Button.ImageSource>
-                        </Button>
-                    </VerticalStackLayout>
-                </CollectionView.EmptyView>
-                <CollectionView.ItemTemplate>
-                    <DataTemplate x:DataType="data:CategoryLocal">
-                        <Border StrokeThickness="0"
-                                StrokeShape="RoundRectangle 20"
-                                Padding="0"
-                                HeightRequest="160"
-                                BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}">
-                            <Border.Behaviors>
-                                <toolkit:TouchBehavior 
-                                    PressedScale="0.96"
-                                    PressedOpacity="0.9"
-                                    Command="{Binding Source={RelativeSource AncestorType={x:Type vm:CategoriesViewModel}}, Path=ViewRecipesInCategoryCommand}"
-                                    CommandParameter="{Binding .}"/>
-                            </Border.Behaviors>
-                            <Border.Shadow>
-                                <Shadow Brush="{StaticResource Gray400Brush}"
-                                        Offset="0,4"
-                                        Radius="12"
-                                        Opacity="0.12"/>
-                            </Border.Shadow>
-                            <Grid RowDefinitions="*,Auto">
-                                <!-- Category Icon Area -->
-                                <Border Grid.Row="0" 
-                                        StrokeThickness="0"
-                                        StrokeShape="RoundRectangle 20,20,0,0"
-                                        BackgroundColor="{StaticResource Primary}"
-                                        Opacity="0.9">
-                                    <Grid>
-                                        <Image HeightRequest="48" WidthRequest="48" 
-                                               HorizontalOptions="Center" 
-                                               VerticalOptions="Center"
-                                               Opacity="0.9">
+                                                 Color="{StaticResource Gray400}"
+                                                 Size="40"/>
+                            </Image.Source>
+                        </Image>
+                    </Border>
+                    <Label Text="Brak kategorii" 
+                           FontSize="18" 
+                           FontAttributes="Bold"
+                           TextColor="{StaticResource Gray500}"
+                           HorizontalOptions="Center"/>
+                    <Label Text="Utwórz kategorie, aby lepiej organizować swoje przepisy" 
+                           FontSize="14"
+                           TextColor="{StaticResource Gray400}"
+                           HorizontalOptions="Center"
+                           HorizontalTextAlignment="Center"/>
+                    <Button Text="Dodaj kategorię"
+                            Command="{Binding AddCategoryCommand}"
+                            BackgroundColor="{StaticResource Primary}"
+                            CornerRadius="24"
+                            Padding="24,12"
+                            HorizontalOptions="Center"
+                            Margin="0,8,0,0">
+                        <Button.ImageSource>
+                            <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Add}"
+                                             FontFamily="MaterialSymbolsOutlined"
+                                             Color="White"
+                                             Size="20"/>
+                        </Button.ImageSource>
+                    </Button>
+                </VerticalStackLayout>
+            </CollectionView.EmptyView>
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="data:CategoryLocal">
+                    <Border StrokeThickness="0"
+                            StrokeShape="RoundRectangle 20"
+                            Padding="0"
+                            HeightRequest="160"
+                            BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}">
+                        <Border.Shadow>
+                            <Shadow Brush="{StaticResource Gray400Brush}"
+                                    Offset="0,4"
+                                    Radius="12"
+                                    Opacity="0.12"/>
+                        </Border.Shadow>
+                        <Grid RowDefinitions="*,Auto">
+                            <!-- Category Icon Area -->
+                            <Border Grid.Row="0" 
+                                    StrokeThickness="0"
+                                    StrokeShape="RoundRectangle 20,20,0,0"
+                                    BackgroundColor="{StaticResource Primary}">
+                                <Grid>
+                                    <Image HeightRequest="48" WidthRequest="48" 
+                                           HorizontalOptions="Center" 
+                                           VerticalOptions="Center">
+                                        <Image.Source>
+                                            <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Folder}"
+                                                             FontFamily="MaterialSymbolsOutlined"
+                                                             Color="White"
+                                                             Size="48"/>
+                                        </Image.Source>
+                                    </Image>
+                                    <!-- Edit button -->
+                                    <Border HorizontalOptions="End"
+                                            VerticalOptions="Start"
+                                            Margin="8"
+                                            Padding="8"
+                                            StrokeThickness="0"
+                                            StrokeShape="RoundRectangle 16"
+                                            BackgroundColor="#40FFFFFF">
+                                        <Image HeightRequest="18" WidthRequest="18">
                                             <Image.Source>
-                                                <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Folder}"
+                                                <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Edit}"
                                                                  FontFamily="MaterialSymbolsOutlined"
                                                                  Color="White"
-                                                                 Size="48"/>
+                                                                 Size="18"/>
                                             </Image.Source>
                                         </Image>
-                                        <!-- Edit button -->
-                                        <Border HorizontalOptions="End"
-                                                VerticalOptions="Start"
-                                                Margin="8"
-                                                Padding="8"
-                                                StrokeThickness="0"
-                                                StrokeShape="RoundRectangle 16"
-                                                BackgroundColor="#40FFFFFF">
-                                            <Border.Behaviors>
-                                                <toolkit:TouchBehavior 
-                                                    PressedScale="0.9"
-                                                    Command="{Binding Source={RelativeSource AncestorType={x:Type vm:CategoriesViewModel}}, Path=EditCategoryCommand}"
-                                                    CommandParameter="{Binding .}"/>
-                                            </Border.Behaviors>
-                                            <Image HeightRequest="18" WidthRequest="18">
-                                                <Image.Source>
-                                                    <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Edit}"
-                                                                     FontFamily="MaterialSymbolsOutlined"
-                                                                     Color="White"
-                                                                     Size="18"/>
-                                                </Image.Source>
-                                            </Image>
-                                        </Border>
-                                    </Grid>
-                                </Border>
-                                
-                                <!-- Category Info -->
-                                <VerticalStackLayout Grid.Row="1" 
-                                                     Spacing="2" 
-                                                     Padding="14,12"
-                                                     BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}">
-                                    <Label Text="{Binding Name}" 
-                                           FontSize="15" 
-                                           FontAttributes="Bold"
-                                           TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"
-                                           LineBreakMode="TailTruncation"
-                                           MaxLines="1"/>
-                                    <Label Text="{Binding Description}" 
-                                           FontSize="12" 
-                                           TextColor="{StaticResource Gray500}"
-                                           LineBreakMode="TailTruncation"
-                                           MaxLines="1"
-                                           IsVisible="{Binding Description, Converter={StaticResource IsNotNullConverter}}"/>
-                                </VerticalStackLayout>
-                            </Grid>
-                        </Border>
-                    </DataTemplate>
-                </CollectionView.ItemTemplate>
-            </CollectionView>
-        </RefreshView>
+                                        <Border.GestureRecognizers>
+                                            <TapGestureRecognizer 
+                                                Command="{Binding Source={RelativeSource AncestorType={x:Type vm:CategoriesViewModel}}, Path=EditCategoryCommand}"
+                                                CommandParameter="{Binding .}"/>
+                                        </Border.GestureRecognizers>
+                                    </Border>
+                                </Grid>
+                            </Border>
+                            
+                            <!-- Category Info -->
+                            <VerticalStackLayout Grid.Row="1" 
+                                                 Spacing="2" 
+                                                 Padding="14,12"
+                                                 BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}">
+                                <Label Text="{Binding Name}" 
+                                       FontSize="15" 
+                                       FontAttributes="Bold"
+                                       TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"
+                                       LineBreakMode="TailTruncation"
+                                       MaxLines="1"/>
+                                <Label Text="{Binding Description}" 
+                                       FontSize="12" 
+                                       TextColor="{StaticResource Gray500}"
+                                       LineBreakMode="TailTruncation"
+                                       MaxLines="1"
+                                       IsVisible="{Binding Description, Converter={StaticResource IsNotNullConverter}}"/>
+                            </VerticalStackLayout>
+                            
+                            <Grid.GestureRecognizers>
+                                <TapGestureRecognizer 
+                                    Command="{Binding Source={RelativeSource AncestorType={x:Type vm:CategoriesViewModel}}, Path=ViewRecipesInCategoryCommand}"
+                                    CommandParameter="{Binding .}"/>
+                            </Grid.GestureRecognizers>
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
 
         <!-- FAB - Add button -->
         <Button Grid.Row="1"

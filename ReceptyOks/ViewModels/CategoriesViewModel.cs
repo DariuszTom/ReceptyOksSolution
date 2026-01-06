@@ -27,7 +27,12 @@ public partial class CategoriesViewModel : ObservableObject
         {
             IsRefreshing = true;
             var categoryList = await _database.GetCategoriesAsync();
-            Categories = new ObservableCollection<CategoryLocal>(categoryList);
+            
+            Categories.Clear();
+            foreach (var category in categoryList)
+            {
+                Categories.Add(category);
+            }
         }
         finally
         {

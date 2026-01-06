@@ -158,19 +158,17 @@
                                 Margin="16,6" 
                                 Padding="0"
                                 BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}">
-                            <Border.Behaviors>
-                                <toolkit:TouchBehavior 
-                                    PressedScale="0.98"
-                                    PressedOpacity="0.9"
-                                    Command="{Binding Source={RelativeSource AncestorType={x:Type vm:RecipesViewModel}}, Path=GoToRecipeDetailCommand}"
-                                    CommandParameter="{Binding .}"/>
-                            </Border.Behaviors>
                             <Border.Shadow>
                                 <Shadow Brush="{StaticResource Gray400Brush}"
                                         Offset="0,2"
                                         Radius="12"
                                         Opacity="0.12"/>
                             </Border.Shadow>
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer 
+                                    Command="{Binding Source={RelativeSource AncestorType={x:Type vm:RecipesViewModel}}, Path=GoToRecipeDetailCommand}"
+                                    CommandParameter="{Binding .}"/>
+                            </Border.GestureRecognizers>
                             <Grid RowDefinitions="140,Auto">
                                 <!-- Recipe Image -->
                                 <Border Grid.Row="0" 
