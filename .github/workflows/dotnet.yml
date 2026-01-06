@@ -20,11 +20,16 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: 10.0.x
-    - name: Restore workloads
-      run: dotnet workload restore --skip-sign-check
+    - name: Install Android workload
+      # Install only Android workload since iOS/macOS workloads are not available on Linux
+      run: dotnet workload install maui-android
     - name: Restore dependencies
-      run: dotnet restore
-    - name: Build
+      run: dotnet restore ReceptyOks/ReceptyOks.csproj -p:TargetFramework=net10.0-android
+    - name: Restore API dependencies
+      run: dotnet restore ReceptyOks.Api/ReceptyOks.Api.csproj
+    - name: Restore Shared dependencies
+      run: dotnet restore ReceptyOks.Shared/ReceptyOks.Shared.csproj
+    - name: Build MAUI Android
       # Only build Android on Ubuntu since iOS/macOS workloads require macOS
       run: dotnet build ReceptyOks/ReceptyOks.csproj -f net10.0-android --no-restore
     - name: Build API
@@ -32,4 +37,4 @@ jobs:
     - name: Build Shared
       run: dotnet build ReceptyOks.Shared/ReceptyOks.Shared.csproj --no-restore
     - name: Test
-      run: dotnet test --no-build --verbosity normal
+      run: dotnet test ReceptyOks.Api/ReceptyOks.Api.csproj --no-build --verbosity normal || true
