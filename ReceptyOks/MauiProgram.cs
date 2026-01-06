@@ -1,10 +1,12 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using CommunityToolkit.Maui;
+using Microsoft.Extensions.Logging;
+using Plugin.Maui.OCR;
 using ReceptyOks.Data;
 using ReceptyOks.Services;
+using ReceptyOks.Shared.OCR;
 using ReceptyOks.ViewModels;
 using ReceptyOks.Views;
 using UraniumUI;
-using CommunityToolkit.Maui;
 
 namespace ReceptyOks;
 
@@ -33,9 +35,12 @@ public static class MauiProgram
 		
 		// Services
 		builder.Services.AddSingleton<SyncService>();
-		
-		// ViewModels
-		builder.Services.AddTransient<RecipesViewModel>();
+		builder.Services.AddSingleton(OcrPlugin.Default);
+		builder.Services.AddSingleton<IOCRService, MobileOcerService>();
+
+
+        // ViewModels
+        builder.Services.AddTransient<RecipesViewModel>();
 		builder.Services.AddTransient<RecipeDetailViewModel>();
 		builder.Services.AddTransient<RecipeEditViewModel>();
 		builder.Services.AddTransient<CategoriesViewModel>();

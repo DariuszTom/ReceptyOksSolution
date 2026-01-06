@@ -1,6 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ReceptyOks.Data;
+using ReceptyOks.Shared.OCR;
 using System.Collections.ObjectModel;
 
 namespace ReceptyOks.ViewModels;
@@ -9,6 +10,7 @@ namespace ReceptyOks.ViewModels;
 public partial class RecipeEditViewModel : ObservableObject
 {
     private readonly LocalDatabase _database;
+    private readonly IOCRService _ocrService;
     private bool _isNewRecipe = true;
 
     [ObservableProperty]
@@ -56,9 +58,10 @@ public partial class RecipeEditViewModel : ObservableObject
     private Guid _existingId;
     private bool _isInitialized = false;
 
-    public RecipeEditViewModel(LocalDatabase database)
+    public RecipeEditViewModel(LocalDatabase database, IOCRService ocrService)
     {
         _database = database;
+        _ocrService = ocrService;
     }
 
     partial void OnRecipeIdParamChanged(string value)
@@ -264,6 +267,48 @@ public partial class RecipeEditViewModel : ObservableObject
     private async Task CancelAsync()
     {
         await Shell.Current.GoToAsync("..");
+    }
+
+    [RelayCommand]
+    private async Task ScanInstructionsFromCameraAsync()
+    {
+        try
+        {
+            var result = await _ocrService.ScanRecipeFromCameraAsync();
+            if (result.Success)
+            {
+                Instructions = result.Text;
+            }
+            else
+            {
+                await Shell.Current.DisplayAlertAsync("B³¹d", result.ErrorMessage ?? "Nie uda³o siê rozpoznaæ tekstu", "OK");
+            }
+        }
+        catch (Exception ex)
+        {
+            await Shell.Current.DisplayAlertAsync("B³¹d", $"Wyst¹pi³ b³¹d: {ex.Message}", "OK");
+        }
+    }
+
+    [RelayCommand]
+    private async Task ScanInstructionsFromGalleryAsync()
+    {
+        try
+        {
+            var result = await _ocrService.ScanRecipeFromGalleryAsync();
+            if (result.Success)
+            {
+                Instructions = result.Text;
+            }
+            else
+            {
+                await Shell.Current.DisplayAlertAsync("B³¹d", result.ErrorMessage ?? "Nie uda³o siê rozpoznaæ tekstu", "OK");
+            }
+        }
+        catch (Exception ex)
+        {
+            await Shell.Current.DisplayAlertAsync("B³¹d", $"Wyst¹pi³ b³¹d: {ex.Message}", "OK");
+        }
     }
 }
 

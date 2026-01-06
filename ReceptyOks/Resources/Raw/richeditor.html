@@ -138,14 +138,14 @@
             <span class="ql-formats">
                 <button class="ql-bold" title="Pogrubienie"></button>
                 <button class="ql-italic" title="Kursywa"></button>
-                <button class="ql-underline" title="Podkreœlenie"></button>
-                <button class="ql-strike" title="Przekreœlenie"></button>
+                <button class="ql-underline" title="Podkreï¿½lenie"></button>
+                <button class="ql-strike" title="Przekreï¿½lenie"></button>
             </span>
             <span class="ql-formats">
-                <select class="ql-header" title="Nag³ówek">
-                    <option value="1">Nag³ówek 1</option>
-                    <option value="2">Nag³ówek 2</option>
-                    <option value="3">Nag³ówek 3</option>
+                <select class="ql-header" title="Nagï¿½ï¿½wek">
+                    <option value="1">Nagï¿½ï¿½wek 1</option>
+                    <option value="2">Nagï¿½ï¿½wek 2</option>
+                    <option value="3">Nagï¿½ï¿½wek 3</option>
                     <option selected>Normalny</option>
                 </select>
             </span>
@@ -157,7 +157,7 @@
                 <button class="ql-blockquote" title="Cytat"></button>
             </span>
             <span class="ql-formats">
-                <button class="ql-clean" title="Wyczyœæ formatowanie"></button>
+                <button class="ql-clean" title="Wyczyï¿½ï¿½ formatowanie"></button>
             </span>
         </div>
         <div id="editor"></div>
@@ -181,28 +181,28 @@
                 quill.root.innerHTML = initialContent;
             }
 
-            // Nas³uchuj zmian
+            // Nasï¿½uchuj zmian
             quill.on('text-change', function() {
                 notifyContentChanged();
             });
         }
 
-        // Pobierz zawartoœæ HTML
+        // Pobierz zawartoï¿½ï¿½ HTML
         function getContent() {
             return quill ? quill.root.innerHTML : '';
         }
 
-        // Ustaw zawartoœæ HTML
+        // Ustaw zawartoï¿½ï¿½ HTML
         function setContent(html) {
             if (quill) {
                 quill.root.innerHTML = html || '';
             }
         }
 
-        // Powiadom MAUI o zmianie zawartoœci
+        // Powiadom MAUI o zmianie zawartoï¿½ci
         function notifyContentChanged() {
             try {
-                // Wywo³anie JavaScript do C# przez WebView
+                // Wywoï¿½anie JavaScript do C# przez WebView
                 const html = getContent();
                 if (window.chrome && window.chrome.webview) {
                     // Windows WebView2
@@ -216,7 +216,7 @@
             }
         }
 
-        // Inicjalizacja po za³adowaniu strony
+        // Inicjalizacja po zaï¿½adowaniu strony
         document.addEventListener('DOMContentLoaded', function() {
             initEditor('');
         });

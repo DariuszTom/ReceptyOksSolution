@@ -221,7 +221,39 @@
             </CollectionView>
 
             <!-- Instrukcje - Rich Text Editor -->
-            <Label Text="Przygotowanie" FontSize="18" FontAttributes="Bold" Margin="0,16,0,0"/>
+            <Grid ColumnDefinitions="*,Auto" Margin="0,16,0,0">
+                <Label Text="Przygotowanie" FontSize="18" FontAttributes="Bold" VerticalOptions="Center"/>
+                <HorizontalStackLayout Grid.Column="1" Spacing="8">
+                    <Button Command="{Binding ScanInstructionsFromGalleryCommand}"
+                            BackgroundColor="Transparent"
+                            BorderColor="{StaticResource Primary}"
+                            BorderWidth="1"
+                            CornerRadius="20"
+                            Padding="12,6"
+                            ToolTipProperties.Text="Skanuj z galerii">
+                        <Button.ImageSource>
+                            <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Document_scanner}"
+                                             FontFamily="MaterialSymbolsOutlined"
+                                             Color="{StaticResource Primary}"
+                                             Size="18"/>
+                        </Button.ImageSource>
+                    </Button>
+                    <Button Command="{Binding ScanInstructionsFromCameraCommand}"
+                            BackgroundColor="Transparent"
+                            BorderColor="{StaticResource Primary}"
+                            BorderWidth="1"
+                            CornerRadius="20"
+                            Padding="12,6"
+                            ToolTipProperties.Text="Skanuj z kamery">
+                        <Button.ImageSource>
+                            <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Photo_camera}"
+                                             FontFamily="MaterialSymbolsOutlined"
+                                             Color="{StaticResource Primary}"
+                                             Size="18"/>
+                        </Button.ImageSource>
+                    </Button>
+                </HorizontalStackLayout>
+            </Grid>
             <Border Stroke="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray600}}"
                     StrokeThickness="1"
                     StrokeShape="RoundRectangle 12"
