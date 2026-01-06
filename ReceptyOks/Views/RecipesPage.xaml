@@ -106,7 +106,7 @@
                      Command="{Binding LoadRecipesCommand}"
                      RefreshColor="{StaticResource Primary}">
             <CollectionView ItemsSource="{Binding Recipes}"
-                            Margin="0,4,0,0">
+                            Margin="8,4,8,4">
                 <CollectionView.EmptyView>
                     <VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center" Spacing="16" Padding="40">
                         <Border BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray600}}"
