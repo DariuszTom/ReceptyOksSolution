@@ -81,6 +81,22 @@ public partial class CategoriesViewModel : ObservableObject
     }
 
     [RelayCommand]
+    private async Task DeleteCategoryAsync(CategoryLocal category)
+    {
+        bool confirm = await Shell.Current.DisplayAlert(
+            "Usuñ kategoriê",
+            $"Czy na pewno chcesz usun¹æ kategoriê \"{category.Name}\"?",
+            "Usuñ",
+            "Anuluj");
+
+        if (confirm)
+        {
+            await _database.DeleteCategoryAsync(category.Id);
+            await LoadCategoriesAsync();
+        }
+    }
+
+    [RelayCommand]
     private async Task ViewRecipesInCategoryAsync(CategoryLocal category)
     {
         await Shell.Current.GoToAsync($"{nameof(Views.RecipesPage)}?categoryId={category.Id}&categoryName={category.Name}");

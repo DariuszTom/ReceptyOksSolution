@@ -138,6 +138,18 @@ public class LocalDatabase
         }
     }
 
+    public async Task<int> DeleteCategoryAsync(Guid id)
+    {
+        var db = await GetConnectionAsync();
+        var category = await GetCategoryAsync(id);
+        if (category is null) return 0;
+
+        category.IsDeleted = true;
+        category.UpdatedAt = DateTime.UtcNow;
+        category.IsDirty = true;
+        return await db.UpdateAsync(category);
+    }
+
     #endregion
 
     #region Ingredients

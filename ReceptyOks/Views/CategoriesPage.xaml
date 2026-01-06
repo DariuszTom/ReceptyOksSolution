@@ -114,28 +114,50 @@
                                                              Size="48"/>
                                         </Image.Source>
                                     </Image>
-                                    <!-- Edit button -->
-                                    <Border HorizontalOptions="End"
-                                            VerticalOptions="Start"
-                                            Margin="8"
-                                            Padding="8"
-                                            StrokeThickness="0"
-                                            StrokeShape="RoundRectangle 16"
-                                            BackgroundColor="#40FFFFFF">
-                                        <Image HeightRequest="18" WidthRequest="18">
-                                            <Image.Source>
-                                                <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Edit}"
-                                                                 FontFamily="MaterialSymbolsOutlined"
-                                                                 Color="White"
-                                                                 Size="18"/>
-                                            </Image.Source>
-                                        </Image>
-                                        <Border.GestureRecognizers>
-                                            <TapGestureRecognizer 
-                                                Command="{Binding Source={RelativeSource AncestorType={x:Type vm:CategoriesViewModel}}, Path=EditCategoryCommand}"
-                                                CommandParameter="{Binding .}"/>
-                                        </Border.GestureRecognizers>
-                                    </Border>
+                                    <!-- Action buttons -->
+                                    <HorizontalStackLayout HorizontalOptions="End"
+                                                           VerticalOptions="Start"
+                                                           Margin="8"
+                                                           Spacing="6">
+                                        <!-- Edit button -->
+                                        <Border Padding="8"
+                                                StrokeThickness="0"
+                                                StrokeShape="RoundRectangle 16"
+                                                BackgroundColor="#40FFFFFF">
+                                            <Image HeightRequest="18" WidthRequest="18">
+                                                <Image.Source>
+                                                    <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Edit}"
+                                                                     FontFamily="MaterialSymbolsOutlined"
+                                                                     Color="White"
+                                                                     Size="18"/>
+                                                </Image.Source>
+                                            </Image>
+                                            <Border.GestureRecognizers>
+                                                <TapGestureRecognizer 
+                                                    Command="{Binding Source={RelativeSource AncestorType={x:Type vm:CategoriesViewModel}}, Path=EditCategoryCommand}"
+                                                    CommandParameter="{Binding .}"/>
+                                            </Border.GestureRecognizers>
+                                        </Border>
+                                        <!-- Delete button -->
+                                        <Border Padding="8"
+                                                StrokeThickness="0"
+                                                StrokeShape="RoundRectangle 16"
+                                                BackgroundColor="#40FF0000">
+                                            <Image HeightRequest="18" WidthRequest="18">
+                                                <Image.Source>
+                                                    <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Delete}"
+                                                                     FontFamily="MaterialSymbolsOutlined"
+                                                                     Color="White"
+                                                                     Size="18"/>
+                                                </Image.Source>
+                                            </Image>
+                                            <Border.GestureRecognizers>
+                                                <TapGestureRecognizer 
+                                                    Command="{Binding Source={RelativeSource AncestorType={x:Type vm:CategoriesViewModel}}, Path=DeleteCategoryCommand}"
+                                                    CommandParameter="{Binding .}"/>
+                                            </Border.GestureRecognizers>
+                                        </Border>
+                                    </HorizontalStackLayout>
                                 </Grid>
                             </Border>
                             
