@@ -16,6 +16,8 @@
             <converters:IsNotNullConverter x:Key="IsNotNullConverter"/>
             <converters:IsNullConverter x:Key="IsNullConverter"/>
             <converters:ByteArrayToImageSourceConverter x:Key="ByteArrayToImageSourceConverter"/>
+            <converters:IconSelectionConverter x:Key="IconSelectionConverter"/>
+            <converters:HasCategoryIconConverter x:Key="HasCategoryIconConverter"/>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

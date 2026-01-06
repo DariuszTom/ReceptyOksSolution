@@ -43,47 +43,23 @@ public partial class CategoriesViewModel : ObservableObject
     [RelayCommand]
     private async Task AddCategoryAsync()
     {
-        string name = await Shell.Current.DisplayPromptAsync(
-            "Nowa kategoria",
-            "Podaj nazwê kategorii:",
-            "Dodaj",
-            "Anuluj");
-
-        if (!string.IsNullOrWhiteSpace(name))
-        {
-            var category = new CategoryLocal
-            {
-                Id = Guid.NewGuid(),
-                Name = name
-            };
-
-            await _database.SaveCategoryAsync(category);
-            await LoadCategoriesAsync();
-        }
+        await Shell.Current.GoToAsync(nameof(Views.CategoryEditPage));
     }
 
     [RelayCommand]
     private async Task EditCategoryAsync(CategoryLocal category)
     {
-        string name = await Shell.Current.DisplayPromptAsync(
-            "Edytuj kategoriê",
-            "Podaj now¹ nazwê:",
-            "Zapisz",
-            "Anuluj",
-            initialValue: category.Name);
-
-        if (!string.IsNullOrWhiteSpace(name))
+        var navigationParameter = new Dictionary<string, object>
         {
-            category.Name = name;
-            await _database.SaveCategoryAsync(category);
-            await LoadCategoriesAsync();
-        }
+            { "category", category }
+        };
+        await Shell.Current.GoToAsync(nameof(Views.CategoryEditPage), navigationParameter);
     }
 
     [RelayCommand]
     private async Task DeleteCategoryAsync(CategoryLocal category)
     {
-        bool confirm = await Shell.Current.DisplayAlert(
+        bool confirm = await Shell.Current.DisplayAlertAsync(
             "Usuñ kategoriê",
             $"Czy na pewno chcesz usun¹æ kategoriê \"{category.Name}\"?",
             "Usuñ",

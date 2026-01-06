@@ -11,5 +11,6 @@ public partial class AppShell : Shell
 		// Rejestracja tras dla nawigacji
 		Routing.RegisterRoute(nameof(RecipeDetailPage), typeof(RecipeDetailPage));
 		Routing.RegisterRoute(nameof(RecipeEditPage), typeof(RecipeEditPage));
+		Routing.RegisterRoute(nameof(CategoryEditPage), typeof(CategoryEditPage));
 	}
 }

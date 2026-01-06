@@ -39,12 +39,14 @@ public static class MauiProgram
 		builder.Services.AddTransient<RecipeDetailViewModel>();
 		builder.Services.AddTransient<RecipeEditViewModel>();
 		builder.Services.AddTransient<CategoriesViewModel>();
+		builder.Services.AddTransient<CategoryEditViewModel>();
 		
 		// Views
 		builder.Services.AddTransient<RecipesPage>();
 		builder.Services.AddTransient<RecipeDetailPage>();
 		builder.Services.AddTransient<RecipeEditPage>();
 		builder.Services.AddTransient<CategoriesPage>();
+		builder.Services.AddTransient<CategoryEditPage>();
 
 #if DEBUG
 		builder.Logging.AddDebug();

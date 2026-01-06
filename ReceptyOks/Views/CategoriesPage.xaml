@@ -104,9 +104,19 @@
                                     StrokeShape="RoundRectangle 20,20,0,0"
                                     BackgroundColor="{StaticResource Primary}">
                                 <Grid>
+                                    <!-- Custom category icon -->
+                                    <Image Source="{Binding IconName}"
+                                           HeightRequest="56" 
+                                           WidthRequest="56" 
+                                           HorizontalOptions="Center" 
+                                           VerticalOptions="Center"
+                                           Aspect="AspectFit"
+                                           IsVisible="{Binding IconName, Converter={StaticResource HasCategoryIconConverter}}"/>
+                                    <!-- Default folder icon -->
                                     <Image HeightRequest="48" WidthRequest="48" 
                                            HorizontalOptions="Center" 
-                                           VerticalOptions="Center">
+                                           VerticalOptions="Center"
+                                           IsVisible="{Binding IconName, Converter={StaticResource IsNullConverter}}">
                                         <Image.Source>
                                             <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Folder}"
                                                              FontFamily="MaterialSymbolsOutlined"

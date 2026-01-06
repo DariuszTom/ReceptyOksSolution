@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:ReceptyOks.ViewModels"
+             xmlns:icons="clr-namespace:UraniumUI.Icons.MaterialSymbols;assembly=UraniumUI.Icons.MaterialSymbols"
+             x:Class="ReceptyOks.Views.CategoryEditPage"
+             x:DataType="vm:CategoryEditViewModel"
+             Shell.NavBarIsVisible="False"
+             BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark=#121212}">
+
+    <Grid RowDefinitions="Auto,*,Auto">
+        
+        <!-- Header -->
+        <Grid Grid.Row="0" 
+              Padding="16"
+              ColumnDefinitions="Auto,*,Auto"
+              BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}">
+            <Grid.Shadow>
+                <Shadow Brush="{StaticResource Gray400Brush}" Offset="0,2" Radius="4" Opacity="0.1"/>
+            </Grid.Shadow>
+            
+            <Border StrokeThickness="0"
+                    StrokeShape="RoundRectangle 20"
+                    HeightRequest="40"
+                    WidthRequest="40"
+                    BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray600}}">
+                <Image HeightRequest="20" WidthRequest="20" HorizontalOptions="Center" VerticalOptions="Center">
+                    <Image.Source>
+                        <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Arrow_back}"
+                                         FontFamily="MaterialSymbolsOutlined"
+                                         Color="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray200}}"
+                                         Size="20"/>
+                    </Image.Source>
+                </Image>
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding CancelCommand}"/>
+                </Border.GestureRecognizers>
+            </Border>
+            
+            <Label Grid.Column="1" 
+                   Text="{Binding PageTitle}" 
+                   FontSize="20" 
+                   FontAttributes="Bold"
+                   VerticalOptions="Center"
+                   HorizontalOptions="Center"
+                   TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"/>
+            
+            <Border Grid.Column="2"
+                    StrokeThickness="0"
+                    StrokeShape="RoundRectangle 20"
+                    HeightRequest="40"
+                    WidthRequest="40"
+                    BackgroundColor="{StaticResource Primary}">
+                <Image HeightRequest="20" WidthRequest="20" HorizontalOptions="Center" VerticalOptions="Center">
+                    <Image.Source>
+                        <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Check}"
+                                         FontFamily="MaterialSymbolsOutlined"
+                                         Color="White"
+                                         Size="20"/>
+                    </Image.Source>
+                </Image>
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding SaveCommand}"/>
+                </Border.GestureRecognizers>
+            </Border>
+        </Grid>
+
+        <!-- Content -->
+        <ScrollView Grid.Row="1" Padding="16">
+            <VerticalStackLayout Spacing="20">
+                
+                <!-- Name -->
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="Nazwa kategorii" 
+                           FontSize="14" 
+                           FontAttributes="Bold"
+                           TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray300}}"/>
+                    <Border StrokeThickness="0"
+                            StrokeShape="RoundRectangle 12"
+                            Padding="16,12"
+                            BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}">
+                        <Entry Text="{Binding Name}"
+                               Placeholder="np. Œniadania"
+                               PlaceholderColor="{StaticResource Gray400}"
+                               FontSize="16"
+                               BackgroundColor="Transparent"
+                               TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"/>
+                    </Border>
+                </VerticalStackLayout>
+
+                <!-- Description -->
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="Opis (opcjonalnie)" 
+                           FontSize="14" 
+                           FontAttributes="Bold"
+                           TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray300}}"/>
+                    <Border StrokeThickness="0"
+                            StrokeShape="RoundRectangle 12"
+                            Padding="16,12"
+                            BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}">
+                        <Editor Text="{Binding Description}"
+                                Placeholder="Krótki opis kategorii..."
+                                PlaceholderColor="{StaticResource Gray400}"
+                                FontSize="16"
+                                HeightRequest="80"
+                                BackgroundColor="Transparent"
+                                TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"/>
+                    </Border>
+                </VerticalStackLayout>
+
+                <!-- Icon Selection -->
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="Ikona kategorii" 
+                           FontSize="14" 
+                           FontAttributes="Bold"
+                           TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray300}}"/>
+                    
+                    <FlexLayout Wrap="Wrap" 
+                                JustifyContent="Start"
+                                AlignItems="Center">
+                        <BindableLayout.ItemsSource>
+                            <x:Array Type="{x:Type x:String}">
+                                <x:String>breakfast.png</x:String>
+                                <x:String>dessert.png</x:String>
+                                <x:String>dinner1.png</x:String>
+                                <x:String>dinner2.png</x:String>
+                                <x:String>muffin.png</x:String>
+                            </x:Array>
+                        </BindableLayout.ItemsSource>
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="x:String">
+                                <Border Margin="0,0,12,12"
+                                        Padding="12"
+                                        StrokeThickness="3"
+                                        StrokeShape="RoundRectangle 16"
+                                        HeightRequest="80"
+                                        WidthRequest="80"
+                                        BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}">
+                                    <Border.Stroke>
+                                        <MultiBinding Converter="{StaticResource IconSelectionConverter}">
+                                            <Binding Path="."/>
+                                            <Binding Path="SelectedIcon" Source="{RelativeSource AncestorType={x:Type vm:CategoryEditViewModel}}"/>
+                                        </MultiBinding>
+                                    </Border.Stroke>
+                                    <Image Source="{Binding .}"
+                                           Aspect="AspectFit"
+                                           HeightRequest="48"
+                                           WidthRequest="48"/>
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer 
+                                            Command="{Binding Source={RelativeSource AncestorType={x:Type vm:CategoryEditViewModel}}, Path=SelectIconCommand}"
+                                            CommandParameter="{Binding .}"/>
+                                    </Border.GestureRecognizers>
+                                </Border>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </FlexLayout>
+                </VerticalStackLayout>
+
+            </VerticalStackLayout>
+        </ScrollView>
+    </Grid>
+</ContentPage>
