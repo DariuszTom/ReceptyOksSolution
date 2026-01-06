@@ -4,6 +4,7 @@
              xmlns:vm="clr-namespace:ReceptyOks.ViewModels"
              xmlns:icons="clr-namespace:UraniumUI.Icons.MaterialSymbols;assembly=UraniumUI.Icons.MaterialSymbols"
              xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+             xmlns:controls="clr-namespace:ReceptyOks.Controls"
              x:Class="ReceptyOks.Views.RecipeDetailPage"
              x:DataType="vm:RecipeDetailViewModel"
              x:Name="PageRoot"
@@ -272,14 +273,12 @@
                                        TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"/>
                             </HorizontalStackLayout>
                             
-                            <Border Padding="16"
+                            <Border Padding="0"
                                     StrokeThickness="0"
                                     StrokeShape="RoundRectangle 12"
-                                    BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray600}}">
-                                <Label Text="{Binding Recipe.Instructions}" 
-                                       FontSize="15"
-                                       LineHeight="1.6"
-                                       TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"/>
+                                    MinimumHeightRequest="200"
+                                    BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}">
+                                <WebView x:Name="InstructionsWebView" />
                             </Border>
                         </VerticalStackLayout>
 

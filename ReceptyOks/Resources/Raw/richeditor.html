@@ -181,43 +181,73 @@
                 quill.root.innerHTML = initialContent;
             }
 
-            // Nas�uchuj zmian
+            // Nasłuchuj zmian
             quill.on('text-change', function() {
                 notifyContentChanged();
             });
+            
+            // Log inicjalizacji
+            console.log('Quill editor initialized');
+            logToConsole('Editor initialized successfully');
         }
 
-        // Pobierz zawarto�� HTML
+        // Pobierz zawartość HTML
         function getContent() {
-            return quill ? quill.root.innerHTML : '';
+            const html = quill ? quill.root.innerHTML : '';
+            console.log('getContent called, returning:', html.substring(0, 100) + '...');
+            logToConsole('getContent called, length: ' + html.length);
+            return html;
         }
 
-        // Ustaw zawarto�� HTML
+        // Ustaw zawartość HTML
         function setContent(html) {
             if (quill) {
                 quill.root.innerHTML = html || '';
+                console.log('setContent called with length:', (html || '').length);
+                logToConsole('setContent called, length: ' + (html || '').length);
             }
         }
 
-        // Powiadom MAUI o zmianie zawarto�ci
+        // Powiadom MAUI o zmianie zawartości
         function notifyContentChanged() {
             try {
-                // Wywo�anie JavaScript do C# przez WebView
                 const html = getContent();
+                const message = JSON.stringify({ type: 'contentChanged', html: html });
+                
+                console.log('Notifying content change, length:', html.length);
+                
                 if (window.chrome && window.chrome.webview) {
                     // Windows WebView2
-                    window.chrome.webview.postMessage(JSON.stringify({ type: 'contentChanged', html: html }));
+                    window.chrome.webview.postMessage(message);
+                    logToConsole('Message sent via chrome.webview');
                 } else if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.invokeAction) {
                     // iOS/macOS
-                    window.webkit.messageHandlers.invokeAction.postMessage(JSON.stringify({ type: 'contentChanged', html: html }));
+                    window.webkit.messageHandlers.invokeAction.postMessage(message);
+                    logToConsole('Message sent via webkit.messageHandlers');
+                } else {
+                    logToConsole('WARNING: No message handler found!');
                 }
             } catch (e) {
-                console.log('Notify error:', e);
+                console.error('Notify error:', e);
+                logToConsole('ERROR: ' + e.message);
             }
         }
+        
+        // Funkcja pomocnicza do logowania (widoczna w konsoli przeglądarki)
+        function logToConsole(message) {
+            console.log('[RichEditor] ' + message);
+        }
+        
+        // Test komunikacji - zwraca prostą wiadomość
+        function testCommunication() {
+            const testMessage = 'Test message from richeditor.html at ' + new Date().toISOString();
+            console.log('Test communication:', testMessage);
+            return testMessage;
+        }
 
-        // Inicjalizacja po za�adowaniu strony
+        // Inicjalizacja po załadowaniu strony
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOMContentLoaded event fired');
             initEditor('');
         });
     </script>

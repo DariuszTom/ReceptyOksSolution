@@ -4,6 +4,7 @@ namespace ReceptyOks.Controls;
 
 /// <summary>
 /// Kontrolka Rich Text Editor oparta na Quill.js w WebView
+/// UWAGA: Binding dzia³a jednostronnie (C# -> JS). Aby pobraæ zawartoœæ u¿ywaj GetContentAsync()
 /// </summary>
 public class RichTextEditor : ContentView
 {
@@ -36,30 +37,6 @@ public class RichTextEditor : ContentView
 
         _webView.Navigated += OnWebViewNavigated;
 
-#if WINDOWS
-        _webView.HandlerChanged += (s, e) =>
-        {
-            if (_webView.Handler?.PlatformView is Microsoft.UI.Xaml.Controls.WebView2 webView2)
-            {
-                webView2.WebMessageReceived += (sender, args) =>
-                {
-                    try
-                    {
-                        var message = JsonSerializer.Deserialize<EditorMessage>(args.WebMessageAsJson);
-                        if (message?.Type == "contentChanged")
-                        {
-                            MainThread.BeginInvokeOnMainThread(() =>
-                            {
-                                HtmlContent = message.Html ?? string.Empty;
-                            });
-                        }
-                    }
-                    catch { }
-                };
-            }
-        };
-#endif
-
         Content = _webView;
     }
 
@@ -68,6 +45,7 @@ public class RichTextEditor : ContentView
         if (e.Result == WebNavigationResult.Success)
         {
             _isInitialized = true;
+            System.Diagnostics.Debug.WriteLine("[RichTextEditor] WebView navigated successfully");
             
             // Jeœli by³a zawartoœæ oczekuj¹ca, ustaw j¹ teraz
             if (!string.IsNullOrEmpty(_pendingContent))
@@ -86,6 +64,8 @@ public class RichTextEditor : ContentView
     {
         if (bindable is RichTextEditor editor && newValue is string html)
         {
+            System.Diagnostics.Debug.WriteLine($"[RichTextEditor] HtmlContent changed from binding, length: {html.Length}");
+            
             if (editor._isInitialized)
             {
                 await editor.SetContentAsync(html);
@@ -110,13 +90,17 @@ public class RichTextEditor : ContentView
                 .Replace("\r", "\\r");
             
             await _webView.EvaluateJavaScriptAsync($"setContent('{escapedHtml}')");
+            System.Diagnostics.Debug.WriteLine($"[RichTextEditor] Content set via JS, length: {html.Length}");
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"RichTextEditor SetContent error: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"[RichTextEditor] SetContent error: {ex.Message}");
         }
     }
 
+    /// <summary>
+    /// Pobiera aktualn¹ zawartoœæ HTML z edytora
+    /// </summary>
     public async Task<string> GetContentAsync()
     {
         if (_webView is null || !_isInitialized) return string.Empty;
@@ -124,17 +108,32 @@ public class RichTextEditor : ContentView
         try
         {
             var result = await _webView.EvaluateJavaScriptAsync("getContent()");
+            System.Diagnostics.Debug.WriteLine($"[RichTextEditor] GetContent returned: {result?.Length ?? 0} chars");
             return result ?? string.Empty;
         }
-        catch
+        catch (Exception ex)
         {
+            System.Diagnostics.Debug.WriteLine($"[RichTextEditor] GetContent error: {ex.Message}");
             return string.Empty;
         }
     }
-
-    private class EditorMessage
+    
+    /// <summary>
+    /// Testuje komunikacjê z JavaScript - zwraca wiadomoœæ testow¹
+    /// </summary>
+    public async Task<string> TestCommunicationAsync()
     {
-        public string? Type { get; set; }
-        public string? Html { get; set; }
+        if (_webView is null || !_isInitialized) 
+            return "ERROR: WebView not initialized";
+
+        try
+        {
+            var result = await _webView.EvaluateJavaScriptAsync("testCommunication()");
+            return result ?? "ERROR: No result returned";
+        }
+        catch (Exception ex)
+        {
+            return $"ERROR: {ex.Message}";
+        }
     }
 }

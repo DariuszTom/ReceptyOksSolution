@@ -12,7 +12,8 @@
              Title="{Binding PageTitle}">
 
     <ContentPage.ToolbarItems>
-        <ToolbarItem Text="Zapisz" Command="{Binding SaveCommand}"/>
+        <ToolbarItem Text="Zapisz" Clicked="OnSaveClicked"/>
+        <ToolbarItem Text="🔧 TEST" Clicked="OnTestEditorClicked"/>
     </ContentPage.ToolbarItems>
 
     <ScrollView>
@@ -259,7 +260,7 @@
                     StrokeShape="RoundRectangle 12"
                     HeightRequest="350"
                     BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}">
-                <controls:RichTextEditor HtmlContent="{Binding Instructions}"/>
+                <controls:RichTextEditor x:Name="InstructionsEditor" HtmlContent="{Binding Instructions}"/>
             </Border>
 
             <!-- Przyciski -->
@@ -270,8 +271,8 @@
                         TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray200}}"
                         Command="{Binding CancelCommand}"/>
                 <Button Grid.Column="1" 
-                        Text="Zapisz" 
-                        Command="{Binding SaveCommand}">
+                        Text="Zapisz"
+                        Clicked="OnSaveClicked">
                     <Button.ImageSource>
                         <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Save}"
                                          FontFamily="MaterialSymbolsOutlined"
