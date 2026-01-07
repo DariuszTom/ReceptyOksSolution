@@ -53,7 +53,7 @@ public partial class RecipesViewModel : ObservableObject
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error loading recipes");
-            await Shell.Current.DisplayAlert("Error", "Failed to load recipes", "OK");
+            await Shell.Current.DisplayAlertAsync("Error", "Failed to load recipes", "OK");
         }
         finally
         {
@@ -86,7 +86,7 @@ public partial class RecipesViewModel : ObservableObject
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error during synchronization");
-            await Shell.Current.DisplayAlert("Error", "Synchronization failed", "OK");
+            await Shell.Current.DisplayAlertAsync("Error", "Synchronization failed", "OK");
         }
         finally
         {
