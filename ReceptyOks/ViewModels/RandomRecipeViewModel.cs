@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
 using ReceptyOks.Data;
+using ReceptyOks.Shared.Models;
 using System.Collections.ObjectModel;
 
 namespace ReceptyOks.ViewModels;
@@ -47,6 +48,7 @@ public partial class RandomRecipeViewModel : ObservableObject
 
     [ObservableProperty]
     private ObservableCollection<IngredientLocal> filteredIngredients = [];
+    private Guid OldID;
 
     public RandomRecipeViewModel(LocalDatabase database, ILogger<RandomRecipeViewModel> logger)
     {
@@ -158,7 +160,7 @@ public partial class RandomRecipeViewModel : ObservableObject
                 candidates = await _database.GetRecipesAsync();
                 _logger.LogDebug("Found {Count} total recipes", candidates.Count);
             }
-
+            candidates.RemoveAll(r => r.Id == OldID); // Unikaj powtórzeñ
             if (FilterByIngredients && SelectedIngredients.Count > 0)
             {
                 var selectedIngredientIds = SelectedIngredients.Select(i => i.Id).ToHashSet();
@@ -190,6 +192,7 @@ public partial class RandomRecipeViewModel : ObservableObject
             var randomIndex = _random.Next(candidates.Count);
             RandomRecipe = candidates[randomIndex];
             HasResult = true;
+            OldID = RandomRecipe.Id;
 
             if (RandomRecipe.Image != null && RandomRecipe.Image.Length > 0)
             {
@@ -214,8 +217,7 @@ public partial class RandomRecipeViewModel : ObservableObject
     {
         if (RandomRecipe == null) return;
 
-        _logger.LogDebug("Navigating to recipe detail: {RecipeId}", RandomRecipe.Id);
-        await Shell.Current.GoToAsync($"RecipeDetailPage?recipeId={RandomRecipe.Id}");
+        await Shell.Current.GoToAsync($"{nameof(Views.RecipeDetailPage)}?id={RandomRecipe.Id}");
     }
 
     [RelayCommand]
