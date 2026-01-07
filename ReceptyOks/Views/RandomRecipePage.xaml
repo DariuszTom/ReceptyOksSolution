@@ -1,9 +1,9 @@
-<?xml version="1.0" encoding="utf-8" ?>
+﻿<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:ReceptyOks.ViewModels"
              xmlns:data="clr-namespace:ReceptyOks.Data"
-             xmlns:icons="clr-namespace:UraniumUI.Icons.MaterialSymbols;assembly=UraniumUI. Icons.MaterialSymbols"
+             xmlns:icons="clr-namespace:UraniumUI.Icons.MaterialSymbols;assembly=UraniumUI.Icons.MaterialSymbols"
              xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
              x:Class="ReceptyOks.Views.RandomRecipePage"
              x:DataType="vm:RandomRecipeViewModel"
@@ -218,7 +218,7 @@
                 </Border>
                 
                 <!-- Randomize Button -->
-                <Button Text="??  Losuj przepis!"
+                <Button Text="🎲  Losuj przepis!"
                         FontSize="18"
                         FontAttributes="Bold"
                         Padding="20,16"
