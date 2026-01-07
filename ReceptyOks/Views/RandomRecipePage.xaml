@@ -1,0 +1,351 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:ReceptyOks.ViewModels"
+             xmlns:data="clr-namespace:ReceptyOks.Data"
+             xmlns:icons="clr-namespace:UraniumUI.Icons.MaterialSymbols;assembly=UraniumUI. Icons.MaterialSymbols"
+             xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+             x:Class="ReceptyOks.Views.RandomRecipePage"
+             x:DataType="vm:RandomRecipeViewModel"
+             Shell.NavBarIsVisible="False"
+             BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark=#121212}">
+
+    <Grid RowDefinitions="Auto,*">
+        
+        <!-- Custom Header -->
+        <Grid Grid.Row="0" 
+              Padding="20,16"
+              BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}">
+            <Grid.Shadow>
+                <Shadow Brush="{StaticResource Gray400Brush}" Offset="0,2" Radius="4" Opacity="0.1"/>
+            </Grid.Shadow>
+            <VerticalStackLayout VerticalOptions="Center">
+                <Label Text="Losuj Przepis" 
+                       FontSize="24" 
+                       FontAttributes="Bold"
+                       TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"/>
+                <Label Text="Co dzi&#347; ugotowa&#263;?" 
+                       FontSize="14"
+                       TextColor="{StaticResource Gray500}"/>
+            </VerticalStackLayout>
+        </Grid>
+
+        <ScrollView Grid.Row="1">
+            <VerticalStackLayout Spacing="16" Padding="16">
+                
+                <!-- Filter Options -->
+                <Border StrokeThickness="0"
+                        StrokeShape="RoundRectangle 16"
+                        Padding="16"
+                        BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}">
+                    <VerticalStackLayout Spacing="16">
+                        <Label Text="Opcje filtrowania" 
+                               FontSize="18" 
+                               FontAttributes="Bold"
+                               TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"/>
+                        
+                        <!-- Filter by Category Toggle -->
+                        <Grid ColumnDefinitions="*,Auto">
+                            <HorizontalStackLayout Spacing="10" VerticalOptions="Center">
+                                <Image HeightRequest="24" WidthRequest="24">
+                                    <Image.Source>
+                                        <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Folder}"
+                                                         FontFamily="MaterialSymbolsOutlined"
+                                                         Color="{StaticResource Primary}"
+                                                         Size="24"/>
+                                    </Image.Source>
+                                </Image>
+                                <Label Text="Filtruj po kategorii" 
+                                       FontSize="16"
+                                       VerticalOptions="Center"
+                                       TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"/>
+                            </HorizontalStackLayout>
+                            <Switch Grid.Column="1" 
+                                    IsToggled="{Binding FilterByCategory}"
+                                    OnColor="{StaticResource Primary}"/>
+                        </Grid>
+                        
+                        <!-- Category Picker -->
+                        <Border IsVisible="{Binding FilterByCategory}"
+                                StrokeThickness="1"
+                                Stroke="{StaticResource Gray300}"
+                                StrokeShape="RoundRectangle 12"
+                                Padding="12,4">
+                            <Picker Title="Wybierz kategori&#281;"
+                                    ItemsSource="{Binding Categories}"
+                                    SelectedItem="{Binding SelectedCategory}"
+                                    ItemDisplayBinding="{Binding Name}"
+                                    TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"/>
+                        </Border>
+                        
+                        <!-- Filter by Ingredients Toggle -->
+                        <Grid ColumnDefinitions="*,Auto">
+                            <HorizontalStackLayout Spacing="10" VerticalOptions="Center">
+                                <Image HeightRequest="24" WidthRequest="24">
+                                    <Image.Source>
+                                        <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Shopping_basket}"
+                                                         FontFamily="MaterialSymbolsOutlined"
+                                                         Color="{StaticResource Primary}"
+                                                         Size="24"/>
+                                    </Image.Source>
+                                </Image>
+                                <Label Text="Filtruj po sk&#322;adnikach" 
+                                       FontSize="16"
+                                       VerticalOptions="Center"
+                                       TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"/>
+                            </HorizontalStackLayout>
+                            <Switch Grid.Column="1" 
+                                    IsToggled="{Binding FilterByIngredients}"
+                                    OnColor="{StaticResource Primary}"/>
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
+                
+                <!-- Ingredients Selection -->
+                <Border StrokeThickness="0"
+                        StrokeShape="RoundRectangle 16"
+                        Padding="16"
+                        IsVisible="{Binding FilterByIngredients}"
+                        BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}">
+                    <VerticalStackLayout Spacing="12">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Label Text="Dost&#281;pne sk&#322;adniki" 
+                                   FontSize="18" 
+                                   FontAttributes="Bold"
+                                   VerticalOptions="Center"
+                                   TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"/>
+                            <Button Grid.Column="1"
+                                    Text="Wyczy&#347;&#263;"
+                                    FontSize="12"
+                                    Padding="12,6"
+                                    BackgroundColor="{StaticResource Gray300}"
+                                    TextColor="{StaticResource Gray600}"
+                                    Command="{Binding ClearIngredientsCommand}"
+                                    IsVisible="{Binding SelectedIngredients.Count, Converter={StaticResource IsNotZeroConverter}}"/>
+                        </Grid>
+                        
+                        <!-- Selected Ingredients -->
+                        <FlexLayout BindableLayout.ItemsSource="{Binding SelectedIngredients}"
+                                    Wrap="Wrap"
+                                    JustifyContent="Start"
+                                    AlignItems="Start">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate x:DataType="data:IngredientLocal">
+                                    <Border Margin="0,0,8,8"
+                                            Padding="10,6"
+                                            StrokeThickness="0"
+                                            StrokeShape="RoundRectangle 16"
+                                            BackgroundColor="{StaticResource Primary}">
+                                        <HorizontalStackLayout Spacing="6">
+                                            <Label Text="{Binding Name}" 
+                                                   TextColor="White" 
+                                                   FontSize="13"/>
+                                            <Image HeightRequest="16" WidthRequest="16">
+                                                <Image.Source>
+                                                    <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Close}"
+                                                                     FontFamily="MaterialSymbolsOutlined"
+                                                                     Color="White"
+                                                                     Size="16"/>
+                                                </Image.Source>
+                                                <Image.GestureRecognizers>
+                                                    <TapGestureRecognizer 
+                                                        Command="{Binding Source={RelativeSource AncestorType={x:Type vm:RandomRecipeViewModel}}, Path=RemoveIngredientCommand}"
+                                                        CommandParameter="{Binding}"/>
+                                                </Image.GestureRecognizers>
+                                            </Image>
+                                        </HorizontalStackLayout>
+                                    </Border>
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </FlexLayout>
+                        
+                        <!-- Search Ingredients -->
+                        <Border StrokeThickness="1"
+                                Stroke="{StaticResource Gray300}"
+                                StrokeShape="RoundRectangle 12"
+                                Padding="12,8">
+                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                                <Image HeightRequest="20" WidthRequest="20">
+                                    <Image.Source>
+                                        <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Search}"
+                                                         FontFamily="MaterialSymbolsOutlined"
+                                                         Color="{StaticResource Gray400}"
+                                                         Size="20"/>
+                                    </Image.Source>
+                                </Image>
+                                <Entry Grid.Column="1"
+                                       Placeholder="Szukaj sk&#322;adnik&#243;w..."
+                                       Text="{Binding IngredientSearchQuery}"
+                                       FontSize="15"/>
+                            </Grid>
+                        </Border>
+                        
+                        <!-- Available Ingredients List -->
+                        <CollectionView ItemsSource="{Binding FilteredIngredients}"
+                                        HeightRequest="200"
+                                        SelectionMode="None">
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate x:DataType="data:IngredientLocal">
+                                    <Border Margin="0,2"
+                                            Padding="12,10"
+                                            StrokeThickness="0"
+                                            StrokeShape="RoundRectangle 10"
+                                            BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray600}}">
+                                        <Border.GestureRecognizers>
+                                            <TapGestureRecognizer 
+                                                Command="{Binding Source={RelativeSource AncestorType={x:Type vm:RandomRecipeViewModel}}, Path=AddIngredientCommand}"
+                                                CommandParameter="{Binding}"/>
+                                        </Border.GestureRecognizers>
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <Label Text="{Binding Name}" 
+                                                   FontSize="15"
+                                                   VerticalOptions="Center"
+                                                   TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"/>
+                                            <Image Grid.Column="1" HeightRequest="20" WidthRequest="20">
+                                                <Image.Source>
+                                                    <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Add}"
+                                                                     FontFamily="MaterialSymbolsOutlined"
+                                                                     Color="{StaticResource Primary}"
+                                                                     Size="20"/>
+                                                </Image.Source>
+                                            </Image>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+                        </CollectionView>
+                    </VerticalStackLayout>
+                </Border>
+                
+                <!-- Randomize Button -->
+                <Button Text="??  Losuj przepis!"
+                        FontSize="18"
+                        FontAttributes="Bold"
+                        Padding="20,16"
+                        BackgroundColor="{StaticResource Primary}"
+                        TextColor="White"
+                        CornerRadius="16"
+                        Command="{Binding RandomizeRecipeCommand}">
+                    <Button.Shadow>
+                        <Shadow Brush="{StaticResource PrimaryBrush}" Offset="0,4" Radius="8" Opacity="0.3"/>
+                    </Button.Shadow>
+                </Button>
+                
+                <!-- Loading Indicator -->
+                <ActivityIndicator IsRunning="{Binding IsLoading}"
+                                   IsVisible="{Binding IsLoading}"
+                                   HeightRequest="50"
+                                   WidthRequest="50"
+                                   Color="{StaticResource Primary}"
+                                   HorizontalOptions="Center"/>
+                
+                <!-- Result Card -->
+                <Border StrokeThickness="0"
+                        StrokeShape="RoundRectangle 20"
+                        IsVisible="{Binding HasResult}"
+                        BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}">
+                    <Border.Shadow>
+                        <Shadow Brush="{StaticResource Gray400Brush}" Offset="0,4" Radius="12" Opacity="0.15"/>
+                    </Border.Shadow>
+                    <Grid RowDefinitions="180,Auto">
+                        <!-- Recipe Image -->
+                        <Border StrokeThickness="0"
+                                StrokeShape="RoundRectangle 20,20,0,0"
+                                BackgroundColor="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray600}}">
+                            <Image Source="{Binding RecipeImage}" 
+                                   Aspect="AspectFill"
+                                   IsVisible="{Binding RecipeImage, Converter={StaticResource IsNotNullConverter}}"/>
+                        </Border>
+                        <!-- Default image when no photo -->
+                        <Image Aspect="AspectFill" 
+                               VerticalOptions="Center" 
+                               HorizontalOptions="Center"
+                               IsVisible="{Binding RecipeImage, Converter={StaticResource IsNullConverter}}">
+                            <Image.Source>
+                                <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Restaurant}"
+                                                 FontFamily="MaterialSymbolsOutlined"
+                                                 Color="{StaticResource Gray400}"
+                                                 Size="60"/>
+                            </Image.Source>
+                        </Image>
+                        
+                        <!-- Recipe Info -->
+                        <VerticalStackLayout Grid.Row="1" Padding="16" Spacing="12">
+                            <Label Text="{Binding RandomRecipe.Title}" 
+                                   FontSize="20" 
+                                   FontAttributes="Bold"
+                                   TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"/>
+                            
+                            <Label Text="{Binding RandomRecipe.Description}" 
+                                   FontSize="14" 
+                                   TextColor="{StaticResource Gray500}"
+                                   MaxLines="2"
+                                   LineBreakMode="TailTruncation"/>
+                            
+                            <!-- Time Info -->
+                            <HorizontalStackLayout Spacing="16">
+                                <HorizontalStackLayout Spacing="6">
+                                    <Image HeightRequest="18" WidthRequest="18">
+                                        <Image.Source>
+                                            <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Schedule}"
+                                                             FontFamily="MaterialSymbolsOutlined"
+                                                             Color="{StaticResource Primary}"
+                                                             Size="18"/>
+                                        </Image.Source>
+                                    </Image>
+                                    <Label FontSize="14" TextColor="{StaticResource Gray500}">
+                                        <Label.FormattedText>
+                                            <FormattedString>
+                                                <Span Text="{Binding RandomRecipe.PreparationTimeMinutes}"/>
+                                                <Span Text=" min prep"/>
+                                            </FormattedString>
+                                        </Label.FormattedText>
+                                    </Label>
+                                </HorizontalStackLayout>
+                                <HorizontalStackLayout Spacing="6">
+                                    <Image HeightRequest="18" WidthRequest="18">
+                                        <Image.Source>
+                                            <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Local_fire_department}"
+                                                             FontFamily="MaterialSymbolsOutlined"
+                                                             Color="#FF6B35"
+                                                             Size="18"/>
+                                        </Image.Source>
+                                    </Image>
+                                    <Label FontSize="14" TextColor="{StaticResource Gray500}">
+                                        <Label.FormattedText>
+                                            <FormattedString>
+                                                <Span Text="{Binding RandomRecipe.CookingTimeMinutes}"/>
+                                                <Span Text=" min cook"/>
+                                            </FormattedString>
+                                        </Label.FormattedText>
+                                    </Label>
+                                </HorizontalStackLayout>
+                            </HorizontalStackLayout>
+                            
+                            <!-- Action Buttons -->
+                            <Grid ColumnDefinitions="*,*" ColumnSpacing="12" Margin="0,8,0,0">
+                                <Button Grid.Column="0"
+                                        Text="Losuj ponownie"
+                                        FontSize="14"
+                                        Padding="16,12"
+                                        BackgroundColor="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray600}}"
+                                        TextColor="{AppThemeBinding Light={StaticResource Gray700}, Dark={StaticResource White}}"
+                                        CornerRadius="12"
+                                        Command="{Binding RandomizeRecipeCommand}"/>
+                                <Button Grid.Column="1"
+                                        Text="Zobacz przepis"
+                                        FontSize="14"
+                                        Padding="16,12"
+                                        BackgroundColor="{StaticResource Primary}"
+                                        TextColor="White"
+                                        CornerRadius="12"
+                                        Command="{Binding GoToRecipeDetailCommand}"/>
+                            </Grid>
+                        </VerticalStackLayout>
+                    </Grid>
+                </Border>
+                
+            </VerticalStackLayout>
+        </ScrollView>
+    </Grid>
+</ContentPage>

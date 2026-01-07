@@ -22,6 +22,7 @@
             <converters:LogLevelToColorConverter x:Key="LogLevelToColorConverter"/>
             <converters:StringIsNotNullOrEmptyConverter x:Key="StringIsNotNullOrEmptyConverter"/>
             <converters:InvertedBoolConverter x:Key="InvertedBoolConverter"/>
+            <converters:IsNotZeroConverter x:Key="IsNotZeroConverter"/>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

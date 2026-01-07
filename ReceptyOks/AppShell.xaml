@@ -31,6 +31,17 @@
                 Route="RecipesPage" />
         </Tab>
         
+        <Tab Title="Losuj">
+            <Tab.Icon>
+                <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Casino}"
+                                 FontFamily="MaterialSymbolsOutlined"
+                                 Size="24"/>
+            </Tab.Icon>
+            <ShellContent
+                ContentTemplate="{DataTemplate views:RandomRecipePage}"
+                Route="RandomRecipePage" />
+        </Tab>
+        
         <Tab Title="Kategorie">
             <Tab.Icon>
                 <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Folder}"

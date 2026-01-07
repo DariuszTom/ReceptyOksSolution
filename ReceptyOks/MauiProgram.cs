@@ -62,6 +62,7 @@ public static class MauiProgram
 		builder.Services.AddTransient<CategoriesViewModel>();
 		builder.Services.AddTransient<CategoryEditViewModel>();
 		builder.Services.AddTransient<LogsViewModel>();
+		builder.Services.AddTransient<RandomRecipeViewModel>();
 		
 		// Views
 		builder.Services.AddTransient<RecipesPage>();
@@ -70,6 +71,7 @@ public static class MauiProgram
 		builder.Services.AddTransient<CategoriesPage>();
 		builder.Services.AddTransient<CategoryEditPage>();
 		builder.Services.AddTransient<LogsPage>();
+		builder.Services.AddTransient<RandomRecipePage>();
 
 		return builder.Build();
 	}
