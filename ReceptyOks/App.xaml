@@ -19,6 +19,9 @@
             <converters:IconSelectionConverter x:Key="IconSelectionConverter"/>
             <converters:HasCategoryIconConverter x:Key="HasCategoryIconConverter"/>
             <converters:IsNullOrEmptyBytesConverter x:Key="IsNullOrEmptyBytesConverter" />
+            <converters:LogLevelToColorConverter x:Key="LogLevelToColorConverter"/>
+            <converters:StringIsNotNullOrEmptyConverter x:Key="StringIsNotNullOrEmptyConverter"/>
+            <converters:InvertedBoolConverter x:Key="InvertedBoolConverter"/>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

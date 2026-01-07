@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Extensions.Logging;
 using ReceptyOks.Data;
 using System.Collections.ObjectModel;
 
@@ -8,6 +9,7 @@ namespace ReceptyOks.ViewModels;
 public partial class CategoriesViewModel : ObservableObject
 {
     private readonly LocalDatabase _database;
+    private readonly ILogger<CategoriesViewModel> _logger;
 
     [ObservableProperty]
     private ObservableCollection<CategoryLocal> categories = [];
@@ -15,9 +17,10 @@ public partial class CategoriesViewModel : ObservableObject
     [ObservableProperty]
     private bool isRefreshing;
 
-    public CategoriesViewModel(LocalDatabase database)
+    public CategoriesViewModel(LocalDatabase database, ILogger<CategoriesViewModel> logger)
     {
         _database = database;
+        _logger = logger;
     }
 
     [RelayCommand]
@@ -26,6 +29,7 @@ public partial class CategoriesViewModel : ObservableObject
         try
         {
             IsRefreshing = true;
+            _logger.LogInformation("Loading categories");
             var categoryList = await _database.GetCategoriesAsync();
             
             Categories.Clear();
@@ -33,6 +37,11 @@ public partial class CategoriesViewModel : ObservableObject
             {
                 Categories.Add(category);
             }
+            _logger.LogInformation("Loaded {Count} categories", categoryList.Count);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error loading categories");
         }
         finally
         {

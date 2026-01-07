@@ -24,6 +24,7 @@ public class LocalDatabase
         await _database.CreateTableAsync<IngredientLocal>();
         await _database.CreateTableAsync<RecipeIngredientLocal>();
         await _database.CreateTableAsync<SyncInfo>();
+        await _database.CreateTableAsync<LogEntry>();
 
         return _database;
     }
@@ -328,6 +329,42 @@ public class LocalDatabase
         {
             await db.UpdateAsync(ingredient);
         }
+    }
+
+    #endregion
+
+    #region Logs
+
+    public async Task<List<LogEntry>> GetLogsAsync(int limit = 100)
+    {
+        var db = await GetConnectionAsync();
+        return await db.Table<LogEntry>()
+            .OrderByDescending(l => l.Timestamp)
+            .Take(limit)
+            .ToListAsync();
+    }
+
+    public async Task<List<LogEntry>> GetLogsByLevelAsync(string level, int limit = 100)
+    {
+        var db = await GetConnectionAsync();
+        return await db.Table<LogEntry>()
+            .Where(l => l.Level == level)
+            .OrderByDescending(l => l.Timestamp)
+            .Take(limit)
+            .ToListAsync();
+    }
+
+    public async Task<int> ClearOldLogsAsync(int keepLastDays = 7)
+    {
+        var db = await GetConnectionAsync();
+        var cutoffDate = DateTime.UtcNow.AddDays(-keepLastDays);
+        return await db.ExecuteAsync("DELETE FROM Logs WHERE Timestamp < ?", cutoffDate);
+    }
+
+    public async Task<int> ClearAllLogsAsync()
+    {
+        var db = await GetConnectionAsync();
+        return await db.ExecuteAsync("DELETE FROM Logs");
     }
 
     #endregion

@@ -82,3 +82,20 @@ public class SyncInfo
     public int Id { get; set; } = 1;
     public DateTime? LastSyncedAt { get; set; }
 }
+
+[Table("Logs")]
+public class LogEntry
+{
+    [PrimaryKey, AutoIncrement]
+    public int Id { get; set; }
+    
+    public DateTime Timestamp { get; set; }
+    
+    public string Level { get; set; } = string.Empty;
+    
+    public string Message { get; set; } = string.Empty;
+    
+    public string? Exception { get; set; }
+    
+    public string? Properties { get; set; }
+}

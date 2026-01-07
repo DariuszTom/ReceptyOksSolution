@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:ReceptyOks.ViewModels"
+             xmlns:data="clr-namespace:ReceptyOks.Data"
+             x:Class="ReceptyOks.Views.LogsPage"
+             x:DataType="vm:LogsViewModel"
+             Title="Logi Aplikacji"
+             BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark=#121212}">
+
+    <Grid RowDefinitions="Auto,*">
+        <!-- Toolbar -->
+        <HorizontalStackLayout Grid.Row="0" Padding="10" Spacing="10">
+            <Picker ItemsSource="{Binding LogLevels}"
+                    SelectedItem="{Binding SelectedLevel}"
+                    WidthRequest="150"/>
+            
+            <Button Text="Refresh"
+                    Command="{Binding LoadLogsCommand}"/>
+            
+            <Button Text="Clear Old"
+                    Command="{Binding ClearOldLogsCommand}"/>
+            
+            <Button Text="Clear All"
+                    Command="{Binding ClearAllLogsCommand}"/>
+        </HorizontalStackLayout>
+
+        <!-- Logs List -->
+        <CollectionView Grid.Row="1"
+                        ItemsSource="{Binding Logs}"
+                        SelectionMode="None">
+            <CollectionView.EmptyView>
+                <StackLayout Padding="20" VerticalOptions="Center">
+                    <Label Text="No logs available"
+                           HorizontalOptions="Center"
+                           FontSize="16"
+                           TextColor="Gray"/>
+                </StackLayout>
+            </CollectionView.EmptyView>
+
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="data:LogEntry">
+                    <Border Margin="10,5" 
+                           Padding="10"
+                           StrokeThickness="1"
+                           Stroke="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray600}}"
+                           StrokeShape="RoundRectangle 8"
+                           BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}">
+                        <StackLayout Spacing="5">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <Label Grid.Column="0"
+                                       Text="{Binding Timestamp, StringFormat='{0:yyyy-MM-dd HH:mm:ss}'}"
+                                       FontSize="12"
+                                       TextColor="Gray"/>
+                                <Label Grid.Column="1"
+                                       Text="{Binding Level}"
+                                       FontSize="12"
+                                       FontAttributes="Bold"/>
+                            </Grid>
+                            
+
+                            <Label Text="{Binding Message}"
+                                   FontSize="14"
+                                   LineBreakMode="WordWrap"/>
+                            
+                            <Label Text="{Binding Exception}"
+                                   FontSize="12"
+                                   TextColor="Red"
+                                   LineBreakMode="WordWrap"/>
+                        </StackLayout>
+                    </Border>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+        <!-- Loading Indicator -->
+        <ActivityIndicator Grid.Row="1"
+                          IsRunning="{Binding IsLoading}"
+                          IsVisible="{Binding IsLoading}"
+                          HorizontalOptions="Center"
+                          VerticalOptions="Center"/>
+    </Grid>
+</ContentPage>

@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Extensions.Logging;
 using ReceptyOks.Data;
 using ReceptyOks.Services;
 using System.Collections.ObjectModel;
@@ -10,6 +11,7 @@ public partial class RecipesViewModel : ObservableObject
 {
     private readonly LocalDatabase _database;
     private readonly SyncService _syncService;
+    private readonly ILogger<RecipesViewModel> _logger;
 
     [ObservableProperty]
     private ObservableCollection<RecipeLocal> recipes = [];
@@ -23,10 +25,13 @@ public partial class RecipesViewModel : ObservableObject
     [ObservableProperty]
     private string searchQuery = string.Empty;
 
-    public RecipesViewModel(LocalDatabase database, SyncService syncService)
+    public RecipesViewModel(LocalDatabase database, SyncService syncService, ILogger<RecipesViewModel> logger)
     {
         _database = database;
         _syncService = syncService;
+        _logger = logger;
+        
+        _logger.LogDebug("RecipesViewModel initialized");
     }
 
     [RelayCommand]
@@ -35,11 +40,20 @@ public partial class RecipesViewModel : ObservableObject
         try
         {
             IsRefreshing = true;
+            _logger.LogInformation("Loading recipes with search query: {SearchQuery}", SearchQuery);
+            
             var recipeList = string.IsNullOrWhiteSpace(SearchQuery)
                 ? await _database.GetRecipesAsync()
                 : await _database.SearchRecipesAsync(SearchQuery);
             
             Recipes = new ObservableCollection<RecipeLocal>(recipeList);
+            
+            _logger.LogInformation("Successfully loaded {Count} recipes", recipeList.Count);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error loading recipes");
+            await Shell.Current.DisplayAlert("Error", "Failed to load recipes", "OK");
         }
         finally
         {
@@ -53,17 +67,26 @@ public partial class RecipesViewModel : ObservableObject
         try
         {
             IsSyncing = true;
+            _logger.LogInformation("Starting recipe synchronization");
+            
             var result = await _syncService.SyncAsync();
             
             if (result.Success)
             {
+                _logger.LogInformation("Synchronization successful: {Message}", result.Message);
                 await LoadRecipesAsync();
                 await Shell.Current.DisplayAlertAsync("Synchronizacja", result.Message, "OK");
             }
             else
             {
+                _logger.LogWarning("Synchronization failed: {Message}", result.Message);
                 await Shell.Current.DisplayAlertAsync("B³¹d", result.Message, "OK");
             }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during synchronization");
+            await Shell.Current.DisplayAlert("Error", "Synchronization failed", "OK");
         }
         finally
         {
@@ -74,6 +97,7 @@ public partial class RecipesViewModel : ObservableObject
     [RelayCommand]
     private async Task GoToAddRecipeAsync()
     {
+        _logger.LogDebug("Navigating to add recipe page");
         await Shell.Current.GoToAsync(nameof(Views.RecipeEditPage));
     }
 
