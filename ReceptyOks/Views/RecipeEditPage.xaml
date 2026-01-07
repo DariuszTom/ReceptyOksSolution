@@ -137,23 +137,80 @@
             <Grid ColumnDefinitions="*,*,*" ColumnSpacing="12">
                 <VerticalStackLayout Grid.Column="0" Spacing="4">
                     <Label Text="Przygotowanie (min)" FontSize="14"/>
-                    <HorizontalStackLayout>
-                        <Entry Text="{Binding PreparationTimeMinutes, Mode=TwoWay}" Keyboard="Numeric" WidthRequest="60"/>
-                        <Stepper Value="{Binding PreparationTimeMinutes, Mode=TwoWay}" Minimum="0" Maximum="1000" Increment="1" WidthRequest="120"/>
+                    <HorizontalStackLayout Spacing="3">
+                        <Entry Text="{Binding PreparationTimeMinutes, Mode=TwoWay}" Keyboard="Numeric" WidthRequest="60" VerticalOptions="Center"/>
+                        <VerticalStackLayout Spacing="1">
+                            <Button Command="{Binding IncrementPreparationTimeCommand}"
+                                    Text="+"
+                                    WidthRequest="24"
+                                    HeightRequest="18"
+                                    FontSize="14"
+                                    FontAttributes="Bold"
+                                    Padding="0"
+                                    CornerRadius="3"
+                                    BackgroundColor="{StaticResource Primary}"/>
+                            <Button Command="{Binding DecrementPreparationTimeCommand}"
+                                    Text="-"
+                                    WidthRequest="24"
+                                    HeightRequest="18"
+                                    FontSize="14"
+                                    FontAttributes="Bold"
+                                    Padding="0"
+                                    CornerRadius="3"
+                                    BackgroundColor="{StaticResource Primary}"/>
+                        </VerticalStackLayout>
                     </HorizontalStackLayout>
                 </VerticalStackLayout>
                 <VerticalStackLayout Grid.Column="1" Spacing="4">
                     <Label Text="Gotowanie (min)" FontSize="14"/>
-                    <HorizontalStackLayout>
-                        <Entry Text="{Binding CookingTimeMinutes, Mode=TwoWay}" Keyboard="Numeric" WidthRequest="60"/>
-                        <Stepper Value="{Binding CookingTimeMinutes, Mode=TwoWay}" Minimum="0" Maximum="1000" Increment="1" WidthRequest="120"/>
+                    <HorizontalStackLayout Spacing="3">
+                        <Entry Text="{Binding CookingTimeMinutes, Mode=TwoWay}" Keyboard="Numeric" WidthRequest="60" VerticalOptions="Center"/>
+                        <VerticalStackLayout Spacing="1">
+                            <Button Command="{Binding IncrementCookingTimeCommand}"
+                                    Text="+"
+                                    WidthRequest="24"
+                                    HeightRequest="18"
+                                    FontSize="14"
+                                    FontAttributes="Bold"
+                                    Padding="0"
+                                    CornerRadius="3"
+                                    BackgroundColor="{StaticResource Primary}"/>
+                            <Button Command="{Binding DecrementCookingTimeCommand}"
+                                    Text="-"
+                                    WidthRequest="24"
+                                    HeightRequest="18"
+                                    FontSize="14"
+                                    FontAttributes="Bold"
+                                    Padding="0"
+                                    CornerRadius="3"
+                                    BackgroundColor="{StaticResource Primary}"/>
+                        </VerticalStackLayout>
                     </HorizontalStackLayout>
                 </VerticalStackLayout>
                 <VerticalStackLayout Grid.Column="2" Spacing="4">
                     <Label Text="Porcje" FontSize="14"/>
-                    <HorizontalStackLayout>
-                        <Entry Text="{Binding Servings, Mode=TwoWay}" Keyboard="Numeric" WidthRequest="60"/>
-                        <Stepper Value="{Binding Servings, Mode=TwoWay}" Minimum="1" Maximum="100" Increment="1" WidthRequest="120"/>
+                    <HorizontalStackLayout Spacing="3">
+                        <Entry Text="{Binding Servings, Mode=TwoWay}" Keyboard="Numeric" WidthRequest="60" VerticalOptions="Center"/>
+                        <VerticalStackLayout Spacing="1">
+                            <Button Command="{Binding IncrementServingsCommand}"
+                                    Text="+"
+                                    WidthRequest="24"
+                                    HeightRequest="18"
+                                    FontSize="14"
+                                    FontAttributes="Bold"
+                                    Padding="0"
+                                    CornerRadius="3"
+                                    BackgroundColor="{StaticResource Primary}"/>
+                            <Button Command="{Binding DecrementServingsCommand}"
+                                    Text="-"
+                                    WidthRequest="24"
+                                    HeightRequest="18"
+                                    FontSize="14"
+                                    FontAttributes="Bold"
+                                    Padding="0"
+                                    CornerRadius="3"
+                                    BackgroundColor="{StaticResource Primary}"/>
+                        </VerticalStackLayout>
                     </HorizontalStackLayout>
                 </VerticalStackLayout>
             </Grid>
@@ -185,11 +242,9 @@
                                 Margin="0,6"
                                 BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}">
                             <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" RowSpacing="10">
-                                <material:PickerField Grid.Row="0" Grid.Column="0"
-                                                      Title="Składnik"
-                                                      ItemsSource="{Binding Source={RelativeSource AncestorType={x:Type vm:RecipeEditViewModel}}, Path=AvailableIngredients}"
-                                                      SelectedItem="{Binding SelectedIngredient}"
-                                                      ItemDisplayBinding="{Binding Name}"/>
+                                <material:TextField Grid.Row="0" Grid.Column="0"
+                                                    Title="Składnik"
+                                                    Text="{Binding IngredientName}"/>
                                 <Button Grid.Row="0" Grid.Column="1" 
                                         BackgroundColor="Transparent"
                                         VerticalOptions="Center"

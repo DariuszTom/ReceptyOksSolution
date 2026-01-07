@@ -138,6 +138,7 @@ public partial class RecipeEditViewModel : ObservableObject
                 {
                     Id = ri.Id,
                     SelectedIngredient = ingredient,
+                    IngredientName = ingredient.Name,
                     Quantity = ri.Quantity,
                     Unit = ri.Unit ?? "",
                     Notes = ri.Notes ?? ""
@@ -219,6 +220,48 @@ public partial class RecipeEditViewModel : ObservableObject
     }
 
     [RelayCommand]
+    private void IncrementPreparationTime()
+    {
+        if (PreparationTimeMinutes < 1000)
+            PreparationTimeMinutes++;
+    }
+
+    [RelayCommand]
+    private void DecrementPreparationTime()
+    {
+        if (PreparationTimeMinutes > 0)
+            PreparationTimeMinutes--;
+    }
+
+    [RelayCommand]
+    private void IncrementCookingTime()
+    {
+        if (CookingTimeMinutes < 1000)
+            CookingTimeMinutes++;
+    }
+
+    [RelayCommand]
+    private void DecrementCookingTime()
+    {
+        if (CookingTimeMinutes > 0)
+            CookingTimeMinutes--;
+    }
+
+    [RelayCommand]
+    private void IncrementServings()
+    {
+        if (Servings < 100)
+            Servings++;
+    }
+
+    [RelayCommand]
+    private void DecrementServings()
+    {
+        if (Servings > 1)
+            Servings--;
+    }
+
+    [RelayCommand]
     private async Task SaveAsync()
     {
         if (string.IsNullOrWhiteSpace(Title))
@@ -244,19 +287,56 @@ public partial class RecipeEditViewModel : ObservableObject
         await _database.SaveRecipeAsync(recipe);
 
         // Zapisz sk³adniki
-        var recipeIngredients = Ingredients
-            .Where(i => i.SelectedIngredient is not null)
-            .Select((i, index) => new RecipeIngredientLocal
+        var recipeIngredients = new List<RecipeIngredientLocal>();
+        int order = 0;
+
+        foreach (var ingredient in Ingredients)
+        {
+            if (string.IsNullOrWhiteSpace(ingredient.IngredientName))
+                continue;
+
+            Guid ingredientId;
+
+            // Jeœli sk³adnik zosta³ wybrany z listy, u¿yj jego ID
+            if (ingredient.SelectedIngredient is not null)
             {
-                Id = i.Id,
+                ingredientId = ingredient.SelectedIngredient.Id;
+            }
+            else
+            {
+                // Jeœli sk³adnik zosta³ wpisany, sprawdŸ czy ju¿ istnieje lub utwórz nowy
+                var existingIngredient = AvailableIngredients.FirstOrDefault(
+                    i => i.Name.Equals(ingredient.IngredientName, StringComparison.OrdinalIgnoreCase));
+
+                if (existingIngredient is not null)
+                {
+                    ingredientId = existingIngredient.Id;
+                }
+                else
+                {
+                    // Utwórz nowy sk³adnik
+                    var newIngredient = new IngredientLocal
+                    {
+                        Id = Guid.NewGuid(),
+                        Name = ingredient.IngredientName
+                    };
+                    await _database.SaveIngredientAsync(newIngredient);
+                    AvailableIngredients.Add(newIngredient);
+                    ingredientId = newIngredient.Id;
+                }
+            }
+
+            recipeIngredients.Add(new RecipeIngredientLocal
+            {
+                Id = ingredient.Id,
                 RecipeId = recipe.Id,
-                IngredientId = i.SelectedIngredient!.Id,
-                Quantity = i.Quantity,
-                Unit = i.Unit,
-                Notes = i.Notes,
-                Order = index
-            })
-            .ToList();
+                IngredientId = ingredientId,
+                Quantity = ingredient.Quantity,
+                Unit = ingredient.Unit,
+                Notes = ingredient.Notes,
+                Order = order++
+            });
+        }
 
         await _database.SaveRecipeIngredientsAsync(recipe.Id, recipeIngredients);
 
@@ -320,6 +400,9 @@ public partial class EditableIngredient : ObservableObject
     private IngredientLocal? selectedIngredient;
 
     [ObservableProperty]
+    private string ingredientName = string.Empty;
+
+    [ObservableProperty]
     private decimal quantity;
 
     [ObservableProperty]
@@ -327,4 +410,20 @@ public partial class EditableIngredient : ObservableObject
 
     [ObservableProperty]
     private string notes = string.Empty;
+
+    partial void OnSelectedIngredientChanged(IngredientLocal? value)
+    {
+        if (value is not null)
+        {
+            IngredientName = value.Name;
+        }
+    }
+
+    partial void OnIngredientNameChanged(string value)
+    {
+        if (!string.IsNullOrWhiteSpace(value) && SelectedIngredient?.Name != value)
+        {
+            SelectedIngredient = null;
+        }
+    }
 }
