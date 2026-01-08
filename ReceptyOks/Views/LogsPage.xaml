@@ -8,7 +8,7 @@
              Title="Logi Aplikacji"
              BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark=#121212}">
 
-    <Grid RowDefinitions="Auto,*">
+    <Grid RowDefinitions="Auto,*,Auto">
         <!-- Toolbar -->
         <HorizontalStackLayout Grid.Row="0" Padding="10" Spacing="10">
             <Picker ItemsSource="{Binding LogLevels}"
@@ -72,6 +72,14 @@
                 </DataTemplate>
             </CollectionView.ItemTemplate>
         </CollectionView>
+
+        <!-- Version Info -->
+        <Label Grid.Row="2"
+               Text="{Binding AppVersion}"
+               FontSize="12"
+               TextColor="Gray"
+               HorizontalOptions="Center"
+               Padding="10"/>
 
         <!-- Loading Indicator -->
         <ActivityIndicator Grid.Row="1"

@@ -1,0 +1,28 @@
+<Project>
+  <PropertyGroup>
+    <!-- Wersja g³ówna aplikacji (Major.Minor.Patch) -->
+    <MajorVersion>1</MajorVersion>
+    <MinorVersion>0</MinorVersion>
+    <PatchVersion>0</PatchVersion>
+    
+    <!-- Automatyczny numer buildu na podstawie daty (YYMMDD format) -->
+    <!-- Przyk³ad: 26 stycznia 2025 = 250126 -->
+    <BuildNumber>$([System.DateTime]::Now.ToString("yyMMdd"))</BuildNumber>
+    
+    <!-- Alternatywnie: numer dnia roku (1-366) dla bardziej kompaktowego numeru -->
+    <!-- <BuildNumber>$([System.DateTime]::Now.DayOfYear)</BuildNumber> -->
+    
+    <!-- Dla Android versionCode: kombinacja Major.Minor.Patch jako liczba ca³kowita -->
+    <!-- Format: XXYYZZ gdzie XX=Major, YY=Minor, ZZ=Patch (np. 1.0.0 = 10000) -->
+    <AndroidVersionCode>$([System.Int32]::Parse('$(MajorVersion)'))$([System.Int32]::Parse('$(MinorVersion)').ToString('00'))$([System.Int32]::Parse('$(PatchVersion)').ToString('00'))</AndroidVersionCode>
+    
+    <!-- Pe³na wersja -->
+    <ApplicationDisplayVersion>$(MajorVersion).$(MinorVersion).$(PatchVersion)</ApplicationDisplayVersion>
+    <ApplicationVersion>$(AndroidVersionCode)</ApplicationVersion>
+    
+    <!-- Dla bardziej szczegó³owej wersji w assembly -->
+    <AssemblyVersion>$(MajorVersion).$(MinorVersion).$(PatchVersion).0</AssemblyVersion>
+    <FileVersion>$(MajorVersion).$(MinorVersion).$(PatchVersion).$(BuildNumber)</FileVersion>
+    <InformationalVersion>$(MajorVersion).$(MinorVersion).$(PatchVersion)+$(BuildNumber)</InformationalVersion>
+  </PropertyGroup>
+</Project>

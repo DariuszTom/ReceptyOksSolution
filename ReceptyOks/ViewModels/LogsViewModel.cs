@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
 using ReceptyOks.Data;
+using ReceptyOks.Services;
 using System.Collections.ObjectModel;
 
 namespace ReceptyOks.ViewModels;
@@ -19,6 +20,8 @@ public partial class LogsViewModel : ObservableObject
 
     [ObservableProperty]
     private string _selectedLevel = "All";
+
+    public string AppVersion => VersionInfo.FormattedVersion;
 
     public List<string> LogLevels { get; } = new() 
     { 

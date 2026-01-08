@@ -8,14 +8,11 @@ public class SyncService
 {
     private readonly LocalDatabase _localDb;
     private readonly HttpClient _httpClient;
-    private readonly string _baseUrl;
 
     public SyncService(LocalDatabase localDb, HttpClient httpClient)
     {
         _localDb = localDb;
         _httpClient = httpClient;
-        // URL bêdzie konfigurowany przez Aspire service discovery lub lokalnie
-        _baseUrl = "http://localhost:5100";
     }
 
     public async Task<SyncResult> SyncAsync()
@@ -45,7 +42,7 @@ public class SyncService
             };
 
             // Wyœlij do serwera i pobierz odpowiedŸ
-            var response = await _httpClient.PostAsJsonAsync($"{_baseUrl}/api/sync", request);
+            var response = await _httpClient.PostAsJsonAsync("/api/sync", request);
             
             if (!response.IsSuccessStatusCode)
             {
@@ -93,7 +90,7 @@ public class SyncService
 
         try
         {
-            var response = await _httpClient.GetAsync($"{_baseUrl}/api/sync/full");
+            var response = await _httpClient.GetAsync("/api/sync/full");
             
             if (!response.IsSuccessStatusCode)
             {

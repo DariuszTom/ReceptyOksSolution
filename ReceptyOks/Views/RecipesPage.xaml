@@ -7,6 +7,7 @@
              xmlns:icons="clr-namespace:UraniumUI.Icons.MaterialSymbols;assembly=UraniumUI.Icons.MaterialSymbols"
              xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
              x:Class="ReceptyOks.Views.RecipesPage"
+             x:Name="RecipesPageRoot"
              x:DataType="vm:RecipesViewModel"
              Shell.NavBarIsVisible="False"
              BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark=#121212}">
@@ -47,7 +48,7 @@
                     <toolkit:TouchBehavior 
                         PressedScale="0.9"
                         PressedOpacity="0.7"
-                        Command="{Binding SyncCommand}"/>
+                        Command="{Binding BindingContext.SyncCommand, Source={x:Reference RecipesPageRoot}}"/>
                 </Border.Behaviors>
                 <Image HeightRequest="22" WidthRequest="22" HorizontalOptions="Center" VerticalOptions="Center">
                     <Image.Source>

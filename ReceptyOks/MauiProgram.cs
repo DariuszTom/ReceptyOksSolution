@@ -1,5 +1,6 @@
 ﻿using CommunityToolkit.Maui;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.ServiceDiscovery;
 using Plugin.Maui.OCR;
 using ReceptyOks.Data;
 using ReceptyOks.Services;
@@ -43,14 +44,22 @@ public static class MauiProgram
 				fonts.AddMaterialSymbolsFonts();
 			});
 
+		// Add Aspire Service Discovery
+		builder.Services.AddServiceDiscovery();
+
 		// Database
 		builder.Services.AddSingleton<LocalDatabase>();
 		
-		// HTTP Client
-		builder.Services.AddSingleton<HttpClient>();
-		
+		// Configure HttpClient with Aspire service discovery
+		builder.Services.AddHttpClient<SyncService>(client =>
+		{
+			// Nazwa usługi z AppHost - Aspire automatycznie rozwiąże URL
+			client.BaseAddress = new Uri("http://receptyoks-api");
+			client.Timeout = TimeSpan.FromSeconds(30);
+		})
+		.AddServiceDiscovery(); // Włącz service discovery dla tego HttpClient
+
 		// Services
-		builder.Services.AddSingleton<SyncService>();
 		builder.Services.AddSingleton(OcrPlugin.Default);
 		builder.Services.AddSingleton<IOCRService, MobileOcerService>();
 
