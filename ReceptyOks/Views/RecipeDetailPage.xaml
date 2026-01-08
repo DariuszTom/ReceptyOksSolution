@@ -92,7 +92,7 @@
                                    TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"/>
                             
                             <!-- Category Badge -->
-                            <Border BackgroundColor="{StaticResource Primary}" 
+                            <Border Background="{StaticResource PurpleGradient}" 
                                     Padding="14,8" 
                                     StrokeShape="RoundRectangle 20"
                                     StrokeThickness="0"

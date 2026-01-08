@@ -431,4 +431,122 @@
         <Setter Property="SelectedTabColor" Value="{AppThemeBinding Light={StaticResource Gray950}, Dark={StaticResource Gray200}}" />
     </Style>
 
+    <!-- ==================== CUSTOM STYLES ==================== -->
+    
+    <!-- Przycisk z gradientem fioletowo-niebieskim -->
+    <Style x:Key="GradientButton" TargetType="Button">
+        <Setter Property="TextColor" Value="White" />
+        <Setter Property="Background" Value="{StaticResource FioAzureGradient}" />
+        <Setter Property="FontFamily" Value="OpenSansSemibold"/>
+        <Setter Property="FontSize" Value="14"/>
+        <Setter Property="BorderWidth" Value="0"/>
+        <Setter Property="CornerRadius" Value="12"/>
+        <Setter Property="Padding" Value="16,12"/>
+        <Setter Property="MinimumHeightRequest" Value="48"/>
+        <Setter Property="Shadow">
+            <Setter.Value>
+                <Shadow Brush="{StaticResource PrimaryBrush}" Offset="0,4" Radius="8" Opacity="0.3"/>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    
+    <!-- Przycisk z gradientem zielonym (do dodawania) -->
+    <Style x:Key="GradientAddButton" TargetType="Button">
+        <Setter Property="TextColor" Value="White" />
+        <Setter Property="Background" Value="{StaticResource GreenButtonGradient}" />
+        <Setter Property="FontFamily" Value="OpenSansSemibold"/>
+        <Setter Property="FontSize" Value="14"/>
+        <Setter Property="BorderWidth" Value="0"/>
+        <Setter Property="CornerRadius" Value="12"/>
+        <Setter Property="Padding" Value="16,12"/>
+        <Setter Property="MinimumHeightRequest" Value="48"/>
+        <Setter Property="Shadow">
+            <Setter.Value>
+                <Shadow Brush="#44b632" Offset="0,4" Radius="8" Opacity="0.3"/>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    
+    <!-- Przycisk z gradientem pomarańczowym -->
+    <Style x:Key="GradientOrangeButton" TargetType="Button">
+        <Setter Property="TextColor" Value="White" />
+        <Setter Property="Background" Value="{StaticResource OrangeGradient}" />
+        <Setter Property="FontFamily" Value="OpenSansSemibold"/>
+        <Setter Property="FontSize" Value="14"/>
+        <Setter Property="BorderWidth" Value="0"/>
+        <Setter Property="CornerRadius" Value="12"/>
+        <Setter Property="Padding" Value="16,12"/>
+        <Setter Property="MinimumHeightRequest" Value="48"/>
+    </Style>
+    
+    <!-- Karta z gradientowym tłem -->
+    <Style x:Key="GradientCard" TargetType="Border">
+        <Setter Property="Background" Value="{StaticResource PurpleGradient}" />
+        <Setter Property="StrokeThickness" Value="0"/>
+        <Setter Property="StrokeShape" Value="RoundRectangle 16"/>
+        <Setter Property="Padding" Value="16"/>
+        <Setter Property="Shadow">
+            <Setter.Value>
+                <Shadow Brush="{StaticResource Black}" Offset="0,4" Radius="12" Opacity="0.15"/>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    
+    <!-- Karta z efektem glassmorphism -->
+    <Style x:Key="GlassCard" TargetType="Border">
+        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light=#FFFFFF99, Dark=#FFFFFF22}" />
+        <Setter Property="Stroke" Value="{AppThemeBinding Light=#FFFFFF, Dark=#FFFFFF44}"/>
+        <Setter Property="StrokeThickness" Value="1"/>
+        <Setter Property="StrokeShape" Value="RoundRectangle 16"/>
+        <Setter Property="Padding" Value="16"/>
+    </Style>
+    
+    <!-- Tytuł strony -->
+    <Style x:Key="PageTitle" TargetType="Label">
+        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource MidnightBlue}, Dark={StaticResource White}}" />
+        <Setter Property="FontSize" Value="28" />
+        <Setter Property="FontFamily" Value="OpenSansSemibold" />
+        <Setter Property="FontAttributes" Value="Bold" />
+    </Style>
+    
+    <!-- Podtytuł -->
+    <Style x:Key="SectionTitle" TargetType="Label">
+        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource DarkColor}, Dark={StaticResource Gray200}}" />
+        <Setter Property="FontSize" Value="18" />
+        <Setter Property="FontFamily" Value="OpenSansSemibold" />
+    </Style>
+    
+    <!-- Mały tekst pomocniczy -->
+    <Style x:Key="CaptionLabel" TargetType="Label">
+        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray400}}" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="FontFamily" Value="OpenSansRegular" />
+    </Style>
+    
+    <!-- Ramka do inputów -->
+    <Style x:Key="InputFrame" TargetType="Border">
+        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light=WhiteSmoke, Dark={StaticResource Gray900}}" />
+        <Setter Property="Padding" Value="12,8"/>
+        <Setter Property="StrokeShape" Value="RoundRectangle 8"/>
+        <Setter Property="Stroke" Value="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray600}}"/>
+        <Setter Property="StrokeThickness" Value="1"/>
+    </Style>
+    
+    <!-- FAB Button -->
+    <Style x:Key="FloatingActionButton" TargetType="Button">
+        <Setter Property="TextColor" Value="White" />
+        <Setter Property="Background" Value="{StaticResource FioAzureGradient}" />
+        <Setter Property="FontFamily" Value="MaterialSymbolsOutlined"/>
+        <Setter Property="FontSize" Value="24"/>
+        <Setter Property="WidthRequest" Value="56"/>
+        <Setter Property="HeightRequest" Value="56"/>
+        <Setter Property="CornerRadius" Value="28"/>
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="Shadow">
+            <Setter.Value>
+                <Shadow Brush="{StaticResource Black}" Offset="0,6" Radius="16" Opacity="0.25"/>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
 </ResourceDictionary>

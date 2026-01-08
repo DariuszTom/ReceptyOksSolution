@@ -324,9 +324,11 @@
                         Text="Anuluj" 
                         BackgroundColor="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray600}}"
                         TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray200}}"
+                        CornerRadius="12"
                         Command="{Binding CancelCommand}"/>
                 <Button Grid.Column="1" 
                         Text="Zapisz"
+                        Style="{StaticResource GradientAddButton}"
                         Clicked="OnSaveClicked">
                     <Button.ImageSource>
                         <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Save}"

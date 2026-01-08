@@ -21,12 +21,10 @@
             </Grid.Shadow>
             <VerticalStackLayout VerticalOptions="Center">
                 <Label Text="Losuj Przepis" 
-                       FontSize="24" 
-                       FontAttributes="Bold"
-                       TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"/>
-                <Label Text="Co dzi&#347; ugotowa&#263;?" 
-                       FontSize="14"
-                       TextColor="{StaticResource Gray500}"/>
+                       Style="{StaticResource PageTitle}"
+                       FontSize="24"/>
+                <Label Text="Co dziś ugotować?" 
+                       Style="{StaticResource CaptionLabel}"/>
             </VerticalStackLayout>
         </Grid>
 
@@ -222,14 +220,8 @@
                         FontSize="18"
                         FontAttributes="Bold"
                         Padding="20,16"
-                        BackgroundColor="{StaticResource Primary}"
-                        TextColor="White"
-                        CornerRadius="16"
-                        Command="{Binding RandomizeRecipeCommand}">
-                    <Button.Shadow>
-                        <Shadow Brush="{StaticResource PrimaryBrush}" Offset="0,4" Radius="8" Opacity="0.3"/>
-                    </Button.Shadow>
-                </Button>
+                        Style="{StaticResource GradientButton}"
+                        Command="{Binding RandomizeRecipeCommand}"/>
                 
                 <!-- Loading Indicator -->
                 <ActivityIndicator IsRunning="{Binding IsLoading}"
@@ -336,7 +328,7 @@
                                         Text="Zobacz przepis"
                                         FontSize="14"
                                         Padding="16,12"
-                                        BackgroundColor="{StaticResource Primary}"
+                                        Background="{StaticResource PurpleGradient}"
                                         TextColor="White"
                                         CornerRadius="12"
                                         Command="{Binding GoToRecipeDetailCommand}"/>

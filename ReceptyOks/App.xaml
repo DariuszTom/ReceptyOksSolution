@@ -20,6 +20,7 @@
             <converters:HasCategoryIconConverter x:Key="HasCategoryIconConverter"/>
             <converters:IsNullOrEmptyBytesConverter x:Key="IsNullOrEmptyBytesConverter" />
             <converters:LogLevelToColorConverter x:Key="LogLevelToColorConverter"/>
+            <converters:LogLevelToBackgroundConverter x:Key="LogLevelToBackgroundConverter"/>
             <converters:StringIsNotNullOrEmptyConverter x:Key="StringIsNotNullOrEmptyConverter"/>
             <converters:InvertedBoolConverter x:Key="InvertedBoolConverter"/>
             <converters:IsNotZeroConverter x:Key="IsNotZeroConverter"/>

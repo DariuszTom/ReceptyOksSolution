@@ -50,7 +50,7 @@
                     StrokeShape="RoundRectangle 20"
                     HeightRequest="40"
                     WidthRequest="40"
-                    BackgroundColor="{StaticResource Primary}">
+                    Background="{StaticResource GreenButtonGradient}">
                 <Image HeightRequest="20" WidthRequest="20" HorizontalOptions="Center" VerticalOptions="Center">
                     <Image.Source>
                         <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Check}"

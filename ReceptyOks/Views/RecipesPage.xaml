@@ -24,12 +24,10 @@
             </Grid.Shadow>
             <VerticalStackLayout VerticalOptions="Center">
                 <Label Text="Moje Przepisy" 
-                       FontSize="24" 
-                       FontAttributes="Bold"
-                       TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"/>
+                       Style="{StaticResource PageTitle}"
+                       FontSize="24"/>
                 <Label Text="Co dziś gotujemy?" 
-                       FontSize="14"
-                       TextColor="{StaticResource Gray500}"/>
+                       Style="{StaticResource CaptionLabel}"/>
             </VerticalStackLayout>
             <ActivityIndicator Grid.Column="1" 
                                IsRunning="{Binding IsSyncing}" 

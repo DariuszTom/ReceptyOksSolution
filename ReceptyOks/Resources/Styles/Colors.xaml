@@ -17,6 +17,13 @@
     <Color x:Key="TabBarSelectedDark">#B388FF</Color>
     <Color x:Key="TabBarUnselected">#9E9E9E</Color>
     <Color x:Key="TabBarUnselectedDark">#757575</Color>
+    
+    <!-- Kolory z OneTracker -->
+    <Color x:Key="AccentColor">#FF4B14</Color>
+    <Color x:Key="PinkColor">#ED0241</Color>
+    <Color x:Key="GreenColor">#368F95</Color>
+    <Color x:Key="DarkColor">#203446</Color>
+    <Color x:Key="MainColor">#3B0748</Color>
 
     <Color x:Key="White">White</Color>
     <Color x:Key="Black">Black</Color>
@@ -33,6 +40,7 @@
     <Color x:Key="Gray900">#212121</Color>
     <Color x:Key="Gray950">#141414</Color>
 
+    <!-- Solid Brushes -->
     <SolidColorBrush x:Key="PrimaryBrush" Color="{StaticResource Primary}"/>
     <SolidColorBrush x:Key="SecondaryBrush" Color="{StaticResource Secondary}"/>
     <SolidColorBrush x:Key="TertiaryBrush" Color="{StaticResource Tertiary}"/>
@@ -47,4 +55,41 @@
     <SolidColorBrush x:Key="Gray600Brush" Color="{StaticResource Gray600}"/>
     <SolidColorBrush x:Key="Gray900Brush" Color="{StaticResource Gray900}"/>
     <SolidColorBrush x:Key="Gray950Brush" Color="{StaticResource Gray950}"/>
+    
+    <!-- Gradienty -->
+    <LinearGradientBrush x:Key="FioAzureGradient" EndPoint="0.5,1" StartPoint="0.5,0">
+        <GradientStop Color="#FFE18DFC" Offset="0" />
+        <GradientStop Color="#FF88D2FE" Offset="1" />
+    </LinearGradientBrush>
+
+    <LinearGradientBrush x:Key="BlazorGradient" EndPoint="0.5,1" StartPoint="0.5,0">
+        <GradientStop Color="#FF181B5C" Offset="0" />
+        <GradientStop Color="#FF3B0748" Offset="1" />
+    </LinearGradientBrush>
+
+    <LinearGradientBrush x:Key="LogoGradient" EndPoint="0.5,1" StartPoint="0.5,0">
+        <GradientStop Color="#FEACC6" Offset="0" />
+        <GradientStop Color="#7045AF" Offset="1" />
+    </LinearGradientBrush>
+
+    <LinearGradientBrush x:Key="GreenButtonGradient" EndPoint="0.5,1" StartPoint="0.5,0">
+        <GradientStop Color="DarkGreen" Offset="0" />
+        <GradientStop Color="#ff44b632" Offset="0.73" />
+    </LinearGradientBrush>
+    
+    <LinearGradientBrush x:Key="PurpleGradient" EndPoint="0.5,1" StartPoint="0.5,0">
+        <GradientStop Color="#7C4DFF" Offset="0" />
+        <GradientStop Color="#B388FF" Offset="1" />
+    </LinearGradientBrush>
+    
+    <LinearGradientBrush x:Key="OrangeGradient" EndPoint="0.5,1" StartPoint="0.5,0">
+        <GradientStop Color="#FF6B35" Offset="0" />
+        <GradientStop Color="#F7931E" Offset="1" />
+    </LinearGradientBrush>
+    
+    <LinearGradientBrush x:Key="DarkGradient" EndPoint="0.5,1" StartPoint="0.5,0">
+        <GradientStop Color="#1a1a2e" Offset="0" />
+        <GradientStop Color="#16213e" Offset="1" />
+    </LinearGradientBrush>
+
 </ResourceDictionary>

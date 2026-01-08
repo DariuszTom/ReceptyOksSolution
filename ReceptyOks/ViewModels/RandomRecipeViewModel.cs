@@ -96,6 +96,13 @@ public partial class RandomRecipeViewModel : ObservableObject
 
             _logger.LogInformation("Loaded {CategoryCount} categories and {IngredientCount} ingredients", 
                 categoryList.Count, ingredientList.Count);
+            
+            if (categoryList.Count == 0)
+            {
+                _logger.LogWarning("No categories found in database");
+            }
+            
+            _logger.LogDebug("Random recipe view model data loaded successfully");
         }
         catch (Exception ex)
         {

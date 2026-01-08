@@ -116,17 +116,98 @@ public class LogLevelToColorConverter : IValueConverter
     {
         if (value is string level)
         {
+            bool isDarkMode = Application.Current?.RequestedTheme == AppTheme.Dark;
+            
+            if (isDarkMode)
+            {
+                return level switch
+                {
+                    "Debug" => Color.FromArgb("#B0B0B0"),      // Light Gray
+                    "Information" => Color.FromArgb("#64B5F6"), // Light Blue
+                    "Warning" => Color.FromArgb("#FFB74D"),    // Light Orange
+                    "Error" => Color.FromArgb("#EF5350"),      // Light Red
+                    "Fatal" => Color.FromArgb("#EC407A"),      // Light Pink
+                    _ => Color.FromArgb("#E0E0E0")
+                };
+            }
+            else
+            {
+                return level switch
+                {
+                    "Debug" => Color.FromArgb("#6E6E6E"),      // Gray500
+                    "Information" => Color.FromArgb("#1976D2"), // Blue
+                    "Warning" => Color.FromArgb("#F57C00"),    // Orange
+                    "Error" => Color.FromArgb("#D32F2F"),      // Red
+                    "Fatal" => Color.FromArgb("#C2185B"),      // Dark Pink
+                    _ => Color.FromArgb("#212121")             // Gray900
+                };
+            }
+        }
+        return Color.FromArgb("#212121");
+    }
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => throw new NotImplementedException();
+}
+
+public class LogLevelToBackgroundConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (value is string level)
+        {
+            // SprawdŸ czy jesteœmy w dark mode
+            bool isDarkMode = Application.Current?.RequestedTheme == AppTheme.Dark;
+            
+            if (isDarkMode)
+            {
+                return level switch
+                {
+                    "Debug" => Color.FromArgb("#404040"),      // Gray600
+                    "Information" => Color.FromArgb("#1565C0"), // Dark Blue
+                    "Warning" => Color.FromArgb("#E65100"),    // Dark Orange
+                    "Error" => Color.FromArgb("#C62828"),      // Dark Red
+                    "Fatal" => Color.FromArgb("#880E4F"),      // Dark Pink
+                    _ => Color.FromArgb("#303030")
+                };
+            }
+            else
+            {
+                return level switch
+                {
+                    "Debug" => Color.FromArgb("#E1E1E1"),      // Gray100
+                    "Information" => Color.FromArgb("#E3F2FD"), // Light Blue
+                    "Warning" => Color.FromArgb("#FFF3E0"),    // Light Orange
+                    "Error" => Color.FromArgb("#FFEBEE"),      // Light Red
+                    "Fatal" => Color.FromArgb("#FCE4EC"),      // Light Pink
+                    _ => Color.FromArgb("#F5F5F5")
+                };
+            }
+        }
+        return Color.FromArgb("#F5F5F5");
+    }
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => throw new NotImplementedException();
+}
+
+public class LogLevelToIconConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (value is string level)
+        {
             return level switch
             {
-                "Debug" => Colors.Gray,
-                "Information" => Colors.Blue,
-                "Warning" => Colors.Orange,
-                "Error" => Colors.Red,
-                "Fatal" => Colors.DarkRed,
-                _ => Colors.Black
+                "Debug" => "??",
+                "Information" => "??",
+                "Warning" => "??",
+                "Error" => "?",
+                "Fatal" => "??",
+                _ => "??"
             };
         }
-        return Colors.Black;
+        return "??";
     }
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)

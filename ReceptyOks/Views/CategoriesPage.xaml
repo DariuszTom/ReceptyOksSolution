@@ -21,12 +21,10 @@
             </Grid.Shadow>
             <VerticalStackLayout VerticalOptions="Center">
                 <Label Text="Kategorie" 
-                       FontSize="24" 
-                       FontAttributes="Bold"
-                       TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"/>
+                       Style="{StaticResource PageTitle}"
+                       FontSize="24"/>
                 <Label Text="Organizuj swoje przepisy" 
-                       FontSize="14"
-                       TextColor="{StaticResource Gray500}"/>
+                       Style="{StaticResource CaptionLabel}"/>
             </VerticalStackLayout>
         </Grid>
 
@@ -70,7 +68,7 @@
                            HorizontalTextAlignment="Center"/>
                     <Button Text="Dodaj kategorię"
                             Command="{Binding AddCategoryCommand}"
-                            BackgroundColor="{StaticResource Primary}"
+                            Style="{StaticResource GradientAddButton}"
                             CornerRadius="24"
                             Padding="24,12"
                             HorizontalOptions="Center"
