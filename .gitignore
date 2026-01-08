@@ -3,6 +3,13 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
+# SQLite database files
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
 # User-specific files
 *.rsuser
 *.suo
@@ -361,3 +368,6 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+/ReceptyOks.Api/Data/recipes.db-shm
+/ReceptyOks.Api/Data/recipes.db-wal
+/ReceptyOks.Api/Data/recipes.db

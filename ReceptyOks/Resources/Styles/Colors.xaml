@@ -11,6 +11,12 @@
     <Color x:Key="Secondary">#DFD8F7</Color>
     <Color x:Key="SecondaryDarkText">#9880e5</Color>
     <Color x:Key="Tertiary">#2B0B98</Color>
+    
+    <!-- Kolory dla TabBar -->
+    <Color x:Key="TabBarSelected">#7C4DFF</Color>
+    <Color x:Key="TabBarSelectedDark">#B388FF</Color>
+    <Color x:Key="TabBarUnselected">#9E9E9E</Color>
+    <Color x:Key="TabBarUnselectedDark">#757575</Color>
 
     <Color x:Key="White">White</Color>
     <Color x:Key="Black">Black</Color>

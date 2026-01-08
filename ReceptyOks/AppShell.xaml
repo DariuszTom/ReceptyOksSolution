@@ -6,16 +6,24 @@
     xmlns:views="clr-namespace:ReceptyOks.Views"
     xmlns:icons="clr-namespace:UraniumUI.Icons.MaterialSymbols;assembly=UraniumUI.Icons.MaterialSymbols"
     Title="ReceptyOks"
-    Shell.TabBarBackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}"
-    Shell.TabBarTitleColor="{StaticResource Primary}"
-    Shell.TabBarUnselectedColor="{StaticResource Gray400}"
+    Shell.TabBarBackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray950}}"
+    Shell.TabBarTitleColor="{AppThemeBinding Light={StaticResource TabBarSelected}, Dark={StaticResource TabBarSelectedDark}}"
+    Shell.TabBarUnselectedColor="{AppThemeBinding Light={StaticResource TabBarUnselected}, Dark={StaticResource TabBarUnselectedDark}}"
+    Shell.TabBarForegroundColor="{AppThemeBinding Light={StaticResource TabBarSelected}, Dark={StaticResource TabBarSelectedDark}}"
     Shell.NavBarHasShadow="True"
     Shell.BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}"
     Shell.ForegroundColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}">
 
     <Shell.Resources>
         <Style x:Key="BaseStyle" TargetType="Element">
-            <Setter Property="Shell.TabBarBackgroundColor" Value="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}" />
+            <Setter Property="Shell.TabBarBackgroundColor" Value="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray950}}" />
+        </Style>
+        
+        <!-- Styl dla TabBar z lepszym podświetleniem -->
+        <Style TargetType="TabBar">
+            <Setter Property="Shell.TabBarBackgroundColor" Value="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray950}}" />
+            <Setter Property="Shell.TabBarTitleColor" Value="{AppThemeBinding Light={StaticResource TabBarSelected}, Dark={StaticResource TabBarSelectedDark}}" />
+            <Setter Property="Shell.TabBarUnselectedColor" Value="{AppThemeBinding Light={StaticResource TabBarUnselected}, Dark={StaticResource TabBarUnselectedDark}}" />
         </Style>
     </Shell.Resources>
 
