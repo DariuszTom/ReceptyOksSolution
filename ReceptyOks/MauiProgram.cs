@@ -1,14 +1,17 @@
 ﻿using CommunityToolkit.Maui;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.ServiceDiscovery;
 using Plugin.Maui.OCR;
+using ReceptyOks.Configuration;
 using ReceptyOks.Data;
 using ReceptyOks.Services;
 using ReceptyOks.Shared.OCR;
 using ReceptyOks.ViewModels;
 using ReceptyOks.Views;
-using UraniumUI;
 using Serilog;
+using System.Reflection;
+using UraniumUI;
 
 namespace ReceptyOks;
 
@@ -18,13 +21,14 @@ public static class MauiProgram
 	{
 		var builder = MauiApp.CreateBuilder();
 		
-		// Configure Serilog
-		var dbPath = Path.Combine(Microsoft.Maui.Storage.FileSystem.AppDataDirectory, "recipes_local.db");
+		// Load Configuration from embedded appsettings.json
+		var appSettings = LoadConfiguration(builder);
 		
+		// Configure Serilog
 		Log.Logger = new LoggerConfiguration()
 			.MinimumLevel.Debug()
 			.Enrich.FromLogContext()
-			.WriteTo.Sink(new SQLiteSink(dbPath))
+			.WriteTo.Sink(new SQLiteSink(appSettings.Database.LocalDatabasePath))
 #if DEBUG
 			.WriteTo.Debug()
 #endif
@@ -59,16 +63,14 @@ public static class MauiProgram
 		// Configure HttpClient with Aspire service discovery
 		builder.Services.AddHttpClient<SyncService>(client =>
 		{
-			// Nazwa usługi z AppHost - Aspire automatycznie rozwiąże URL
-			client.BaseAddress = new Uri("http://receptyoks-api");
-			client.Timeout = TimeSpan.FromSeconds(30);
+			client.BaseAddress = new Uri($"http://{appSettings.Http.ApiServiceName}");
+			client.Timeout = TimeSpan.FromSeconds(appSettings.Http.DefaultTimeoutSeconds);
 		})
-		.AddServiceDiscovery(); // Włącz service discovery dla tego HttpClient
+		.AddServiceDiscovery();
 
 		// Services
 		builder.Services.AddSingleton(OcrPlugin.Default);
 		builder.Services.AddSingleton<IOCRService, MobileOcerService>();
-
 
         // ViewModels
         builder.Services.AddTransient<RecipesViewModel>();
@@ -89,5 +91,30 @@ public static class MauiProgram
 		builder.Services.AddTransient<RandomRecipePage>();
 
 		return builder.Build();
+	}
+
+	private static AppSettings LoadConfiguration(MauiAppBuilder builder)
+	{
+		var assembly = Assembly.GetExecutingAssembly();
+		using var stream = assembly.GetManifestResourceStream("ReceptyOks.appsettings.json");
+		
+		if (stream == null)
+		{
+			throw new InvalidOperationException(
+				"appsettings.json not found. Make sure it's marked as EmbeddedResource in .csproj");
+		}
+		
+		var config = new ConfigurationBuilder()
+			.AddJsonStream(stream)
+			.Build();
+		
+		builder.Configuration.AddConfiguration(config);
+		
+		// Bind to strongly-typed settings
+		var appSettings = new AppSettings();
+		config.Bind(appSettings);
+		builder.Services.AddSingleton(appSettings);
+		
+		return appSettings;
 	}
 }
