@@ -31,7 +31,6 @@ public partial class RecipesViewModel : ObservableObject
         _syncService = syncService;
         _logger = logger;
         
-        _logger.LogDebug("RecipesViewModel initialized");
     }
 
     [RelayCommand]
@@ -40,7 +39,6 @@ public partial class RecipesViewModel : ObservableObject
         try
         {
             IsRefreshing = true;
-            _logger.LogInformation("Loading recipes with search query: {SearchQuery}", SearchQuery);
             
             var recipeList = string.IsNullOrWhiteSpace(SearchQuery)
                 ? await _database.GetRecipesAsync()
@@ -97,7 +95,6 @@ public partial class RecipesViewModel : ObservableObject
     [RelayCommand]
     private async Task GoToAddRecipeAsync()
     {
-        _logger.LogDebug("Navigating to add recipe page");
         await Shell.Current.GoToAsync(nameof(Views.RecipeEditPage));
     }
 

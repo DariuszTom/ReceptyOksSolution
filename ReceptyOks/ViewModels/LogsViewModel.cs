@@ -40,7 +40,6 @@ public partial class LogsViewModel : ObservableObject
         try
         {
             IsLoading = true;
-            _logger.LogInformation("Loading logs from database");
 
             List<LogEntry> logs;
             if (SelectedLevel == "All")

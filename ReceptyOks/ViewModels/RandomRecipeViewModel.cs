@@ -54,7 +54,6 @@ public partial class RandomRecipeViewModel : ObservableObject
     {
         _database = database;
         _logger = logger;
-        _logger.LogDebug("RandomRecipeViewModel initialized");
     }
 
     partial void OnIngredientSearchQueryChanged(string value)
@@ -85,7 +84,6 @@ public partial class RandomRecipeViewModel : ObservableObject
         try
         {
             IsLoading = true;
-            _logger.LogInformation("Loading categories and ingredients for random recipe");
 
             var categoryList = await _database.GetCategoriesAsync();
             Categories = new ObservableCollection<CategoryLocal>(categoryList);
@@ -93,16 +91,12 @@ public partial class RandomRecipeViewModel : ObservableObject
             var ingredientList = await _database.GetIngredientsAsync();
             AllIngredients = new ObservableCollection<IngredientLocal>(ingredientList);
             FilterIngredients();
-
-            _logger.LogInformation("Loaded {CategoryCount} categories and {IngredientCount} ingredients", 
-                categoryList.Count, ingredientList.Count);
             
             if (categoryList.Count == 0)
             {
                 _logger.LogWarning("No categories found in database");
             }
             
-            _logger.LogDebug("Random recipe view model data loaded successfully");
         }
         catch (Exception ex)
         {
@@ -122,7 +116,6 @@ public partial class RandomRecipeViewModel : ObservableObject
         {
             SelectedIngredients.Add(ingredient);
             FilterIngredients();
-            _logger.LogDebug("Added ingredient: {IngredientName}", ingredient.Name);
         }
     }
 
@@ -131,7 +124,6 @@ public partial class RandomRecipeViewModel : ObservableObject
     {
         SelectedIngredients.Remove(ingredient);
         FilterIngredients();
-        _logger.LogDebug("Removed ingredient: {IngredientName}", ingredient.Name);
     }
 
     [RelayCommand]
@@ -139,7 +131,6 @@ public partial class RandomRecipeViewModel : ObservableObject
     {
         SelectedIngredients.Clear();
         FilterIngredients();
-        _logger.LogDebug("Cleared all selected ingredients");
     }
 
     [RelayCommand]
@@ -151,9 +142,6 @@ public partial class RandomRecipeViewModel : ObservableObject
             HasResult = false;
             RandomRecipe = null;
             RecipeImage = null;
-
-            _logger.LogInformation("Randomizing recipe with filters - ByCategory: {ByCategory}, ByIngredients: {ByIngredients}", 
-                FilterByCategory, FilterByIngredients);
 
             List<RecipeLocal> candidates;
 
@@ -233,6 +221,5 @@ public partial class RandomRecipeViewModel : ObservableObject
         RandomRecipe = null;
         RecipeImage = null;
         HasResult = false;
-        _logger.LogDebug("Cleared random recipe result");
     }
 }

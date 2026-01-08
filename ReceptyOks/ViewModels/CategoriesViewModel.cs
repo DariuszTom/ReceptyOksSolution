@@ -29,7 +29,6 @@ public partial class CategoriesViewModel : ObservableObject
         try
         {
             IsRefreshing = true;
-            _logger.LogInformation("Loading categories");
             var categoryList = await _database.GetCategoriesAsync();
             
             Categories.Clear();
