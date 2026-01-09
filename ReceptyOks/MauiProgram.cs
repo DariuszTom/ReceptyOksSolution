@@ -90,6 +90,8 @@ public static class MauiProgram
 		builder.Services.AddTransient<LogsPage>();
 		builder.Services.AddTransient<RandomRecipePage>();
 
+		builder.Services.AddSingleton<AppSettings>(appSettings);
+
 		return builder.Build();
 	}
 

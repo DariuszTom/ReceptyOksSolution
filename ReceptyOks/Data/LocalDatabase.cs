@@ -1,3 +1,4 @@
+using ReceptyOks.Configuration;
 using SQLite;
 
 namespace ReceptyOks.Data;
@@ -7,9 +8,9 @@ public class LocalDatabase
     private SQLiteAsyncConnection? _database;
     private readonly string _dbPath;
 
-    public LocalDatabase()
+    public LocalDatabase(AppSettings settings)
     {
-        _dbPath = Path.Combine(Microsoft.Maui.Storage.FileSystem.AppDataDirectory, "recipes_local.db");
+        _dbPath = Path.Combine(Microsoft.Maui.Storage.FileSystem.AppDataDirectory, settings.Database.LocalDatabaseName);
     }
 
     private async Task<SQLiteAsyncConnection> GetConnectionAsync()
