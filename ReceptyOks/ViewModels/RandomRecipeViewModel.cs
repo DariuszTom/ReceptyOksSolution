@@ -145,40 +145,15 @@ public partial class RandomRecipeViewModel : ObservableObject
 
             List<RecipeLocal> candidates;
 
-            if (FilterByCategory && SelectedCategory != null)
-            {
-                candidates = await _database.GetRecipesByCategoryAsync(SelectedCategory.Id);
-                _logger.LogDebug("Found {Count} recipes in category {Category}", candidates.Count, SelectedCategory.Name);
-            }
-            else
-            {
-                candidates = await _database.GetRecipesAsync();
-                _logger.LogDebug("Found {Count} total recipes", candidates.Count);
-            }
+            var selectedCatId = (FilterByCategory && SelectedCategory != null) ? SelectedCategory.Id : Guid.Empty;
+            var selectedIngIds = FilterByIngredients ? SelectedIngredients.Select(i => i.Id) : null;
+
+            candidates = await _database.GetRecipesByCategoryAndIngriendentsAsync(selectedCatId, selectedIngIds);
             candidates.RemoveAll(r => r.Id == OldID); // Unikaj powtórzeñ
-            if (FilterByIngredients && SelectedIngredients.Count > 0)
-            {
-                var selectedIngredientIds = SelectedIngredients.Select(i => i.Id).ToHashSet();
-                var filteredCandidates = new List<RecipeLocal>();
-
-                foreach (var recipe in candidates)
-                {
-                    var recipeIngredients = await _database.GetRecipeIngredientsAsync(recipe.Id);
-                    var recipeIngredientIds = recipeIngredients.Select(ri => ri.IngredientId).ToHashSet();
-
-                    // SprawdŸ czy przepis zawiera wszystkie wybrane sk³adniki
-                    if (selectedIngredientIds.All(id => recipeIngredientIds.Contains(id)))
-                    {
-                        filteredCandidates.Add(recipe);
-                    }
-                }
-
-                candidates = filteredCandidates;
-                _logger.LogDebug("After ingredient filter: {Count} recipes", candidates.Count);
-            }
 
             if (candidates.Count == 0)
             {
+                OldID = Guid.Empty;
                 await Shell.Current.DisplayAlertAsync("Brak przepisów", 
                     "Nie znaleziono przepisów spe³niaj¹cych wybrane kryteria", "OK");
                 return;

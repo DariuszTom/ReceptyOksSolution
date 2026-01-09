@@ -56,7 +56,41 @@ public class LocalDatabase
             .OrderByDescending(r => r.CreatedAt)
             .ToListAsync();
     }
+    public async Task<List<RecipeLocal>> GetRecipesByCategoryAndIngriendentsAsync(Guid categoryId, IEnumerable<Guid>? ingredientsId)
+    {
+        List<RecipeLocal> recipes;
+        if (categoryId == Guid.Empty)
+            recipes = await GetRecipesAsync().ConfigureAwait(false);
+        else 
+            recipes = await GetRecipesByCategoryAsync(categoryId).ConfigureAwait(false);
 
+        if (recipes is null ||  recipes.Count == 0 ||ingredientsId is null) 
+            return recipes ?? new List<RecipeLocal>();
+
+        var ingredientsList = ingredientsId?.ToList() ?? new List<Guid>();
+        if (ingredientsList.Count == 0)
+            return recipes;
+
+        var db = await GetConnectionAsync();
+        var filteredRecipes = new List<RecipeLocal>();
+
+        foreach (var recipe in recipes)
+        {
+            var recipeIngredients = await db.Table<RecipeIngredientLocal>()
+                .Where(ri => ri.RecipeId == recipe.Id)
+                .ToListAsync();
+
+            var recipeIngredientIds = recipeIngredients.Select(ri => ri.IngredientId).ToHashSet();
+
+            // SprawdŸ czy przepis zawiera wszystkie wymagane sk³adniki
+            if (ingredientsList.All(ingId => recipeIngredientIds.Contains(ingId)))
+            {
+                filteredRecipes.Add(recipe);
+            }
+        }
+
+        return filteredRecipes;
+    }
     public async Task<int> SaveRecipeAsync(RecipeLocal recipe)
     {
         var db = await GetConnectionAsync();
