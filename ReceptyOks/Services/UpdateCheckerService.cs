@@ -1,6 +1,8 @@
 ﻿using ReceptyOks.Configuration;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
+using Polly;
+using Polly.Retry;
 
 namespace ReceptyOks.Services;
 
@@ -24,9 +26,16 @@ public class UpdateCheckerService
 
     public async Task<GitHubRelease?> GetLatestReleaseAsync()
     {
+        AsyncRetryPolicy<HttpResponseMessage> retryPolicy = Policy
+            .HandleResult<HttpResponseMessage>(r => !r.IsSuccessStatusCode)
+            .Or<HttpRequestException>()
+            .WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)));
+
         try
         {
-            var response = await _httpClient.GetAsync(_settings.Http.Github.ReleaseEndpoint);
+            var response = await retryPolicy.ExecuteAsync(() =>
+                _httpClient.GetAsync(_settings.Http.Github.ReleaseEndpoint)
+            );
             if (!response.IsSuccessStatusCode)
                 return null;
 

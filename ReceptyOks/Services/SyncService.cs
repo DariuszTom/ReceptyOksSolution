@@ -1,4 +1,6 @@
 using System.Net.Http.Json;
+using Polly;
+using Polly.Retry;
 using ReceptyOks.Data;
 using ReceptyOks.Shared.DTOs;
 
@@ -41,8 +43,15 @@ public class SyncService
                 ChangedIngredients = await GetChangedIngredientsAsync()
             };
 
+            AsyncRetryPolicy<HttpResponseMessage> retryPolicy = Policy
+                .HandleResult<HttpResponseMessage>(r => !r.IsSuccessStatusCode)
+                .Or<HttpRequestException>()
+                .WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)));
+
             // Wyœlij do serwera i pobierz odpowiedŸ
-            var response = await _httpClient.PostAsJsonAsync("/api/sync", request);
+            var response = await retryPolicy.ExecuteAsync(() =>
+                _httpClient.PostAsJsonAsync("/api/sync", request)
+            );
             
             if (!response.IsSuccessStatusCode)
             {
