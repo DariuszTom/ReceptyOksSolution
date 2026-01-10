@@ -37,4 +37,4 @@ jobs:
     - name: Build Shared
       run: dotnet build ReceptyOks.Shared/ReceptyOks.Shared.csproj --no-restore
     - name: Test
-      run: dotnet test ReceptyOks_UnitTests/ReceptyOks_UnitTests.csproj --no-build --verbosity normal -collect:"XPlat Code Coverage"
+      run: dotnet test ReceptyOks_UnitTests/ReceptyOks_UnitTests.csproj --no-build --verbosity normal /p:CollectCoverage=true /p:CoverletOutputFormat=lcov
