@@ -37,4 +37,4 @@ jobs:
     - name: Build Shared
       run: dotnet build ReceptyOks.Shared/ReceptyOks.Shared.csproj --no-restore
     - name: Test
-      run: dotnet test ReceptyOks.Api/ReceptyOks.Api.csproj --no-build --verbosity normal || true
+      run: dotnet test ReceptyOks_UnitTests/ReceptyOks_UnitTests.csproj --no-build --verbosity normal || true
