@@ -1,0 +1,51 @@
+name: Android Release
+
+on:
+  workflow_dispatch:    # Allows manual trigger from GitHub UI
+  push:
+    branches: [ "master" ]  # Optional: remove if you want only manual releases
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 10.0.x
+
+    - name: Install Android workload
+      run: dotnet workload install maui-android
+
+    - name: Restore dependencies
+      run: dotnet restore ReceptyOks/ReceptyOks.csproj -p:TargetFramework=net10.0-android
+
+    - name: Build MAUI Android (Release)
+      run: dotnet build ReceptyOks/ReceptyOks.csproj -c Release -f net10.0-android --no-restore
+
+    - name: Find APK
+      id: find_apk
+      run: |
+        apk_path=$(find ReceptyOks/bin/Release/net10.0-android -name "*.apk" | head -n 1)
+        echo "apk_path=$apk_path" >> $GITHUB_OUTPUT
+
+    - name: Create Release
+      id: create_release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: android-release-${{ github.run_number }}
+        name: Android Release ${{ github.run_number }}
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Upload APK to Release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: ${{ steps.find_apk.outputs.apk_path }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
