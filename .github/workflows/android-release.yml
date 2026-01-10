@@ -23,8 +23,14 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore ReceptyOks/ReceptyOks.csproj -p:TargetFramework=net10.0-android
 
+    - name: Restore Shared dependencies
+      run: dotnet restore ReceptyOks.Shared/ReceptyOks.Shared.csproj
+
     - name: Build MAUI Android (Release)
       run: dotnet build ReceptyOks/ReceptyOks.csproj -c Release -f net10.0-android --no-restore
+
+    - name: Build Shared
+      run: dotnet build ReceptyOks.Shared/ReceptyOks.Shared.csproj --no-restore
 
     - name: Find APK
       id: find_apk
