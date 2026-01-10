@@ -71,7 +71,7 @@ public static class MauiProgram
 		// Services
 		builder.Services.AddSingleton(OcrPlugin.Default);
 		builder.Services.AddSingleton<IOCRService, MobileOcerService>();
-
+		builder.Services.AddSingleton<UpdateCheckerService>();
         // ViewModels
         builder.Services.AddTransient<RecipesViewModel>();
 		builder.Services.AddTransient<RecipeDetailViewModel>();
@@ -80,16 +80,16 @@ public static class MauiProgram
 		builder.Services.AddTransient<CategoryEditViewModel>();
 		builder.Services.AddTransient<LogsViewModel>();
 		builder.Services.AddTransient<RandomRecipeViewModel>();
-		
-		// Views
-		builder.Services.AddTransient<RecipesPage>();
+        builder.Services.AddTransient<SettingsViewModel>();
+
+        // Views
+        builder.Services.AddTransient<RecipesPage>();
 		builder.Services.AddTransient<RecipeDetailPage>();
 		builder.Services.AddTransient<RecipeEditPage>();
 		builder.Services.AddTransient<CategoriesPage>();
 		builder.Services.AddTransient<CategoryEditPage>();
 		builder.Services.AddTransient<LogsPage>();
 		builder.Services.AddTransient<RandomRecipePage>();
-
 		builder.Services.AddSingleton<AppSettings>(appSettings);
 
 		return builder.Build();

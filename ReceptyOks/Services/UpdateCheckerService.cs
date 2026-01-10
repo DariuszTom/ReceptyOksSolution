@@ -1,0 +1,102 @@
+﻿using ReceptyOks.Configuration;
+using System.Net.Http.Json;
+using System.Text.Json.Serialization;
+
+namespace ReceptyOks.Services;
+
+public class UpdateCheckerService
+{
+    private readonly AppSettings _settings;
+    private readonly HttpClient _httpClient;
+
+    public UpdateCheckerService(AppSettings settings)
+    {
+        if(settings == null)
+            throw new ArgumentNullException(nameof(settings));
+        _settings = settings;
+        _httpClient = new HttpClient()
+        {
+            BaseAddress = new Uri(_settings.Http.Github.BaseUrl),
+            Timeout = TimeSpan.FromSeconds(_settings.Http.DefaultTimeoutSeconds)
+        };
+        _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd(_settings.Http.Github.UserAgent);
+    }
+
+    public async Task<GitHubRelease?> GetLatestReleaseAsync()
+    {
+        try
+        {
+            var response = await _httpClient.GetAsync(_settings.Http.Github.ReleaseEndpoint);
+            if (!response.IsSuccessStatusCode)
+                return null;
+
+            var release = await response.Content.ReadFromJsonAsync<GitHubRelease>();
+            return release;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    public async Task<bool> IsUpdateAvailableAsync(string currentVersion)
+    {
+        var latest = await GetLatestReleaseAsync();
+        if (latest == null)
+            return false;
+
+        // Zakładamy, że tag_name to wersja, np. "v1.2.3"
+        var latestVersion = latest.TagName?.TrimStart('v', 'V');
+        if (string.IsNullOrEmpty(latestVersion))
+            return false;
+
+        // Porównanie wersji
+        if (Version.TryParse(currentVersion, out var current) && Version.TryParse(latestVersion, out var latestVer))
+        {
+            return latestVer > current;
+        }
+        return false;
+    }
+    public async Task UpdateApp() {
+        string currentVersion = AppInfo.VersionString; // MAUI: aktualna wersja aplikacji
+
+        if (await IsUpdateAvailableAsync(currentVersion))
+        {
+            var latest = await GetLatestReleaseAsync();
+            var apkAsset = latest?.Assets?.FirstOrDefault(a => a.Name != null && a.Name.EndsWith(".apk"));
+            if (apkAsset != null)
+            {
+                // Wyświetl użytkownikowi informację i link do pobrania APK
+                await Shell.Current.DisplayAlertAsync(
+                    "Nowa wersja dostępna",
+                    $"Dostępna jest nowa wersja aplikacji ({latest?.TagName}).{Environment.NewLine} Czy chcesz pobrać aktualizację?",
+                    "Pobierz", "Anuluj");
+
+                // Otwórz link do pobrania APK
+
+                await Launcher.Default.OpenAsync(apkAsset.DownloadUrl);
+            }
+        }
+    }
+}
+
+public class GitHubRelease
+{
+    [JsonPropertyName("tag_name")]
+    public string? TagName { get; set; }
+
+    [JsonPropertyName("html_url")]
+    public string? HtmlUrl { get; set; }
+
+    [JsonPropertyName("assets")]
+    public List<GitHubAsset>? Assets { get; set; }
+}
+
+public class GitHubAsset
+{
+    [JsonPropertyName("name")]
+    public string? Name { get; set; }
+
+    [JsonPropertyName("browser_download_url")]
+    public string? DownloadUrl { get; set; }
+}

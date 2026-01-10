@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:ReceptyOks.ViewModels"
+             xmlns:icons="clr-namespace:UraniumUI.Icons.MaterialSymbols;assembly=UraniumUI.Icons.MaterialSymbols"
+             xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+             x:Class="ReceptyOks.Views.SettingsPage"
+             x:DataType="vm:SettingsViewModel"
+             BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark=#121212}">
+
+    <Grid RowDefinitions="Auto,*">
+        <!-- Custom Header -->
+        <Grid Grid.Row="0" Padding="20,16" ColumnDefinitions="*,Auto" BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}">
+            <Grid.Shadow>
+                <Shadow Brush="{StaticResource Gray400Brush}" Offset="0,2" Radius="4" Opacity="0.1"/>
+            </Grid.Shadow>
+            <VerticalStackLayout VerticalOptions="Center">
+                <Label Text="Ustawienia" Style="{StaticResource PageTitle}" FontSize="24"/>
+                <Label Text="Zarządzaj aplikacją i sprawdź aktualizacje" Style="{StaticResource CaptionLabel}"/>
+            </VerticalStackLayout>
+            <ActivityIndicator Grid.Column="1" IsRunning="{Binding IsChecking}" IsVisible="{Binding IsChecking}" HeightRequest="24" WidthRequest="24" Color="{StaticResource Primary}" Margin="0,0,0,0"/>
+        </Grid>
+
+        <!-- Main Content -->
+        <ScrollView Grid.Row="1">
+            <VerticalStackLayout Padding="20" Spacing="24">
+                <Button Text="Sprawdź aktualizację"
+                        Command="{Binding CheckUpdateCommand}"
+                        IsEnabled="{Binding IsChecking, Converter={StaticResource InvertedBoolConverter}}"
+                        StyleClass="PrimaryButton"/>
+                <Label Text="{Binding UpdateStatus}" FontSize="16" TextColor="Gray"/>
+            </VerticalStackLayout>
+        </ScrollView>
+    </Grid>
+</ContentPage>

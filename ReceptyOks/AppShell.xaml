@@ -71,6 +71,17 @@
                 ContentTemplate="{DataTemplate views:LogsPage}"
                 Route="LogsPage" />
         </Tab>
+        
+        <Tab Title="Ustawienia">
+            <Tab.Icon>
+                <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Settings}"
+                                 FontFamily="MaterialSymbolsOutlined"
+                                 Size="24"/>
+            </Tab.Icon>
+            <ShellContent
+                ContentTemplate="{DataTemplate views:SettingsPage}"
+                Route="SettingsPage" />
+        </Tab>
     </TabBar>
 
 </Shell>

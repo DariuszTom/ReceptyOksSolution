@@ -17,12 +17,12 @@ public class DatabaseSettings
     /// <summary>
     /// Name of the local SQLite database file
     /// </summary>
-    public string LocalDatabaseName { get; set; } = "recipes_local.db";
-    
+    public string LocalDatabaseName { get; set; }
+
     /// <summary>
     /// Full path to the local database file in app data directory
     /// </summary>
-    public string LocalDatabasePath => 
+    public string LocalDatabasePath =>
         Path.Combine(FileSystem.AppDataDirectory, LocalDatabaseName);
 }
 
@@ -34,10 +34,37 @@ public class HttpSettings
     /// <summary>
     /// Service name for Aspire service discovery
     /// </summary>
-    public string ApiServiceName { get; set; } = "receptyoks-api";
-    
+    public string ApiServiceName { get; set; }
+
     /// <summary>
     /// Default timeout in seconds for HTTP requests
     /// </summary>
     public int DefaultTimeoutSeconds { get; set; } = 30;
+
+    /// <summary>
+    /// Maximum number of retries for HTTP requests
+    /// </summary>
+    public int MaxRetries { get; set; } = 3;
+
+    /// <summary>
+    /// GitHub API settings for update checking
+    /// </summary>
+    public GitHubSettings Github { get; set; } = new();
+}
+
+/// <summary>
+/// GitHub API configuration for update checking
+/// </summary>
+public class GitHubSettings
+{
+    /// <summary>
+    /// Base URL for GitHub releases API
+    /// </summary>
+    public string BaseUrl { get; set; }
+    public string ReleaseEndpoint { get; set; }
+
+    /// <summary>
+    /// User-Agent header value for GitHub API requests
+    /// </summary>
+    public string UserAgent { get; set; }
 }
