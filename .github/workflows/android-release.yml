@@ -36,12 +36,14 @@ jobs:
         apk_path=$(find ReceptyOks/bin/Release/net10.0-android -name "*.apk" | head -n 1)
         echo "apk_path=$apk_path" >> $GITHUB_OUTPUT
 
-    - name: Create Git Tag
+    - name: Create and Push Git Tag
       run: |
         git config --global user.name "github-actions"
         git config --global user.email "github-actions@github.com"
+        git fetch origin ${{ github.ref_name }} --unshallow
         git tag android-release-${{ github.run_number }}
         git push origin android-release-${{ github.run_number }}
+
     - name: Fetch and checkout the new tag
       run: |
         git fetch --tags
