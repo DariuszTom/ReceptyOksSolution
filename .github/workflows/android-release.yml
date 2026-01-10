@@ -2,8 +2,6 @@ name: Android Release
 
 on:
   workflow_dispatch:    # Allows manual trigger from GitHub UI
-  push:
-    branches: [ "master" ]  # Optional: remove if you want only manual releases
 
 jobs:
   build:
