@@ -108,10 +108,10 @@ public class RichEditorTestPage : ContentPage, INotifyPropertyChanged
         grid.Add(buttonLayout, 0, 1);
         
         // Wynik
-        var resultFrame = new Frame
+        var resultFrame = new Border
         {
             Padding = 10,
-            BorderColor = Color.FromArgb("#512BD4"),
+            Stroke= Color.FromArgb("#512BD4"),
             Margin = new Thickness(0, 10),
             Content = new VerticalStackLayout
             {
@@ -125,10 +125,10 @@ public class RichEditorTestPage : ContentPage, INotifyPropertyChanged
         grid.Add(resultFrame, 0, 2);
         
         // Binding value
-        var bindingFrame = new Frame
+        var bindingFrame = new Border
         {
             Padding = 10,
-            BorderColor = Color.FromArgb("#2B88D4"),
+            Stroke = Color.FromArgb("#2B88D4"),
             Margin = new Thickness(0, 10, 0, 0),
             Content = new VerticalStackLayout
             {

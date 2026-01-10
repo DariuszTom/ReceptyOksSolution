@@ -6,4 +6,5 @@
   </Project>
   <Project Path="ReceptyOksSolution.AppHost/ReceptyOksSolution.AppHost.csproj" />
   <Project Path="ReceptyOksSolution.ServiceDefaults/ReceptyOksSolution.ServiceDefaults.csproj" />
+  <Project Path="ReceptyOks_UnitTests/ReceptyOks_UnitTests.csproj" Id="394beaed-4d3d-4901-9ce0-2375e7f74d44" />
 </Solution>
