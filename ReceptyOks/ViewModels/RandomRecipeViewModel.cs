@@ -2,7 +2,6 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
 using ReceptyOks.Data;
-using ReceptyOks.Shared.Models;
 using System.Collections.ObjectModel;
 
 namespace ReceptyOks.ViewModels;
@@ -70,10 +69,11 @@ public partial class RandomRecipeViewModel : ObservableObject
         }
         else
         {
-            var query = IngredientSearchQuery.ToLower();
+            var query = IngredientSearchQuery;
             FilteredIngredients = new ObservableCollection<IngredientLocal>(
                 AllIngredients.Where(i => 
-                    i.Name.ToLower().Contains(query) && 
+                    i.Name != null &&
+                    i.Name.Contains(query, StringComparison.OrdinalIgnoreCase) && 
                     !SelectedIngredients.Any(s => s.Id == i.Id)));
         }
     }

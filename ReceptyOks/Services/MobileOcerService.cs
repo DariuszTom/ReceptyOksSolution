@@ -3,7 +3,7 @@ using Plugin.Maui.OCR;
 
 namespace ReceptyOks.Services
 {
-    internal class MobileOcerService:OCSServiceBase
+    internal sealed class MobileOcerService:OCSServiceBase
     {
         private readonly IOcrService _ocrPlugin;
         public MobileOcerService()
