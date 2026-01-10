@@ -42,7 +42,10 @@ jobs:
         git config --global user.email "github-actions@github.com"
         git tag android-release-${{ github.run_number }}
         git push origin android-release-${{ github.run_number }}
-
+    - name: Fetch and checkout the new tag
+      run: |
+        git fetch --tags
+        git checkout android-release-${{ github.run_number }}
     - name: Create Release
       id: create_release
       uses: softprops/action-gh-release@v2
