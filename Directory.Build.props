@@ -22,7 +22,7 @@
     
     <!-- Dla bardziej szczegó³owej wersji w assembly -->
     <AssemblyVersion>$(MajorVersion).$(MinorVersion).$(PatchVersion).0</AssemblyVersion>
-    <FileVersion>$(MajorVersion).$(MinorVersion).$(PatchVersion).$(BuildNumber)</FileVersion>
+    <FileVersion>$(MajorVersion).$(MinorVersion).$(PatchVersion).0</FileVersion>
     <InformationalVersion>$(MajorVersion).$(MinorVersion).$(PatchVersion)+$(BuildNumber)</InformationalVersion>
   </PropertyGroup>
 </Project>

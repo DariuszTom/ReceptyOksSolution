@@ -18,7 +18,7 @@ public static class VersionInfo
     public static string BuildNumber => 
         AppInfo.Current.BuildString;
     
-    /// <summary>
+    /// <summary>T
     /// Pe³na wersja informacyjna z metadanymi (np. "1.0.0+250126")
     /// </summary>
     public static string FullVersion

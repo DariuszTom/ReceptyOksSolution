@@ -12,10 +12,10 @@ namespace SharedLibrary.Misc.MessegeSender
     public class MailSender : IMailSender, IDisposable
     {
         #region Fields
-        private SmtpClient _smtpClient;
+        private SmtpClient? _smtpClient;
         private bool _IsBodyHtml;
-        private MailMessage _mailMessage;
-        private string _MyMail;
+        private MailMessage? _mailMessage;
+        private string? _MyMail;
         #endregion
         #region Properiets
         public bool IsBodyHtml { get => _IsBodyHtml; set => _IsBodyHtml = value; }
@@ -64,13 +64,6 @@ namespace SharedLibrary.Misc.MessegeSender
             }
         }
 
-
-        public void Dispose()
-        {
-            _mailMessage.Dispose();
-            _smtpClient.Dispose();
-            GC.SuppressFinalize(this);
-        }
         private async Task<bool> IsMailValid(string mail)
         {
             var addr = new EmailAddressAttribute();
@@ -80,6 +73,12 @@ namespace SharedLibrary.Misc.MessegeSender
         Task IMailSender.MailConfig(string addres, int port, SecureString pw, string login)
         {
             throw new NotImplementedException();
+        }
+        public void Dispose()
+        {
+            _mailMessage?.Dispose();
+            _smtpClient?.Dispose();
+            GC.SuppressFinalize(this);
         }
     }
 }

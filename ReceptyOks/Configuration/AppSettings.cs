@@ -17,7 +17,7 @@ public class DatabaseSettings
     /// <summary>
     /// Name of the local SQLite database file
     /// </summary>
-    public string LocalDatabaseName { get; set; }
+    public string LocalDatabaseName { get; set; }=string.Empty;
 
     /// <summary>
     /// Full path to the local database file in app data directory
@@ -34,7 +34,7 @@ public class HttpSettings
     /// <summary>
     /// Service name for Aspire service discovery
     /// </summary>
-    public string ApiServiceName { get; set; }
+    public string? ApiServiceName { get; set; }
 
     /// <summary>
     /// Default timeout in seconds for HTTP requests
@@ -60,11 +60,11 @@ public class GitHubSettings
     /// <summary>
     /// Base URL for GitHub releases API
     /// </summary>
-    public string BaseUrl { get; set; }
-    public string ReleaseEndpoint { get; set; }
+    public string BaseUrl { get; set; } = string.Empty;
+    public string ReleaseEndpoint { get; set; } = string.Empty;
 
     /// <summary>
     /// User-Agent header value for GitHub API requests
     /// </summary>
-    public string UserAgent { get; set; }
+    public string UserAgent { get; set; } =string.Empty;
 }
