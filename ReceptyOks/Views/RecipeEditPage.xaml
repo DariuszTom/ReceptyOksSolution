@@ -133,27 +133,27 @@
             </VerticalStackLayout>
 
             <!-- Czasy i porcje -->
-            <Label Text="Szczegóły" FontSize="16" FontAttributes="Bold" Margin="0,8,0,0"/>
-            <Grid ColumnDefinitions="*,*,*" ColumnSpacing="12">
-                <VerticalStackLayout Grid.Column="0" Spacing="4">
-                    <Label Text="Przygotowanie (min)" FontSize="14"/>
+            <Label Text="Szczegóły" FontSize="16" FontAttributes="Bold" Margin="0,6,0,0"/>
+            <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
+                <VerticalStackLayout Grid.Column="0" Spacing="2">
+                    <Label Text="Przygotowanie (min)" FontSize="12" FontAttributes="Bold"/>
                     <HorizontalStackLayout Spacing="3">
                         <Entry Text="{Binding PreparationTimeMinutes, Mode=TwoWay}" Keyboard="Numeric" WidthRequest="60" VerticalOptions="Center"/>
                         <VerticalStackLayout Spacing="1">
                             <Button Command="{Binding IncrementPreparationTimeCommand}"
                                     Text="+"
-                                    WidthRequest="24"
-                                    HeightRequest="18"
-                                    FontSize="14"
+                                    WidthRequest="22"
+                                    HeightRequest="16"
+                                    FontSize="24"
                                     FontAttributes="Bold"
                                     Padding="0"
                                     CornerRadius="3"
                                     BackgroundColor="{StaticResource Primary}"/>
                             <Button Command="{Binding DecrementPreparationTimeCommand}"
                                     Text="-"
-                                    WidthRequest="24"
-                                    HeightRequest="18"
-                                    FontSize="14"
+                                    WidthRequest="22"
+                                    HeightRequest="16"
+                                    FontSize="24"
                                     FontAttributes="Bold"
                                     Padding="0"
                                     CornerRadius="3"
@@ -161,25 +161,25 @@
                         </VerticalStackLayout>
                     </HorizontalStackLayout>
                 </VerticalStackLayout>
-                <VerticalStackLayout Grid.Column="1" Spacing="4">
-                    <Label Text="Gotowanie (min)" FontSize="14"/>
+                <VerticalStackLayout Grid.Column="1" Spacing="2">
+                    <Label Text="Gotowanie (min)" FontSize="12" FontAttributes="Bold"/>
                     <HorizontalStackLayout Spacing="3">
                         <Entry Text="{Binding CookingTimeMinutes, Mode=TwoWay}" Keyboard="Numeric" WidthRequest="60" VerticalOptions="Center"/>
                         <VerticalStackLayout Spacing="1">
                             <Button Command="{Binding IncrementCookingTimeCommand}"
                                     Text="+"
-                                    WidthRequest="24"
-                                    HeightRequest="18"
-                                    FontSize="14"
+                                    WidthRequest="22"
+                                    HeightRequest="16"
+                                    FontSize="24"
                                     FontAttributes="Bold"
                                     Padding="0"
                                     CornerRadius="3"
                                     BackgroundColor="{StaticResource Primary}"/>
                             <Button Command="{Binding DecrementCookingTimeCommand}"
                                     Text="-"
-                                    WidthRequest="24"
-                                    HeightRequest="18"
-                                    FontSize="14"
+                                    WidthRequest="22"
+                                    HeightRequest="16"
+                                    FontSize="24"
                                     FontAttributes="Bold"
                                     Padding="0"
                                     CornerRadius="3"
@@ -187,25 +187,25 @@
                         </VerticalStackLayout>
                     </HorizontalStackLayout>
                 </VerticalStackLayout>
-                <VerticalStackLayout Grid.Column="2" Spacing="4">
-                    <Label Text="Porcje" FontSize="14"/>
+                <VerticalStackLayout Grid.Column="2" Spacing="2">
+                    <Label Text="Porcje" FontSize="12" FontAttributes="Bold"/>
                     <HorizontalStackLayout Spacing="3">
                         <Entry Text="{Binding Servings, Mode=TwoWay}" Keyboard="Numeric" WidthRequest="60" VerticalOptions="Center"/>
                         <VerticalStackLayout Spacing="1">
                             <Button Command="{Binding IncrementServingsCommand}"
                                     Text="+"
-                                    WidthRequest="24"
-                                    HeightRequest="18"
-                                    FontSize="14"
+                                    WidthRequest="22"
+                                    HeightRequest="16"
+                                    FontSize="24"
                                     FontAttributes="Bold"
                                     Padding="0"
                                     CornerRadius="3"
                                     BackgroundColor="{StaticResource Primary}"/>
                             <Button Command="{Binding DecrementServingsCommand}"
                                     Text="-"
-                                    WidthRequest="24"
-                                    HeightRequest="18"
-                                    FontSize="14"
+                                    WidthRequest="22"
+                                    HeightRequest="16"
+                                    FontSize="24"
                                     FontAttributes="Bold"
                                     Padding="0"
                                     CornerRadius="3"
