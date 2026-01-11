@@ -51,7 +51,6 @@
 
 		<!-- Raw Assets (also remove the "Resources\Raw" prefix) -->
 		<MauiAsset Include="Resources\Raw\**" LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
-		<TrimmerRootAssembly Include="UraniumUI.Icons.MaterialSymbols" />
 	</ItemGroup>
 
 	<ItemGroup>
