@@ -1,67 +1,112 @@
-name: Android Release
+# .github/workflows/release.yml
+name: Build and Release ReceptyOks
 
 on:
-  workflow_dispatch:    # Allows manual trigger from GitHub UI
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version number (e.g., 1.0.0)'
+        required: true
+        default: '1.0.0'
+
+env:
+  DOTNET_VERSION: '10.0.x'
+  PROJECT_PATH: 'src/ReceptyOks/ReceptyOks.csproj'  # Dostosuj ścieżkę
 
 jobs:
-  build:
+  build-android:
     runs-on: ubuntu-latest
-
+    
     steps:
-    - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: 10.0.x
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
 
-    - name: Install Android workload
-      run: dotnet workload install maui-android
+      - name: Setup Java (required for Android SDK)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'microsoft'
+          java-version: '17'
 
-    - name: Restore dependencies
-      run: dotnet restore ReceptyOks/ReceptyOks.csproj -p:TargetFramework=net10.0-android
+      - name: Install MAUI workload
+        run: dotnet workload install maui-android
 
-    - name: Restore Shared dependencies
-      run: dotnet restore ReceptyOks.Shared/ReceptyOks.Shared.csproj
+      - name: Restore dependencies
+        run: dotnet restore ${{ env.PROJECT_PATH }}
 
-    - name: Build MAUI Android (Release)
-      run: dotnet build ReceptyOks/ReceptyOks.csproj -c Release -f net10.0-android --no-restore
+      - name: Decode Keystore
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > ${{ github.workspace }}/receptyoks.keystore
 
-    - name: Build Shared
-      run: dotnet build ReceptyOks.Shared/ReceptyOks.Shared.csproj --no-restore
+      - name: Determine version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+          fi
 
-    - name: Find APK
-      id: find_apk
-      run: |
-        apk_path=$(find ReceptyOks/bin/Release/net10.0-android -name "*.apk" | head -n 1)
-        echo "apk_path=$apk_path" >> $GITHUB_OUTPUT
+      - name: Build signed APK
+        run: |
+          dotnet publish ${{ env.PROJECT_PATH }} \
+            -f net8.0-android \
+            -c Release \
+            -p:ApplicationVersion=${{ github.run_number }} \
+            -p:ApplicationDisplayVersion=${{ steps.version.outputs.VERSION }} \
+            -p:AndroidKeyStore=true \
+            -p:AndroidSigningKeyStore=${{ github.workspace }}/receptyoks.keystore \
+            -p:AndroidSigningKeyAlias=${{ secrets.KEY_ALIAS }} \
+            -p:AndroidSigningKeyPass=${{ secrets.KEY_PASSWORD }} \
+            -p:AndroidSigningStorePass=${{ secrets.KEYSTORE_PASSWORD }}
 
-    - name: Create and Push Git Tag
-      run: |
-        git config --global user.name "github-actions"
-        git config --global user.email "github-actions@github.com"
-        git fetch origin ${{ github.ref_name }} --unshallow
-        git tag android-release-${{ github.run_number }}
-        git push origin android-release-${{ github.run_number }}
+      - name: Find APK file
+        id: find-apk
+        run: |
+          APK_PATH=$(find . -name "*-Signed.apk" -type f | head -1)
+          echo "APK_PATH=$APK_PATH" >> $GITHUB_OUTPUT
+          echo "Found APK: $APK_PATH"
 
-    - name: Fetch and checkout the new tag
-      run: |
-        git fetch --tags
-        git checkout android-release-${{ github.run_number }}
-    - name: Create Release
-      id: create_release
-      uses: softprops/action-gh-release@v2
-      with:
-        tag_name: android-release-${{ github.run_number }}
-        name: Android Release ${{ github.run_number }}
-        draft: false
-        prerelease: false
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Rename APK
+        run: |
+          mv "${{ steps.find-apk.outputs.APK_PATH }}" "./ReceptyOks-v${{ steps.version.outputs.VERSION }}.apk"
 
-    - name: Upload APK to Release
-      uses: softprops/action-gh-release@v2
-      with:
-        files: ${{ steps.find_apk.outputs.apk_path }}
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: ./ReceptyOks-v${{ steps.version.outputs.VERSION }}.apk
+          retention-days: 30
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: ./ReceptyOks-v${{ steps.version.outputs.VERSION }}.apk
+          generate_release_notes: true
+          draft: false
+          prerelease: ${{ contains(github.ref, '-beta') || contains(github.ref, '-alpha') }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create Release (manual dispatch)
+        uses: softprops/action-gh-release@v2
+        if: github.event_name == 'workflow_dispatch'
+        with:
+          tag_name: v${{ steps.version.outputs.VERSION }}
+          files: ./ReceptyOks-v${{ steps.version.outputs.VERSION }}.apk
+          generate_release_notes: true
+          draft: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Cleanup keystore
+        if: always()
+        run: rm -f ${{ github.workspace }}/receptyoks.keystore
