@@ -39,19 +39,19 @@ public static class MauiProgram
 		builder
 			.UseMauiApp<App>()
 			.UseMauiCommunityToolkit()
-            .UseUraniumUI()
-            .UseUraniumUIMaterial()
-            .ConfigureFonts(fonts =>
+			.UseUraniumUI()
+			.UseUraniumUIMaterial()
+			.ConfigureFonts(fonts =>
 			{
 				fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
 				fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
-				fonts.AddMaterialSymbolsFonts();
-			})
-			.ConfigureMauiHandlers(handlers =>
-			{
-#if ANDROID
-				handlers.AddHandler<Shell, ReceptyOks.Platforms.Android.Handlers.CustomShellRenderer>();
-#endif
+				fonts.AddFont("MaterialSymbolsOutlined.ttf", "MaterialSymbolsOutlined");
+				fonts.AddFont("MaterialSymbolsOutlinedFilled.ttf", "MaterialSymbolsOutlinedFilled");
+                fonts.AddFont("MaterialSymbolsRounded.ttf", "MaterialSymbolsRounded");
+				fonts.AddFont("MaterialSymbolsRoundedFilled.ttf", "MaterialSymbolsRoundedFilled");
+				fonts.AddFont("MaterialSymbolsSharp.ttf", "MaterialSymbolsSharp");
+                fonts.AddFont("MaterialSymbolsSharpFilled.ttf", "MaterialSymbolsSharpFilled");
+                fonts.AddMaterialSymbolsFonts();
 			});
 
 		// Add Aspire Service Discovery
