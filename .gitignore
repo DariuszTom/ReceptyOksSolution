@@ -371,3 +371,6 @@ FodyWeavers.xsd
 /ReceptyOks.Api/Data/recipes.db-shm
 /ReceptyOks.Api/Data/recipes.db-wal
 /ReceptyOks.Api/Data/recipes.db
+
+*.keystore
+github-secrets.txt
