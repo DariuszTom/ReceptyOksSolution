@@ -264,7 +264,7 @@
                                                         Text="{Binding Quantity}" 
                                                         Keyboard="Numeric"/>
                                     <material:TextField Grid.Column="1" 
-                                                        Title="Jednostka"
+                                                        Title="Unit"
                                                         Text="{Binding Unit}"/>
                                     <material:TextField Grid.Column="2" 
                                                         Title="Uwagi"
