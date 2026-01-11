@@ -14,7 +14,7 @@ on:
 
 env:
   DOTNET_VERSION: '10.0.x'
-  PROJECT_PATH: 'src/ReceptyOks/ReceptyOks.csproj'  # Dostosuj ścieżkę
+  PROJECT_PATH: 'ReceptyOks/ReceptyOks.csproj'
 
 jobs:
   build-android:
