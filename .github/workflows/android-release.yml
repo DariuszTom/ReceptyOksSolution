@@ -57,7 +57,7 @@ jobs:
       - name: Build signed APK
         run: |
           dotnet publish ${{ env.PROJECT_PATH }} \
-            -f net8.0-android \
+            -f net10.0-android \
             -c Release \
             -p:ApplicationVersion=${{ github.run_number }} \
             -p:ApplicationDisplayVersion=${{ steps.version.outputs.VERSION }} \
