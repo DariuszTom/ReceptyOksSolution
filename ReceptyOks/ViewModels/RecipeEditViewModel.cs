@@ -4,6 +4,8 @@ using ReceptyOks.Data;
 using ReceptyOks.Shared;
 using ReceptyOks.Shared.OCR;
 using System.Collections.ObjectModel;
+using System.Windows.Input;
+using Microsoft.Maui.Controls;
 
 namespace ReceptyOks.ViewModels;
 
@@ -61,10 +63,15 @@ public partial class RecipeEditViewModel : ObservableObject
     private Guid _existingId;
     private bool _isInitialized = false;
 
+    // Explicit command for removing the image (design-time friendly)
+    public ICommand RemoveImageCommand { get; }
+
     public RecipeEditViewModel(LocalDatabase database, IOCRService ocrService)
     {
         _database = database;
         _ocrService = ocrService;
+
+        RemoveImageCommand = new Command(RemoveImageInternal);
     }
 
     partial void OnRecipeIdParamChanged(string value)
@@ -395,6 +402,13 @@ public partial class RecipeEditViewModel : ObservableObject
         {
             await Shell.Current.DisplayAlertAsync("B³¹d", $"Wyst¹pi³ b³¹d: {ex.Message}", "OK");
         }
+    }
+
+    // Internal method backing the explicit RemoveImageCommand
+    private void RemoveImageInternal()
+    {
+        RecipeImage = null;
+        ImagePreview = null;
     }
 }
 

@@ -31,16 +31,39 @@
                             Radius="8"
                             Opacity="0.1"/>
                 </Border.Shadow>
-                <Border.Behaviors>
-                    <toolkit:TouchBehavior 
-                        PressedScale="0.98"
-                        PressedOpacity="0.9"
-                        Command="{Binding PickImageCommand}"/>
-                </Border.Behaviors>
+
                 <Grid>
                     <Image Source="{Binding ImagePreview}" 
                            Aspect="AspectFill"
                            IsVisible="{Binding ImagePreview, Converter={StaticResource IsNotNullConverter}}"/>
+
+                    <!-- tappable full-area placeholder when there's no image -->
+                    <Button
+                        IsVisible="{Binding ImagePreview, Converter={StaticResource IsNullConverter}}"
+                        BackgroundColor="Transparent"
+                        HorizontalOptions="FillAndExpand"
+                        VerticalOptions="FillAndExpand"
+                        Padding="0"
+                        Margin="0"
+                        BorderWidth="0"
+                        Command="{Binding PickImageCommand}"/>
+
+                    <!-- overlay remove button -->
+                    <Button
+                        IsVisible="{Binding ImagePreview, Converter={StaticResource IsNotNullConverter}}"
+                        BackgroundColor="#80000000"
+                        WidthRequest="36"
+                        HeightRequest="36"
+                        CornerRadius="18"
+                        HorizontalOptions="End"
+                        VerticalOptions="Start"
+                        Margin="10"
+                        Command="{Binding RemoveImageCommand}">
+                        <Button.ImageSource>
+                            <FontImageSource Glyph="" FontFamily="MaterialSymbolsOutlined" Color="White" Size="20" />
+                        </Button.ImageSource>
+                    </Button>
+
                     <VerticalStackLayout HorizontalOptions="Center" 
                                          VerticalOptions="Center"
                                          Spacing="8"
@@ -230,7 +253,7 @@
                                 Margin="0,6"
                                 BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}">
                             <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" RowSpacing="10">
-                                <material:TextField Grid.Row="0" Grid.Column="0"
+                                <material:TextField Grid.Row="0" Grid.Column="0" FontSize="16"
                                                     Title="Składnik"
                                                     Text="{Binding IngredientName}"/>
                                 <Button Grid.Row="0" Grid.Column="1" 
@@ -247,7 +270,7 @@
                                 </Button>
                                 <Grid Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" 
                                       ColumnDefinitions="*,*,*" ColumnSpacing="6">
-                                    <material:TextField Grid.Column="0" FontSize="14"
+                                    <material:TextField Grid.Column="0" FontSize="14" SelectAllTextOnFocus="True"
                                                         Title="Ilość"
                                                         Text="{Binding Quantity}" 
                                                         Keyboard="Numeric"/>
@@ -268,7 +291,7 @@
                 </CollectionView.ItemTemplate>
             </CollectionView>
             <Grid ColumnDefinitions="*,Auto" Margin="0,16,0,0" >
-                <Button Grid.Column="1" StyleClass="OutlinedButton" VerticalOptions="End"
+                <Button Grid.Column="1" VerticalOptions="End"
                     Command="{Binding AddIngredientCommand}"
                     BackgroundColor="{StaticResource Primary}"
                     CornerRadius="20"
