@@ -1,6 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ReceptyOks.Data;
+using ReceptyOks.Shared;
 using ReceptyOks.Shared.OCR;
 using System.Collections.ObjectModel;
 
@@ -51,6 +52,8 @@ public partial class RecipeEditViewModel : ObservableObject
 
     [ObservableProperty]
     private ObservableCollection<IngredientLocal> availableIngredients = [];
+
+    public IReadOnlyList<Jednostki> AvailableUnits { get; } = Enum.GetValues(typeof(Jednostki)).Cast<Jednostki>().ToList();
 
     [ObservableProperty]
     private string pageTitle = "Nowy przepis";
@@ -134,13 +137,16 @@ public partial class RecipeEditViewModel : ObservableObject
             var ingredient = AvailableIngredients.FirstOrDefault(i => i.Id == ri.IngredientId);
             if (ingredient is not null)
             {
+                Jednostki selectedUnitLocal = Jednostki.Brak;
+                if (!string.IsNullOrWhiteSpace(ri.Unit) && Enum.TryParse<Jednostki>(ri.Unit, out var parsedUnitLocal))
+                    selectedUnitLocal = parsedUnitLocal;
                 Ingredients.Add(new EditableIngredient
                 {
                     Id = ri.Id,
                     SelectedIngredient = ingredient,
                     IngredientName = ingredient.Name,
                     Quantity = ri.Quantity,
-                    Unit = ri.Unit ?? "",
+                    SelectedUnit = selectedUnitLocal,
                     Notes = ri.Notes ?? ""
                 });
             }
@@ -332,7 +338,7 @@ public partial class RecipeEditViewModel : ObservableObject
                 RecipeId = recipe.Id,
                 IngredientId = ingredientId,
                 Quantity = ingredient.Quantity,
-                Unit = ingredient.Unit,
+                Unit = ingredient.SelectedUnit != Jednostki.Brak ? ingredient.SelectedUnit.ToString() : null,
                 Notes = ingredient.Notes,
                 Order = order++
             });
@@ -406,7 +412,7 @@ public partial class EditableIngredient : ObservableObject
     private decimal quantity;
 
     [ObservableProperty]
-    private string unit = string.Empty;
+    private Jednostki selectedUnit=Jednostki.Brak;
 
     [ObservableProperty]
     private string notes = string.Empty;

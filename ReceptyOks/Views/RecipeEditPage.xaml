@@ -218,18 +218,6 @@
             <!-- Składniki -->
             <Grid ColumnDefinitions="*,Auto" Margin="0,16,0,0">
                 <Label Text="Składniki" FontSize="18" FontAttributes="Bold" VerticalOptions="Center"/>
-                <Button Grid.Column="1" 
-                        Command="{Binding AddIngredientCommand}"
-                        BackgroundColor="{StaticResource Primary}"
-                        CornerRadius="20"
-                        Padding="12,6">
-                    <Button.ImageSource>
-                        <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Add}"
-                                         FontFamily="MaterialSymbolsOutlined"
-                                         Color="White"
-                                         Size="18"/>
-                    </Button.ImageSource>
-                </Button>
             </Grid>
 
             <CollectionView ItemsSource="{Binding Ingredients}">
@@ -258,15 +246,19 @@
                                     </Button.ImageSource>
                                 </Button>
                                 <Grid Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" 
-                                      ColumnDefinitions="*,*,2*" ColumnSpacing="8">
-                                    <material:TextField Grid.Column="0" 
+                                      ColumnDefinitions="*,*,*" ColumnSpacing="6">
+                                    <material:TextField Grid.Column="0" FontSize="14"
                                                         Title="Ilość"
                                                         Text="{Binding Quantity}" 
                                                         Keyboard="Numeric"/>
-                                    <material:TextField Grid.Column="1" 
-                                                        Title="Unit"
-                                                        Text="{Binding Unit}"/>
-                                    <material:TextField Grid.Column="2" 
+                                    <material:PickerField Grid.Column="1" FontSize="12"
+                                            Title="Jednostka"
+                                            ItemsSource="{Binding Source={RelativeSource AncestorType={x:Type vm:RecipeEditViewModel}}, Path=AvailableUnits, Mode=OneTime}"
+                                            SelectedItem="{Binding SelectedUnit, Mode=TwoWay}"
+                                            
+                                            VerticalOptions="Center"
+                                            BackgroundColor="Transparent"/>
+                                    <material:TextField Grid.Column="2" FontSize="12"
                                                         Title="Uwagi"
                                                         Text="{Binding Notes}"/>
                                 </Grid>
@@ -275,7 +267,20 @@
                     </DataTemplate>
                 </CollectionView.ItemTemplate>
             </CollectionView>
-
+            <Grid ColumnDefinitions="*,Auto" Margin="0,16,0,0" >
+                <Button Grid.Column="1" StyleClass="OutlinedButton" VerticalOptions="End"
+                    Command="{Binding AddIngredientCommand}"
+                    BackgroundColor="{StaticResource Primary}"
+                    CornerRadius="20"
+                    Padding="12,6">     
+                    <Button.ImageSource>
+                        <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Add}"
+                         FontFamily="MaterialSymbolsOutlined"
+                         Color="White"
+                         Size="18"/>
+                    </Button.ImageSource>
+                </Button>
+            </Grid>
             <!-- Instrukcje - Rich Text Editor -->
             <Grid ColumnDefinitions="*,Auto" Margin="0,16,0,0">
                 <Label Text="Przygotowanie" FontSize="18" FontAttributes="Bold" VerticalOptions="Center"/>
