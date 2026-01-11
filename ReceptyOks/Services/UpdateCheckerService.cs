@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 using Polly;
 using Polly.Retry;
+using Microsoft.Extensions.Logging;
 
 namespace ReceptyOks.Services;
 
@@ -10,8 +11,9 @@ public class UpdateCheckerService
 {
     private readonly AppSettings _settings;
     private readonly HttpClient _httpClient;
+    private readonly ILogger<UpdateCheckerService> _logger;
 
-    public UpdateCheckerService(AppSettings settings)
+    public UpdateCheckerService(AppSettings settings, ILogger<UpdateCheckerService> logger)
     {
         if(settings == null)
             throw new ArgumentNullException(nameof(settings));
@@ -22,6 +24,7 @@ public class UpdateCheckerService
             Timeout = TimeSpan.FromSeconds(_settings.Http.DefaultTimeoutSeconds)
         };
         _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd(_settings.Http.Github.UserAgent);
+        _logger = logger;
     }
 
     public async Task<GitHubRelease?> GetLatestReleaseAsync()
@@ -48,19 +51,17 @@ public class UpdateCheckerService
         }
     }
 
-    public async Task<bool> IsUpdateAvailableAsync(string currentVersion)
+    public async Task<bool> IsUpdateAvailableAsync(string apptVersion)
     {
         var latest = await GetLatestReleaseAsync();
         if (latest == null)
             return false;
 
-        // Zakładamy, że tag_name to wersja, np. "v1.2.3"
-        var latestVersion = latest.TagName?.TrimStart('v', 'V');
-        if (string.IsNullOrEmpty(latestVersion))
-            return false;
-
+        string serverVersion = VersionInfo.ConvertVersionToNumeric(latest.TagName ?? string.Empty);
+        string currentVersion = VersionInfo.ConvertVersionToNumeric(apptVersion);
+        _logger.LogInformation("Checking for updates. Current version: {CurrentVersion}, Latest version: {LatestVersion}", currentVersion, serverVersion);
         // Porównanie wersji
-        if (Version.TryParse(currentVersion, out var current) && Version.TryParse(latestVersion, out var latestVer))
+        if (Version.TryParse(currentVersion, out var current) && Version.TryParse(serverVersion, out var latestVer))
         {
             return latestVer > current;
         }

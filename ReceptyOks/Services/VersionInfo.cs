@@ -70,4 +70,15 @@ public static class VersionInfo
             return BuildNumber;
         }
     }
+    public static string ConvertVersionToNumeric(string version)
+    {
+        if(string.IsNullOrEmpty(version))
+            return string.Empty;
+
+        var latestVersion = version.TrimStart('v', 'V');
+        // Usuwanie tekstu z koñca wersji (np. .alpha, .beta)
+        var numericVersion = new string([.. latestVersion.TakeWhile(c => char.IsDigit(c) || c == '.')]);
+        numericVersion = numericVersion.TrimEnd('.');
+        return numericVersion;
+    }
 }
