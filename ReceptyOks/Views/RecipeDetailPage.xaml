@@ -277,8 +277,10 @@
                                     StrokeThickness="0"
                                     StrokeShape="RoundRectangle 12"
                                     MinimumHeightRequest="200"
-                                    BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}">
-                                <WebView x:Name="InstructionsWebView" />
+                                    BackgroundColor="{StaticResource Gray900}">
+                                <WebView x:Name="InstructionsWebView" 
+                                         BackgroundColor="{StaticResource Gray600}"
+                                         MinimumHeightRequest="250"/>
                             </Border>
                         </VerticalStackLayout>
 
