@@ -30,7 +30,7 @@ EXPOSE 8080
 EXPOSE 8081
 
 COPY --from=build /app/publish .
-
+COPY https/aspnetapp.pfx /https/aspnetapp.pfx
 # Set environment variables
 ENV ASPNETCORE_URLS=https://+:8081;http://+:8080
 ENV ASPNETCORE_ENVIRONMENT=Production
