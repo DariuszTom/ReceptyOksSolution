@@ -1,5 +1,6 @@
 <Solution>
   <Project Path="ReceptyOks.Api/ReceptyOks.Api.csproj" />
+  <Project Path="ReceptyOks.BlazorComponents/ReceptyOks.BlazorComponents.csproj" />
   <Project Path="ReceptyOks.Shared/ReceptyOks.Shared.csproj" />
   <Project Path="ReceptyOks/ReceptyOks.csproj">
     <Deploy Solution="Debug|*" />

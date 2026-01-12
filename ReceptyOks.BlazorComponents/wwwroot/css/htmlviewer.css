@@ -1,0 +1,28 @@
+:root {
+  --bg-color: #ffffff;
+  --fg-color: #222222;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-color: #0f0f10;
+    --fg-color: #e6e6e6;
+  }
+}
+
+.html-viewer {
+  background-color: var(--bg-color);
+  color: var(--fg-color);
+  padding: 16px;
+  box-sizing: border-box;
+  min-height: 100%;
+}
+
+.html-viewer img {
+  max-width: 100%;
+  height: auto;
+}
+
+.empty-placeholder {
+  opacity: 0.6;
+}
