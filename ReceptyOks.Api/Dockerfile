@@ -30,14 +30,12 @@ EXPOSE 8080
 EXPOSE 8081
 
 COPY --from=build /app/publish .
-COPY https/aspnetapp.pfx /https/aspnetapp.pfx
-# Set environment variables
-ENV ASPNETCORE_URLS=https://+:8081;http://+:8080
-ENV ASPNETCORE_ENVIRONMENT=Production
-ENV ASPNETCORE_HTTPS_PORTS=8081
 
-# Certificate configuration - mount your certificate or use these env vars
-ENV ASPNETCORE_Kestrel__Certificates__Default__Path=/https/aspnetapp.pfx
-ENV ASPNETCORE_Kestrel__Certificates__Default__Password=
+# Running the container will serve HTTP on ports 8080 and 8081. TLS should be terminated by a reverse proxy
+# or by mounting a certificate and configuring Kestrel at runtime if container-level HTTPS is required.
+
+# Set environment variables
+ENV ASPNETCORE_URLS=http://+:8080;http://+:8081
+ENV ASPNETCORE_ENVIRONMENT=Production
 
 ENTRYPOINT ["dotnet", "ReceptyOks.Api.dll"]
