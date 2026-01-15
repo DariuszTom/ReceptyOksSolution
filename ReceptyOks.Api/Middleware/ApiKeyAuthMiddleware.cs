@@ -3,9 +3,6 @@ using System.Text;
 
 namespace ReceptyOks.Api.Middleware;
 
-/// <summary>
-/// Middleware sprawdzaj?cy nag?ówek X-Api-Key z zahashowanym has?em.
-/// </summary>
 public sealed class ApiKeyAuthMiddleware
 {
     private readonly RequestDelegate _next;
@@ -13,6 +10,10 @@ public sealed class ApiKeyAuthMiddleware
     private readonly ILogger<ApiKeyAuthMiddleware> _logger;
 
     private const string ApiKeyHeaderName = "X-Api-Key";
+
+    // Cached decoded bytes
+    private readonly byte[]? _storedHashBytes;
+    private readonly byte[]? _hmacKeyBytes;
 
     public ApiKeyAuthMiddleware(
         RequestDelegate next,
@@ -22,14 +23,27 @@ public sealed class ApiKeyAuthMiddleware
         _next = next;
         _configuration = configuration;
         _logger = logger;
+
+        // Read & decode configured secrets once during startup
+        var storedHash = _configuration["ApiAuth:PasswordHash"];
+        if (!string.IsNullOrWhiteSpace(storedHash))
+        {
+            _storedHashBytes = DecodeStringToBytes(storedHash.Trim());
+        }
+
+        var secretKey = _configuration["ApiAuth:SecretKey"];
+        if (!string.IsNullOrWhiteSpace(secretKey))
+        {
+            _hmacKeyBytes = DecodeStringToBytes(secretKey.Trim());
+        }
     }
 
     public async Task InvokeAsync(HttpContext context)
     {
         var path = context.Request.Path.Value ?? string.Empty;
 
-        // Pomijamy autoryzacj? dla:
-        // - endpointu auth (?eby mo?na by?o si? uwierzytelni?)
+        // Pomijamy autoryzacji dla:
+        // - endpointu auth (¿eby mo¿na by³o siê uwierzytelniæ)
         // - health checks
         // - OpenAPI/Scalar (tylko w development)
         if (ShouldSkipAuth(path, context.RequestServices.GetRequiredService<IWebHostEnvironment>()))
@@ -38,7 +52,7 @@ public sealed class ApiKeyAuthMiddleware
             return;
         }
 
-        // Sprawdzamy nag?ówek X-Api-Key
+        // Sprawdzamy nag³ówek X-Api-Key
         if (!context.Request.Headers.TryGetValue(ApiKeyHeaderName, out var providedApiKey))
         {
             _logger.LogWarning("Request to {Path} rejected - missing {Header} header", path, ApiKeyHeaderName);
@@ -47,20 +61,30 @@ public sealed class ApiKeyAuthMiddleware
             return;
         }
 
-        var storedHash = _configuration["ApiAuth:PasswordHash"];
-
-        if (string.IsNullOrEmpty(storedHash))
+        if (_storedHashBytes == null)
         {
-            _logger.LogError("ApiAuth:PasswordHash is not configured");
+            _logger.LogError("ApiAuth:PasswordHash is not configured or could not be decoded");
             context.Response.StatusCode = StatusCodes.Status500InternalServerError;
             await context.Response.WriteAsJsonAsync(new { error = "Server configuration error" });
             return;
         }
 
-        // Constant-time comparison dla bezpiecze?stwa
-        var isValid = CryptographicOperations.FixedTimeEquals(
-            Encoding.UTF8.GetBytes(storedHash),
-            Encoding.UTF8.GetBytes(providedApiKey.ToString()));
+        var provided = providedApiKey.ToString().Trim();
+        byte[] providedDerived;
+
+        if (_hmacKeyBytes != null && _hmacKeyBytes.Length > 0)
+        {
+            // Compute HMAC-SHA256(provided) using configured secret key
+            using var hmac = new HMACSHA256(_hmacKeyBytes);
+            providedDerived = hmac.ComputeHash(Encoding.UTF8.GetBytes(provided));
+        }
+        else
+        {
+            // Fallback: compare raw UTF8 bytes (still constant-time)
+            providedDerived = Encoding.UTF8.GetBytes(provided);
+        }
+
+        var isValid = CryptographicOperations.FixedTimeEquals(_storedHashBytes, providedDerived);
 
         if (!isValid)
         {
@@ -73,9 +97,38 @@ public sealed class ApiKeyAuthMiddleware
         await _next(context);
     }
 
+    private static byte[] DecodeStringToBytes(string value)
+    {
+        // Try Base64
+        try
+        {
+            var b = Convert.FromBase64String(value);
+            if (b.Length > 0) return b;
+        }
+        catch { }
+
+        // Try hex (Convert.FromHexString available on modern runtimes)
+        try
+        {
+            var hex = value;
+            // allow optional 0x prefix
+            if (hex.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
+            {
+                hex = hex[2..];
+            }
+
+            // Convert.FromHexString may throw FormatException
+            var bytes = Convert.FromHexString(hex);
+            if (bytes.Length > 0) return bytes;
+        }
+        catch { }
+
+        // Fallback to UTF8 bytes
+        return Encoding.UTF8.GetBytes(value);
+    }
+
     private static bool ShouldSkipAuth(string path, IWebHostEnvironment environment)
     {
-        // Zawsze pomijamy auth i health checks
         if (path.StartsWith("/api/auth", StringComparison.OrdinalIgnoreCase) ||
             path.StartsWith("/health", StringComparison.OrdinalIgnoreCase) ||
             path.StartsWith("/alive", StringComparison.OrdinalIgnoreCase))
@@ -83,7 +136,6 @@ public sealed class ApiKeyAuthMiddleware
             return true;
         }
 
-        // W development pomijamy te? OpenAPI i Scalar
         if (environment.IsDevelopment())
         {
             if (path.StartsWith("/openapi", StringComparison.OrdinalIgnoreCase) ||
