@@ -11,31 +11,25 @@ public sealed class ApiKeyAuthMiddleware
 
     private const string ApiKeyHeaderName = "X-Api-Key";
 
-    // Cached decoded bytes
+    // Cached decoded bytes (provided by SecretStore)
     private readonly byte[]? _storedHashBytes;
     private readonly byte[]? _hmacKeyBytes;
 
     public ApiKeyAuthMiddleware(
         RequestDelegate next,
         IConfiguration configuration,
-        ILogger<ApiKeyAuthMiddleware> logger)
+        ILogger<ApiKeyAuthMiddleware> logger,
+        SecretStore secretStore)
     {
         _next = next;
         _configuration = configuration;
         _logger = logger;
 
-        // Read & decode configured secrets once during startup
-        var storedHash = _configuration["ApiAuth:PasswordHash"];
-        if (!string.IsNullOrWhiteSpace(storedHash))
-        {
-            _storedHashBytes = DecodeStringToBytes(storedHash.Trim());
-        }
-
-        var secretKey = _configuration["ApiAuth:SecretKey"];
-        if (!string.IsNullOrWhiteSpace(secretKey))
-        {
-            _hmacKeyBytes = DecodeStringToBytes(secretKey.Trim());
-        }
+        // Use SecretStore to get cached secret bytes
+        secretStore.Initialize();
+        var (passwordHash, secretKey) = secretStore.GetSecrets();
+        _storedHashBytes = passwordHash;
+        _hmacKeyBytes = secretKey;
     }
 
     public async Task InvokeAsync(HttpContext context)

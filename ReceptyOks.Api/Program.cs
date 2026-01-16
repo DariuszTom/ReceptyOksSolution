@@ -1,17 +1,36 @@
+using Azure.Identity;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 using ReceptyOks.Api.Data;
 using ReceptyOks.Api.Endpoints;
+using ReceptyOks.Api.Middleware;
 using Scalar.AspNetCore;
 
+
 var builder = WebApplication.CreateBuilder(args);
+
+new SecretsResolver(builder).ResolveSecrets();
 
 // Aspire ServiceDefaults
 builder.AddServiceDefaults();
 
+// Register SecretStore
+builder.Services.AddSingleton<SecretStore>();
+
+// Configure JSON serialization to avoid cycles when returning EF entities with navigation properties
+builder.Services.ConfigureHttpJsonOptions(opts =>
+{
+    opts.SerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+    opts.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+});
+
+
 // SQLite - baza w folderze Data aplikacji
 var dataFolder = Path.Combine(builder.Environment.ContentRootPath, "Data");
 Directory.CreateDirectory(dataFolder);
-var dbPath = Path.Combine(dataFolder, "recipes.db");
+var dbName = builder.Configuration["Database:Name"] ?? "recipes.db";
+var dbPath = Path.Combine(dataFolder, dbName);
 
 builder.Services.AddDbContext<RecipeDbContext>(options =>
     options.UseSqlite($"Data Source={dbPath}"));
@@ -20,6 +39,9 @@ builder.Services.AddDbContext<RecipeDbContext>(options =>
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
+
+// Use API key auth middleware for all endpoints
+app.UseApiKeyAuth();
 
 // Automatyczne tworzenie/migracja bazy danych
 using (var scope = app.Services.CreateScope())

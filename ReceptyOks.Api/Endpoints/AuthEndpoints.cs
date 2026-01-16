@@ -16,7 +16,7 @@ public static class AuthEndpoints
 
         group.MapPost("/validate", (AuthRequest request, IConfiguration configuration) =>
         {
-            var storedHash = configuration["ApiAuth:PasswordHash"];
+            var storedHash = configuration["PasswordHash"];
 
             if (string.IsNullOrEmpty(storedHash))
             {
