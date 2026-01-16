@@ -1,3 +1,4 @@
+using ReceptyOks.Shared;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -8,8 +9,6 @@ public sealed class ApiKeyAuthMiddleware
     private readonly RequestDelegate _next;
     private readonly IConfiguration _configuration;
     private readonly ILogger<ApiKeyAuthMiddleware> _logger;
-
-    private const string ApiKeyHeaderName = "X-Api-Key";
 
     // Cached decoded bytes (provided by SecretStore)
     private readonly byte[]? _storedHashBytes;
@@ -47,9 +46,9 @@ public sealed class ApiKeyAuthMiddleware
         }
 
         // Sprawdzamy nag³ówek X-Api-Key
-        if (!context.Request.Headers.TryGetValue(ApiKeyHeaderName, out var providedApiKey))
+        if (!context.Request.Headers.TryGetValue(GlobalConstants.ApiKeyHeaderName, out var providedApiKey))
         {
-            _logger.LogWarning("Request to {Path} rejected - missing {Header} header", path, ApiKeyHeaderName);
+            _logger.LogWarning("Request to {Path} rejected - missing {Header} header", path, GlobalConstants.ApiKeyHeaderName);
             context.Response.StatusCode = StatusCodes.Status401Unauthorized;
             await context.Response.WriteAsJsonAsync(new { error = "API key is required" });
             return;

@@ -1,11 +1,8 @@
-﻿using System;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.Net;
 using System.Net.Mail;
 using System.Runtime.InteropServices;
 using System.Security;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace SharedLibrary.Misc.MessegeSender
 {
@@ -36,6 +33,7 @@ namespace SharedLibrary.Misc.MessegeSender
         }
         public void CreateMail(string subject, StringBuilder body)
         {
+            if(_MyMail is null) throw new InvalidOperationException("Mail sender is not configured. Call MailConfig first.");
             _mailMessage = new MailMessage
             {
                 From = new MailAddress(_MyMail),
@@ -46,7 +44,7 @@ namespace SharedLibrary.Misc.MessegeSender
         }
         public async Task<IAsyncResult> SendMail(string[] sendTo, [Optional] params string[] sendCC)
         {
-            if (_mailMessage is null || _smtpClient is null) return null;
+            if (_mailMessage is null || _smtpClient is null) return Task.CompletedTask;
             using (_mailMessage)
             {
                 foreach (string email in sendTo)
