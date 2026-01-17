@@ -123,6 +123,8 @@ public sealed class ApiKeyAuthMiddleware
     private static bool ShouldSkipAuth(string path, IWebHostEnvironment environment)
     {
         if (path.StartsWith("/api/auth", StringComparison.OrdinalIgnoreCase) ||
+            path.StartsWith("/api/health", StringComparison.OrdinalIgnoreCase) ||
+            path.StartsWith("/api/alive", StringComparison.OrdinalIgnoreCase) ||
             path.StartsWith("/health", StringComparison.OrdinalIgnoreCase) ||
             path.StartsWith("/alive", StringComparison.OrdinalIgnoreCase))
         {

@@ -1,9 +1,5 @@
-
-using System;
 using System.Security.Cryptography;
 using System.Text;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
 
 namespace ReceptyOks.Api.Middleware;
 

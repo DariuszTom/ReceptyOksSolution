@@ -1,7 +1,5 @@
 ﻿using CommunityToolkit.Maui;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.ServiceDiscovery;
 using Plugin.Maui.OCR;
 using ReceptyOks.Configuration;
 using ReceptyOks.Data;
