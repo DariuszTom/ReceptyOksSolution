@@ -15,7 +15,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       ACR_NAME: ${{ secrets.ACR_NAME }}
-      IMAGE_NAME: ${{ toLower(format('{0}/{1}', github.repository_owner, 'receptyoks-api')) }}
 
     steps:
       - name: Checkout code
@@ -30,7 +29,13 @@ jobs:
         run: az acr login --name $ACR_NAME
 
       - name: Build Docker image
-        run: docker build -t $ACR_NAME.azurecr.io/$IMAGE_NAME:latest .
+        run: |
+          IMAGE_NAME="${{ github.repository_owner }}/receptyoks-api"
+          IMAGE_NAME="${IMAGE_NAME,,}"
+          docker build -t "$ACR_NAME.azurecr.io/$IMAGE_NAME:latest" .
 
       - name: Push Docker image
-        run: docker push $ACR_NAME.azurecr.io/$IMAGE_NAME:latest
+        run: |
+          IMAGE_NAME="${{ github.repository_owner }}/receptyoks-api"
+          IMAGE_NAME="${IMAGE_NAME,,}"
+          docker push "$ACR_NAME.azurecr.io/$IMAGE_NAME:latest"
