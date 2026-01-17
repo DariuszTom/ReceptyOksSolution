@@ -1,6 +1,5 @@
 using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
-using ReceptyOks.Api.Data;
 using ReceptyOks.Api.Endpoints;
 using ReceptyOks.Api.Middleware;
 using Scalar.AspNetCore;

@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using ReceptyOks.Shared.Models;
 
-namespace ReceptyOks.Api.Data;
+namespace ReceptyOks.Api.Middleware;
 
 public class RecipeDbContext : DbContext
 {
