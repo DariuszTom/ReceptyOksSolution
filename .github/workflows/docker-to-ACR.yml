@@ -1,4 +1,4 @@
-name: Build and Push Docker Image to Azure Container Registry
+name: Push Docker Image to Azure Container Registry
 
 on:
   workflow_run:
@@ -6,6 +6,10 @@ on:
       - "Build and Push Docker Image"
     types:
       - completed
+
+permissions:
+  contents: read
+  packages: read
 
 jobs:
   build-and-push:
@@ -28,14 +32,15 @@ jobs:
       - name: Log in to Azure Container Registry
         run: az acr login --name $ACR_NAME
 
-      - name: Build Docker image
-        run: |
-          IMAGE_NAME="${{ github.repository_owner }}/receptyoks-api"
-          IMAGE_NAME="${IMAGE_NAME,,}"
-          docker build -t "$ACR_NAME.azurecr.io/$IMAGE_NAME:latest" .
+      - name: Log in to GitHub Container Registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
 
-      - name: Push Docker image
+      - name: Pull from GHCR, retag and push to ACR
         run: |
-          IMAGE_NAME="${{ github.repository_owner }}/receptyoks-api"
-          IMAGE_NAME="${IMAGE_NAME,,}"
-          docker push "$ACR_NAME.azurecr.io/$IMAGE_NAME:latest"
+          OWNER="${{ github.repository_owner }}"
+          OWNER="${OWNER,,}"
+          IMAGE="ghcr.io/$OWNER/receptyoks-api:latest"
+          TARGET="$ACR_NAME.azurecr.io/$OWNER/receptyoks-api:latest"
+          docker pull "$IMAGE"
+          docker tag "$IMAGE" "$TARGET"
+          docker push "$TARGET"
