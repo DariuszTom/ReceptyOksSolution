@@ -1,0 +1,36 @@
+name: Build and Push Docker Image to Azure Container Registry
+
+on:
+  workflow_run:
+    workflows:
+      - "Build and Push Docker Image"
+    types:
+      - completed
+
+jobs:
+  build-and-push:
+    # Run only when the upstream workflow finished successfully
+    # and that upstream workflow was triggered manually (workflow_dispatch)
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
+    env:
+      ACR_NAME: ${{ secrets.ACR_NAME }}
+      IMAGE_NAME: ${{ github.repository_owner }}/receptyoks-api
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Log in to Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Log in to Azure Container Registry
+        run: az acr login --name $ACR_NAME
+
+      - name: Build Docker image
+        run: docker build -t $ACR_NAME.azurecr.io/$IMAGE_NAME:latest .
+
+      - name: Push Docker image
+        run: docker push $ACR_NAME.azurecr.io/$IMAGE_NAME:latest
