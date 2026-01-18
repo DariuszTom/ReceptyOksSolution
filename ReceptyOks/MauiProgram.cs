@@ -61,7 +61,7 @@ public static class MauiProgram
 		// Configure HttpClient with Aspire service discovery
 		builder.Services.AddHttpClient<SyncService>(client =>
 		{
-			client.BaseAddress = new Uri($"http://{appSettings.Http.ApiServiceName}");
+			client.BaseAddress = new Uri($"http://{appSettings.Http.GetEffectiveApiUrl()}");
 			client.Timeout = TimeSpan.FromSeconds(appSettings.Http.DefaultTimeoutSeconds);
 		})
         .AddHttpMessageHandler<ApiKeyHandler>()
