@@ -62,7 +62,7 @@ namespace SharedLibrary.Misc.MessegeSender
             }
         }
 
-        private async Task<bool> IsMailValid(string mail)
+        private static async Task<bool> IsMailValid(string mail)
         {
             var addr = new EmailAddressAttribute();
             return await Task.Run(() => addr.IsValid(mail));

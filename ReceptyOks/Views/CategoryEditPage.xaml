@@ -80,7 +80,7 @@
                             Padding="16,12"
                             BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}">
                         <Entry Text="{Binding Name}"
-                               Placeholder="np. �niadania"
+                               Placeholder="np. śniadania"
                                PlaceholderColor="{StaticResource Gray400}"
                                FontSize="16"
                                BackgroundColor="Transparent"
@@ -99,7 +99,7 @@
                             Padding="16,12"
                             BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}">
                         <Editor Text="{Binding Description}"
-                                Placeholder="Kr�tki opis kategorii..."
+                                Placeholder="Krótki opis kategorii..."
                                 PlaceholderColor="{StaticResource Gray400}"
                                 FontSize="16"
                                 HeightRequest="80"

@@ -57,7 +57,7 @@ public static class MauiProgram
 
 		// Database
 		builder.Services.AddSingleton<LocalDatabase>();
-		
+		builder.Services.AddTransient<ApiKeyHandler>();
 		// Configure HttpClient with Aspire service discovery
 		builder.Services.AddHttpClient<SyncService>(client =>
 		{
@@ -80,6 +80,7 @@ public static class MauiProgram
 		builder.Services.AddTransient<LogsViewModel>();
 		builder.Services.AddTransient<RandomRecipeViewModel>();
         builder.Services.AddTransient<SettingsViewModel>();
+        builder.Services.AddTransient<BackendAuthService>();
 
         // Views
         builder.Services.AddTransient<RecipesPage>();

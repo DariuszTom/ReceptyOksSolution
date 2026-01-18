@@ -25,14 +25,14 @@ public static class AuthEndpoints
                     statusCode: StatusCodes.Status500InternalServerError);
             }
 
-            if (string.IsNullOrEmpty(request.PasswordHash))
+            if (string.IsNullOrEmpty(request.SecretHash))
             {
-                return Results.BadRequest(new AuthResponse(false, "Password hash is required"));
+                return Results.BadRequest(new AuthResponse(false, "Secret hash is required"));
             }
 
             // Porównanie zahashowanego has³a (constant-time comparison dla bezpieczeñstwa)
             var storedBytes = Encoding.UTF8.GetBytes(storedHash);
-            var providedBytes = Encoding.UTF8.GetBytes(request.PasswordHash);
+            var providedBytes = Encoding.UTF8.GetBytes(request.SecretHash);
             var isValid = CryptographicOperations.FixedTimeEquals(storedBytes, providedBytes);
 
             return isValid
@@ -47,7 +47,7 @@ public static class AuthEndpoints
 /// <summary>
 /// Request do walidacji has³a.
 /// </summary>
-public sealed record AuthRequest(string PasswordHash);
+public sealed record AuthRequest(string SecretHash);
 
 /// <summary>
 /// OdpowiedŸ z walidacji.
