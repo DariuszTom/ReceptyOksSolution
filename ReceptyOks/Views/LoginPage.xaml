@@ -5,10 +5,170 @@
              xmlns:icons="clr-namespace:UraniumUI.Icons.MaterialSymbols;assembly=UraniumUI.Icons.MaterialSymbols"
              xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
              xmlns:material="http://schemas.enisn-projects.io/dotnet/maui/uraniumui/material"
+             xmlns:uranium="http://schemas.enisn-projects.io/dotnet/maui/uraniumui"
+             xmlns:viewmodels="clr-namespace:ReceptyOks.ViewModels"
+             x:DataType="viewmodels:LoginViewModel"
              Shell.NavBarIsVisible="False"
              Title="LoginPage"
-             BackgroundColor="{StaticResource LogoGradient}">
-    <VerticalStackLayout>
+             Background="{StaticResource LogoGradient}">
+
+    <ContentPage.Behaviors>
+        <toolkit:EventToCommandBehavior EventName="Appearing" Command="{Binding InitializeCommand}" />
+    </ContentPage.Behaviors>
+
+    <Grid RowDefinitions="*,Auto,*" Padding="30">
         
-    </VerticalStackLayout>
+        <!-- Górna sekcja z GIF-em -->
+        <VerticalStackLayout Grid.Row="0" 
+                             VerticalOptions="End" 
+                             HorizontalOptions="Center"
+                             Spacing="20">
+            
+            <Border StrokeShape="RoundRectangle 80"
+                    StrokeThickness="0"
+                    BackgroundColor="#FFFFFF20"
+                    HeightRequest="180"
+                    WidthRequest="180"
+                    HorizontalOptions="Center">
+                <Border.Shadow>
+                    <Shadow Brush="#00000040" Offset="0,8" Radius="16" Opacity="0.3"/>
+                </Border.Shadow>
+                <Image Source="iconslock.gif"
+                       Aspect="AspectFit"
+                       HeightRequest="140"
+                       WidthRequest="140"
+                       HorizontalOptions="Center"
+                       VerticalOptions="Center"/>
+            </Border>
+            
+            <Label Text="Witaj!"
+                   FontSize="32"
+                   FontAttributes="Bold"
+                   TextColor="White"
+                   HorizontalOptions="Center"/>
+            
+            <Label Text="Wprowadź sekret, aby kontynuować"
+                   FontSize="16"
+                   TextColor="#FFFFFFCC"
+                   HorizontalOptions="Center"/>
+        </VerticalStackLayout>
+        
+        <!-- Środkowa sekcja z formularzem -->
+        <VerticalStackLayout Grid.Row="1" 
+                             Spacing="20"
+                             Padding="10,30">
+            
+            <Border StrokeShape="RoundRectangle 16"
+                    StrokeThickness="1"
+                    Stroke="#FFFFFF40"
+                    BackgroundColor="#FFFFFF15"
+                    Padding="20">
+                <Border.Shadow>
+                    <Shadow Brush="#00000030" Offset="0,4" Radius="12" Opacity="0.2"/>
+                </Border.Shadow>
+                
+                <VerticalStackLayout Spacing="15">
+                    
+                    <material:TextField Title="Sekret"
+                                        Text="{Binding Secret}"
+                                        IsPassword="True"
+                                        AccentColor="White"
+                                        TitleColor="#FFFFFFCC"
+                                        TextColor="White"
+                                        BorderColor="#FFFFFF60"
+                                        AllowClear="True"
+                                        ReturnCommand="{Binding LoginCommand}"
+                                        ReturnType="Done">
+                        <material:TextField.Icon>
+                            <FontImageSource FontFamily="MaterialSymbolsOutlined"
+                                             Glyph="{x:Static icons:MaterialOutlined.Key}"
+                                             Color="White"
+                                             Size="24"/>
+                        </material:TextField.Icon>
+                    </material:TextField>
+                    
+                    <!-- Komunikat błędu -->
+                    <Border StrokeShape="RoundRectangle 8"
+                            StrokeThickness="0"
+                            BackgroundColor="#FF6B6B30"
+                            Padding="12,8"
+                            IsVisible="{Binding HasError}">
+                        <HorizontalStackLayout Spacing="8" HorizontalOptions="Center">
+                            <Image HeightRequest="18" WidthRequest="18" VerticalOptions="Center">
+                                <Image.Source>
+                                    <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Error}"
+                                                     FontFamily="MaterialSymbolsOutlined"
+                                                     Color="#FF6B6B"
+                                                     Size="18"/>
+                                </Image.Source>
+                            </Image>
+                            <Label Text="{Binding ErrorMessage}"
+                                   TextColor="#FF6B6B"
+                                   FontSize="14"
+                                   VerticalOptions="Center"/>
+                        </HorizontalStackLayout>
+                    </Border>
+                    
+                </VerticalStackLayout>
+            </Border>
+            
+            <!-- Przycisk logowania -->
+            <Button Command="{Binding LoginCommand}"
+                    BackgroundColor="{StaticResource Primary}"
+                    TextColor="White"
+                    FontSize="18"
+                    FontAttributes="Bold"
+                    HeightRequest="56"
+                    CornerRadius="28"
+                    IsEnabled="{Binding IsBusy, Converter={toolkit:InvertedBoolConverter}}">
+                <Button.Shadow>
+                    <Shadow Brush="#00000050" Offset="0,4" Radius="8" Opacity="0.4"/>
+                </Button.Shadow>
+                <Button.ImageSource>
+                    <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Login}"
+                                     FontFamily="MaterialSymbolsOutlined"
+                                     Color="White"
+                                     Size="22"/>
+                </Button.ImageSource>
+                <Button.Triggers>
+                    <DataTrigger TargetType="Button" Binding="{Binding IsBusy}" Value="True">
+                        <Setter Property="Text" Value="Logowanie..."/>
+                    </DataTrigger>
+                    <DataTrigger TargetType="Button" Binding="{Binding IsBusy}" Value="False">
+                        <Setter Property="Text" Value="Zaloguj się"/>
+                    </DataTrigger>
+                </Button.Triggers>
+            </Button>
+            
+            <!-- Wskaźnik ładowania -->
+            <ActivityIndicator IsRunning="{Binding IsBusy}"
+                               IsVisible="{Binding IsBusy}"
+                               Color="White"
+                               HeightRequest="40"
+                               HorizontalOptions="Center"/>
+            
+        </VerticalStackLayout>
+        
+        <!-- Dolna sekcja -->
+        <VerticalStackLayout Grid.Row="2" 
+                             VerticalOptions="End"
+                             HorizontalOptions="Center"
+                             Padding="0,0,0,20">
+            <HorizontalStackLayout Spacing="8" HorizontalOptions="Center">
+                <Image HeightRequest="20" WidthRequest="20" VerticalOptions="Center">
+                    <Image.Source>
+                        <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Restaurant}"
+                                         FontFamily="MaterialSymbolsOutlined"
+                                         Color="#FFFFFF80"
+                                         Size="20"/>
+                    </Image.Source>
+                </Image>
+                <Label Text="ReceptyOks"
+                       FontSize="14"
+                       TextColor="#FFFFFF80"
+                       VerticalOptions="Center"/>
+            </HorizontalStackLayout>
+        </VerticalStackLayout>
+        
+    </Grid>
 </ContentPage>
