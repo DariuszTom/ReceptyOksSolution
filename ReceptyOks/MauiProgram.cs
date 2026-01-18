@@ -64,7 +64,8 @@ public static class MauiProgram
 			client.BaseAddress = new Uri($"http://{appSettings.Http.ApiServiceName}");
 			client.Timeout = TimeSpan.FromSeconds(appSettings.Http.DefaultTimeoutSeconds);
 		})
-		.AddServiceDiscovery();
+        .AddHttpMessageHandler<ApiKeyHandler>()
+        .AddServiceDiscovery();
 
 		// Services
 		builder.Services.AddSingleton(OcrPlugin.Default);

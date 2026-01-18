@@ -1,8 +1,9 @@
-using System.Net.Http.Json;
 using Polly;
 using Polly.Retry;
 using ReceptyOks.Data;
+using ReceptyOks.Shared;
 using ReceptyOks.Shared.DTOs;
+using System.Net.Http.Json;
 
 namespace ReceptyOks.Services;
 
@@ -48,11 +49,19 @@ public class SyncService
                 .Or<HttpRequestException>()
                 .WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)));
 
-            // Wyœlij do serwera i pobierz odpowiedŸ
             var response = await retryPolicy.ExecuteAsync(() =>
-                _httpClient.PostAsJsonAsync("/api/sync", request)
-            );
-            
+            {
+                // Twórz nowe HttpRequestMessage przy ka¿dym wywo³aniu (retry)
+                var httpRequest = new HttpRequestMessage(HttpMethod.Post, "/api/sync")
+                {
+                    Content = JsonContent.Create(request)
+                };
+
+                httpRequest.Headers.Add(GlobalConstants.ApiKeyHeaderName, "your-api-key");
+
+                return _httpClient.SendAsync(httpRequest);
+            });
+
             if (!response.IsSuccessStatusCode)
             {
                 result.Success = false;
