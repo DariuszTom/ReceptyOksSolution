@@ -61,7 +61,7 @@ public static class MauiProgram
 		// Configure HttpClient with Aspire service discovery
 		builder.Services.AddHttpClient<SyncService>(client =>
 		{
-			client.BaseAddress = new Uri($"http://{appSettings.Http.GetEffectiveApiUrl()}");
+			client.BaseAddress = new Uri($"{appSettings.Http.GetEffectiveApiUrl()}");
 			client.Timeout = TimeSpan.FromSeconds(appSettings.Http.DefaultTimeoutSeconds);
 		})
         .AddHttpMessageHandler<ApiKeyHandler>()
@@ -71,7 +71,14 @@ public static class MauiProgram
 		builder.Services.AddSingleton(OcrPlugin.Default);
 		builder.Services.AddSingleton<IOCRService, MobileOcerService>();
 		builder.Services.AddSingleton<UpdateCheckerService>();
-        builder.Services.AddTransient<BackendAuthService>();
+        // Configure HttpClient for BackendAuthService so PostAsync can use relative URIs
+        builder.Services.AddHttpClient<BackendAuthService>(client =>
+        {
+            client.BaseAddress = new Uri($"{appSettings.Http.GetEffectiveApiUrl()}");
+            client.Timeout = TimeSpan.FromSeconds(appSettings.Http.DefaultTimeoutSeconds);
+        })
+        .AddHttpMessageHandler<ApiKeyHandler>()
+        .AddServiceDiscovery();
         // ViewModels
         builder.Services.AddTransient<RecipesViewModel>();
 		builder.Services.AddTransient<RecipeDetailViewModel>();

@@ -70,7 +70,8 @@ namespace ReceptyOks.ViewModels
 
             try
             {
-                var secretBytes = SHA256.HashData(Encoding.UTF8.GetBytes(Secret));
+                // Send plaintext secret to server (server will perform HMAC or compare as configured).
+                var secretBytes = Encoding.UTF8.GetBytes(Secret);
                 var result = await _backendAuth.IsApiKeyValid(secretBytes).ConfigureAwait(false);
 
                 if (result.IsValid)

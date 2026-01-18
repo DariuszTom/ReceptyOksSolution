@@ -17,6 +17,7 @@ public static class AuthEndpoints
         group.MapPost("/validate", (AuthRequest request, IConfiguration configuration) =>
         {
             var storedHash = configuration["PasswordHash"];
+            var secretKey = configuration["SecretKey"];
 
             if (string.IsNullOrEmpty(storedHash))
             {
@@ -29,11 +30,11 @@ public static class AuthEndpoints
             {
                 return Results.BadRequest(new AuthResponse(false, "Secret hash is required"));
             }
-
+            using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(secretKey));
+            var providedDerived = hmac.ComputeHash(Encoding.UTF8.GetBytes(request.SecretHash));
             // Porównanie zahashowanego has³a (constant-time comparison dla bezpieczeñstwa)
             var storedBytes = Encoding.UTF8.GetBytes(storedHash);
-            var providedBytes = Encoding.UTF8.GetBytes(request.SecretHash);
-            var isValid = CryptographicOperations.FixedTimeEquals(storedBytes, providedBytes);
+            var isValid = CryptographicOperations.FixedTimeEquals(storedBytes, providedDerived);
 
             return isValid
                 ? Results.Ok(new AuthResponse(true, "Authenticated"))

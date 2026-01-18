@@ -62,6 +62,8 @@ if (app.Environment.IsDevelopment())
 }
 
 // Mapowanie endpointów
+// Map authentication endpoints (ensure /api/auth/validate is available)
+app.MapAuthEndpoints();
 app.MapRecipeEndpoints();
 app.MapCategoryEndpoints();
 app.MapIngredientEndpoints();
