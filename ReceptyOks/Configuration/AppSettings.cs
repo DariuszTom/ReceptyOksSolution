@@ -32,9 +32,14 @@ public class DatabaseSettings
 public class HttpSettings
 {
     /// <summary>
-    /// Service name for Aspire service discovery
+    /// Service name for Aspire service discovery (used in development with AppHost)
     /// </summary>
     public string? ApiServiceName { get; set; }
+
+    /// <summary>
+    /// Production API base URL (used when not running with Aspire)
+    /// </summary>
+    public string? ApiBaseUrl { get; set; }
 
     /// <summary>
     /// Default timeout in seconds for HTTP requests
@@ -50,6 +55,26 @@ public class HttpSettings
     /// GitHub API settings for update checking
     /// </summary>
     public GitHubSettings Github { get; set; } = new();
+
+    /// <summary>
+    /// Gets the effective API URL based on environment (development with Aspire or production)
+    /// </summary>
+    public string GetEffectiveApiUrl()
+    {
+#if DEBUG
+        // In debug mode with Aspire, use service discovery
+        if (!string.IsNullOrWhiteSpace(ApiServiceName))
+        {
+            return $"http://{ApiServiceName}";
+        }
+#endif
+        // In release or when ApiServiceName is not set, use production URL
+        if (string.IsNullOrWhiteSpace(ApiBaseUrl))
+        {
+            throw new InvalidOperationException("ApiBaseUrl must be configured for production builds");
+        }
+        return ApiBaseUrl;
+    }
 }
 
 /// <summary>
