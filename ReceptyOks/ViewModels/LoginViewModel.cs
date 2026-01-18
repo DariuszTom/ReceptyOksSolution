@@ -41,7 +41,7 @@ namespace ReceptyOks.ViewModels
                 {
                     await MainThread.InvokeOnMainThreadAsync(async () =>
                     {
-                        await Shell.Current.GoToAsync("//main");
+                        await Shell.Current.GoToAsync("//RecipesPage");
                     });
                 }
             }
@@ -79,7 +79,7 @@ namespace ReceptyOks.ViewModels
                     await SecureSecretService.SaveAsync(GlobalConstants.ApiKeyHeaderName, secretBytes).ConfigureAwait(false);
                     await MainThread.InvokeOnMainThreadAsync(async () =>
                     {
-                        await Shell.Current.GoToAsync("//main");
+                        await Shell.Current.GoToAsync("//RecipesPage");
                     });
                 }
                 else

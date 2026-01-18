@@ -30,11 +30,28 @@ public static class AuthEndpoints
             {
                 return Results.BadRequest(new AuthResponse(false, "Secret hash is required"));
             }
-            using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(secretKey));
-            var providedDerived = hmac.ComputeHash(Encoding.UTF8.GetBytes(request.SecretHash));
-            // Porównanie zahashowanego has³a (constant-time comparison dla bezpieczeñstwa)
-            var storedBytes = Encoding.UTF8.GetBytes(storedHash);
-            var isValid = CryptographicOperations.FixedTimeEquals(storedBytes, providedDerived);
+
+            if (string.IsNullOrEmpty(secretKey))
+            {
+                return Results.Problem(
+                    detail: "Server configuration error",
+                    statusCode: StatusCodes.Status500InternalServerError);
+            }
+
+            // Decode the configured secret key (it's stored as Base64); fall back to UTF8 if not Base64
+            var hmacKeyBytes = DecodeToCorrectFormat(secretKey);
+            using var hmac = new HMACSHA256(hmacKeyBytes);
+
+            // Decode the provided secret if it's Base64-encoded (clients often send Base64); otherwise use raw UTF8 bytes
+            var providedBytes = DecodeToCorrectFormat(request.SecretHash);
+            var providedDerived = hmac.ComputeHash(providedBytes);
+
+            // Stored hash is likely Base64-encoded HMAC; decode it before comparing
+            var storedBytes =DecodeToCorrectFormat(storedHash);
+
+            // Ensure same length before constant-time compare
+            var isValid = storedBytes.Length == providedDerived.Length &&
+                          CryptographicOperations.FixedTimeEquals(storedBytes, providedDerived);
 
             return isValid
                 ? Results.Ok(new AuthResponse(true, "Authenticated"))
@@ -42,6 +59,20 @@ public static class AuthEndpoints
         })
         .WithName("ValidatePassword")
         .WithDescription("Validates the password hash against the stored value");
+    }
+    private static byte[] DecodeToCorrectFormat(string? input)
+    {
+        if (input == null) return [];
+        try
+        {
+            return Convert.FromBase64String(input);
+        }
+        catch
+        {
+            // Fallback to hex
+            var hex = input.StartsWith("0x", StringComparison.OrdinalIgnoreCase) ? input[2..] : input;
+            return Convert.FromHexString(hex);
+        }
     }
 }
 

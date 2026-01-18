@@ -2,6 +2,7 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="ReceptyOks.Views.LoginPage"
+             x:Name="LoginPageRoot"
              xmlns:icons="clr-namespace:UraniumUI.Icons.MaterialSymbols;assembly=UraniumUI.Icons.MaterialSymbols"
              xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
              xmlns:material="http://schemas.enisn-projects.io/dotnet/maui/uraniumui/material"
@@ -13,7 +14,9 @@
              Background="{StaticResource LogoGradient}">
 
     <ContentPage.Behaviors>
-        <toolkit:EventToCommandBehavior EventName="Appearing" Command="{Binding InitializeCommand}" />
+        <!-- Bind to the page's BindingContext explicitly so the command resolves even if the context is set later -->
+        <toolkit:EventToCommandBehavior EventName="Appearing"
+                                        Command="{Binding BindingContext.InitializeCommand, Source={x:Reference LoginPageRoot}}" />
     </ContentPage.Behaviors>
 
     <Grid RowDefinitions="Auto,Auto,*" Padding="30">
@@ -162,11 +165,12 @@
                         <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Restaurant}"
                                          FontFamily="MaterialSymbolsOutlined"
                                          Color="#FFFFFF80"
-                                         Size="20"/>
+                                         Size="24"/>
                     </Image.Source>
                 </Image>
                 <Label Text="ReceptyOks"
-                       FontSize="14"
+                       FontSize="18"
+                       FontAttributes="Bold"
                        TextColor="#FFFFFF80"
                        VerticalOptions="Center"/>
             </HorizontalStackLayout>
