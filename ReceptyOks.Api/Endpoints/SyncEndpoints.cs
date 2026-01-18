@@ -15,11 +15,13 @@ public static class SyncEndpoints
         // POST - synchronizacja dwukierunkowa
         group.MapPost("/", async (SyncRequest request, RecipeDbContext db) =>
         {
-            var syncTime = DateTime.UtcNow;
             var lastSync = request.LastSyncedAt ?? DateTime.MinValue;
 
             // 1. Zastosuj zmiany z klienta
             await ApplyClientChanges(request, db);
+
+            // Capture syncTime after applying client changes so SyncedAt >= any UpdatedAt set above
+            var syncTime = DateTime.UtcNow;
 
             // 2. Pobierz zmiany serwera od ostatniej synchronizacji
             var response = new SyncResponse

@@ -36,5 +36,5 @@ public class Recipe
     
     // Nawigacja
     public Category? Category { get; set; }
-    public ICollection<RecipeIngredient> Ingredients { get; set; } = [];
+    public ICollection<RecipeIngredient> Ingredients { get; set; } = new List<RecipeIngredient>();
 }

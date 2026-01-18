@@ -9,21 +9,21 @@ public class SyncRequest
     /// Data ostatniej udanej synchronizacji
     /// </summary>
     public DateTime? LastSyncedAt { get; set; }
-    
+
     /// <summary>
     /// Przepisy zmienione lokalnie od ostatniej synchronizacji
     /// </summary>
-    public List<RecipeSyncDto> ChangedRecipes { get; set; } = [];
+    public List<RecipeSyncDto> ChangedRecipes { get; set; } = new List<RecipeSyncDto>();
     
     /// <summary>
     /// Kategorie zmienione lokalnie
     /// </summary>
-    public List<CategorySyncDto> ChangedCategories { get; set; } = [];
+    public List<CategorySyncDto> ChangedCategories { get; set; } = new List<CategorySyncDto>();
     
     /// <summary>
     /// Sk³adniki zmienione lokalnie
     /// </summary>
-    public List<IngredientSyncDto> ChangedIngredients { get; set; } = [];
+    public List<IngredientSyncDto> ChangedIngredients { get; set; } = new List<IngredientSyncDto>();
 }
 
 /// <summary>
@@ -39,17 +39,17 @@ public class SyncResponse
     /// <summary>
     /// Przepisy do zaktualizowania/dodania na kliencie
     /// </summary>
-    public List<RecipeSyncDto> Recipes { get; set; } = [];
+    public List<RecipeSyncDto> Recipes { get; set; } = new List<RecipeSyncDto>();
     
     /// <summary>
     /// Kategorie do zaktualizowania/dodania
     /// </summary>
-    public List<CategorySyncDto> Categories { get; set; } = [];
+    public List<CategorySyncDto> Categories { get; set; } = new List<CategorySyncDto>();
     
     /// <summary>
     /// Sk³adniki do zaktualizowania/dodania
     /// </summary>
-    public List<IngredientSyncDto> Ingredients { get; set; } = [];
+    public List<IngredientSyncDto> Ingredients { get; set; } = new List<IngredientSyncDto>();
 }
 
 public class RecipeSyncDto
@@ -67,7 +67,7 @@ public class RecipeSyncDto
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
     public bool IsDeleted { get; set; }
-    public List<RecipeIngredientSyncDto> Ingredients { get; set; } = [];
+    public List<RecipeIngredientSyncDto> Ingredients { get; set; } = new List<RecipeIngredientSyncDto>();
 }
 
 public class CategorySyncDto
