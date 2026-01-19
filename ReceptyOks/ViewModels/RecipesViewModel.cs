@@ -1,4 +1,4 @@
-using CommunityToolkit.Mvvm.ComponentModel;
+ï»¿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
 using ReceptyOks.Data;
@@ -46,7 +46,6 @@ public partial class RecipesViewModel : ObservableObject
             
             Recipes = new ObservableCollection<RecipeLocal>(recipeList);
             
-            _logger.LogInformation("Successfully loaded {Count} recipes", recipeList.Count);
         }
         catch (Exception ex)
         {
@@ -78,7 +77,7 @@ public partial class RecipesViewModel : ObservableObject
             else
             {
                 _logger.LogWarning("Synchronization failed: {Message}", result.Message);
-                await Shell.Current.DisplayAlertAsync("B³¹d", result.Message, "OK");
+                await Shell.Current.DisplayAlertAsync("BÅ‚Ä…d", result.Message, "OK");
             }
         }
         catch (Exception ex)

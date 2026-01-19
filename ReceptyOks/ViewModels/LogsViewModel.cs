@@ -57,7 +57,6 @@ public partial class LogsViewModel : ObservableObject
                 Logs.Add(log);
             }
 
-            _logger.LogInformation("Loaded {Count} log entries", logs.Count);
         }
         catch (Exception ex)
         {

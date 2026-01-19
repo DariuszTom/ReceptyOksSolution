@@ -1,4 +1,4 @@
-using CommunityToolkit.Mvvm.ComponentModel;
+ï»¿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ReceptyOks.Data;
 using System.Collections.ObjectModel;
@@ -49,7 +49,7 @@ public partial class CategoryEditViewModel : ObservableObject, IQueryAttributabl
             Description = category.Description;
             SelectedIcon = category.IconName;
             IsEditing = true;
-            PageTitle = "Edytuj kategoriê";
+            PageTitle = "Edytuj kategoriÄ™";
         }
         else
         {
@@ -73,7 +73,7 @@ public partial class CategoryEditViewModel : ObservableObject, IQueryAttributabl
     {
         if (string.IsNullOrWhiteSpace(Name))
         {
-            await Shell.Current.DisplayAlertAsync("B³¹d", "Nazwa kategorii jest wymagana.", "OK");
+            await Shell.Current.DisplayAlertAsync("BÅ‚Ä…d", "Nazwa kategorii jest wymagana.", "OK");
             return;
         }
 

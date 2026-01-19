@@ -1,4 +1,4 @@
-using CommunityToolkit.Mvvm.ComponentModel;
+ï»¿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ReceptyOks.Data;
 using System.Collections.ObjectModel;
@@ -45,13 +45,13 @@ public partial class RecipeDetailViewModel : ObservableObject
         
         if (Recipe is null) return;
 
-        // Za³aduj kategoriê
+        // ZaÅ‚aduj kategoriÄ™
         if (Recipe.CategoryId.HasValue)
         {
             Category = await _database.GetCategoryAsync(Recipe.CategoryId.Value);
         }
 
-        // Za³aduj sk³adniki z nazwami
+        // ZaÅ‚aduj skÅ‚adniki z nazwami
         var recipeIngredients = await _database.GetRecipeIngredientsAsync(id);
         var allIngredients = await _database.GetIngredientsAsync();
         
@@ -69,7 +69,7 @@ public partial class RecipeDetailViewModel : ObservableObject
 
         Ingredients = new ObservableCollection<RecipeIngredientDisplay>(displayIngredients);
 
-        // Za³aduj obraz
+        // ZaÅ‚aduj obraz
         if (Recipe.Image is not null && Recipe.Image.Length > 0)
         {
             RecipeImage = ImageSource.FromStream(() => new MemoryStream(Recipe.Image));
@@ -92,7 +92,7 @@ public partial class RecipeDetailViewModel : ObservableObject
 
         bool confirm = await Shell.Current.DisplayAlertAsync(
             "Usuwanie przepisu",
-            $"Czy na pewno chcesz usun¹æ '{Recipe.Title}'?",
+            $"Czy na pewno chcesz usunÄ…Ä‡ '{Recipe.Title}'?",
             "Tak", "Nie");
 
         if (confirm)

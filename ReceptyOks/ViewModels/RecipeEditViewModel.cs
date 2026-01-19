@@ -1,4 +1,4 @@
-using CommunityToolkit.Mvvm.ComponentModel;
+ï»¿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ReceptyOks.Data;
 using ReceptyOks.Shared;
@@ -85,7 +85,7 @@ public partial class RecipeEditViewModel : ObservableObject
         }
         else if (!_isInitialized)
         {
-            // Jeœli nie ma ID (nowy przepis) i jeszcze nie zainicjalizowano, za³aduj kategorie i sk³adniki
+            // JeÅ›li nie ma ID (nowy przepis) i jeszcze nie zainicjalizowano, zaÅ‚aduj kategorie i skÅ‚adniki
             InitializeCommand.Execute(null);
         }
     }
@@ -167,7 +167,7 @@ public partial class RecipeEditViewModel : ObservableObject
         {
             var photos = await MediaPicker.Default.PickPhotosAsync(new MediaPickerOptions
             {
-                Title = "Wybierz zdjêcie przepisu"
+                Title = "Wybierz zdjÄ™cie przepisu"
             });
 
             var result = photos?.FirstOrDefault();
@@ -182,7 +182,7 @@ public partial class RecipeEditViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            await Shell.Current.DisplayAlertAsync("B³¹d", $"Nie uda³o siê wybraæ zdjêcia: {ex.Message}", "OK");
+            await Shell.Current.DisplayAlertAsync("BÅ‚Ä…d", $"Nie udaÅ‚o siÄ™ wybraÄ‡ zdjÄ™cia: {ex.Message}", "OK");
         }
     }
 
@@ -193,13 +193,13 @@ public partial class RecipeEditViewModel : ObservableObject
         {
             if (!MediaPicker.Default.IsCaptureSupported)
             {
-                await Shell.Current.DisplayAlertAsync("B³¹d", "Aparat nie jest dostêpny na tym urz¹dzeniu", "OK");
+                await Shell.Current.DisplayAlertAsync("BÅ‚Ä…d", "Aparat nie jest dostÄ™pny na tym urzÄ…dzeniu", "OK");
                 return;
             }
 
             var result = await MediaPicker.Default.CapturePhotoAsync(new MediaPickerOptions
             {
-                Title = "Zrób zdjêcie przepisu"
+                Title = "ZrÃ³b zdjÄ™cie przepisu"
             });
 
             if (result is not null)
@@ -213,7 +213,7 @@ public partial class RecipeEditViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            await Shell.Current.DisplayAlertAsync("B³¹d", $"Nie uda³o siê zrobiæ zdjêcia: {ex.Message}", "OK");
+            await Shell.Current.DisplayAlertAsync("BÅ‚Ä…d", $"Nie udaÅ‚o siÄ™ zrobiÄ‡ zdjÄ™cia: {ex.Message}", "OK");
         }
     }
 
@@ -279,7 +279,7 @@ public partial class RecipeEditViewModel : ObservableObject
     {
         if (string.IsNullOrWhiteSpace(Title))
         {
-            await Shell.Current.DisplayAlertAsync("B³¹d", "Podaj tytu³ przepisu", "OK");
+            await Shell.Current.DisplayAlertAsync("BÅ‚Ä…d", "Podaj tytuÅ‚ przepisu", "OK");
             return;
         }
 
@@ -299,7 +299,7 @@ public partial class RecipeEditViewModel : ObservableObject
 
         await _database.SaveRecipeAsync(recipe);
 
-        // Zapisz sk³adniki
+        // Zapisz skÅ‚adniki
         var recipeIngredients = new List<RecipeIngredientLocal>();
         int order = 0;
 
@@ -310,14 +310,14 @@ public partial class RecipeEditViewModel : ObservableObject
 
             Guid ingredientId;
 
-            // Jeœli sk³adnik zosta³ wybrany z listy, u¿yj jego ID
+            // JeÅ›li skÅ‚adnik zostaÅ‚ wybrany z listy, uÅ¼yj jego ID
             if (ingredient.SelectedIngredient is not null)
             {
                 ingredientId = ingredient.SelectedIngredient.Id;
             }
             else
             {
-                // Jeœli sk³adnik zosta³ wpisany, sprawdŸ czy ju¿ istnieje lub utwórz nowy
+                // JeÅ›li skÅ‚adnik zostaÅ‚ wpisany, sprawdÅº czy juÅ¼ istnieje lub utwÃ³rz nowy
                 var existingIngredient = AvailableIngredients.FirstOrDefault(
                     i => i.Name.Equals(ingredient.IngredientName, StringComparison.OrdinalIgnoreCase));
 
@@ -327,7 +327,7 @@ public partial class RecipeEditViewModel : ObservableObject
                 }
                 else
                 {
-                    // Utwórz nowy sk³adnik
+                    // UtwÃ³rz nowy skÅ‚adnik
                     var newIngredient = new IngredientLocal
                     {
                         Id = Guid.NewGuid(),
@@ -374,12 +374,12 @@ public partial class RecipeEditViewModel : ObservableObject
             }
             else
             {
-                await Shell.Current.DisplayAlertAsync("B³¹d", result.ErrorMessage ?? "Nie uda³o siê rozpoznaæ tekstu", "OK");
+                await Shell.Current.DisplayAlertAsync("BÅ‚Ä…d", result.ErrorMessage ?? "Nie udaÅ‚o siÄ™ rozpoznaÄ‡ tekstu", "OK");
             }
         }
         catch (Exception ex)
         {
-            await Shell.Current.DisplayAlertAsync("B³¹d", $"Wyst¹pi³ b³¹d: {ex.Message}", "OK");
+            await Shell.Current.DisplayAlertAsync("BÅ‚Ä…d", $"WystÄ…piÅ‚ bÅ‚Ä…d: {ex.Message}", "OK");
         }
     }
 
@@ -395,12 +395,12 @@ public partial class RecipeEditViewModel : ObservableObject
             }
             else
             {
-                await Shell.Current.DisplayAlertAsync("B³¹d", result.ErrorMessage ?? "Nie uda³o siê rozpoznaæ tekstu", "OK");
+                await Shell.Current.DisplayAlertAsync("BÅ‚Ä…d", result.ErrorMessage ?? "Nie udaÅ‚o siÄ™ rozpoznaÄ‡ tekstu", "OK");
             }
         }
         catch (Exception ex)
         {
-            await Shell.Current.DisplayAlertAsync("B³¹d", $"Wyst¹pi³ b³¹d: {ex.Message}", "OK");
+            await Shell.Current.DisplayAlertAsync("BÅ‚Ä…d", $"WystÄ…piÅ‚ bÅ‚Ä…d: {ex.Message}", "OK");
         }
     }
 

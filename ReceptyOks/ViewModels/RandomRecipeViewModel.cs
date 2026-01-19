@@ -1,4 +1,4 @@
-using CommunityToolkit.Mvvm.ComponentModel;
+ï»¿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
 using ReceptyOks.Data;
@@ -101,7 +101,7 @@ public partial class RandomRecipeViewModel : ObservableObject
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error loading data for random recipe");
-            await Shell.Current.DisplayAlertAsync("B³¹d", "Nie uda³o siê za³adowaæ danych", "OK");
+            await Shell.Current.DisplayAlertAsync("BÅ‚Ä…d", "Nie udaÅ‚o siÄ™ zaÅ‚adowaÄ‡ danych", "OK");
         }
         finally
         {
@@ -149,13 +149,13 @@ public partial class RandomRecipeViewModel : ObservableObject
             var selectedIngIds = FilterByIngredients ? SelectedIngredients.Select(i => i.Id) : null;
 
             candidates = await _database.GetRecipesByCategoryAndIngriendentsAsync(selectedCatId, selectedIngIds);
-            candidates.RemoveAll(r => r.Id == OldID); // Unikaj powtórzeñ
+            candidates.RemoveAll(r => r.Id == OldID); // Unikaj powtÃ³rzeÅ„
 
             if (candidates.Count == 0)
             {
                 OldID = Guid.Empty;
-                await Shell.Current.DisplayAlertAsync("Brak przepisów", 
-                    "Nie znaleziono przepisów spe³niaj¹cych wybrane kryteria", "OK");
+                await Shell.Current.DisplayAlertAsync("Brak przepisÃ³w", 
+                    "Nie znaleziono przepisÃ³w speÅ‚niajÄ…cych wybrane kryteria", "OK");
                 return;
             }
 
@@ -174,7 +174,7 @@ public partial class RandomRecipeViewModel : ObservableObject
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error randomizing recipe");
-            await Shell.Current.DisplayAlertAsync("B³¹d", "Nie uda³o siê wylosowaæ przepisu", "OK");
+            await Shell.Current.DisplayAlertAsync("BÅ‚Ä…d", "Nie udaÅ‚o siÄ™ wylosowaÄ‡ przepisu", "OK");
         }
         finally
         {

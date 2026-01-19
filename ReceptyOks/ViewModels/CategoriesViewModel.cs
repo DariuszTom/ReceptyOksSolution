@@ -1,4 +1,4 @@
-using CommunityToolkit.Mvvm.ComponentModel;
+ï»¿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
 using ReceptyOks.Data;
@@ -36,7 +36,6 @@ public partial class CategoriesViewModel : ObservableObject
             {
                 Categories.Add(category);
             }
-            _logger.LogInformation("Loaded {Count} categories", categoryList.Count);
         }
         catch (Exception ex)
         {
@@ -68,9 +67,9 @@ public partial class CategoriesViewModel : ObservableObject
     private async Task DeleteCategoryAsync(CategoryLocal category)
     {
         bool confirm = await Shell.Current.DisplayAlertAsync(
-            "Usuñ kategoriê",
-            $"Czy na pewno chcesz usun¹æ kategoriê \"{category.Name}\"?",
-            "Usuñ",
+            "UsuÅ„ kategoriÄ™",
+            $"Czy na pewno chcesz usunÄ…Ä‡ kategoriÄ™ \"{category.Name}\"?",
+            "UsuÅ„",
             "Anuluj");
 
         if (confirm)
