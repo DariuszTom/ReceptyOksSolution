@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.Maui.ApplicationModel;
 
 namespace ReceptyOks.Controls;
 
@@ -88,8 +89,19 @@ public class RichTextEditor : ContentView
                 .Replace("'", "\\'")
                 .Replace("\n", "\\n")
                 .Replace("\r", "\\r");
+
+            var script = $"setContent('{escapedHtml}')";
             
-            await _webView.EvaluateJavaScriptAsync($"setContent('{escapedHtml}')");
+            // Ensure JavaScript is invoked on the UI thread — EvaluateJavaScriptAsync must run on main thread
+            if (MainThread.IsMainThread)
+            {
+                await _webView.EvaluateJavaScriptAsync(script);
+            }
+            else
+            {
+                await MainThread.InvokeOnMainThreadAsync(() => _webView.EvaluateJavaScriptAsync(script));
+            }
+
             System.Diagnostics.Debug.WriteLine($"[RichTextEditor] Content set via JS, length: {html.Length}");
         }
         catch (Exception ex)

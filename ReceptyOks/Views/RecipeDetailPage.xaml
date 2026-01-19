@@ -122,11 +122,11 @@
                         </VerticalStackLayout>
 
                         <!-- Quick Stats -->
-                        <Grid ColumnDefinitions="*,*,*" ColumnSpacing="12">
+                        <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
                             <Border Grid.Column="0" 
                                     StrokeThickness="0"
                                     StrokeShape="RoundRectangle 16"
-                                    Padding="16"
+                                    Padding="12"
                                     BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray600}}">
                                 <VerticalStackLayout Spacing="8" HorizontalOptions="Center">
                                     <Image HeightRequest="28" WidthRequest="28" HorizontalOptions="Center">
@@ -152,7 +152,7 @@
                             <Border Grid.Column="1" 
                                     StrokeThickness="0"
                                     StrokeShape="RoundRectangle 16"
-                                    Padding="16"
+                                    Padding="12"
                                     BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray600}}">
                                 <VerticalStackLayout Spacing="8" HorizontalOptions="Center">
                                     <Image HeightRequest="28" WidthRequest="28" HorizontalOptions="Center">
@@ -178,7 +178,7 @@
                             <Border Grid.Column="2" 
                                     StrokeThickness="0"
                                     StrokeShape="RoundRectangle 16"
-                                    Padding="16"
+                                    Padding="12"
                                     BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray600}}">
                                 <VerticalStackLayout Spacing="8" HorizontalOptions="Center">
                                     <Image HeightRequest="28" WidthRequest="28" HorizontalOptions="Center">
