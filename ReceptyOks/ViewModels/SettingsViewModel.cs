@@ -63,14 +63,14 @@ public partial class SettingsViewModel : ObservableObject
             // Run navigation on the UI thread and use absolute route to ensure Shell finds the page
             await Microsoft.Maui.ApplicationModel.MainThread.InvokeOnMainThreadAsync(async () =>
             {
-                await Shell.Current.GoToAsync($"//{nameof(LogsPage)}");
+                await Shell.Current.GoToAsync("//LogsPage");
             });
         }
         catch (Exception ex)
         {
             await Microsoft.Maui.ApplicationModel.MainThread.InvokeOnMainThreadAsync(async () =>
             {
-                await Shell.Current.DisplayAlert("Błąd nawigacji", $"Nie można otworzyć logów: {ex.Message}", "OK");
+                await Shell.Current.DisplayAlertAsync("Błąd nawigacji", $"Nie można otworzyć logów: {ex.Message}", "OK");
             });
         }
     }
