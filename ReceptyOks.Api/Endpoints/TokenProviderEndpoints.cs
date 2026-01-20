@@ -8,20 +8,69 @@
                 .WithTags("Token Provider")
                 .DisableHttpMetrics();     
             
-            // Return the key. In non-development environments the token is masked for safety.
-            group.MapGet("/anthropic", (IConfiguration configuration, IWebHostEnvironment env) =>
+            group.MapPost("/token", (AuthRequest request, IConfiguration configuration) =>
             {
+                if (request is null || request.SecretHash?.Length == 0)
+                    return Results.BadRequest(new { Message = "SecretHash is required" });
+
+                var storedHash = configuration["PasswordHash"];
+                var secretKey = configuration["SecretKey"];
+
+                if (string.IsNullOrEmpty(storedHash) || string.IsNullOrEmpty(secretKey))
+                {
+                    return Results.Problem(detail: "Server configuration error", statusCode: StatusCodes.Status500InternalServerError);
+                }
+                if(request.UserName != configuration["UserName"])
+                {
+                    return Results.Forbid();
+                }
+                // Decode configured secret key (Base64 preferred, fallback to UTF8/hex)
+                byte[] hmacKeyBytes;
+                try
+                {
+                    hmacKeyBytes = Convert.FromBase64String(secretKey);
+                }
+                catch
+                {
+                    var hex = secretKey.StartsWith("0x", StringComparison.OrdinalIgnoreCase) ? secretKey[2..] : secretKey;
+                    try { hmacKeyBytes = Convert.FromHexString(hex); }
+                    catch { hmacKeyBytes = System.Text.Encoding.UTF8.GetBytes(secretKey); }
+                }
+
+                byte[] providedDerived;
+                using (var hmac = new System.Security.Cryptography.HMACSHA256(hmacKeyBytes))
+                {
+                    providedDerived = hmac.ComputeHash(request.SecretHash);
+                }
+
+                byte[] storedBytes;
+                try
+                {
+                    storedBytes = Convert.FromBase64String(storedHash);
+                }
+                catch
+                {
+                    var hex = storedHash.StartsWith("0x", StringComparison.OrdinalIgnoreCase) ? storedHash[2..] : storedHash;
+                    try { storedBytes = Convert.FromHexString(hex); }
+                    catch { storedBytes = System.Text.Encoding.UTF8.GetBytes(storedHash); }
+                }
+
+                var isValid = storedBytes.Length == providedDerived.Length && System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(storedBytes, providedDerived);
+
+                if (!isValid)
+                    return Results.Unauthorized();
+
+                // Authenticated — return the token (from config/KeyVault). Consider making TTL short on client side.
                 var token = configuration["Token"];
                 if (string.IsNullOrWhiteSpace(token))
                     return Results.NotFound();
 
-                    // Mask token except for development to avoid accidental disclosure
-                    var masked = token.Length <= 8 ? new string('*', token.Length) : $"{token[..4]}...{token[^4..]}";
-                    return Results.Ok(new { Token = masked, IsMasked = true });
-
+                // Return full token with a suggested short TTL (in seconds).
+                return Results.Ok(new { Token = token, ExpiresIn = 60 });
             })
-            .WithName("GetAnthropicToken")
-            .WithDescription("Returns the  token when configured");
+            .WithName("GetAnthropicTokenSecret")
+            .WithDescription("Returns the full Anthropic token after validating the caller (less secure; use with caution)");
         }
+        public record AuthRequest(byte[] SecretHash, string UserName);
     }
 }

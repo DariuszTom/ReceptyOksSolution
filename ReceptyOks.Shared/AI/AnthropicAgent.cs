@@ -20,7 +20,6 @@ namespace ReceptyOks.Shared.AI
             {
                 ApiKey = apiKey,
                 BaseUrl = _settings.BaseUrl,
-                
             };
             AnthropicClient client = new(options);
             IChatClient chatClient = client.AsIChatClient(_settings.Model, _settings.MaxTokens);
