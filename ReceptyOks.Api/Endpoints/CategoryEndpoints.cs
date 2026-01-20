@@ -9,7 +9,8 @@ public static class CategoryEndpoints
     public static void MapCategoryEndpoints(this WebApplication app)
     {
         var group = app.MapGroup("/api/categories")
-            .WithTags("Categories");
+            .WithTags("Categories")
+            .RequireRateLimiting("fixed");
 
         // GET - wszystkie kategorie
         group.MapGet("/", async (RecipeDbContext db) =>

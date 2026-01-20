@@ -9,7 +9,8 @@ public static class IngredientEndpoints
     public static void MapIngredientEndpoints(this WebApplication app)
     {
         var group = app.MapGroup("/api/ingredients")
-            .WithTags("Ingredients");
+            .WithTags("Ingredients")
+            .RequireRateLimiting("fixed");
 
         // GET - wszystkie sk³adniki
         group.MapGet("/", async (RecipeDbContext db) =>

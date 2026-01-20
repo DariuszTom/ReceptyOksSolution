@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using ReceptyOks.Api.Endpoints;
 using ReceptyOks.Api.Middleware;
@@ -34,7 +35,22 @@ builder.Services.AddDbContext<RecipeDbContext>(options =>
 
 // OpenAPI
 builder.Services.AddOpenApi();
-
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = 429;
+    options.AddFixedWindowLimiter("fixed", limiterOptions =>
+    {
+        limiterOptions.PermitLimit = 20;
+        limiterOptions.Window = TimeSpan.FromMinutes(1);
+        limiterOptions.QueueProcessingOrder = System.Threading.RateLimiting.QueueProcessingOrder.OldestFirst;
+    });
+    options.AddFixedWindowLimiter("strict", limiterOptions =>
+    {
+        limiterOptions.PermitLimit = 3;
+        limiterOptions.Window = TimeSpan.FromMinutes(1);
+        limiterOptions.QueueProcessingOrder = System.Threading.RateLimiting.QueueProcessingOrder.OldestFirst;
+    });
+});
 var app = builder.Build();
 
 // Use API key auth middleware for all endpoints
@@ -68,5 +84,6 @@ app.MapRecipeEndpoints();
 app.MapCategoryEndpoints();
 app.MapIngredientEndpoints();
 app.MapSyncEndpoints();
-
+app.UseHttpsRedirection();
+app.UseRateLimiter();
 app.Run();

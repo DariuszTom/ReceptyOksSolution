@@ -6,6 +6,7 @@
         {
             var group = app.MapGroup("/api/tokenprovider")
                 .WithTags("Token Provider")
+                .RequireRateLimiting("strict")
                 .DisableHttpMetrics();     
             
             group.MapPost("/token", (AuthRequest request, IConfiguration configuration) =>

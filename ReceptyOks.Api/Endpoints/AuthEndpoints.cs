@@ -12,7 +12,7 @@ public static class AuthEndpoints
     {
         var group = app.MapGroup("/api/auth")
             .WithTags("Authentication")
-            .AllowAnonymous();
+            .RequireRateLimiting("strict");
 
         group.MapPost("/validate", (AuthRequest request, IConfiguration configuration) =>
         {
