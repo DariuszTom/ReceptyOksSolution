@@ -1,5 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Maui.ApplicationModel;
 using ReceptyOks.Services;
 
 namespace ReceptyOks.ViewModels;
@@ -53,5 +54,24 @@ public partial class SettingsViewModel : ObservableObject
             UpdateStatus = "Masz najnowszą wersję.";
         }
         IsChecking = false;
+    }
+    [RelayCommand]
+    public async Task ShowLogsAsync()
+    {
+        try
+        {
+            // Run navigation on the UI thread and use absolute route to ensure Shell finds the page
+            await Microsoft.Maui.ApplicationModel.MainThread.InvokeOnMainThreadAsync(async () =>
+            {
+                await Shell.Current.GoToAsync($"//{nameof(LogsPage)}");
+            });
+        }
+        catch (Exception ex)
+        {
+            await Microsoft.Maui.ApplicationModel.MainThread.InvokeOnMainThreadAsync(async () =>
+            {
+                await Shell.Current.DisplayAlert("Błąd nawigacji", $"Nie można otworzyć logów: {ex.Message}", "OK");
+            });
+        }
     }
 }
