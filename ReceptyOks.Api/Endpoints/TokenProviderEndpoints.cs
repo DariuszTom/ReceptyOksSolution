@@ -54,7 +54,7 @@
                     try { storedBytes = Convert.FromHexString(hex); }
                     catch { storedBytes = System.Text.Encoding.UTF8.GetBytes(storedHash); }
                 }
-
+                storedHash = null;
                 var isValid = storedBytes.Length == providedDerived.Length && System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(storedBytes, providedDerived);
 
                 if (!isValid)
@@ -65,8 +65,8 @@
                 if (string.IsNullOrWhiteSpace(token))
                     return Results.NotFound();
 
-                // Return full token with a suggested short TTL (in seconds).
-                return Results.Ok(new { Token = token, ExpiresIn = 60 });
+                // Return full token with a suggested short TTL (in minutes).
+                return Results.Ok(new { Token = token, ExpiresIn = 10 });
             })
             .WithName("GetAnthropicTokenSecret")
             .WithDescription("Returns the full Anthropic token after validating the caller (less secure; use with caution)");
