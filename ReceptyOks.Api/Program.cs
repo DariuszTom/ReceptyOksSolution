@@ -1,5 +1,7 @@
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.EntityFrameworkCore;
 using ReceptyOks.Api.Endpoints;
 using ReceptyOks.Api.Middleware;
@@ -51,8 +53,24 @@ builder.Services.AddRateLimiter(options =>
         limiterOptions.QueueProcessingOrder = System.Threading.RateLimiting.QueueProcessingOrder.OldestFirst;
     });
 });
+
+builder.Services.AddAuthorization();
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = false,
+            ValidateAudience = false,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(
+                System.Text.Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? "default_secret_key"))
+        };
+    });
 var app = builder.Build();
 
+app.UseAuthentication();
 // Use API key auth middleware for all endpoints
 app.UseApiKeyAuth();
 
@@ -84,6 +102,5 @@ app.MapRecipeEndpoints();
 app.MapCategoryEndpoints();
 app.MapIngredientEndpoints();
 app.MapSyncEndpoints();
-app.UseHttpsRedirection();
 app.UseRateLimiter();
 app.Run();

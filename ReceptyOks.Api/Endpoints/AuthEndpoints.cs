@@ -1,3 +1,4 @@
+using System.ClientModel.Primitives;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -12,7 +13,8 @@ public static class AuthEndpoints
     {
         var group = app.MapGroup("/api/auth")
             .WithTags("Authentication")
-            .RequireRateLimiting("strict");
+            .RequireRateLimiting("strict")
+            .DisableHttpMetrics();
 
         group.MapPost("/validate", (AuthRequest request, IConfiguration configuration) =>
         {
@@ -60,7 +62,7 @@ public static class AuthEndpoints
         .WithName("ValidatePassword")
         .WithDescription("Validates the password hash against the stored value");
     }
-    private static byte[] DecodeToCorrectFormat(string? input)
+    public static byte[] DecodeToCorrectFormat(string? input)
     {
         if (input == null) return [];
         try

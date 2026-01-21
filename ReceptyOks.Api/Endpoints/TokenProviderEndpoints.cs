@@ -26,17 +26,7 @@
                     return Results.Forbid();
                 }
                 // Decode configured secret key (Base64 preferred, fallback to UTF8/hex)
-                byte[] hmacKeyBytes;
-                try
-                {
-                    hmacKeyBytes = Convert.FromBase64String(secretKey);
-                }
-                catch
-                {
-                    var hex = secretKey.StartsWith("0x", StringComparison.OrdinalIgnoreCase) ? secretKey[2..] : secretKey;
-                    try { hmacKeyBytes = Convert.FromHexString(hex); }
-                    catch { hmacKeyBytes = System.Text.Encoding.UTF8.GetBytes(secretKey); }
-                }
+                byte[] hmacKeyBytes =AuthEndpoints.DecodeToCorrectFormat(secretKey);
 
                 byte[] providedDerived;
                 using (var hmac = new System.Security.Cryptography.HMACSHA256(hmacKeyBytes))
@@ -44,24 +34,15 @@
                     providedDerived = hmac.ComputeHash(request.SecretHash);
                 }
 
-                byte[] storedBytes;
-                try
-                {
-                    storedBytes = Convert.FromBase64String(storedHash);
-                }
-                catch
-                {
-                    var hex = storedHash.StartsWith("0x", StringComparison.OrdinalIgnoreCase) ? storedHash[2..] : storedHash;
-                    try { storedBytes = Convert.FromHexString(hex); }
-                    catch { storedBytes = System.Text.Encoding.UTF8.GetBytes(storedHash); }
-                }
+                byte[] storedBytes=AuthEndpoints.DecodeToCorrectFormat(storedHash);
+
                 storedHash = null;
                 var isValid = storedBytes.Length == providedDerived.Length && System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(storedBytes, providedDerived);
 
                 if (!isValid)
                     return Results.Unauthorized();
 
-                // Authenticated — return the token (from config/KeyVault). Consider making TTL short on client side.
+                // Authenticated — return the token (from config/KeyVault).
                 var token = configuration["Token"];
                 if (string.IsNullOrWhiteSpace(token))
                     return Results.NotFound();
