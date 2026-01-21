@@ -1,4 +1,6 @@
-﻿namespace ReceptyOks.Api.Endpoints
+﻿using ReceptyOks.Shared.Misc;
+
+namespace ReceptyOks.Api.Endpoints
 {
     public static class TokenProviderEndpoints
     {
@@ -21,12 +23,12 @@
                 {
                     return Results.Problem(detail: "Server configuration error", statusCode: StatusCodes.Status500InternalServerError);
                 }
-                if(request.UserName != configuration["UserName"])
+                if(request.UserName != configuration["UserAgent"])
                 {
                     return Results.Forbid();
                 }
                 // Decode configured secret key (Base64 preferred, fallback to UTF8/hex)
-                byte[] hmacKeyBytes =AuthEndpoints.DecodeToCorrectFormat(secretKey);
+                byte[] hmacKeyBytes =secretKey.DecodeBase64OrHexToBytes();
 
                 byte[] providedDerived;
                 using (var hmac = new System.Security.Cryptography.HMACSHA256(hmacKeyBytes))
@@ -34,7 +36,7 @@
                     providedDerived = hmac.ComputeHash(request.SecretHash);
                 }
 
-                byte[] storedBytes=AuthEndpoints.DecodeToCorrectFormat(storedHash);
+                byte[] storedBytes=storedHash.DecodeBase64OrHexToBytes();
 
                 storedHash = null;
                 var isValid = storedBytes.Length == providedDerived.Length && System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(storedBytes, providedDerived);

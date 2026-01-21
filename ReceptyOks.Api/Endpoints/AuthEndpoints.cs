@@ -1,3 +1,4 @@
+using ReceptyOks.Shared.Misc;
 using System.ClientModel.Primitives;
 using System.Security.Cryptography;
 using System.Text;
@@ -28,7 +29,7 @@ public static class AuthEndpoints
                     statusCode: StatusCodes.Status500InternalServerError);
             }
 
-            if (string.IsNullOrEmpty(request.SecretHash))
+            if (request.SecretHash == null || request.SecretHash.Length == 0)
             {
                 return Results.BadRequest(new AuthResponse(false, "Secret hash is required"));
             }
@@ -41,16 +42,15 @@ public static class AuthEndpoints
             }
 
             // Decode the configured secret key (it's stored as Base64); fall back to UTF8 if not Base64
-            var hmacKeyBytes = DecodeToCorrectFormat(secretKey);
+            var hmacKeyBytes = secretKey.DecodeBase64OrHexToBytes();
             using var hmac = new HMACSHA256(hmacKeyBytes);
 
             // Decode the provided secret if it's Base64-encoded (clients often send Base64); otherwise use raw UTF8 bytes
-            var providedBytes = DecodeToCorrectFormat(request.SecretHash);
+            var providedBytes = request.SecretHash;
             var providedDerived = hmac.ComputeHash(providedBytes);
 
             // Stored hash is likely Base64-encoded HMAC; decode it before comparing
-            var storedBytes =DecodeToCorrectFormat(storedHash);
-
+            var storedBytes = storedHash.DecodeBase64OrHexToBytes();
             // Ensure same length before constant-time compare
             var isValid = storedBytes.Length == providedDerived.Length &&
                           CryptographicOperations.FixedTimeEquals(storedBytes, providedDerived);
@@ -62,26 +62,13 @@ public static class AuthEndpoints
         .WithName("ValidatePassword")
         .WithDescription("Validates the password hash against the stored value");
     }
-    public static byte[] DecodeToCorrectFormat(string? input)
-    {
-        if (input == null) return [];
-        try
-        {
-            return Convert.FromBase64String(input);
-        }
-        catch
-        {
-            // Fallback to hex
-            var hex = input.StartsWith("0x", StringComparison.OrdinalIgnoreCase) ? input[2..] : input;
-            return Convert.FromHexString(hex);
-        }
-    }
+
 }
 
 /// <summary>
 /// Request do walidacji has≥a.
 /// </summary>
-public sealed record AuthRequest(string SecretHash);
+public sealed record AuthRequest(byte[] SecretHash);
 
 /// <summary>
 /// Odpowiedü z walidacji.

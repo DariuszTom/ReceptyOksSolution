@@ -75,7 +75,9 @@
                                  FontFamily="MaterialSymbolsOutlined"
                                  Size="24"/>
             </Tab.Icon>
-            <!-- Placeholder tab for ChatBot - add ShellContent when Chat page is ready -->
+            <ShellContent
+                ContentTemplate="{DataTemplate views:ChatBotPage}"
+                Route="ChatBotPage" />
         </Tab>
         
         <Tab Title="Ustawienia">

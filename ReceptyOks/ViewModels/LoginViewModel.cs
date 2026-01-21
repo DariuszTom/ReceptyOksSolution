@@ -1,9 +1,9 @@
-using System.Security.Cryptography;
-using System.Text;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ReceptyOks.Services;
 using ReceptyOks.Shared;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace ReceptyOks.ViewModels
 {
@@ -68,10 +68,11 @@ namespace ReceptyOks.ViewModels
             HasError = false;
             IsBusy = true;
 
+            byte[]? secretBytes = null;
             try
             {
                 // Send plaintext secret to server (server will perform HMAC or compare as configured).
-                var secretBytes = Encoding.UTF8.GetBytes(Secret);
+                secretBytes = Encoding.UTF8.GetBytes(Secret);
                 var result = await _backendAuth.IsApiKeyValid(secretBytes).ConfigureAwait(false);
 
                 if (result.IsValid)
@@ -96,6 +97,11 @@ namespace ReceptyOks.ViewModels
             finally
             {
                 IsBusy = false;
+                Secret = string.Empty;
+                if (secretBytes != null)
+                {
+                    CryptographicOperations.ZeroMemory(secretBytes);
+                }
             }
         }
     }

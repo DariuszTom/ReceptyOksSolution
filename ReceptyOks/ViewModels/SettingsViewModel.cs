@@ -63,7 +63,7 @@ public partial class SettingsViewModel : ObservableObject
             // Run navigation on the UI thread and use absolute route to ensure Shell finds the page
             await Microsoft.Maui.ApplicationModel.MainThread.InvokeOnMainThreadAsync(async () =>
             {
-                await Shell.Current.GoToAsync("//LogsPage");
+                await Shell.Current.GoToAsync("/LogsPage");
             });
         }
         catch (Exception ex)
