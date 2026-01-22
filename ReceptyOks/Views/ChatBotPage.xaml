@@ -12,44 +12,68 @@
              BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark=#121212}">
 
     <Grid RowDefinitions="Auto,*,Auto">
-        <!-- Header -->
-        <Grid Grid.Row="0" 
-              Padding="20,16"
-              ColumnDefinitions="*,Auto"
-              BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}">
-            <Grid.Shadow>
-                <Shadow Brush="{StaticResource Gray400Brush}" Offset="0,2" Radius="4" Opacity="0.1"/>
-            </Grid.Shadow>
+        <!-- Header with gradient effect -->
+   <Grid Grid.Row="0" 
+              Padding="24,20"
+    ColumnDefinitions="*,Auto"
+    BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}">
+   <Grid.Shadow>
+           <Shadow Brush="{StaticResource Gray400Brush}" Offset="0,3" Radius="8" Opacity="0.12"/>
+        </Grid.Shadow>
             
-            <HorizontalStackLayout VerticalOptions="Center" Spacing="12">
-                <Image Source="chatbot.png"
-                       HeightRequest="40"
-                       WidthRequest="40"
-                       VerticalOptions="Center"
-                       Margin="0,0,8,0"/>
-                <VerticalStackLayout VerticalOptions="Center" Spacing="2">
-                    <Label Text="Asystent przepisów"
-                           FontSize="24"
-                           FontAttributes="Bold"
-                           TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"/>
-                    <Label Text="Zapytaj mnie o przepisy"
-                           FontSize="14"
-                           TextColor="{StaticResource Gray400}"/>
-                </VerticalStackLayout>
-            </HorizontalStackLayout>
-            
-            <!-- Clear conversation button -->
-            <Button Grid.Column="1"
-                    Command="{Binding ClearConversationCommand}"
-                    BackgroundColor="Transparent"
-                    VerticalOptions="Center">
-                <Button.ImageSource>
-                    <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Delete_sweep}"
-                                     FontFamily="MaterialSymbolsOutlined"
-                                     Color="{StaticResource Gray500}"
-                                     Size="24"/>
-                </Button.ImageSource>
-            </Button>
+ <HorizontalStackLayout VerticalOptions="Center" Spacing="14">
+        <!-- Avatar with border -->
+                <Border StrokeThickness="2"
+       Stroke="{StaticResource Primary}"
+       StrokeShape="RoundRectangle 24"
+       HeightRequest="48"
+         WidthRequest="48"
+          BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray800}}">
+          <Image Source="chatbot.png"
+                HeightRequest="32"
+        WidthRequest="32"
+      HorizontalOptions="Center"
+        VerticalOptions="Center"/>
+  </Border>
+                
+      <VerticalStackLayout VerticalOptions="Center" Spacing="4">
+            <Label Text="Asystent przepisów"
+     FontSize="22"
+              FontAttributes="Bold"
+           TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"/>
+      <HorizontalStackLayout Spacing="6">
+      <Border StrokeThickness="0"
+    BackgroundColor="#4CAF50"
+            StrokeShape="RoundRectangle 6"
+          HeightRequest="8"
+       WidthRequest="8"
+  VerticalOptions="Center"/>
+ <Label Text="Gotowy do pomocy"
+            FontSize="13"
+          TextColor="{StaticResource Gray500}"/>
+     </HorizontalStackLayout>
+          </VerticalStackLayout>
+         </HorizontalStackLayout>
+       
+ <!-- Clear conversation button -->
+ <Border Grid.Column="1"
+             StrokeThickness="0"
+   BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray800}}"
+       StrokeShape="RoundRectangle 20"
+            VerticalOptions="Center"
+              Padding="0">
+   <Button Command="{Binding ClearConversationCommand}"
+            BackgroundColor="Transparent"
+         WidthRequest="40"
+  HeightRequest="40">
+   <Button.ImageSource>
+             <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Delete_sweep}"
+            FontFamily="MaterialSymbolsOutlined"
+       Color="{StaticResource Gray600}"
+ Size="22"/>
+     </Button.ImageSource>
+     </Button>
+     </Border>
         </Grid>
 
         <!-- Messages List -->
@@ -91,132 +115,198 @@
                            HorizontalTextAlignment="Center"/>
                 </VerticalStackLayout>
             </CollectionView.EmptyView>
-            <CollectionView.ItemTemplate>
-                <DataTemplate x:DataType="vm:ChatMessageViewModel">
-                    <Grid Padding="4,6">
-                        <!-- User message - right aligned -->
-                        <Border IsVisible="{Binding IsUser}"
-                                HorizontalOptions="End"
-                                MaximumWidthRequest="300"
-                                Padding="16,12"
-                                StrokeThickness="0"
-                                StrokeShape="RoundRectangle 20,20,4,20"
-                                BackgroundColor="{StaticResource Primary}">
-                            <Label Text="{Binding Content}"
-                                   TextColor="White"
-                                   FontSize="15"
-                                   LineBreakMode="WordWrap"/>
-                        </Border>
-                        
-                        <!-- Assistant message - left aligned -->
-                        <Border IsVisible="{Binding IsAssistant}"
-                                HorizontalOptions="Start"
-                                MaximumWidthRequest="300"
-                                Padding="16,12"
-                                StrokeThickness="0"
-                                StrokeShape="RoundRectangle 20,20,20,4"
-                                BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray800}}">
-                            <Border.Shadow>
-                                <Shadow Brush="{StaticResource Gray400Brush}"
-                                        Offset="0,2"
-                                        Radius="8"
-                                        Opacity="0.1"/>
-                            </Border.Shadow>
-                            <Label Text="{Binding Content}"
-                                   TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"
-                                   FontSize="15"
-                                   LineBreakMode="WordWrap"/>
-                        </Border>
-                    </Grid>
-                </DataTemplate>
-            </CollectionView.ItemTemplate>
+     <CollectionView.ItemTemplate>
+           <DataTemplate x:DataType="vm:ChatMessageViewModel">
+       <Grid Padding="8,6">
+         <!-- User message - right aligned with gradient -->
+          <Border IsVisible="{Binding IsUser}"
+      HorizontalOptions="End"
+ MaximumWidthRequest="320"
+  Padding="18,14"
+     StrokeThickness="0"
+ StrokeShape="RoundRectangle 24,24,4,24"
+       BackgroundColor="{StaticResource Primary}">
+      <Border.Shadow>
+   <Shadow Brush="{StaticResource Primary}"
+    Offset="0,4"
+    Radius="12"
+     Opacity="0.3"/>
+                 </Border.Shadow>
+            <Label Text="{Binding Content}"
+            TextColor="White"
+  FontSize="15"
+           LineHeight="1.4"
+         LineBreakMode="WordWrap"/>
+         </Border>
+        
+  <!-- Assistant message - left aligned with avatar -->
+              <HorizontalStackLayout IsVisible="{Binding IsAssistant}"
+              HorizontalOptions="Start"
+    Spacing="10">
+    <!-- Avatar -->
+     <Border BackgroundColor="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray700}}"
+             StrokeThickness="0"
+  StrokeShape="RoundRectangle 20"
+         HeightRequest="40"
+      WidthRequest="40"
+          VerticalOptions="End"
+            Margin="0,0,0,0">
+  <Image Source="chatbot.png"
+        HeightRequest="24"
+            WidthRequest="24"
+       HorizontalOptions="Center"
+    VerticalOptions="Center"/>
+          </Border>
+               
+     <!-- Message bubble -->
+       <Border MaximumWidthRequest="320"
+    Padding="18,14"
+      StrokeThickness="1"
+      Stroke="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray700}}"
+     StrokeShape="RoundRectangle 24,24,24,4"
+     BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray800}}">
+       <Border.Shadow>
+     <Shadow Brush="{StaticResource Gray400Brush}"
+              Offset="0,3"
+   Radius="12"
+     Opacity="0.15"/>
+    </Border.Shadow>
+        <Label Text="{Binding Content}"
+            TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"
+     FontSize="15"
+       LineHeight="1.4"
+    LineBreakMode="WordWrap"/>
+  </Border>
+                </HorizontalStackLayout>
+              </Grid>
+         </DataTemplate>
+   </CollectionView.ItemTemplate>
         </CollectionView>
 
-        <!-- Error message -->
+        <!-- Error message with icon -->
         <Border Grid.Row="1"
-                IsVisible="{Binding HasError}"
-                VerticalOptions="End"
-                Margin="12,0,12,8"
-                Padding="12,8"
-                BackgroundColor="#FFEBEE"
-                StrokeThickness="0"
-                StrokeShape="RoundRectangle 8">
-            <Label Text="{Binding ErrorMessage}"
-                   TextColor="#C62828"
-                   FontSize="13"/>
+         IsVisible="{Binding HasError}"
+        VerticalOptions="End"
+     Margin="16,0,16,8"
+ Padding="16,12"
+      BackgroundColor="#FFEBEE"
+      StrokeThickness="1"
+       Stroke="#FFCDD2"
+        StrokeShape="RoundRectangle 12">
+            <Border.Shadow>
+           <Shadow Brush="#EF5350" Offset="0,2" Radius="8" Opacity="0.2"/>
+            </Border.Shadow>
+          <HorizontalStackLayout Spacing="10">
+                <Image HeightRequest="20" WidthRequest="20" VerticalOptions="Center">
+       <Image.Source>
+         <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Error}"
+             FontFamily="MaterialSymbolsOutlined"
+        Color="#C62828"
+   Size="20"/>
+   </Image.Source>
+                </Image>
+          <Label Text="{Binding ErrorMessage}"
+       TextColor="#C62828"
+            FontSize="14"
+           VerticalOptions="Center"
+       LineBreakMode="WordWrap"
+    MaximumWidthRequest="300"/>
+            </HorizontalStackLayout>
         </Border>
 
         <!-- Input Area -->
         <Border Grid.Row="2"
-                Margin="12,8,12,12"
-                Padding="8"
-                StrokeThickness="0"
-                StrokeShape="RoundRectangle 28"
-                BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}">
+   Margin="16,8,16,16"
+       Padding="12"
+       StrokeThickness="2"
+    Stroke="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray700}}"
+     StrokeShape="RoundRectangle 32"
+          BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}">
             <Border.Shadow>
-                <Shadow Brush="{StaticResource Gray400Brush}"
-                        Offset="0,-2"
-                        Radius="12"
-                        Opacity="0.1"/>
+<Shadow Brush="{StaticResource Gray400Brush}"
+      Offset="0,-3"
+   Radius="16"
+          Opacity="0.12"/>
             </Border.Shadow>
-            <Grid ColumnDefinitions="*,Auto,Auto">
-                <!-- Text input -->
-                <Editor Grid.Column="0"
-                        Text="{Binding UserInput}"
-                        Placeholder="Napisz wiadomość..."
-                        PlaceholderColor="{StaticResource Gray400}"
-                        FontSize="16"
-                        AutoSize="TextChanges"
-                        MaximumHeightRequest="120"
-                        Margin="12,0,8,0"
-                        BackgroundColor="Transparent"
-                        TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"/>
+     <Grid ColumnDefinitions="*,Auto,Auto">
+          <!-- Text input -->
+            <Editor Grid.Column="0"
+         Text="{Binding UserInput}"
+    Placeholder="Napisz wiadomość..."
+           PlaceholderColor="{StaticResource Gray400}"
+      FontSize="16"
+    AutoSize="TextChanges"
+  MaximumHeightRequest="120"
+         Margin="16,8,8,8"
+    BackgroundColor="Transparent"
+  TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"/>
                 
-                <!-- Cancel button (visible when busy) -->
-                <Button Grid.Column="1"
-                        Command="{Binding CancelCommand}"
-                        IsVisible="{Binding IsBusy}"
-                        BackgroundColor="Transparent"
-                        WidthRequest="48"
-                        HeightRequest="48"
-                        CornerRadius="24"
-                        VerticalOptions="End">
-                    <Button.ImageSource>
-                        <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Close}"
-                                         FontFamily="MaterialSymbolsOutlined"
-                                         Color="{StaticResource Gray500}"
-                                         Size="24"/>
-                    </Button.ImageSource>
-                </Button>
-                
-                <!-- Send button / Loading indicator -->
-                <Grid Grid.Column="2" WidthRequest="48" HeightRequest="48" VerticalOptions="End">
-                    <!-- Loading indicator -->
-                    <ActivityIndicator IsRunning="{Binding IsBusy}"
-                                       IsVisible="{Binding IsBusy}"
-                                       Color="{StaticResource Primary}"
-                                       HeightRequest="24"
-                                       WidthRequest="24"
-                                       HorizontalOptions="Center"
-                                       VerticalOptions="Center"/>
-                    
-                    <!-- Send button -->
-                    <Button Command="{Binding SendMessageCommand}"
-                            IsVisible="{Binding IsBusy, Converter={toolkit:InvertedBoolConverter}}"
-                            BackgroundColor="{StaticResource Primary}"
-                            WidthRequest="48"
-                            HeightRequest="48"
-                            CornerRadius="24"
-                            Padding="0">
-                        <Button.ImageSource>
-                            <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Send}"
-                                             FontFamily="MaterialSymbolsOutlined"
-                                             Color="White"
-                                             Size="22"/>
-                        </Button.ImageSource>
-                    </Button>
+  <!-- Cancel button (visible when busy) -->
+                <Border Grid.Column="1"
+             IsVisible="{Binding IsBusy}"
+       WidthRequest="48"
+         HeightRequest="48"
+     VerticalOptions="End"
+                Margin="4"
+        StrokeThickness="0"
+          BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray800}}"
+           StrokeShape="RoundRectangle 24">
+   <Button Command="{Binding CancelCommand}"
+    BackgroundColor="Transparent"
+        WidthRequest="48"
+         HeightRequest="48"
+  CornerRadius="24">
+                <Button.ImageSource>
+    <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Close}"
+    FontFamily="MaterialSymbolsOutlined"
+    Color="{StaticResource Gray600}"
+           Size="24"/>
+      </Button.ImageSource>
+           </Button>
+       </Border>
+  
+        <!-- Send button / Loading indicator -->
+     <Grid Grid.Column="2" WidthRequest="56" HeightRequest="56" VerticalOptions="End" Margin="4">
+   <!-- Loading indicator background -->
+     <Border IsVisible="{Binding IsBusy}"
+         StrokeThickness="0"
+      BackgroundColor="{StaticResource Primary}"
+       StrokeShape="RoundRectangle 28"
+             Opacity="0.9">
+       <ActivityIndicator IsRunning="{Binding IsBusy}"
+          Color="White"
+  HeightRequest="28"
+   WidthRequest="28"
+     HorizontalOptions="Center"
+     VerticalOptions="Center"/>
+        </Border>
+         
+         <!-- Send button -->
+   <Border IsVisible="{Binding IsBusy, Converter={toolkit:InvertedBoolConverter}}"
+  StrokeThickness="0"
+       BackgroundColor="{StaticResource Primary}"
+        StrokeShape="RoundRectangle 28">
+ <Border.Shadow>
+          <Shadow Brush="{StaticResource Primary}"
+            Offset="0,4"
+     Radius="12"
+     Opacity="0.4"/>
+    </Border.Shadow>
+          <Button Command="{Binding SendMessageCommand}"
+      BackgroundColor="Transparent"
+    WidthRequest="56"
+      HeightRequest="56"
+       Padding="0">
+       <Button.ImageSource>
+         <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Send}"
+ FontFamily="MaterialSymbolsOutlined"
+  Color="White"
+  Size="24"/>
+  </Button.ImageSource>
+       </Button>
+            </Border>
                 </Grid>
-            </Grid>
+ </Grid>
         </Border>
 
         <!-- Overlays placed last so they render on top of other content -->
