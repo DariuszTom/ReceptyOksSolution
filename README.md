@@ -11,6 +11,8 @@ ReceptyOks is a modern recipe management solution that allows users to create, o
 - Offline-first architecture with sync capabilities
 - OCR support for extracting text from recipe images
 - Rich text editing for recipe instructions
+- AI-powered chatbot for recipe assistance and recommendations
+- Random recipe generator with advanced filtering options
 
 ## 🏗️ Solution Architecture
 
@@ -30,6 +32,7 @@ ReceptyOksSolution/
 | **ReceptyOks** | .NET MAUI cross-platform client | net10.0-android, net10.0-ios, net10.0-maccatalyst, net10.0-windows |
 | **ReceptyOks.Api** | ASP.NET Core Web API backend | net10.0 |
 | **ReceptyOks.Shared** | Shared models, DTOs, and interfaces | net10.0 |
+| **ReceptyOks.BlazorComponents** | Blazor Razor components for HTML rendering | net10.0 |
 | **ReceptyOksSolution.AppHost** | .NET Aspire application host | net10.0 |
 | **ReceptyOksSolution.ServiceDefaults** | Common service configurations | net10.0 |
 
@@ -87,7 +90,11 @@ dotnet build ReceptyOks -f net10.0-windows10.0.19041.0
 - **OCR Integration**: Extract text from recipe photos using device camera
 - **Offline Support**: Local SQLite database with sync capabilities
 - **Rich Text Editor**: Format recipe instructions with rich text
+- **AI-Powered ChatBot**: Conversational AI assistant for recipe recommendations and cooking help using Anthropic Claude
+- **Random Recipe Generator**: Find recipes by category and ingredients with advanced filtering
+- **Secure Authentication**: Multi-layer authentication with API keys and backend token provider
 - **Logging**: Built-in logging with Serilog (stored locally in SQLite)
+- **HTML Viewer**: Rich HTML rendering using Blazor Hybrid components
 
 ### Key Dependencies
 
@@ -95,15 +102,18 @@ dotnet build ReceptyOks -f net10.0-windows10.0.19041.0
 - [UraniumUI](https://github.com/nicoriff/uranium-ui) - Material design components
 - [Plugin.Maui.OCR](https://github.com/nicoriff/Plugin.Maui.OCR) - OCR functionality
 - [Serilog](https://serilog.net/) - Structured logging
+- [Microsoft.Extensions.AI](https://www.nuget.org/packages/Microsoft.Extensions.AI) - AI abstraction layer for chat and embeddings
+- [Microsoft.Extensions.AI.Anthropic](https://www.nuget.org/packages/Microsoft.Extensions.AI.Anthropic) - Anthropic Claude integration
 
 ## 🔌 API Features
 
 The backend API provides RESTful endpoints for:
 
-- `/recipes` - Recipe CRUD operations
-- `/categories` - Category management
-- `/ingredients` - Ingredient management
-- `/sync` - Data synchronization
+- `/api/recipes` - Recipe CRUD operations
+- `/api/categories` - Category management
+- `/api/ingredients` - Ingredient management
+- `/api/sync` - Data synchronization
+- `/api/auth/validate` - API key authentication validation
 
 ### API Documentation
 
@@ -116,6 +126,8 @@ https://localhost:{port}/scalar/v1
 
 - [Entity Framework Core](https://docs.microsoft.com/ef/core/) with SQLite provider
 - [Scalar.AspNetCore](https://github.com/scalar/scalar) - Modern API documentation UI
+- [ASP.NET Core Rate Limiting](https://learn.microsoft.com/aspnet/core/performance/rate-limit) - Built-in rate limiting
+- [ASP.NET Core JWT Bearer Authentication](https://learn.microsoft.com/aspnet/core/security/authentication/) - Token-based authentication
 
 ## 🌐 .NET Aspire Integration
 
@@ -133,21 +145,33 @@ The `ReceptyOks.Shared` project contains:
 - **Models**: `Recipe`, `Category`, `Ingredient`, `RecipeIngredient`
 - **DTOs**: Sync-related data transfer objects
 - **OCR Interfaces**: `IOCRService` and related types
+- **AI Components**: `AiAgent`, `AnthropicAgent`, and `AnthropicSettings` for AI chat functionality
+- **Extension Methods**: Utility methods for encoding/decoding secrets and byte arrays
 
 ## 🗄️ Data Storage
 
 - **API**: SQLite database (`recipes.db`) stored in the API's Data folder
 - **Client**: Local SQLite database (`recipes_local.db`) stored in app data directory
+- **Logs**: Application logs stored in SQLite using custom Serilog sink
 
 ## 🔧 Configuration
 
 ### API Configuration
 
-The API uses standard ASP.NET Core configuration. Database path is automatically configured relative to the application's content root.
+The API uses standard ASP.NET Core configuration with support for:
+- Database path configuration (`Database:Name`)
+- JWT authentication settings (`Jwt:Key`)
+- Rate limiting policies (fixed window limiter)
+- Secret resolution from Azure Key Vault or environment variables (via `SecretsResolver`)
+- API key authentication middleware
 
 ### Client Configuration
 
-The MAUI client stores its local database in the platform-specific app data directory.
+The MAUI client uses embedded `appsettings.json` with:
+- Local database path configuration
+- HTTP client settings (API base URL, timeouts, service discovery)
+- GitHub user agent configuration
+- Secure storage for sensitive credentials (API keys, authentication tokens)
 
 ## 📝 License
 
