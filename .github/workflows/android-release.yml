@@ -1,6 +1,9 @@
 # .github/workflows/release.yml
 name: Build and Release ReceptyOks
 
+permissions:
+  contents: write
+
 on:
   push:
     tags:
