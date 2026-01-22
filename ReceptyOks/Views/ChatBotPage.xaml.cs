@@ -9,4 +9,21 @@ public partial class ChatBotPage : ContentPage
 		InitializeComponent();
 		BindingContext = viewModel;
 	}
+
+	protected override async void OnAppearing()
+	{
+		base.OnAppearing();
+
+		if (BindingContext is ChatBotViewModel vm)
+		{
+			try
+			{
+				await vm.InitializeAsync();
+			}
+			catch
+			{
+				// Initialization errors are handled by the ViewModel; swallow here to avoid crashing the UI
+			}
+		}
+	}
 }

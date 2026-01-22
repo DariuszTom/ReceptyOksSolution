@@ -12,7 +12,6 @@
              BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark=#121212}">
 
     <Grid RowDefinitions="Auto,*,Auto">
-        
         <!-- Header -->
         <Grid Grid.Row="0" 
               Padding="20,16"
@@ -212,5 +211,26 @@
                 </Grid>
             </Grid>
         </Border>
+
+        <!-- Overlays placed last so they render on top of other content -->
+        <Grid RowSpan="3" IsVisible="{Binding IsInitializing}" BackgroundColor="#AA000000" VisualElement.ZIndex="99" InputTransparent="False">
+            <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center" Spacing="12">
+                <ActivityIndicator IsRunning="{Binding IsInitializing}" Color="White" HeightRequest="48" WidthRequest="48"/>
+                <Label Text="Inicjalizowanie asystenta..." TextColor="White" FontSize="16" HorizontalOptions="Center"/>
+            </VerticalStackLayout>
+        </Grid>
+
+        <Grid RowSpan="3" IsVisible="{Binding HasInitializationError}" BackgroundColor="#FF000000" VisualElement.ZIndex="100" InputTransparent="False">
+            <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center" Spacing="12" Padding="24">
+                <Frame BackgroundColor="White" CornerRadius="8" HasShadow="True" WidthRequest="360" Padding="16">
+                    <VerticalStackLayout Spacing="12">
+                        <Label Text="Błąd inicjalizacji" FontSize="18" FontAttributes="Bold" TextColor="Black" HorizontalOptions="Center"/>
+                        <Label Text="{Binding InitializationError}" TextColor="Black" HorizontalOptions="Center" HorizontalTextAlignment="Center" LineBreakMode="WordWrap"/>
+                        <Button Text="Spróbuj ponownie" Command="{Binding RetryInitializationCommand}" HorizontalOptions="Center"/>
+                    </VerticalStackLayout>
+                </Frame>
+            </VerticalStackLayout>
+        </Grid>
+
     </Grid>
 </ContentPage>

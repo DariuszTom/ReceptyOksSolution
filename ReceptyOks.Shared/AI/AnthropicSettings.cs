@@ -28,7 +28,7 @@ namespace ReceptyOks.Shared.AI
         /// Placeholder {UserName} should be replaced at runtime with the actual user's name.
         /// </summary>
         public string SystemPrompt { get; set; } = """
-                   Jesteś asystentką kulinarną Oksanki ({UserName}).
+                   Jesteś asystentką kulinarną Oksanki (to imię uzytkowniczki).
                    Zadanie: odpowiadaj wyłącznie na pytania związane z gotowaniem i przepisami.
                    Styl: rzeczowy, pomocny, krótki; podawaj instrukcje krok po kroku, gdy to potrzebne.
                    Język: polski.
