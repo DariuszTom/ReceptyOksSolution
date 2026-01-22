@@ -44,3 +44,13 @@ jobs:
           docker pull "$IMAGE"
           docker tag "$IMAGE" "$TARGET"
           docker push "$TARGET"
+
+      - name: Update Azure Container App
+        run: |
+          OWNER="${{ github.repository_owner }}"
+          OWNER="${OWNER,,}"
+          az containerapp update \
+            --name ${{ secrets.CONTAINER_APP_NAME }} \
+            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+            --image $ACR_NAME.azurecr.io/$OWNER/receptyoks-api:latest
+
