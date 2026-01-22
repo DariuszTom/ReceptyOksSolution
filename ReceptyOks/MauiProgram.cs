@@ -34,6 +34,9 @@ public static class MauiProgram
 
 		builder.Logging.AddSerilog(dispose: true);
 
+		// Register Serilog logger instance for DI consumers that request Serilog.ILogger
+		builder.Services.AddSingleton<Serilog.ILogger>(Log.Logger);
+
 		builder
 			.UseMauiApp<App>()
 			.UseMauiCommunityToolkit()
@@ -79,6 +82,14 @@ public static class MauiProgram
         })
         .AddHttpMessageHandler<ApiKeyHandler>()
         .AddServiceDiscovery();
+        // Configure HttpClient for TokenProviderService so it can request tokens from backend
+        builder.Services.AddHttpClient<TokenProviderService>(client =>
+        {
+            client.BaseAddress = new Uri($"{appSettings.Http.GetEffectiveApiUrl()}");
+            client.Timeout = TimeSpan.FromSeconds(appSettings.Http.DefaultTimeoutSeconds);
+        })
+        .AddHttpMessageHandler<ApiKeyHandler>()
+        .AddServiceDiscovery();
         // ViewModels
         builder.Services.AddTransient<RecipesViewModel>();
 		builder.Services.AddTransient<RecipeDetailViewModel>();
@@ -89,6 +100,7 @@ public static class MauiProgram
 		builder.Services.AddTransient<RandomRecipeViewModel>();
         builder.Services.AddTransient<SettingsViewModel>();
 		builder.Services.AddTransient<LoginViewModel>();
+		builder.Services.AddTransient<ChatBotViewModel>();
 
 
 
@@ -101,8 +113,9 @@ public static class MauiProgram
 		builder.Services.AddTransient<LogsPage>();
 		builder.Services.AddTransient<RandomRecipePage>();
 		builder.Services.AddTransient<LoginPage>();
+		builder.Services.AddTransient<ChatBotPage>();
 
-		return builder.Build();
+        return builder.Build();
 	}
 
 	private static AppSettings LoadConfiguration(MauiAppBuilder builder)

@@ -1,4 +1,5 @@
-﻿using System.Security.Cryptography;
+﻿using ReceptyOks.Shared.Misc;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace ReceptyOks.Services
@@ -35,14 +36,7 @@ namespace ReceptyOks.Services
             if (string.IsNullOrEmpty(s)) return Array.Empty<byte>();
 
             // Try base64 (recommended for binary secrets); fallback to UTF8 bytes.
-            try
-            {
-                return Convert.FromBase64String(s);
-            }
-            catch
-            {
-                return Encoding.UTF8.GetBytes(s);
-            }
+            return s.DecodeBase64OrHexToBytes();
         }
 
         // Helper to run work with the secret and ensure buffer is zeroed afterwards.

@@ -9,7 +9,8 @@ public static class RecipeEndpoints
     public static void MapRecipeEndpoints(this WebApplication app)
     {
         var group = app.MapGroup("/api/recipes")
-            .WithTags("Recipes");
+            .WithTags("Recipes")
+            .RequireRateLimiting("fixed");
 
         // GET - wszystkie przepisy (bez usuniêtych)
         group.MapGet("/", async (RecipeDbContext db) =>
@@ -33,7 +34,7 @@ public static class RecipeEndpoints
                 .Include(r => r.Ingredients)
                     .ThenInclude(ri => ri.Ingredient)
                 .FirstOrDefaultAsync(r => r.Id == id);
-                
+
             return recipe is null ? Results.NotFound() : Results.Ok(recipe);
         })
         .WithName("GetRecipeById");
@@ -45,10 +46,10 @@ public static class RecipeEndpoints
                 .Where(r => r.Id == id)
                 .Select(r => new { r.Image, r.ImageContentType })
                 .FirstOrDefaultAsync();
-                
+
             if (recipe?.Image is null)
                 return Results.NotFound();
-                
+
             return Results.File(recipe.Image, recipe.ImageContentType ?? "image/jpeg");
         })
         .WithName("GetRecipeImage");
@@ -59,10 +60,10 @@ public static class RecipeEndpoints
             recipe.Id = recipe.Id == Guid.Empty ? Guid.NewGuid() : recipe.Id;
             recipe.CreatedAt = DateTime.UtcNow;
             recipe.UpdatedAt = DateTime.UtcNow;
-            
+
             db.Recipes.Add(recipe);
             await db.SaveChangesAsync();
-            
+
             return Results.Created($"/api/recipes/{recipe.Id}", recipe);
         })
         .WithName("CreateRecipe");
@@ -73,7 +74,7 @@ public static class RecipeEndpoints
             var recipe = await db.Recipes
                 .Include(r => r.Ingredients)
                 .FirstOrDefaultAsync(r => r.Id == id);
-                
+
             if (recipe is null)
                 return Results.NotFound();
 
@@ -111,7 +112,7 @@ public static class RecipeEndpoints
             recipe.IsDeleted = true;
             recipe.UpdatedAt = DateTime.UtcNow;
             await db.SaveChangesAsync();
-            
+
             return Results.NoContent();
         })
         .WithName("DeleteRecipe");
@@ -121,7 +122,7 @@ public static class RecipeEndpoints
         {
             var recipes = await db.Recipes
                 .Include(r => r.Category)
-                .Where(r => !r.IsDeleted && 
+                .Where(r => !r.IsDeleted &&
                     (r.Title.Contains(query) || r.Description.Contains(query)))
                 .OrderByDescending(r => r.CreatedAt)
                 .ToListAsync();

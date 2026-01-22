@@ -23,7 +23,7 @@ namespace ReceptyOks.Services
             if (apiKey == null || apiKey.Length == 0)
                 throw new ArgumentException("API key must not be empty.", nameof(apiKey));
 
-            var requestBody = new { SecretHash = Convert.ToBase64String(apiKey) };
+            var requestBody = new { SecretHash = apiKey };
             var content = new StringContent(
                 System.Text.Json.JsonSerializer.Serialize(requestBody),
                 System.Text.Encoding.UTF8,
@@ -51,7 +51,7 @@ namespace ReceptyOks.Services
             [JsonPropertyName("isValid")]
             public bool IsValid { get; set; }
             [JsonPropertyName("message")]
-            public string Message { get; set; }
+            public string? Message { get; set; }
         }
     }
 

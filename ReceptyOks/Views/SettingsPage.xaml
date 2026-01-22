@@ -4,6 +4,8 @@
              xmlns:vm="clr-namespace:ReceptyOks.ViewModels"
              xmlns:icons="clr-namespace:UraniumUI.Icons.MaterialSymbols;assembly=UraniumUI.Icons.MaterialSymbols"
              xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+             xmlns:material="http://schemas.enisn-projects.io/dotnet/maui/uraniumui/material"
+             xmlns:uranium="http://schemas.enisn-projects.io/dotnet/maui/uraniumui"
              x:Class="ReceptyOks.Views.SettingsPage"
              x:DataType="vm:SettingsViewModel"
              BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark=#121212}">
@@ -24,11 +26,30 @@
         <!-- Main Content -->
         <ScrollView Grid.Row="1">
             <VerticalStackLayout Padding="20" Spacing="24">
-                <Button Text="Sprawdź aktualizację"
+                <Button Text="Pokaż logi"
+                        Command="{Binding ShowLogsCommand}"
+                        StyleClass="ElevatedButton" Background="{StaticResource DarkGradient}">
+                    <Button.ImageSource>
+                        <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Bug_report}"
+                                         FontFamily="MaterialSymbolsOutlined"
+                                         Size="18"
+                                         Color="{StaticResource Primary}" />
+                    </Button.ImageSource>
+                </Button>
+
+                <Button Text="Sprawdź aktualizację" Background="{StaticResource DarkGradient}"
                         Command="{Binding CheckUpdateCommand}"
                         IsEnabled="{Binding IsChecking, Converter={StaticResource InvertedBoolConverter}}"
-                        StyleClass="PrimaryButton"/>
+                        StyleClass="ElevatedButton">
+                    <Button.ImageSource>
+                        <FontImageSource Glyph="{x:Static icons:MaterialOutlined.System_update}"
+                                         FontFamily="MaterialSymbolsOutlined"
+                                         Size="18"
+                                         Color="{StaticResource Primary}" />
+                    </Button.ImageSource>
+                </Button>
                 <Label Text="{Binding UpdateStatus}" FontSize="16" TextColor="Gray"/>
+
             </VerticalStackLayout>
         </ScrollView>
     </Grid>

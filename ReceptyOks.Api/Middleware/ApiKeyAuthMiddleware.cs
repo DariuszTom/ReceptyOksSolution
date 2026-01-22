@@ -90,35 +90,6 @@ public sealed class ApiKeyAuthMiddleware
         await _next(context);
     }
 
-    private static byte[] DecodeStringToBytes(string value)
-    {
-        // Try Base64
-        try
-        {
-            var b = Convert.FromBase64String(value);
-            if (b.Length > 0) return b;
-        }
-        catch { }
-
-        // Try hex (Convert.FromHexString available on modern runtimes)
-        try
-        {
-            var hex = value;
-            // allow optional 0x prefix
-            if (hex.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
-            {
-                hex = hex[2..];
-            }
-
-            // Convert.FromHexString may throw FormatException
-            var bytes = Convert.FromHexString(hex);
-            if (bytes.Length > 0) return bytes;
-        }
-        catch { }
-
-        // Fallback to UTF8 bytes
-        return Encoding.UTF8.GetBytes(value);
-    }
 
     private static bool ShouldSkipAuth(string path, IWebHostEnvironment environment)
     {

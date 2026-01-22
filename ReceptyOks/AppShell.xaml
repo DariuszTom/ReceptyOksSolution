@@ -30,6 +30,10 @@
     <ShellContent
         Route="LoginPage"
         ContentTemplate="{DataTemplate views:LoginPage}" />
+    <!-- Register LogsPage route so it can be navigated to from other pages (e.g. Settings) -->
+    <ShellContent
+        Route="LogsPage"
+        ContentTemplate="{DataTemplate views:LogsPage}" IsVisible="False" />
 
     <TabBar>
         <Tab Title="Przepisy">
@@ -64,16 +68,16 @@
                 ContentTemplate="{DataTemplate views:CategoriesPage}"
                 Route="CategoriesPage" />
         </Tab>
-        
-        <Tab Title="Logi">
+
+        <Tab Title="ChatBot">
             <Tab.Icon>
-                <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Bug_report}"
+                <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Chat}"
                                  FontFamily="MaterialSymbolsOutlined"
                                  Size="24"/>
             </Tab.Icon>
             <ShellContent
-                ContentTemplate="{DataTemplate views:LogsPage}"
-                Route="LogsPage" />
+                ContentTemplate="{DataTemplate views:ChatBotPage}"
+                Route="ChatBotPage" />
         </Tab>
         
         <Tab Title="Ustawienia">
@@ -86,6 +90,8 @@
                 ContentTemplate="{DataTemplate views:SettingsPage}"
                 Route="SettingsPage" />
         </Tab>
+
+
     </TabBar>
 
 </Shell>

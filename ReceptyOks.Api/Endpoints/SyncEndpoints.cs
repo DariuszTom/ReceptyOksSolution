@@ -10,7 +10,8 @@ public static class SyncEndpoints
     public static void MapSyncEndpoints(this WebApplication app)
     {
         var group = app.MapGroup("/api/sync")
-            .WithTags("Synchronization");
+            .WithTags("Synchronization")
+            .RequireRateLimiting("fixed");
 
         // POST - synchronizacja dwukierunkowa
         group.MapPost("/", async (SyncRequest request, RecipeDbContext db) =>
