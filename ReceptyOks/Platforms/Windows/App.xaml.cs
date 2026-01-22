@@ -17,7 +17,14 @@ public partial class App : MauiWinUIApplication
 	public App()
 	{
 		this.InitializeComponent();
-	}
+        this.UnhandledException += (sender, e) =>
+        {
+            System.Diagnostics.Debug.WriteLine($"UNHANDLED EXCEPTION: {e.Message}");
+            System.Diagnostics.Debug.WriteLine($"Exception Type: {e.Exception?.GetType().FullName}");
+            System.Diagnostics.Debug.WriteLine($"Stack Trace: {e.Exception?.StackTrace}");
+
+        };
+    }
 
 	protected override MauiApp CreateMauiApp() => MauiProgram.CreateMauiApp();
 }

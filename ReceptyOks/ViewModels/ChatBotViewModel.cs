@@ -49,7 +49,7 @@ public partial class ChatBotViewModel : ObservableObject
     /// <summary>
     /// Gets the collection of chat messages displayed in the UI.
     /// </summary>
-    public ObservableCollection<ChatMessageViewModel> Messages { get; } = [];
+    public ObservableCollection<ChatMessageViewModel> Messages { get; } = new();
 
     public ChatBotViewModel(LocalDatabase database, TokenProviderService tokenProvider, ILogger logger)
     {
@@ -87,13 +87,10 @@ public partial class ChatBotViewModel : ObservableObject
                 throw new InvalidOperationException("Failed to retrieve API token from backend");
             }
 
-            // Convert token to bytes for AnthropicAgent
             var tokenBytes = System.Text.Encoding.UTF8.GetBytes(tokenResponse.Token);
 
-            // Create Anthropic settings with default values
             var settings = new AnthropicSettings();
 
-            // Initialize Agent
             using (var anthritopicAgent = new AnthropicAgent(settings, tokenBytes))
             {
                 _agent = new AiAgent(anthritopicAgent.GetAgent(), settings.SystemPrompt);
@@ -126,35 +123,27 @@ public partial class ChatBotViewModel : ObservableObject
             return;
         }
 
-        _agent
-            .AddTool<Task<string>>(
-                GetAllRecipesAsync,
-                "get_all_recipes",
-                "Retrieves a list of all available recipes with their basic information (title, description, preparation time, cooking time, servings).")
-            .AddToolAsync<string, string>(
-                SearchRecipesAsync,
-                "search_recipes",
-                "Searches for recipes by text query matching title or description. Parameter: searchQuery - the text to search for.")
-            .AddToolAsync<string, string>(
-                GetRecipeDetailsAsync,
-                "get_recipe_details",
-                "Gets detailed information about a specific recipe including ingredients. Parameter: recipeId - the GUID of the recipe.")
-            .AddTool<Task<string>>(
-                GetAllCategoriesAsync,
-                "get_all_categories",
-                "Retrieves all recipe categories with their names and descriptions.")
-            .AddToolAsync<string, string>(
-                GetRecipesByCategoryAsync,
-                "get_recipes_by_category",
-                "Gets all recipes in a specific category. Parameter: categoryId - the GUID of the category.")
-            .AddTool<Task<string>>(
-                GetAllIngredientsAsync,
-                "get_all_ingredients",
-                "Retrieves a list of all available ingredients.");
+            _agent.AddTool<Task<string>>(GetAllRecipesAsync,
+             "get_all_recipes", "Retrieves a list of all available recipes with their basic information (title, description, preparation time, cooking time, servings).");
 
-        _toolsRegistered = true;
-        _logger.Information("Registered {ToolCount} AI agent tools for database queries", _agent.Tools.Count);
-    }
+            _agent.AddToolAsync<string, string>(SearchRecipesAsync,
+                "search_recipes", "Searches for recipes by text query matching title or description. Parameter: searchQuery - the text to search for.");
+
+            _agent.AddToolAsync<string, string>(GetRecipeDetailsAsync,
+               "get_recipe_details", "Gets detailed information about a specific recipe including ingredients. Parameter: recipeId - the GUID of the recipe.");
+
+            _agent.AddTool<Task<string>>(GetAllCategoriesAsync,
+            "get_all_categories", "Retrieves all recipe categories with their names and descriptions.");
+
+            _agent.AddToolAsync<string, string>(GetRecipesByCategoryAsync,
+                "get_recipes_by_category","Gets all recipes in a specific category. Parameter: categoryId - the GUID of the category.");
+
+            _agent.AddTool<Task<string>>(GetAllIngredientsAsync,
+                "get_all_ingredients", "Retrieves a list of all available ingredients.");
+
+            _toolsRegistered = true;
+            _logger.Information("Registered {ToolCount} AI agent tools for database queries", _agent.Tools.Count);
+        }
 
     private async Task<string> GetAllRecipesAsync()
     {
@@ -340,9 +329,13 @@ public partial class ChatBotViewModel : ObservableObject
         }
         finally
         {
-            IsBusy = false;
-            _sendCts?.Dispose();
-            _sendCts = null;
+            // Ensure UI-affecting state changes happen on the main thread.
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                IsBusy = false;
+                _sendCts?.Dispose();
+                _sendCts = null;
+            });
         }
     }
 

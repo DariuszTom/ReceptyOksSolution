@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <PackageReference Include="Anthropic" Version="12.2.0" />
+    <PackageReference Include="Microsoft.Agents.AI" Version="1.0.0-preview.260121.1" />
     <PackageReference Include="Microsoft.Extensions.AI.Abstractions" Version="10.2.0" />
   </ItemGroup>
 
