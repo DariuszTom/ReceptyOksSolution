@@ -8,11 +8,10 @@
              xmlns:icons="clr-namespace:UraniumUI.Icons.MaterialSymbols;assembly=UraniumUI.Icons.MaterialSymbols"
              xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
              xmlns:material="http://schemas.enisn-projects.io/dotnet/maui/uraniumui/material"
-             Shell.NavBarIsVisible="True"
+             Shell.NavBarIsVisible="False"
              BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark=#121212}">
 
     <Grid RowDefinitions="Auto,*,Auto">
-        
         <!-- Header -->
         <Grid Grid.Row="0" 
               Padding="20,16"
@@ -22,15 +21,22 @@
                 <Shadow Brush="{StaticResource Gray400Brush}" Offset="0,2" Radius="4" Opacity="0.1"/>
             </Grid.Shadow>
             
-            <VerticalStackLayout VerticalOptions="Center">
-                <Label Text="Asystent przepisów" 
-                       FontSize="24"
-                       FontAttributes="Bold"
-                       TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"/>
-                <Label Text="Zapytaj mnie o przepisy" 
-                       FontSize="14"
-                       TextColor="{StaticResource Gray400}"/>
-            </VerticalStackLayout>
+            <HorizontalStackLayout VerticalOptions="Center" Spacing="12">
+                <Image Source="chatbot.png"
+                       HeightRequest="40"
+                       WidthRequest="40"
+                       VerticalOptions="Center"
+                       Margin="0,0,8,0"/>
+                <VerticalStackLayout VerticalOptions="Center" Spacing="2">
+                    <Label Text="Asystent przepisów"
+                           FontSize="24"
+                           FontAttributes="Bold"
+                           TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"/>
+                    <Label Text="Zapytaj mnie o przepisy"
+                           FontSize="14"
+                           TextColor="{StaticResource Gray400}"/>
+                </VerticalStackLayout>
+            </HorizontalStackLayout>
             
             <!-- Clear conversation button -->
             <Button Grid.Column="1"
@@ -212,5 +218,33 @@
                 </Grid>
             </Grid>
         </Border>
+
+        <!-- Overlays placed last so they render on top of other content -->
+        <Grid RowSpan="3" IsVisible="{Binding IsInitializing}" BackgroundColor="#AA000000" VisualElement.ZIndex="99" InputTransparent="False">
+            <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center" Spacing="12">
+                <ActivityIndicator IsRunning="{Binding IsInitializing}" Color="White" HeightRequest="48" WidthRequest="48"/>
+                <Label Text="Inicjalizowanie asystenta..." TextColor="White" FontSize="16" HorizontalOptions="Center"/>
+            </VerticalStackLayout>
+        </Grid>
+
+        <Grid RowSpan="3" IsVisible="{Binding HasInitializationError}" BackgroundColor="#FF000000" VisualElement.ZIndex="100" InputTransparent="False">
+   <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center" Spacing="12" Padding="24">
+                <Border BackgroundColor="White" 
+       StrokeThickness="0"
+  StrokeShape="RoundRectangle 8" 
+          WidthRequest="360" 
+         Padding="16">
+ <Border.Shadow>
+     <Shadow Brush="{StaticResource Gray400Brush}" Offset="0,4" Radius="12" Opacity="0.3"/>
+     </Border.Shadow>
+<VerticalStackLayout Spacing="12">
+<Label Text="Błąd inicjalizacji" FontSize="18" FontAttributes="Bold" TextColor="Black" HorizontalOptions="Center"/>
+        <Label Text="{Binding InitializationError}" TextColor="Black" HorizontalOptions="Center" HorizontalTextAlignment="Center" LineBreakMode="WordWrap"/>
+            <Button Text="Spróbuj ponownie" Command="{Binding RetryInitializationCommand}" HorizontalOptions="Center"/>
+       </VerticalStackLayout>
+    </Border>
+         </VerticalStackLayout>
+        </Grid>
+
     </Grid>
 </ContentPage>

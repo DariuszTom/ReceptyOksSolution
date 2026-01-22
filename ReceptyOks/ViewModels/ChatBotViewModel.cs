@@ -1,9 +1,10 @@
-using System.Collections.ObjectModel;
-using System.Text.Json;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ReceptyOks.Data;
+using ReceptyOks.Services;
 using ReceptyOks.Shared.AI;
+using System.Collections.ObjectModel;
+using System.Text.Json;
 using ILogger = Serilog.ILogger;
 
 namespace ReceptyOks.ViewModels;
@@ -13,9 +14,10 @@ namespace ReceptyOks.ViewModels;
 /// </summary>
 public partial class ChatBotViewModel : ObservableObject
 {
-    private readonly AiAgent _agent;
+    private readonly TokenProviderService _tokenProvider;
     private readonly ILogger _logger;
     private readonly LocalDatabase _database;
+    private AiAgent? _agent;
     private CancellationTokenSource? _sendCts;
     private bool _toolsRegistered;
 
@@ -34,27 +36,92 @@ public partial class ChatBotViewModel : ObservableObject
     [ObservableProperty]
     private bool _hasError;
 
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(SendMessageCommand))]
+    private bool _isInitializing;
+
+    [ObservableProperty]
+    private string _initializationError = string.Empty;
+
+    [ObservableProperty]
+    private bool _hasInitializationError;
+
     /// <summary>
     /// Gets the collection of chat messages displayed in the UI.
     /// </summary>
     public ObservableCollection<ChatMessageViewModel> Messages { get; } = [];
 
-    public ChatBotViewModel(AiAgent aiAgent, LocalDatabase database, ILogger logger)
+    public ChatBotViewModel(LocalDatabase database, TokenProviderService tokenProvider, ILogger logger)
     {
-        ArgumentNullException.ThrowIfNull(aiAgent);
         ArgumentNullException.ThrowIfNull(database);
+        ArgumentNullException.ThrowIfNull(tokenProvider);
         ArgumentNullException.ThrowIfNull(logger);
 
-        _agent = aiAgent;
         _logger = logger;
         _database = database;
+        _tokenProvider = tokenProvider;
+    }
 
-        RegisterAgentTools();
+    /// <summary>
+    /// Initializes the AI agent with Anthropic client and registers tools.
+    /// </summary>
+    public async Task InitializeAsync(CancellationToken cancellationToken = default)
+    {
+        if (_agent is not null)
+        {
+            return; // Already initialized
+        }
+
+        IsInitializing = true;
+        HasInitializationError = false;
+        InitializationError = string.Empty;
+
+        try
+        {
+            _logger.Information("Initializing AI agent...");
+
+            // Get API token from backend
+            var tokenResponse = await _tokenProvider.GetTokenAsync(cancellationToken).ConfigureAwait(false);
+            if (tokenResponse is null || string.IsNullOrWhiteSpace(tokenResponse.Token))
+            {
+                throw new InvalidOperationException("Failed to retrieve API token from backend");
+            }
+
+            // Convert token to bytes for AnthropicAgent
+            var tokenBytes = System.Text.Encoding.UTF8.GetBytes(tokenResponse.Token);
+
+            // Create Anthropic settings with default values
+            var settings = new AnthropicSettings();
+
+            // Initialize Agent
+            using (var anthritopicAgent = new AnthropicAgent(settings, tokenBytes))
+            {
+                _agent = new AiAgent(anthritopicAgent.GetAgent(), settings.SystemPrompt);
+            }
+
+            // Register tools
+            RegisterAgentTools();
+
+            _logger.Information("AI agent initialized successfully");
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Failed to initialize AI agent");
+            await MainThread.InvokeOnMainThreadAsync(() =>
+              {
+                  HasInitializationError = true;
+                  InitializationError = "Nie udało się zainicjalizować asystenta AI. Spróbuj ponownie.";
+              });
+        }
+        finally
+        {
+            IsInitializing = false;
+        }
     }
 
     private void RegisterAgentTools()
     {
-        if (_toolsRegistered)
+        if (_toolsRegistered || _agent is null)
         {
             return;
         }
@@ -214,7 +281,7 @@ public partial class ChatBotViewModel : ObservableObject
         return JsonSerializer.Serialize(result);
     }
 
-    private bool CanSendMessage => !string.IsNullOrWhiteSpace(UserInput) && !IsBusy;
+    private bool CanSendMessage => !string.IsNullOrWhiteSpace(UserInput) && !IsBusy && !IsInitializing && _agent is not null;
 
     /// <summary>
     /// Sends the user's message to the AI agent and streams the response.
@@ -222,7 +289,7 @@ public partial class ChatBotViewModel : ObservableObject
     [RelayCommand(CanExecute = nameof(CanSendMessage))]
     private async Task SendMessageAsync()
     {
-        if (string.IsNullOrWhiteSpace(UserInput))
+        if (string.IsNullOrWhiteSpace(UserInput) || _agent is null)
         {
             return;
         }
@@ -297,10 +364,19 @@ public partial class ChatBotViewModel : ObservableObject
     private void ClearConversation()
     {
         Messages.Clear();
-        _agent.ClearHistory();
+        _agent?.ClearHistory();
         HasError = false;
         ErrorMessage = string.Empty;
         _logger.Information("Conversation cleared");
+    }
+
+    /// <summary>
+    /// Retries initialization after an error.
+    /// </summary>
+    [RelayCommand]
+    private async Task RetryInitializationAsync()
+    {
+        await InitializeAsync();
     }
 }
 
