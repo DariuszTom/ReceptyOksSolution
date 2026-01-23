@@ -14,7 +14,7 @@ ReceptyOks is a modern recipe management solution that allows users to create, o
 - AI-powered chatbot for recipe assistance and recommendations
 - Random recipe generator with advanced filtering options
   
-<img width="345" height="768" alt="obraz" src="https://github.com/user-attachments/assets/6664ce32-e21c-4730-bace-9d79907c9ec9" />
+<img width="345" height="768" alt="obraz" src="https://github.com/DariuszTom/ReceptyOksSolution/blob/master/UsagePresentation4.gif)" />
 
 ## 🏗️ Solution Architecture
 
