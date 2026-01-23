@@ -1,11 +1,14 @@
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
+using System.Text.Json;
 
 namespace ReceptyOks.Shared.AI;
 
 /// <summary>
 /// Implementation of IAiAgent using Microsoft Agent Framework (Microsoft.Agents.AI).
-/// Wraps ChatClientAgent to provide chat interactions with function calling support./// Note: This implementation does not support fluent chaining for AddTool methods.
+/// Wraps ChatClientAgent to provide chat interactions with function calling support.
+/// Supports conversation persistence through AgentThread serialization.
+/// Note: This implementation does not support fluent chaining for AddTool methods.
 /// Use separate statements for adding tools.
 /// </summary>
 public sealed class AiAgent : IAiAgent
@@ -14,6 +17,7 @@ public sealed class AiAgent : IAiAgent
     private readonly List<AITool> _tools = [];
     private string? _systemPrompt;
     private AgentThread? _thread;
+    private string? _conversationId;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="AiAgent"/> class.
@@ -41,6 +45,11 @@ public sealed class AiAgent : IAiAgent
     /// Gets the registered tools.
     /// </summary>
     public IReadOnlyList<AITool> Tools => _tools;
+
+    /// <summary>
+    /// Gets the current conversation ID, if any.
+    /// </summary>
+    public string? ConversationId => _conversationId;
 
     /// <summary>
     /// Registers a tool that the agent can use.
@@ -164,6 +173,51 @@ public sealed class AiAgent : IAiAgent
     public void ClearHistory()
     {
         _thread = null;
+        _conversationId = null;
+    }
+
+    /// <summary>
+    /// Serializes the current conversation thread to JSON format.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>JSON string representing the serialized conversation, or null if no active conversation.</returns>
+    /// <exception cref="InvalidOperationException">Thrown if there is no active conversation to save.</exception>
+    public Task<string> SaveConversationAsync(CancellationToken cancellationToken = default)
+    {
+        if (_thread is null)
+        {
+            throw new InvalidOperationException("No active conversation to save. Start a conversation first by calling ChatAsync or ChatStreamAsync.");
+        }
+
+        // Serialize the thread to JsonElement
+        var serializedThread = _thread.Serialize(JsonSerializerOptions.Web);
+
+        // Generate conversation ID if not already set
+        _conversationId ??= Guid.NewGuid().ToString();
+
+        // Return as JSON string
+        return Task.FromResult(serializedThread.GetRawText());
+    }
+
+    /// <summary>
+    /// Loads a previously saved conversation from serialized JSON.
+    /// </summary>
+    /// <param name="serializedThread">The JSON string containing the serialized conversation.</param>
+    /// <param name="conversationId">Optional conversation ID to associate with this thread.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <exception cref="ArgumentException">Thrown if serializedThread is null or whitespace.</exception>
+    public async Task LoadConversationAsync(string serializedThread, string? conversationId = null, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(serializedThread);
+
+        var agent = CreateAgent();
+
+        // Deserialize the thread from JSON
+        var jsonElement = JsonSerializer.Deserialize<JsonElement>(serializedThread, JsonSerializerOptions.Web);
+        _thread = await agent.DeserializeThreadAsync(jsonElement, JsonSerializerOptions.Web, cancellationToken)
+             .ConfigureAwait(false);
+
+        _conversationId = conversationId;
     }
 
     private ChatClientAgent CreateAgent()

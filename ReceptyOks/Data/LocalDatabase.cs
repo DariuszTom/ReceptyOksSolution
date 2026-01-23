@@ -19,13 +19,14 @@ public class LocalDatabase
             return _database;
 
         _database = new SQLiteAsyncConnection(_dbPath, SQLiteOpenFlags.ReadWrite | SQLiteOpenFlags.Create | SQLiteOpenFlags.SharedCache);
-        
+
         await _database.CreateTableAsync<RecipeLocal>();
         await _database.CreateTableAsync<CategoryLocal>();
         await _database.CreateTableAsync<IngredientLocal>();
         await _database.CreateTableAsync<RecipeIngredientLocal>();
         await _database.CreateTableAsync<SyncInfo>();
         await _database.CreateTableAsync<LogEntry>();
+        await _database.CreateTableAsync<ConversationLocal>();
 
         return _database;
     }
@@ -61,10 +62,10 @@ public class LocalDatabase
         List<RecipeLocal> recipes;
         if (categoryId == Guid.Empty)
             recipes = await GetRecipesAsync().ConfigureAwait(false);
-        else 
+        else
             recipes = await GetRecipesByCategoryAsync(categoryId).ConfigureAwait(false);
 
-        if (recipes is null ||  recipes.Count == 0 ||ingredientsId is null) 
+        if (recipes is null || recipes.Count == 0 || ingredientsId is null)
             return recipes ?? new List<RecipeLocal>();
 
         var ingredientsList = ingredientsId?.ToList() ?? new List<Guid>();
@@ -128,7 +129,7 @@ public class LocalDatabase
         var db = await GetConnectionAsync();
         var lowerQuery = query.ToLower();
         return await db.Table<RecipeLocal>()
-            .Where(r => !r.IsDeleted && 
+            .Where(r => !r.IsDeleted &&
                 (r.Title.ToLower().Contains(lowerQuery) || r.Description.ToLower().Contains(lowerQuery)))
             .OrderByDescending(r => r.CreatedAt)
             .ToListAsync();
@@ -235,7 +236,7 @@ public class LocalDatabase
     public async Task SaveRecipeIngredientsAsync(Guid recipeId, List<RecipeIngredientLocal> ingredients)
     {
         var db = await GetConnectionAsync();
-        
+
         // Usuñ stare
         var existing = await db.Table<RecipeIngredientLocal>()
             .Where(ri => ri.RecipeId == recipeId)
@@ -268,7 +269,7 @@ public class LocalDatabase
     {
         var db = await GetConnectionAsync();
         var info = await db.Table<SyncInfo>().FirstOrDefaultAsync();
-        
+
         if (info is null)
         {
             await db.InsertAsync(new SyncInfo { Id = 1, LastSyncedAt = syncTime });
@@ -400,6 +401,86 @@ public class LocalDatabase
     {
         var db = await GetConnectionAsync();
         return await db.ExecuteAsync("DELETE FROM Logs");
+    }
+
+    #endregion
+
+    #region Conversations
+
+    /// <summary>
+    /// Saves or updates a conversation in the local database.
+    /// </summary>
+    public async Task SaveConversationAsync(ConversationLocal conversation)
+    {
+        ArgumentNullException.ThrowIfNull(conversation);
+
+        var db = await GetConnectionAsync();
+        var existing = await db.Table<ConversationLocal>()
+            .FirstOrDefaultAsync(c => c.Id == conversation.Id);
+
+        conversation.UpdatedAt = DateTimeOffset.UtcNow;
+
+        if (existing is null)
+        {
+            conversation.CreatedAt = conversation.UpdatedAt;
+            await db.InsertAsync(conversation);
+        }
+        else
+        {
+            await db.UpdateAsync(conversation);
+        }
+    }
+
+    /// <summary>
+    /// Retrieves a conversation by its ID.
+    /// </summary>
+    public async Task<ConversationLocal?> GetConversationAsync(string id)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(id);
+
+        var db = await GetConnectionAsync();
+        return await db.Table<ConversationLocal>()
+              .Where(c => c.Id == id && !c.IsDeleted)
+              .FirstOrDefaultAsync();
+    }
+
+    /// <summary>
+    /// Retrieves all conversations ordered by most recent first.
+    /// </summary>
+    public async Task<List<ConversationLocal>> GetConversationsAsync()
+    {
+        var db = await GetConnectionAsync();
+        return await db.Table<ConversationLocal>()
+        .Where(c => !c.IsDeleted)
+        .OrderByDescending(c => c.UpdatedAt)
+        .ToListAsync();
+    }
+
+    /// <summary>
+    /// Marks a conversation as deleted (soft delete).
+    /// </summary>
+    public async Task DeleteConversationAsync(string id)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(id);
+
+        var db = await GetConnectionAsync();
+        var conversation = await GetConversationAsync(id);
+
+        if (conversation is not null)
+        {
+            conversation.IsDeleted = true;
+            conversation.UpdatedAt = DateTimeOffset.UtcNow;
+            await db.UpdateAsync(conversation);
+        }
+    }
+
+    /// <summary>
+    /// Permanently deletes all conversations marked as deleted.
+    /// </summary>
+    public async Task<int> PurgeDeletedConversationsAsync()
+    {
+        var db = await GetConnectionAsync();
+        return await db.ExecuteAsync("DELETE FROM Conversations WHERE IsDeleted = 1");
     }
 
     #endregion
