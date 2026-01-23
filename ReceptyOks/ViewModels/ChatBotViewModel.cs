@@ -4,7 +4,6 @@ using ReceptyOks.Data;
 using ReceptyOks.Services;
 using ReceptyOks.Shared.AI;
 using System.Collections.ObjectModel;
-using System.Text.Json;
 using ILogger = Serilog.ILogger;
 
 namespace ReceptyOks.ViewModels;
@@ -16,10 +15,9 @@ public partial class ChatBotViewModel : ObservableObject
 {
     private readonly TokenProviderService _tokenProvider;
     private readonly ILogger _logger;
-    private readonly LocalDatabase _database;
+ private readonly AgentToolsRegistrar _toolsRegistrar;
     private AiAgent? _agent;
     private CancellationTokenSource? _sendCts;
-    private bool _toolsRegistered;
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(SendMessageCommand))]
@@ -54,13 +52,13 @@ public partial class ChatBotViewModel : ObservableObject
     public ChatBotViewModel(LocalDatabase database, TokenProviderService tokenProvider, ILogger logger)
     {
         ArgumentNullException.ThrowIfNull(database);
-        ArgumentNullException.ThrowIfNull(tokenProvider);
+     ArgumentNullException.ThrowIfNull(tokenProvider);
         ArgumentNullException.ThrowIfNull(logger);
 
-        _logger = logger;
-        _database = database;
+      _logger = logger;
+        _toolsRegistrar = new AgentToolsRegistrar(database, logger);
         _tokenProvider = tokenProvider;
-    }
+ }
 
     /// <summary>
     /// Initializes the AI agent with Anthropic client and registers tools.
@@ -91,15 +89,15 @@ public partial class ChatBotViewModel : ObservableObject
 
             var settings = new AnthropicSettings();
 
-            using (var anthritopicAgent = new AnthropicAgent(settings, tokenBytes))
-            {
-                _agent = new AiAgent(anthritopicAgent.GetAgent(), settings.SystemPrompt);
-            }
+ using (var anthritopicAgent = new AnthropicAgent(settings, tokenBytes))
+        {
+   _agent = new AiAgent(anthritopicAgent.GetAgent(), settings.SystemPrompt);
+ }
 
-            // Register tools
-            RegisterAgentTools();
+   // Register tools
+ _toolsRegistrar.RegisterTools(_agent);
 
-            _logger.Information("AI agent initialized successfully");
+      _logger.Information("AI agent initialized successfully");
         }
         catch (Exception ex)
         {
@@ -114,160 +112,6 @@ public partial class ChatBotViewModel : ObservableObject
         {
             IsInitializing = false;
         }
-    }
-
-    private void RegisterAgentTools()
-    {
-        if (_toolsRegistered || _agent is null)
-        {
-            return;
-        }
-
-            _agent.AddTool<Task<string>>(GetAllRecipesAsync,
-             "get_all_recipes", "Retrieves a list of all available recipes with their basic information (title, description, preparation time, cooking time, servings).");
-
-            _agent.AddToolAsync<string, string>(SearchRecipesAsync,
-                "search_recipes", "Searches for recipes by text query matching title or description. Parameter: searchQuery - the text to search for.");
-
-            _agent.AddToolAsync<string, string>(GetRecipeDetailsAsync,
-               "get_recipe_details", "Gets detailed information about a specific recipe including ingredients. Parameter: recipeId - the GUID of the recipe.");
-
-            _agent.AddTool<Task<string>>(GetAllCategoriesAsync,
-            "get_all_categories", "Retrieves all recipe categories with their names and descriptions.");
-
-            _agent.AddToolAsync<string, string>(GetRecipesByCategoryAsync,
-                "get_recipes_by_category","Gets all recipes in a specific category. Parameter: categoryId - the GUID of the category.");
-
-            _agent.AddTool<Task<string>>(GetAllIngredientsAsync,
-                "get_all_ingredients", "Retrieves a list of all available ingredients.");
-
-            _toolsRegistered = true;
-            _logger.Information("Registered {ToolCount} AI agent tools for database queries", _agent.Tools.Count);
-        }
-
-    private async Task<string> GetAllRecipesAsync()
-    {
-        var recipes = await _database.GetRecipesAsync().ConfigureAwait(false);
-        var result = recipes.Select(r => new
-        {
-            r.Id,
-            r.Title,
-            r.Description,
-            r.PreparationTimeMinutes,
-            r.CookingTimeMinutes,
-            r.Servings,
-            r.CategoryId
-        });
-        return JsonSerializer.Serialize(result);
-    }
-
-    private async Task<string> SearchRecipesAsync(string searchQuery)
-    {
-        if (string.IsNullOrWhiteSpace(searchQuery))
-        {
-            return "[]";
-        }
-
-        var recipes = await _database.SearchRecipesAsync(searchQuery).ConfigureAwait(false);
-        var result = recipes.Select(r => new
-        {
-            r.Id,
-            r.Title,
-            r.Description,
-            r.PreparationTimeMinutes,
-            r.CookingTimeMinutes,
-            r.Servings
-        });
-        return JsonSerializer.Serialize(result);
-    }
-
-    private async Task<string> GetRecipeDetailsAsync(string recipeId)
-    {
-        if (!Guid.TryParse(recipeId, out var id))
-        {
-            return JsonSerializer.Serialize(new { error = "Invalid recipe ID format" });
-        }
-
-        var recipe = await _database.GetRecipeAsync(id).ConfigureAwait(false);
-        if (recipe is null)
-        {
-            return JsonSerializer.Serialize(new { error = "Recipe not found" });
-        }
-
-        var recipeIngredients = await _database.GetRecipeIngredientsAsync(id).ConfigureAwait(false);
-        var allIngredients = await _database.GetIngredientsAsync().ConfigureAwait(false);
-
-        var ingredientDetails = recipeIngredients
-            .Select(ri =>
-            {
-                var ingredient = allIngredients.FirstOrDefault(i => i.Id == ri.IngredientId);
-                return new
-                {
-                    Name = ingredient?.Name ?? "Unknown",
-                    ri.Quantity,
-                    Unit = ingredient?.Unit
-                };
-            })
-            .ToList();
-
-        var result = new
-        {
-            recipe.Id,
-            recipe.Title,
-            recipe.Description,
-            recipe.Instructions,
-            recipe.PreparationTimeMinutes,
-            recipe.CookingTimeMinutes,
-            recipe.Servings,
-            recipe.CategoryId,
-            Ingredients = ingredientDetails
-        };
-
-        return JsonSerializer.Serialize(result);
-    }
-
-    private async Task<string> GetAllCategoriesAsync()
-    {
-        var categories = await _database.GetCategoriesAsync().ConfigureAwait(false);
-        var result = categories.Select(c => new
-        {
-            c.Id,
-            c.Name,
-            c.Description
-        });
-        return JsonSerializer.Serialize(result);
-    }
-
-    private async Task<string> GetRecipesByCategoryAsync(string categoryId)
-    {
-        if (!Guid.TryParse(categoryId, out var id))
-        {
-            return JsonSerializer.Serialize(new { error = "Invalid category ID format" });
-        }
-
-        var recipes = await _database.GetRecipesByCategoryAsync(id).ConfigureAwait(false);
-        var result = recipes.Select(r => new
-        {
-            r.Id,
-            r.Title,
-            r.Description,
-            r.PreparationTimeMinutes,
-            r.CookingTimeMinutes,
-            r.Servings
-        });
-        return JsonSerializer.Serialize(result);
-    }
-
-    private async Task<string> GetAllIngredientsAsync()
-    {
-        var ingredients = await _database.GetIngredientsAsync().ConfigureAwait(false);
-        var result = ingredients.Select(i => new
-        {
-            i.Id,
-            i.Name,
-            i.Unit
-        });
-        return JsonSerializer.Serialize(result);
     }
 
     private bool CanSendMessage => !string.IsNullOrWhiteSpace(UserInput) && !IsBusy && !IsInitializing && _agent is not null;
