@@ -45,7 +45,10 @@ public class AgentToolsRegistrar
     "get_recipes_by_category", "Gets all recipes in a specific category. Parameter: categoryId - the GUID of the category.");
 
         agent.AddTool<Task<string>>(GetAllIngredientsAsync,
-               "get_all_ingredients", "Retrieves a list of all available ingredients.");
+           "get_all_ingredients", "Retrieves a list of all available ingredients.");
+
+        agent.AddToolAsync<string, string>(AddRecipeToDBAsync,
+          "add_recipe", "Adds a new recipe to the database. Parameter: recipeJson - JSON string containing recipe details (Title, Description, Instructions, PreparationTimeMinutes, CookingTimeMinutes, Servings, CategoryId, Ingredients array with Name, Quantity, Unit).");
 
         _logger.Information("Registered {ToolCount} AI agent tools for database queries", agent.Tools.Count);
     }
@@ -174,4 +177,132 @@ public class AgentToolsRegistrar
         });
         return JsonSerializer.Serialize(result);
     }
+    private async Task<string> AddRecipeToDBAsync(string recipeJson)
+    {
+        if (string.IsNullOrWhiteSpace(recipeJson))
+        {
+            return JsonSerializer.Serialize(new { success = false, error = "Recipe JSON cannot be empty" });
+        }
+
+        try
+        {
+            var recipeData = JsonSerializer.Deserialize<RecipeAddRequest>(recipeJson);
+            if (recipeData is null)
+            {
+                return JsonSerializer.Serialize(new { success = false, error = "Failed to parse recipe JSON" });
+            }
+
+            if (string.IsNullOrWhiteSpace(recipeData.Title))
+            {
+                return JsonSerializer.Serialize(new { success = false, error = "Recipe title is required" });
+            }
+
+            var recipeId = Guid.NewGuid();
+            var recipe = new RecipeLocal
+            {
+                Id = recipeId,
+                Title = recipeData.Title,
+                Description = recipeData.Description ?? string.Empty,
+                Instructions = recipeData.Instructions ?? string.Empty,
+                PreparationTimeMinutes = recipeData.PreparationTimeMinutes,
+                CookingTimeMinutes = recipeData.CookingTimeMinutes,
+                Servings = recipeData.Servings > 0 ? recipeData.Servings : 1,
+                CategoryId = recipeData.CategoryId != Guid.Empty ? recipeData.CategoryId : null,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+
+            await _database.SaveRecipeAsync(recipe).ConfigureAwait(false);
+
+            if (recipeData.Ingredients is not null && recipeData.Ingredients.Any())
+            {
+                var allIngredients = await _database.GetIngredientsAsync().ConfigureAwait(false);
+                var recipeIngredients = new List<RecipeIngredientLocal>();
+                int order = 0;
+
+                foreach (var ingredientData in recipeData.Ingredients)
+                {
+                    if (string.IsNullOrWhiteSpace(ingredientData.Name))
+                        continue;
+
+                    var existingIngredient = allIngredients.FirstOrDefault(
+             i => i.Name.Equals(ingredientData.Name, StringComparison.OrdinalIgnoreCase));
+
+                    Guid ingredientId;
+                    if (existingIngredient is not null)
+                    {
+                        ingredientId = existingIngredient.Id;
+                    }
+                    else
+                    {
+                        var newIngredient = new IngredientLocal
+                        {
+                            Id = Guid.NewGuid(),
+                            Name = ingredientData.Name,
+                            Unit = ingredientData.Unit,
+                            CreatedAt = DateTime.UtcNow,
+                            UpdatedAt = DateTime.UtcNow
+                        };
+                        await _database.SaveIngredientAsync(newIngredient).ConfigureAwait(false);
+                        allIngredients.Add(newIngredient);
+                        ingredientId = newIngredient.Id;
+                    }
+
+                    recipeIngredients.Add(new RecipeIngredientLocal
+                    {
+                        Id = Guid.NewGuid(),
+                        RecipeId = recipeId,
+                        IngredientId = ingredientId,
+                        Quantity = ingredientData.Quantity,
+                        Unit = ingredientData.Unit,
+                        Notes = ingredientData.Notes,
+                        Order = order++
+                    });
+                }
+
+                await _database.SaveRecipeIngredientsAsync(recipeId, recipeIngredients).ConfigureAwait(false);
+            }
+
+            _logger.Information("AI agent successfully added recipe: {RecipeTitle} (ID: {RecipeId})", recipeData.Title, recipeId);
+
+            return JsonSerializer.Serialize(new
+            {
+                success = true,
+                recipeId = recipeId,
+                message = $"Recipe '{recipeData.Title}' has been successfully added to the database"
+            });
+        }
+        catch (JsonException ex)
+        {
+            _logger.Error(ex, "Failed to parse recipe JSON for AI agent");
+            return JsonSerializer.Serialize(new { success = false, error = $"Invalid JSON format: {ex.Message}" });
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Failed to add recipe via AI agent");
+            return JsonSerializer.Serialize(new { success = false, error = $"Failed to add recipe: {ex.Message}" });
+        }
+    }
+
+    private class RecipeAddRequest
+    {
+        public string Title { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public string? Instructions { get; set; }
+        public int PreparationTimeMinutes { get; set; }
+        public int CookingTimeMinutes { get; set; }
+        public int Servings { get; set; }
+        public Guid CategoryId { get; set; }
+        public List<IngredientAddRequest>? Ingredients { get; set; }
+    }
+
+    private class IngredientAddRequest
+    {
+        public string Name { get; set; } = string.Empty;
+        public decimal Quantity { get; set; }
+        public string? Unit { get; set; }
+        public string? Notes { get; set; }
+    }
+
 }
+
