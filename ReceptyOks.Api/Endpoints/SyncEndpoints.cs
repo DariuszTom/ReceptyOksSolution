@@ -225,7 +225,8 @@ public static class SyncEndpoints
         var addedRecipes = 0;
         var updatedRecipes = 0;
         var skippedRecipes = 0;
-        var invalidRecipes = 0;
+        var skippedInvalidCategory = 0;
+        var skippedIngredientRefs = 0;
 
         // Przepisy
         foreach (var recipeDto in request.ChangedRecipes)
@@ -234,23 +235,28 @@ public static class SyncEndpoints
             if (recipeDto.CategoryId.HasValue && !validCategoryIds.Contains(recipeDto.CategoryId.Value))
             {
                 logger.LogWarning(
-                          "Skipping recipe with invalid category reference: {RecipeId} - {RecipeTitle}, CategoryId: {CategoryId}",
-                    recipeDto.Id, recipeDto.Title, recipeDto.CategoryId);
-                invalidRecipes++;
+                     "Skipping recipe with invalid category reference: {RecipeId} - {RecipeTitle}, CategoryId: {CategoryId}",
+                  recipeDto.Id, recipeDto.Title, recipeDto.CategoryId);
+                skippedInvalidCategory++;
                 continue;
             }
 
-            // Validate all IngredientId FK references exist
+            // Filter out invalid ingredient references instead of skipping the whole recipe
             var invalidIngredientRefs = recipeDto.Ingredients
-       .Where(ri => !validIngredientIds.Contains(ri.IngredientId))
-         .ToList();
+          .Where(ri => !validIngredientIds.Contains(ri.IngredientId))
+                    .ToList();
+
+            var validIngredients = recipeDto.Ingredients
+        .Where(ri => validIngredientIds.Contains(ri.IngredientId))
+                .ToList();
+
             if (invalidIngredientRefs.Count > 0)
             {
                 logger.LogWarning(
-                    "Skipping recipe with invalid ingredient references: {RecipeId} - {RecipeTitle}, InvalidIngredientIds: {InvalidIds}",
-                         recipeDto.Id, recipeDto.Title, string.Join(", ", invalidIngredientRefs.Select(r => r.IngredientId)));
-                invalidRecipes++;
-                continue;
+                    "Recipe {RecipeId} - {RecipeTitle} has {InvalidCount} invalid ingredient references (skipping them): {InvalidIds}",
+               recipeDto.Id, recipeDto.Title, invalidIngredientRefs.Count,
+                          string.Join(", ", invalidIngredientRefs.Select(r => r.IngredientId)));
+                skippedIngredientRefs += invalidIngredientRefs.Count;
             }
 
             var existing = await db.Recipes
@@ -260,8 +266,8 @@ public static class SyncEndpoints
             if (existing is null)
             {
                 logger.LogDebug(
-                "Adding new recipe: {RecipeId} - {RecipeTitle} with {IngredientCount} ingredients",
-            recipeDto.Id, recipeDto.Title, recipeDto.Ingredients.Count);
+           "Adding new recipe: {RecipeId} - {RecipeTitle} with {IngredientCount} ingredients (valid: {ValidCount})",
+                  recipeDto.Id, recipeDto.Title, recipeDto.Ingredients.Count, validIngredients.Count);
 
                 var recipe = new Recipe
                 {
@@ -280,7 +286,7 @@ public static class SyncEndpoints
                     IsDeleted = recipeDto.IsDeleted
                 };
 
-                foreach (var ingredientDto in recipeDto.Ingredients)
+                foreach (var ingredientDto in validIngredients)
                 {
                     recipe.Ingredients.Add(new RecipeIngredient
                     {
@@ -300,9 +306,9 @@ public static class SyncEndpoints
             else if (recipeDto.UpdatedAt > existing.UpdatedAt)
             {
                 logger.LogDebug(
-                   "Updating recipe: {RecipeId} - {RecipeTitle} (client: {ClientUpdated}, server: {ServerUpdated}), ingredients: {OldCount} -> {NewCount}",
+            "Updating recipe: {RecipeId} - {RecipeTitle} (client: {ClientUpdated}, server: {ServerUpdated}), ingredients: {OldCount} -> {NewCount} (valid: {ValidCount})",
                 recipeDto.Id, recipeDto.Title, recipeDto.UpdatedAt, existing.UpdatedAt,
-              existing.Ingredients.Count, recipeDto.Ingredients.Count);
+                   existing.Ingredients.Count, recipeDto.Ingredients.Count, validIngredients.Count);
 
                 existing.Title = recipeDto.Title;
                 existing.Description = recipeDto.Description;
@@ -316,9 +322,9 @@ public static class SyncEndpoints
                 existing.UpdatedAt = DateTime.UtcNow;
                 existing.IsDeleted = recipeDto.IsDeleted;
 
-                // Aktualizuj sk³adniki
+                // Aktualizuj sk³adniki (tylko poprawne referencje)
                 db.RecipeIngredients.RemoveRange(existing.Ingredients);
-                foreach (var ingredientDto in recipeDto.Ingredients)
+                foreach (var ingredientDto in validIngredients)
                 {
                     db.RecipeIngredients.Add(new RecipeIngredient
                     {
@@ -343,8 +349,8 @@ public static class SyncEndpoints
         }
 
         logger.LogInformation(
-              "Recipes processed - Added: {Added}, Updated: {Updated}, Skipped: {Skipped}, Invalid: {Invalid}",
-       addedRecipes, updatedRecipes, skippedRecipes, invalidRecipes);
+     "Recipes processed - Added: {Added}, Updated: {Updated}, Skipped: {Skipped}, SkippedInvalidCategory: {InvalidCategory}, SkippedIngredientRefs: {SkippedRefs}",
+            addedRecipes, updatedRecipes, skippedRecipes, skippedInvalidCategory, skippedIngredientRefs);
 
         await db.SaveChangesAsync();
     }
