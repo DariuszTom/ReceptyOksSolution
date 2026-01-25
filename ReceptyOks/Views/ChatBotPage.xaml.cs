@@ -1,9 +1,8 @@
 using ReceptyOks.ViewModels;
-using UraniumUI.Pages;
 
 namespace ReceptyOks.Views;
 
-public partial class ChatBotPage :UraniumContentPage
+public partial class ChatBotPage :ContentPage
 
 {
 	public ChatBotPage(ChatBotViewModel viewModel)
