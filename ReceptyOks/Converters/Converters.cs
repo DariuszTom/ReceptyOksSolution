@@ -244,13 +244,46 @@ public class IsNotZeroConverter : IValueConverter
     {
         return value switch
         {
-            int intValue => intValue != 0,
-            double doubleValue => doubleValue != 0,
+       int intValue => intValue != 0,
+          double doubleValue => doubleValue != 0,
             decimal decimalValue => decimalValue != 0,
-            _ => false
+     _ => false
         };
     }
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => throw new NotImplementedException();
+}
+
+/// <summary>
+/// Converts a boolean (IsExpanded) to a Material Symbol chevron icon.
+/// Returns expand_more when collapsed (false), expand_less when expanded (true).
+/// </summary>
+public class BoolToExpandIconConverter : IValueConverter
+{
+    // Material Symbols: expand_less = U+E5CE, expand_more = U+E5CF
+    private const string ExpandLess = "\ue5ce";
+    private const string ExpandMore = "\ue5cf";
+
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+     return value is true ? ExpandLess : ExpandMore;
+    }
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+   => throw new NotImplementedException();
+}
+
+/// <summary>
+/// Returns true when the string value is not null or empty.
+/// </summary>
+public class IsNotNullOrEmptyConverter : IValueConverter
+{
+public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        return value is string str && !string.IsNullOrEmpty(str);
+    }
+
+ public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
         => throw new NotImplementedException();
 }
