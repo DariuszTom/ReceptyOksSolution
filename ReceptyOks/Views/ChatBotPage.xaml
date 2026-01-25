@@ -13,10 +13,8 @@
         Shell.NavBarIsVisible="False"
     BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark=#121212}">
 
-  <!-- Main content wrapper -->
-    <Grid>
-      <!-- Main chat content -->
-        <Grid RowDefinitions="Auto,*,Auto">
+    <!-- Main chat content -->
+    <Grid RowDefinitions="Auto,*,Auto">
         <!-- Header with gradient effect -->
    <Grid Grid.Row="0" 
               Padding="24,20"
@@ -42,7 +40,7 @@
   </Border>
                 
       <VerticalStackLayout VerticalOptions="Center" Spacing="4">
-            <Label Text="Asystent przepisów"
+            <Label Text="Asystent"
      FontSize="22"
               FontAttributes="Bold"
            TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"/>
@@ -351,15 +349,15 @@
  </Grid>
         </Border>
 
-        <!-- Overlays placed last so they render on top of other content -->
-        <Grid RowSpan="3" IsVisible="{Binding IsInitializing}" BackgroundColor="#AA000000" VisualElement.ZIndex="99" InputTransparent="False">
-            <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center" Spacing="12">
-                <ActivityIndicator IsRunning="{Binding IsInitializing}" Color="White" HeightRequest="48" WidthRequest="48"/>
-                <Label Text="Inicjalizowanie asystenta..." TextColor="White" FontSize="16" HorizontalOptions="Center"/>
-            </VerticalStackLayout>
-        </Grid>
+      <!-- Overlays placed last so they render on top of other content -->
+        <Grid RowSpan="3" IsVisible="{Binding IsInitializing}" BackgroundColor="#AA000000" InputTransparent="False">
+       <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center" Spacing="12">
+      <ActivityIndicator IsRunning="{Binding IsInitializing}" Color="White" HeightRequest="48" WidthRequest="48"/>
+      <Label Text="Inicjalizowanie asystenta..." TextColor="White" FontSize="16" HorizontalOptions="Center"/>
+    </VerticalStackLayout>
+      </Grid>
 
-  <Grid RowSpan="3" IsVisible="{Binding HasInitializationError}" BackgroundColor="#FF000000" VisualElement.ZIndex="100" InputTransparent="False">
+        <Grid RowSpan="3" IsVisible="{Binding HasInitializationError}" BackgroundColor="#FF000000" InputTransparent="False">
    <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center" Spacing="12" Padding="24">
           <Border BackgroundColor="White" 
        StrokeThickness="0"
@@ -372,23 +370,23 @@
 <VerticalStackLayout Spacing="12">
 <Label Text="Błąd inicjalizacji" FontSize="18" FontAttributes="Bold" TextColor="Black" HorizontalOptions="Center"/>
         <Label Text="{Binding InitializationError}" TextColor="Black" HorizontalOptions="Center" HorizontalTextAlignment="Center" LineBreakMode="WordWrap"/>
-        <Button Text="Spróbuj ponownie" Command="{Binding RetryInitializationCommand}" HorizontalOptions="Center"/>
-       </VerticalStackLayout>
+      <Button Text="Spróbuj ponownie" Command="{Binding RetryInitializationCommand}" HorizontalOptions="Center"/>
+  </VerticalStackLayout>
     </Border>
-         </VerticalStackLayout>
+  </VerticalStackLayout>
   </Grid>
 
-     </Grid>
-</Grid>
+    </Grid>
 
     <!-- Bottom Sheet for history using UraniumUI - defined in page Attachments -->
     <uranium:UraniumContentPage.Attachments>
         <material:BottomSheetView x:Name="historyBottomSheet"
-           IsPresented="{Binding IsHistorySheetOpen, Mode=TwoWay}"
-             DisablePageWhenOpened="True"
- CloseOnTapOutside="True"
+      IsPresented="{Binding IsHistorySheetOpen, Mode=TwoWay}"
+           DisablePageWhenOpened="True"
+         CloseOnTapOutside="True"
            HeightRequest="420"
-           VerticalOptions="End">
+         VerticalOptions="End"
+  BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}">
      <material:BottomSheetView.Header>
                 <Grid HeightRequest="38" ColumnDefinitions="*,Auto" Padding="6">
          <Label Text="Historia rozmów"

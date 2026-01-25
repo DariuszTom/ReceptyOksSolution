@@ -1,9 +1,11 @@
+using AsyncAwaitBestPractices;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ReceptyOks.Services;
 using ReceptyOks.Shared;
 using System.Security.Cryptography;
 using System.Text;
+
 
 namespace ReceptyOks.ViewModels
 {
@@ -22,10 +24,12 @@ namespace ReceptyOks.ViewModels
 
         [ObservableProperty]
         private bool _hasError;
+        private SyncService _sync;
 
-        public LoginViewModel(BackendAuthService backendAuth)
+        public LoginViewModel(BackendAuthService backendAuth, SyncService sync)
         {
             _backendAuth = backendAuth;
+            _sync = sync;
         }
 
         [RelayCommand]
@@ -39,6 +43,7 @@ namespace ReceptyOks.ViewModels
 
                 if (hasValidSecret)
                 {
+                    _sync?.FullSyncAsync().SafeFireAndForget();
                     await MainThread.InvokeOnMainThreadAsync(async () =>
                     {
                         await Shell.Current.GoToAsync("//RecipesPage");
@@ -78,6 +83,7 @@ namespace ReceptyOks.ViewModels
                 if (result.IsValid)
                 {
                     await SecureSecretService.SaveAsync(GlobalConstants.ApiKeyHeaderName, secretBytes).ConfigureAwait(false);
+                    _sync?.FullSyncAsync().SafeFireAndForget();
                     await MainThread.InvokeOnMainThreadAsync(async () =>
                     {
                         await Shell.Current.GoToAsync("//RecipesPage");
