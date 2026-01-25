@@ -258,7 +258,7 @@
 
         <!-- Input Area -->
         <Border Grid.Row="2"
-   Margin="16,8,16,16"
+   Margin="16,8,16,40"
        Padding="12"
        StrokeThickness="2"
     Stroke="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray700}}"
@@ -390,9 +390,9 @@
            HeightRequest="420"
            VerticalOptions="End">
      <material:BottomSheetView.Header>
-         <Grid ColumnDefinitions="*,Auto" Padding="16,8,16,16">
-         <Label Text="Historia rozmów" 
-        FontSize="20" 
+                <Grid HeightRequest="38" ColumnDefinitions="*,Auto" Padding="6">
+         <Label Text="Historia rozmów"
+        FontSize="18" 
        FontAttributes="Bold"
                TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"
           VerticalOptions="Center"/>

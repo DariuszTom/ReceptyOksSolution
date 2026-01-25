@@ -130,6 +130,9 @@ public static class SyncEndpoints
             }
         }
 
+        // Save categories first so they exist for FK references
+        await db.SaveChangesAsync();
+
         // Sk³adniki
         foreach (var ingredientDto in request.ChangedIngredients)
         {
@@ -155,13 +158,35 @@ public static class SyncEndpoints
             }
         }
 
+        // Save ingredients so they exist for RecipeIngredient FK references
+        await db.SaveChangesAsync();
+
+        // Load valid FK IDs to validate recipe references
+        var validCategoryIds = await db.Categories.Select(c => c.Id).ToHashSetAsync();
+        var validIngredientIds = await db.Ingredients.Select(i => i.Id).ToHashSetAsync();
+
         // Przepisy
         foreach (var recipeDto in request.ChangedRecipes)
         {
+            // Validate CategoryId FK reference exists
+            if (recipeDto.CategoryId.HasValue && !validCategoryIds.Contains(recipeDto.CategoryId.Value))
+            {
+                continue; // Skip recipe with invalid category reference
+            }
+
+            // Validate all IngredientId FK references exist
+            var invalidIngredientRefs = recipeDto.Ingredients
+        .Where(ri => !validIngredientIds.Contains(ri.IngredientId))
+          .ToList();
+            if (invalidIngredientRefs.Count > 0)
+            {
+                continue; // Skip recipe with invalid ingredient references
+            }
+
             var existing = await db.Recipes
-                .Include(r => r.Ingredients)
-                .FirstOrDefaultAsync(r => r.Id == recipeDto.Id);
-                
+       .Include(r => r.Ingredients)
+            .FirstOrDefaultAsync(r => r.Id == recipeDto.Id);
+
             if (existing is null)
             {
                 var recipe = new Recipe
@@ -180,7 +205,7 @@ public static class SyncEndpoints
                     UpdatedAt = DateTime.UtcNow,
                     IsDeleted = recipeDto.IsDeleted
                 };
-                
+
                 foreach (var ingredientDto in recipeDto.Ingredients)
                 {
                     recipe.Ingredients.Add(new RecipeIngredient
@@ -194,7 +219,7 @@ public static class SyncEndpoints
                         Order = ingredientDto.Order
                     });
                 }
-                
+
                 db.Recipes.Add(recipe);
             }
             else if (recipeDto.UpdatedAt > existing.UpdatedAt)

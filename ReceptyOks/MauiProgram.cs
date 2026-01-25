@@ -65,7 +65,7 @@ public static class MauiProgram
 		builder.Services.AddHttpClient<SyncService>(client =>
 		{
 			client.BaseAddress = new Uri($"{appSettings.Http.GetEffectiveApiUrl()}");
-			client.Timeout = TimeSpan.FromSeconds(appSettings.Http.DefaultTimeoutSeconds);
+			client.Timeout = TimeSpan.FromSeconds(appSettings.Http.DefaultTimeoutSeconds*3);
 		})
         .AddHttpMessageHandler<ApiKeyHandler>()
         .AddServiceDiscovery();
