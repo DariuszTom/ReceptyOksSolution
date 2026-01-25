@@ -196,61 +196,84 @@
                             </Border>
                         </Grid>
 
-                        <!-- Składniki Section -->
-                        <VerticalStackLayout Spacing="14">
-                            <HorizontalStackLayout Spacing="10">
-                                <Border BackgroundColor="{StaticResource Primary}"
-                                        StrokeThickness="0"
-                                        StrokeShape="RoundRectangle 10"
-                                        HeightRequest="36"
-                                        WidthRequest="36">
-                                    <Image HeightRequest="20" WidthRequest="20" HorizontalOptions="Center" VerticalOptions="Center">
-                                        <Image.Source>
-                                            <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Shopping_basket}"
-                                                             FontFamily="MaterialSymbolsOutlined"
-                                                             Color="White"
-                                                             Size="20"/>
-                                        </Image.Source>
-                                    </Image>
-                                </Border>
-                                <Label Text="Składniki" FontSize="20" FontAttributes="Bold" VerticalOptions="Center"
-                                       TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"/>
-                            </HorizontalStackLayout>
-                            
-                            <CollectionView ItemsSource="{Binding Ingredients}">
-                                <CollectionView.ItemTemplate>
-                                    <DataTemplate x:DataType="vm:RecipeIngredientDisplay">
-                                        <Border Margin="0,4"
-                                                Padding="14,12"
-                                                StrokeThickness="0"
-                                                StrokeShape="RoundRectangle 12"
-                                                BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray600}}">
-                                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="14">
-                                                <Border BackgroundColor="{StaticResource Secondary}"
-                                                        StrokeThickness="0"
-                                                        StrokeShape="RoundRectangle 10"
-                                                        HeightRequest="28"
-                                                        WidthRequest="28">
-                                                    <Image HeightRequest="16" WidthRequest="16" HorizontalOptions="Center" VerticalOptions="Center">
-                                                        <Image.Source>
-                                                            <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Check}"
-                                                                             FontFamily="MaterialSymbolsOutlined"
-                                                                             Color="{StaticResource Primary}"
-                                                                             Size="16"/>
-                                                        </Image.Source>
-                                                    </Image>
-                                                </Border>
-                                                <Label Grid.Column="1" 
-                                                       Text="{Binding DisplayText}" 
-                                                       FontSize="15"
-                                                       VerticalOptions="Center"
-                                                       TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"/>
-                                            </Grid>
-                                        </Border>
-                                    </DataTemplate>
-                                </CollectionView.ItemTemplate>
-                            </CollectionView>
-                        </VerticalStackLayout>
+             <!-- Składniki Section -->
+         <VerticalStackLayout Spacing="14">
+        <Border Padding="0"
+              StrokeThickness="0"
+             BackgroundColor="Transparent">
+        <Border.GestureRecognizers>
+  <TapGestureRecognizer Command="{Binding ToggleIngredientsCommand}"/>
+    </Border.GestureRecognizers>
+         <HorizontalStackLayout Spacing="10">
+        <Border BackgroundColor="{StaticResource Primary}"
+       StrokeThickness="0"
+    StrokeShape="RoundRectangle 10"
+   HeightRequest="36"
+       WidthRequest="36">
+    <Image HeightRequest="20" WidthRequest="20" HorizontalOptions="Center" VerticalOptions="Center">
+          <Image.Source>
+        <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Shopping_basket}"
+        FontFamily="MaterialSymbolsOutlined"
+         Color="White"
+     Size="20"/>
+       </Image.Source>
+         </Image>
+   </Border>
+       <Label Text="Składniki" FontSize="20" FontAttributes="Bold" VerticalOptions="Center"
+       TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"/>
+   <Image HeightRequest="24" WidthRequest="24" VerticalOptions="Center" Margin="8,0,0,0">
+       <Image.Source>
+        <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Expand_more}"
+     FontFamily="MaterialSymbolsOutlined"
+          Color="{StaticResource Primary}"
+                   Size="24"/>
+         </Image.Source>
+ <Image.Triggers>
+   <DataTrigger TargetType="Image" 
+      Binding="{Binding IsIngredientsExpanded}" 
+     Value="True">
+            <Setter Property="Rotation" Value="180"/>
+</DataTrigger>
+  </Image.Triggers>
+</Image>
+      </HorizontalStackLayout>
+       </Border>
+      
+       <CollectionView ItemsSource="{Binding Ingredients}"
+       IsVisible="{Binding IsIngredientsExpanded}">
+        <CollectionView.ItemTemplate>
+          <DataTemplate x:DataType="vm:RecipeIngredientDisplay">
+           <Border Margin="0,4"
+   Padding="14,12"
+     StrokeThickness="0"
+   StrokeShape="RoundRectangle 12"
+          BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray600}}">
+             <Grid ColumnDefinitions="Auto,*" ColumnSpacing="14">
+      <Border BackgroundColor="{StaticResource Secondary}"
+          StrokeThickness="0"
+       StrokeShape="RoundRectangle 10"
+           HeightRequest="28"
+  WidthRequest="28">
+     <Image HeightRequest="16" WidthRequest="16" HorizontalOptions="Center" VerticalOptions="Center">
+           <Image.Source>
+      <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Check}"
+      FontFamily="MaterialSymbolsOutlined"
+    Color="{StaticResource Primary}"
+         Size="16"/>
+      </Image.Source>
+              </Image>
+          </Border>
+        <Label Grid.Column="1" 
+      Text="{Binding DisplayText}" 
+   FontSize="15"
+        VerticalOptions="Center"
+   TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"/>
+         </Grid>
+    </Border>
+                  </DataTemplate>
+        </CollectionView.ItemTemplate>
+  </CollectionView>
+   </VerticalStackLayout>
 
                         <!-- Instrukcje Section -->
                         <VerticalStackLayout Spacing="14">

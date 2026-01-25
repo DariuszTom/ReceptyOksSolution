@@ -25,9 +25,18 @@ public partial class RecipeDetailViewModel : ObservableObject
     [ObservableProperty]
     private ImageSource? recipeImage;
 
+    [ObservableProperty]
+    private bool isIngredientsExpanded = false;
+
     public RecipeDetailViewModel(LocalDatabase database)
     {
         _database = database;
+    }
+
+    [RelayCommand]
+    private void ToggleIngredients()
+    {
+        IsIngredientsExpanded = !IsIngredientsExpanded;
     }
 
     partial void OnRecipeIdChanged(string value)
