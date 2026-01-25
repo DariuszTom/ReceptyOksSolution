@@ -13,11 +13,13 @@ namespace ReceptyOks.ViewModels;
 /// </summary>
 public partial class ChatBotViewModel : ObservableObject
 {
+    private readonly LocalDatabase _database;
     private readonly TokenProviderService _tokenProvider;
     private readonly ILogger _logger;
- private readonly AgentToolsRegistrar _toolsRegistrar;
+    private readonly AgentToolsRegistrar _toolsRegistrar;
     private AiAgent? _agent;
     private CancellationTokenSource? _sendCts;
+    private string? _currentConversationId;
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(SendMessageCommand))]
@@ -44,21 +46,33 @@ public partial class ChatBotViewModel : ObservableObject
     [ObservableProperty]
     private bool _hasInitializationError;
 
+    [ObservableProperty]
+    private bool _isHistorySheetOpen;
+
+    [ObservableProperty]
+    private bool _isLoadingHistory;
+
     /// <summary>
     /// Gets the collection of chat messages displayed in the UI.
     /// </summary>
     public ObservableCollection<ChatMessageViewModel> Messages { get; } = new();
 
+    /// <summary>
+    /// Gets the collection of saved conversations for the history list.
+    /// </summary>
+    public ObservableCollection<ConversationHistoryItemViewModel> Conversations { get; } = new();
+
     public ChatBotViewModel(LocalDatabase database, TokenProviderService tokenProvider, ILogger logger)
     {
         ArgumentNullException.ThrowIfNull(database);
-     ArgumentNullException.ThrowIfNull(tokenProvider);
+        ArgumentNullException.ThrowIfNull(tokenProvider);
         ArgumentNullException.ThrowIfNull(logger);
 
-      _logger = logger;
+        _database = database;
+        _logger = logger;
         _toolsRegistrar = new AgentToolsRegistrar(database, logger);
         _tokenProvider = tokenProvider;
- }
+    }
 
     /// <summary>
     /// Initializes the AI agent with Anthropic client and registers tools.
@@ -89,15 +103,15 @@ public partial class ChatBotViewModel : ObservableObject
 
             var settings = new AnthropicSettings();
 
- using (var anthritopicAgent = new AnthropicAgent(settings, tokenBytes))
-        {
-   _agent = new AiAgent(anthritopicAgent.GetAgent(), settings.SystemPrompt);
- }
+            using (var anthritopicAgent = new AnthropicAgent(settings, tokenBytes))
+            {
+                _agent = new AiAgent(anthritopicAgent.GetAgent(), settings.SystemPrompt);
+            }
 
-   // Register tools
- _toolsRegistrar.RegisterTools(_agent);
+            // Register tools
+            _toolsRegistrar.RegisterTools(_agent);
 
-      _logger.Information("AI agent initialized successfully");
+            _logger.Information("AI agent initialized successfully");
         }
         catch (Exception ex)
         {
@@ -202,6 +216,7 @@ public partial class ChatBotViewModel : ObservableObject
     {
         Messages.Clear();
         _agent?.ClearHistory();
+        _currentConversationId = null;
         HasError = false;
         ErrorMessage = string.Empty;
         _logger.Information("Conversation cleared");
@@ -214,6 +229,215 @@ public partial class ChatBotViewModel : ObservableObject
     private async Task RetryInitializationAsync()
     {
         await InitializeAsync();
+    }
+
+    /// <summary>
+    /// Opens the conversation history sheet.
+    /// </summary>
+    [RelayCommand]
+    private async Task OpenHistoryAsync()
+    {
+        IsHistorySheetOpen = true;
+        await LoadConversationsAsync();
+    }
+
+    /// <summary>
+    /// Closes the conversation history sheet.
+    /// </summary>
+    [RelayCommand]
+    private void CloseHistory()
+    {
+        IsHistorySheetOpen = false;
+    }
+
+    /// <summary>
+    /// Loads all saved conversations from the database.
+    /// </summary>
+    private async Task LoadConversationsAsync()
+    {
+        if (IsLoadingHistory)
+        {
+            return;
+        }
+
+        IsLoadingHistory = true;
+
+        try
+        {
+            var conversations = await _database.GetConversationsAsync().ConfigureAwait(false);
+
+            await MainThread.InvokeOnMainThreadAsync(() =>
+  {
+      Conversations.Clear();
+      foreach (var conv in conversations)
+      {
+          Conversations.Add(new ConversationHistoryItemViewModel(
+        conv.Id,
+             conv.Title ?? "Rozmowa bez tytułu",
+                   conv.UpdatedAt));
+      }
+  });
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Failed to load conversations");
+        }
+        finally
+        {
+            IsLoadingHistory = false;
+        }
+    }
+
+    /// <summary>
+    /// Loads a specific conversation from history.
+    /// </summary>
+    [RelayCommand]
+    private async Task LoadConversationAsync(ConversationHistoryItemViewModel item)
+    {
+        if (item is null || _agent is null)
+        {
+            return;
+        }
+
+        IsHistorySheetOpen = false;
+        IsBusy = true;
+
+        try
+        {
+            var conversation = await _database.GetConversationAsync(item.Id).ConfigureAwait(false);
+            if (conversation is null)
+            {
+                _logger.Warning("Conversation {Id} not found", item.Id);
+                return;
+            }
+
+            // Load the conversation thread into the agent
+            await _agent.LoadConversationAsync(conversation.SerializedThread, conversation.Id).ConfigureAwait(false);
+            _currentConversationId = conversation.Id;
+
+            await MainThread.InvokeOnMainThreadAsync(() =>
+                     {
+                         Messages.Clear();
+                         // Note: Messages are not persisted separately; after loading, the user can continue the conversation
+                         // A welcome message indicates the conversation was loaded
+                         Messages.Add(new ChatMessageViewModel($"[Załadowano rozmowę: {item.Title}]", isUser: false));
+                     });
+
+            _logger.Information("Loaded conversation {Id}", item.Id);
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Failed to load conversation {Id}", item.Id);
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                HasError = true;
+                ErrorMessage = "Nie udało się załadować rozmowy.";
+            });
+        }
+        finally
+        {
+            await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
+        }
+    }
+
+    /// <summary>
+    /// Saves the current conversation to the database.
+    /// </summary>
+    [RelayCommand]
+    private async Task SaveConversationAsync()
+    {
+        if (_agent is null || Messages.Count == 0)
+        {
+            return;
+        }
+
+        IsBusy = true;
+
+        try
+        {
+            var serializedThread = await _agent.SaveConversationAsync().ConfigureAwait(false);
+            _currentConversationId ??= Guid.NewGuid().ToString();
+
+            // Generate a title from the first user message
+            var firstUserMessage = Messages.FirstOrDefault(m => m.IsUser);
+            var title = firstUserMessage?.Content?.Length > 50
+           ? firstUserMessage.Content[..50] + "..."
+            : firstUserMessage?.Content ?? "Rozmowa";
+
+            var conversation = new ConversationLocal
+            {
+                Id = _currentConversationId,
+                Title = title,
+                SerializedThread = serializedThread
+            };
+
+            await _database.SaveConversationAsync(conversation).ConfigureAwait(false);
+
+            _logger.Information("Conversation saved with ID {Id}", _currentConversationId);
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Failed to save conversation");
+            await MainThread.InvokeOnMainThreadAsync(() =>
+             {
+                 HasError = true;
+                 ErrorMessage = "Nie udało się zapisać rozmowy.";
+             });
+        }
+        finally
+        {
+            await MainThread.InvokeOnMainThreadAsync(() => IsBusy = false);
+        }
+    }
+
+    /// <summary>
+    /// Deletes a conversation from history.
+    /// </summary>
+    [RelayCommand]
+    private async Task DeleteConversationAsync(ConversationHistoryItemViewModel item)
+    {
+        if (item is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await _database.DeleteConversationAsync(item.Id).ConfigureAwait(false);
+
+            await MainThread.InvokeOnMainThreadAsync(() =>
+      {
+          Conversations.Remove(item);
+      });
+
+            // If the deleted conversation is the current one, clear it
+            if (_currentConversationId == item.Id)
+            {
+                ClearConversation();
+            }
+
+            _logger.Information("Conversation {Id} deleted", item.Id);
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Failed to delete conversation {Id}", item.Id);
+        }
+    }
+
+    /// <summary>
+    /// Starts a new conversation, saving the current one if it has messages.
+    /// </summary>
+    [RelayCommand]
+    private async Task NewConversationAsync()
+    {
+        // Save current conversation if it has messages
+        if (Messages.Count > 0 && _agent is not null)
+        {
+            await SaveConversationAsync();
+        }
+
+        ClearConversation();
+        IsHistorySheetOpen = false;
     }
 }
 
@@ -239,5 +463,23 @@ public partial class ChatMessageViewModel : ObservableObject
     {
         _content = content;
         IsUser = isUser;
+    }
+}
+
+/// <summary>
+/// Represents a conversation history item for display in the history list.
+/// </summary>
+public sealed class ConversationHistoryItemViewModel
+{
+    public string Id { get; }
+    public string Title { get; }
+    public DateTimeOffset UpdatedAt { get; }
+    public string FormattedDate => UpdatedAt.LocalDateTime.ToString("dd MMM yyyy, HH:mm");
+
+    public ConversationHistoryItemViewModel(string id, string title, DateTimeOffset updatedAt)
+    {
+        Id = id;
+        Title = title;
+        UpdatedAt = updatedAt;
     }
 }

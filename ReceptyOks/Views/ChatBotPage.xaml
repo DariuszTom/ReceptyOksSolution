@@ -1,17 +1,22 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             xmlns:vm="clr-namespace:ReceptyOks.ViewModels"
-             x:Class="ReceptyOks.Views.ChatBotPage"
-             x:DataType="vm:ChatBotViewModel"
-             Title="ChatBotPage"
-             xmlns:icons="clr-namespace:UraniumUI.Icons.MaterialSymbols;assembly=UraniumUI.Icons.MaterialSymbols"
-             xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
-             xmlns:material="http://schemas.enisn-projects.io/dotnet/maui/uraniumui/material"
-             Shell.NavBarIsVisible="False"
-             BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark=#121212}">
+<uranium:UraniumContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+   xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+          xmlns:vm="clr-namespace:ReceptyOks.ViewModels"
+     x:Class="ReceptyOks.Views.ChatBotPage"
+    x:Name="ChatBotPageRoot"
+   x:DataType="vm:ChatBotViewModel"
+    Title="ChatBotPage"
+    xmlns:icons="clr-namespace:UraniumUI.Icons.MaterialSymbols;assembly=UraniumUI.Icons.MaterialSymbols"
+      xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+   xmlns:material="http://schemas.enisn-projects.io/dotnet/maui/uraniumui/material"
+   xmlns:uranium="http://schemas.enisn-projects.io/dotnet/maui/uraniumui"
+        Shell.NavBarIsVisible="False"
+    BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark=#121212}">
 
-    <Grid RowDefinitions="Auto,*,Auto">
+  <!-- Main content wrapper -->
+    <Grid>
+      <!-- Main chat content -->
+        <Grid RowDefinitions="Auto,*,Auto">
         <!-- Header with gradient effect -->
    <Grid Grid.Row="0" 
               Padding="24,20"
@@ -55,25 +60,62 @@
           </VerticalStackLayout>
          </HorizontalStackLayout>
        
- <!-- Clear conversation button -->
- <Border Grid.Column="1"
-             StrokeThickness="0"
-   BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray800}}"
-       StrokeShape="RoundRectangle 20"
-            VerticalOptions="Center"
-              Padding="0">
-   <Button Command="{Binding ClearConversationCommand}"
-            BackgroundColor="Transparent"
+<!-- Header Buttons -->
+ <HorizontalStackLayout Grid.Column="1" Spacing="8" VerticalOptions="Center">
+  <!-- Save conversation button -->
+         <Border StrokeThickness="0"
+       BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray800}}"
+             StrokeShape="RoundRectangle 20"
+            Padding="0">
+             <Button Command="{Binding SaveConversationCommand}" 
+     BackgroundColor="Transparent"
          WidthRequest="40"
-  HeightRequest="40">
-   <Button.ImageSource>
-             <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Delete_sweep}"
-            FontFamily="MaterialSymbolsOutlined"
-       Color="{StaticResource Gray600}"
- Size="22"/>
-     </Button.ImageSource>
-     </Button>
-     </Border>
+        HeightRequest="40">
+      <Button.ImageSource>
+      <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Save}"
+              FontFamily="MaterialSymbolsOutlined"
+        Color="#2196F3"
+       Size="22"/>
+  </Button.ImageSource>
+         </Button>
+    </Border>
+
+  <!-- History button -->
+    <Border StrokeThickness="0"
+           BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray800}}"
+           StrokeShape="RoundRectangle 20"
+      Padding="0">
+             <Button Command="{Binding OpenHistoryCommand}"
+             BackgroundColor="Transparent"
+             WidthRequest="40"
+    HeightRequest="40">
+       <Button.ImageSource>
+          <FontImageSource Glyph="{x:Static icons:MaterialOutlined.History}"
+           FontFamily="MaterialSymbolsOutlined"
+   Color="{StaticResource Gray600}"
+       Size="22"/>
+      </Button.ImageSource>
+           </Button>
+       </Border>
+
+   <!-- Clear conversation button -->
+<Border StrokeThickness="0"
+          BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray800}}"
+    StrokeShape="RoundRectangle 20"
+        Padding="0">
+             <Button Command="{Binding ClearConversationCommand}" 
+             BackgroundColor="Transparent"
+    WidthRequest="40"
+    HeightRequest="40">
+     <Button.ImageSource>
+          <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Delete_sweep}"
+   FontFamily="MaterialSymbolsOutlined"
+   Color="#EF5350"
+        Size="22"/>
+      </Button.ImageSource>
+      </Button>
+        </Border>
+  </HorizontalStackLayout>
         </Grid>
 
         <!-- Messages List -->
@@ -317,9 +359,9 @@
             </VerticalStackLayout>
         </Grid>
 
-        <Grid RowSpan="3" IsVisible="{Binding HasInitializationError}" BackgroundColor="#FF000000" VisualElement.ZIndex="100" InputTransparent="False">
+  <Grid RowSpan="3" IsVisible="{Binding HasInitializationError}" BackgroundColor="#FF000000" VisualElement.ZIndex="100" InputTransparent="False">
    <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center" Spacing="12" Padding="24">
-                <Border BackgroundColor="White" 
+          <Border BackgroundColor="White" 
        StrokeThickness="0"
   StrokeShape="RoundRectangle 8" 
           WidthRequest="360" 
@@ -330,11 +372,146 @@
 <VerticalStackLayout Spacing="12">
 <Label Text="Błąd inicjalizacji" FontSize="18" FontAttributes="Bold" TextColor="Black" HorizontalOptions="Center"/>
         <Label Text="{Binding InitializationError}" TextColor="Black" HorizontalOptions="Center" HorizontalTextAlignment="Center" LineBreakMode="WordWrap"/>
-            <Button Text="Spróbuj ponownie" Command="{Binding RetryInitializationCommand}" HorizontalOptions="Center"/>
+        <Button Text="Spróbuj ponownie" Command="{Binding RetryInitializationCommand}" HorizontalOptions="Center"/>
        </VerticalStackLayout>
     </Border>
          </VerticalStackLayout>
-        </Grid>
+  </Grid>
 
-    </Grid>
-</ContentPage>
+     </Grid>
+</Grid>
+
+    <!-- Bottom Sheet for history using UraniumUI - defined in page Attachments -->
+    <uranium:UraniumContentPage.Attachments>
+        <material:BottomSheetView x:Name="historyBottomSheet"
+           IsPresented="{Binding IsHistorySheetOpen, Mode=TwoWay}"
+             DisablePageWhenOpened="True"
+ CloseOnTapOutside="True"
+           HeightRequest="420"
+           VerticalOptions="End">
+     <material:BottomSheetView.Header>
+         <Grid ColumnDefinitions="*,Auto" Padding="16,8,16,16">
+         <Label Text="Historia rozmów" 
+        FontSize="20" 
+       FontAttributes="Bold"
+               TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"
+          VerticalOptions="Center"/>
+            <Button Grid.Column="1"
+    Command="{Binding CloseHistoryCommand}"
+    BackgroundColor="Transparent"
+               WidthRequest="40"
+   HeightRequest="40">
+     <Button.ImageSource>
+   <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Close}"
+       FontFamily="MaterialSymbolsOutlined"
+  Color="{StaticResource Gray600}"
+       Size="24"/>
+         </Button.ImageSource>
+  </Button>
+     </Grid>
+  </material:BottomSheetView.Header>
+
+          <material:BottomSheetView.Body>
+ <VerticalStackLayout Padding="16,0,16,16" Spacing="16">
+         <!-- New Conversation Button -->
+  <Border StrokeThickness="1"
+              Stroke="{StaticResource Primary}"
+           StrokeShape="RoundRectangle 12"
+     Padding="16,12"
+   BackgroundColor="{AppThemeBinding Light={StaticResource Gray50}, Dark={StaticResource Gray800}}">
+             <Border.GestureRecognizers>
+   <TapGestureRecognizer Command="{Binding NewConversationCommand}"/>
+ </Border.GestureRecognizers>
+          <HorizontalStackLayout Spacing="12" HorizontalOptions="Center">
+      <Image HeightRequest="24" WidthRequest="24">
+      <Image.Source>
+           <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Add}"
+         FontFamily="MaterialSymbolsOutlined"
+       Color="#FFEB3B"
+         Size="24"/>
+                </Image.Source>
+               </Image>
+          <Label Text="Nowa rozmowa"
+    FontSize="16"
+           FontAttributes="Bold"
+ TextColor="#FFEB3B"
+  VerticalOptions="Center"/>
+    </HorizontalStackLayout>
+    </Border>
+
+   <!-- Conversations List -->
+        <CollectionView ItemsSource="{Binding Conversations}"
+   SelectionMode="None"
+      HeightRequest="350">
+          <CollectionView.EmptyView>
+       <VerticalStackLayout VerticalOptions="Center" 
+     HorizontalOptions="Center" 
+           Spacing="12" 
+        Padding="20">
+      <ActivityIndicator IsRunning="{Binding IsLoadingHistory}" 
+            IsVisible="{Binding IsLoadingHistory}"
+    HeightRequest="32" 
+            WidthRequest="32"
+            Color="{StaticResource Primary}"/>
+ <Label IsVisible="{Binding IsLoadingHistory, Converter={toolkit:InvertedBoolConverter}}"
+       Text="Brak zapisanych rozmów" 
+       FontSize="16"
+      TextColor="{StaticResource Gray400}"
+ HorizontalOptions="Center"/>
+            </VerticalStackLayout>
+     </CollectionView.EmptyView>
+           <CollectionView.ItemTemplate>
+         <DataTemplate x:DataType="vm:ConversationHistoryItemViewModel">
+    <SwipeView>
+   <SwipeView.RightItems>
+  <SwipeItems>
+            <SwipeItem Text="Usuń"
+       BackgroundColor="#EF5350"
+            Command="{Binding BindingContext.DeleteConversationCommand, Source={x:Reference ChatBotPageRoot}}"
+       CommandParameter="{Binding .}"/>
+           </SwipeItems>
+      </SwipeView.RightItems>
+          <Border Margin="0,4"
+           Padding="16,12"
+ StrokeThickness="1"
+         Stroke="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray700}}"
+        StrokeShape="RoundRectangle 12"
+     BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray800}}">
+            <Border.GestureRecognizers>
+            <TapGestureRecognizer 
+         Command="{Binding BindingContext.LoadConversationCommand, Source={x:Reference ChatBotPageRoot}}"
+           CommandParameter="{Binding .}"/>
+    </Border.GestureRecognizers>
+         <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+        <Label Text="{Binding Title}"
+          FontSize="15"
+        FontAttributes="Bold"
+     LineBreakMode="TailTruncation"
+  TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"/>
+         <Image Grid.Column="1" 
+  Grid.RowSpan="2"
+       HeightRequest="20" 
+     WidthRequest="20"
+       VerticalOptions="Center">
+   <Image.Source>
+        <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Chevron_right}"
+    FontFamily="MaterialSymbolsOutlined"
+    Color="{StaticResource Gray400}"
+       Size="20"/>
+          </Image.Source>
+  </Image>
+           <Label Grid.Row="1"
+  Text="{Binding FormattedDate}"
+        FontSize="13"
+  TextColor="{StaticResource Gray500}"/>
+        </Grid>
+         </Border>
+              </SwipeView>
+             </DataTemplate>
+      </CollectionView.ItemTemplate>
+       </CollectionView>
+        </VerticalStackLayout>
+        </material:BottomSheetView.Body>
+        </material:BottomSheetView>
+    </uranium:UraniumContentPage.Attachments>
+</uranium:UraniumContentPage>
