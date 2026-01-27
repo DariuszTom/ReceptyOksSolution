@@ -105,18 +105,39 @@ public static class SyncEndpoints
                             Order = ri.Order
                         }).ToList()
                     })
-    .ToListAsync()
+            .ToListAsync()
             };
 
-            logger.LogInformation(
-        "Full sync completed. Categories: {CatCount}, Ingredients: {IngCount}, Recipes: {RecCount}",
-           response.Categories.Count,
-          response.Ingredients.Count,
-                response.Recipes.Count);
+            logger.LogInformation("Full sync completed. Categories: {CatCount}, Ingredients: {IngCount}, Recipes: {RecCount}",
+                response.Categories.Count, response.Ingredients.Count, response.Recipes.Count);
 
             return Results.Ok(response);
         })
         .WithName("FullSync");
+
+        // POST - upload wszystkich danych z klienta (nadpisuje serwer)
+        group.MapPost("/upload-all", async (SyncRequest request, RecipeDbContext db, ILogger<RecipeDbContext> logger) =>
+        {
+            logger.LogInformation("Upload-all started. Categories: {CatCount}, Ingredients: {IngCount}, Recipes: {RecCount}",
+            request.ChangedCategories.Count,request.ChangedIngredients.Count, request.ChangedRecipes.Count);
+            // Zastosuj wszystkie dane z klienta (upsert)
+            await ApplyClientChanges(request, db, logger);
+
+            var syncTime = DateTime.UtcNow;
+
+            var response = new SyncResponse
+            {
+                SyncedAt = syncTime,
+                Categories = [],
+                Ingredients = [],
+                Recipes = []
+            };
+
+            logger.LogInformation("Upload-all completed. SyncedAt: {SyncTime}", syncTime);
+
+            return Results.Ok(response);
+        })
+        .WithName("UploadAll");
     }
 
     private static async Task ApplyClientChanges(SyncRequest request, RecipeDbContext db, ILogger logger)
@@ -242,12 +263,9 @@ public static class SyncEndpoints
             }
 
             // Filter out invalid ingredient references instead of skipping the whole recipe
-            var invalidIngredientRefs = recipeDto.Ingredients
-          .Where(ri => !validIngredientIds.Contains(ri.IngredientId))
-                    .ToList();
+            var invalidIngredientRefs = recipeDto.Ingredients.Where(ri => !validIngredientIds.Contains(ri.IngredientId)).ToList();
 
-            var validIngredients = recipeDto.Ingredients
-        .Where(ri => validIngredientIds.Contains(ri.IngredientId))
+            var validIngredients = recipeDto.Ingredients.Where(ri => validIngredientIds.Contains(ri.IngredientId))
                 .ToList();
 
             if (invalidIngredientRefs.Count > 0)
@@ -259,14 +277,11 @@ public static class SyncEndpoints
                 skippedIngredientRefs += invalidIngredientRefs.Count;
             }
 
-            var existing = await db.Recipes
-    .Include(r => r.Ingredients)
-       .FirstOrDefaultAsync(r => r.Id == recipeDto.Id);
+            var existing = await db.Recipes.Include(r => r.Ingredients).FirstOrDefaultAsync(r => r.Id == recipeDto.Id);
 
             if (existing is null)
             {
-                logger.LogDebug(
-           "Adding new recipe: {RecipeId} - {RecipeTitle} with {IngredientCount} ingredients (valid: {ValidCount})",
+                logger.LogDebug("Adding new recipe: {RecipeId} - {RecipeTitle} with {IngredientCount} ingredients (valid: {ValidCount})",
                   recipeDto.Id, recipeDto.Title, recipeDto.Ingredients.Count, validIngredients.Count);
 
                 var recipe = new Recipe
@@ -305,8 +320,7 @@ public static class SyncEndpoints
             }
             else if (recipeDto.UpdatedAt > existing.UpdatedAt)
             {
-                logger.LogDebug(
-            "Updating recipe: {RecipeId} - {RecipeTitle} (client: {ClientUpdated}, server: {ServerUpdated}), ingredients: {OldCount} -> {NewCount} (valid: {ValidCount})",
+                logger.LogDebug("Updating recipe: {RecipeId} - {RecipeTitle} (client: {ClientUpdated}, server: {ServerUpdated}), ingredients: {OldCount} -> {NewCount} (valid: {ValidCount})",
                 recipeDto.Id, recipeDto.Title, recipeDto.UpdatedAt, existing.UpdatedAt,
                    existing.Ingredients.Count, recipeDto.Ingredients.Count, validIngredients.Count);
 

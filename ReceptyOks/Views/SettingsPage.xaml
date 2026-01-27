@@ -36,7 +36,17 @@
                                          Color="{StaticResource Primary}" />
                     </Button.ImageSource>
                 </Button>
-
+                <Button Text="Backend force update" Background="{StaticResource DarkGradient}"
+                        Command="{Binding ForceUpdateBackendCommand}"
+                        IsEnabled="{Binding IsChecking, Converter={StaticResource InvertedBoolConverter}}"
+                        StyleClass="ElevatedButton">
+                    <Button.ImageSource>
+                        <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Database}"
+                                         FontFamily="MaterialSymbolsOutlined"
+                                         Size="18"
+                                         Color="{StaticResource Primary}" />
+                    </Button.ImageSource>
+                </Button>
                 <Button Text="Sprawdź aktualizację" Background="{StaticResource DarkGradient}"
                         Command="{Binding CheckUpdateCommand}"
                         IsEnabled="{Binding IsChecking, Converter={StaticResource InvertedBoolConverter}}"

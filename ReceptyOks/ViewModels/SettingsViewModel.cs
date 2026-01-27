@@ -1,6 +1,5 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Microsoft.Maui.ApplicationModel;
 using ReceptyOks.Services;
 
 namespace ReceptyOks.ViewModels;
@@ -8,6 +7,7 @@ namespace ReceptyOks.ViewModels;
 public partial class SettingsViewModel : ObservableObject
 {
     private readonly UpdateCheckerService _updateChecker;
+    private readonly SyncService _syncService;
 
     [ObservableProperty]
     private string updateStatus;
@@ -15,9 +15,10 @@ public partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     private bool isChecking;
 
-    public SettingsViewModel(UpdateCheckerService updateChecker)
+    public SettingsViewModel(UpdateCheckerService updateChecker, SyncService syncService)
     {
         _updateChecker = updateChecker;
+        _syncService = syncService;
         UpdateStatus = string.Empty;
     }
 
@@ -72,6 +73,19 @@ public partial class SettingsViewModel : ObservableObject
             {
                 await Shell.Current.DisplayAlertAsync("Błąd nawigacji", $"Nie można otworzyć logów: {ex.Message}", "OK");
             });
+        }
+    }
+    [RelayCommand]
+    public async Task ForceUpdateBackendAsync()
+    {
+        var result = await _syncService.UploadAllAsync();
+        if (result.Success)
+        {
+            await Shell.Current.DisplayAlertAsync("Synchronizacja", "Wymuszona aktualizacja zakończona pomyślnie.", "OK");
+        }
+        else
+        {
+            await Shell.Current.DisplayAlertAsync("Synchronizacja", "Wymuszona aktualizacja nie powiodła się.", "OK");
         }
     }
 }
