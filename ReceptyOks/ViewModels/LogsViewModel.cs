@@ -133,6 +133,12 @@ public partial class LogsViewModel : ObservableObject
 
     partial void OnSelectedLevelChanged(string value)
     {
-        Task.Run(async () => await LoadLogsAsync());
+     Task.Run(async () => await LoadLogsAsync());
+    }
+
+    [RelayCommand]
+    private async Task GoBackAsync()
+    {
+        await Shell.Current.GoToAsync("..");
     }
 }

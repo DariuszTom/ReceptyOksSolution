@@ -13,18 +13,31 @@
         
         <!-- Custom Header -->
         <Grid Grid.Row="0" 
-              Padding="20,16"
-              BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}">
-            <Grid.Shadow>
-                <Shadow Brush="{StaticResource Gray400Brush}" Offset="0,2" Radius="4" Opacity="0.1"/>
-            </Grid.Shadow>
-            <VerticalStackLayout VerticalOptions="Center">
-                <Label Text="Logi Aplikacji" 
-                       Style="{StaticResource PageTitle}"
-                       FontSize="24"/>
-                <Label Text="Diagnostyka i debugowanie" 
-                       Style="{StaticResource CaptionLabel}"/>
-            </VerticalStackLayout>
+       Padding="20,16"
+           ColumnDefinitions="Auto,*"
+ ColumnSpacing="12"
+        BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}">
+  <Grid.Shadow>
+      <Shadow Brush="{StaticResource Gray400Brush}" Offset="0,2" Radius="4" Opacity="0.1"/>
+    </Grid.Shadow>
+      
+            <Button Grid.Column="0"
+          Padding="8"
+      CornerRadius="10"
+           BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray600}}"
+        VerticalOptions="Center"
+              Command="{Binding GoBackCommand}">
+  <Button.ImageSource>
+      <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Arrow_back}"
+    FontFamily="MaterialSymbolsOutlined" Color="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"
+           Size="24"/>
+      </Button.ImageSource>
+        </Button>
+            
+     <VerticalStackLayout Grid.Column="1" VerticalOptions="Center">
+                <Label Text="Logi Aplikacji"  Style="{StaticResource PageTitle}" FontSize="24"/>
+                <Label Text="Diagnostyka i debugowanie" Style="{StaticResource CaptionLabel}"/>
+     </VerticalStackLayout>
         </Grid>
         
         <!-- Toolbar -->
