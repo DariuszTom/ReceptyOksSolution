@@ -176,7 +176,7 @@ public class SyncService
               {
                   var httpRequest = new HttpRequestMessage(HttpMethod.Post, "/api/sync/upload-all")
                   {
-                      Content = JsonContent.Create(request)
+                      Content = JsonContent.Create(request),
                   };
 
                   httpRequest.Headers.Add(GlobalConstants.ApiKeyHeaderName, "your-api-key");
