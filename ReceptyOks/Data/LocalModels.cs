@@ -23,7 +23,7 @@ public class RecipeLocal
     public DateTime UpdatedAt { get; set; }
     public DateTime? LastSyncedAt { get; set; }
     public bool IsDeleted { get; set; }
-    
+
     /// <summary>
     /// Czy rekord wymaga synchronizacji z serwerem
     /// </summary>
@@ -62,13 +62,13 @@ public class RecipeIngredientLocal
 {
     [PrimaryKey]
     public Guid Id { get; set; }
-    
+
     [Indexed]
     public Guid RecipeId { get; set; }
-    
+
     [Indexed]
     public Guid IngredientId { get; set; }
-    
+
     public decimal Quantity { get; set; }
     public string? Unit { get; set; }
     public string? Notes { get; set; }
@@ -88,15 +88,15 @@ public class LogEntry
 {
     [PrimaryKey, AutoIncrement]
     public int Id { get; set; }
-    
+
     public DateTime Timestamp { get; set; }
-    
+
     public string Level { get; set; } = string.Empty;
-    
+
     public string Message { get; set; } = string.Empty;
-    
+
     public string? Exception { get; set; }
-    
+
     public string? Properties { get; set; }
 }
 
@@ -108,29 +108,29 @@ public class MealPlanLocal
 {
     [PrimaryKey]
     public Guid Id { get; set; }
-    
-/// <summary>
+
+    /// <summary>
     /// Data zaplanowanego posi³ku (bez czasu).
     /// </summary>
     [Indexed]
     public DateTime Date { get; set; }
-    
+
     /// <summary>
     /// Typ posi³ku: 0=Œniadanie, 1=Obiad, 2=Kolacja, 3=Przek¹ska.
     /// </summary>
     public int MealType { get; set; }
-    
+
     /// <summary>
     /// ID przypisanego przepisu.
     /// </summary>
     [Indexed]
     public Guid RecipeId { get; set; }
-    
+
     /// <summary>
     /// Opcjonalna notatka do posi³ku.
     /// </summary>
     public string? Notes { get; set; }
-    
+
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
     public bool IsDeleted { get; set; }
