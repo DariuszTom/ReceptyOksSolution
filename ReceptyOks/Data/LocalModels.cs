@@ -116,11 +116,6 @@ public class MealPlanLocal
     public DateTime Date { get; set; }
 
     /// <summary>
-    /// Typ posi³ku: 0=Œniadanie, 1=Obiad, 2=Kolacja, 3=Przek¹ska.
-    /// </summary>
-    public int MealType { get; set; }
-
-    /// <summary>
     /// ID przypisanego przepisu.
     /// </summary>
     [Indexed]
@@ -135,15 +130,4 @@ public class MealPlanLocal
     public DateTime UpdatedAt { get; set; }
     public bool IsDeleted { get; set; }
     public bool IsDirty { get; set; }
-}
-
-/// <summary>
-/// Enum dla typów posi³ków.
-/// </summary>
-public enum MealType
-{
-    Breakfast = 0,  // Œniadanie
-    Lunch = 1,  // Obiad
-    Dinner = 2,   // Kolacja
-    Snack = 3       // Przek¹ska
 }

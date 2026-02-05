@@ -33,13 +33,24 @@ public partial class MealPlanViewModel : ObservableObject
     private bool isRecipePickerVisible;
 
     [ObservableProperty]
+    private bool isCategoryStepVisible;
+
+    [ObservableProperty]
+    private bool isRecipeStepVisible;
+
+    [ObservableProperty]
+    private ObservableCollection<CategoryLocal> availableCategories = [];
+
+    [ObservableProperty]
+    private CategoryLocal? selectedCategory;
+
+    [ObservableProperty]
     private string recipeSearchQuery = string.Empty;
 
     [ObservableProperty]
     private ObservableCollection<RecipeLocal> filteredRecipes = [];
 
     private DayPlanItem? _selectedDayForAdding;
-    private MealType _selectedMealTypeForAdding;
 
     public MealPlanViewModel(LocalDatabase database, ILogger<MealPlanViewModel> logger)
     {
@@ -66,17 +77,23 @@ public partial class MealPlanViewModel : ObservableObject
 
     private void FilterRecipes()
     {
-        if (string.IsNullOrWhiteSpace(RecipeSearchQuery))
+        FilterRecipesByCategory();
+    }
+
+    private void FilterRecipesByCategory()
+    {
+        var source = SelectedCategory is not null
+            ? AvailableRecipes.Where(r => r.CategoryId == SelectedCategory.Id)
+            : AvailableRecipes;
+
+        if (!string.IsNullOrWhiteSpace(RecipeSearchQuery))
         {
-            FilteredRecipes = new ObservableCollection<RecipeLocal>(AvailableRecipes);
+            source = source.Where(r =>
+                r.Title.Contains(RecipeSearchQuery, StringComparison.OrdinalIgnoreCase) ||
+                r.Description.Contains(RecipeSearchQuery, StringComparison.OrdinalIgnoreCase));
         }
-        else
-        {
-            FilteredRecipes = new ObservableCollection<RecipeLocal>(
-                    AvailableRecipes.Where(r =>
-                      r.Title.Contains(RecipeSearchQuery, StringComparison.OrdinalIgnoreCase) ||
-             r.Description.Contains(RecipeSearchQuery, StringComparison.OrdinalIgnoreCase)));
-        }
+
+        FilteredRecipes = new ObservableCollection<RecipeLocal>(source);
     }
 
     private static DateTime GetStartOfWeek(DateTime date)
@@ -96,6 +113,9 @@ public partial class MealPlanViewModel : ObservableObject
             IsLoading = true;
             UpdateWeekRangeText();
 
+            var categories = await _database.GetCategoriesAsync();
+            AvailableCategories = new ObservableCollection<CategoryLocal>(categories);
+
             var recipes = await _database.GetRecipesAsync();
             AvailableRecipes = new ObservableCollection<RecipeLocal>(recipes);
             FilterRecipes();
@@ -112,36 +132,20 @@ public partial class MealPlanViewModel : ObservableObject
                     Date = date,
                     DayName = GetPolishDayName(date.DayOfWeek),
                     DateText = date.ToString("dd.MM"),
-                    IsToday = date.Date == DateTime.Today
+                    IsToday = date.Date == DateTime.Today,
+                    IsPastDay = date.Date < DateTime.Today
                 };
 
                 var dayMeals = mealPlansWithRecipes.Where(mp => mp.MealPlan.Date.Date == date.Date).ToList();
 
                 foreach (var item in dayMeals)
                 {
-                    var mealItem = new MealItem
+                    dayItem.Meals.Add(new MealItem
                     {
                         Id = item.MealPlan.Id,
-                        MealType = (MealType)item.MealPlan.MealType,
                         Recipe = item.Recipe,
                         Notes = item.MealPlan.Notes
-                    };
-
-                    switch ((MealType)item.MealPlan.MealType)
-                    {
-                        case MealType.Breakfast:
-                            dayItem.BreakfastMeals.Add(mealItem);
-                            break;
-                        case MealType.Lunch:
-                            dayItem.LunchMeals.Add(mealItem);
-                            break;
-                        case MealType.Dinner:
-                            dayItem.DinnerMeals.Add(mealItem);
-                            break;
-                        case MealType.Snack:
-                            dayItem.SnackMeals.Add(mealItem);
-                            break;
-                    }
+                    });
                 }
 
                 days.Add(dayItem);
@@ -191,15 +195,18 @@ public partial class MealPlanViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Otwiera picker do dodania przepisu.
+    /// Otwiera picker — zaczyna od wyboru kategorii.
     /// </summary>
     [RelayCommand]
-    private void OpenRecipePicker(AddMealParameter parameter)
+    private void OpenRecipePicker(DayPlanItem dayPlan)
     {
-        _selectedDayForAdding = parameter.DayPlan;
-        _selectedMealTypeForAdding = parameter.MealType;
+        if (dayPlan.IsPastDay) return;
+
+        _selectedDayForAdding = dayPlan;
+        SelectedCategory = null;
         RecipeSearchQuery = string.Empty;
-        FilterRecipes();
+        IsCategoryStepVisible = true;
+        IsRecipeStepVisible = false;
         IsRecipePickerVisible = true;
     }
 
@@ -210,7 +217,35 @@ public partial class MealPlanViewModel : ObservableObject
     private void CloseRecipePicker()
     {
         IsRecipePickerVisible = false;
+        IsCategoryStepVisible = false;
+        IsRecipeStepVisible = false;
+        SelectedCategory = null;
         _selectedDayForAdding = null;
+    }
+
+    /// <summary>
+    /// Wybiera kategorię i przechodzi do listy przepisów.
+    /// </summary>
+    [RelayCommand]
+    private void SelectCategory(CategoryLocal category)
+    {
+        SelectedCategory = category;
+        RecipeSearchQuery = string.Empty;
+        FilterRecipesByCategory();
+        IsCategoryStepVisible = false;
+        IsRecipeStepVisible = true;
+    }
+
+    /// <summary>
+    /// Wraca do listy kategorii.
+    /// </summary>
+    [RelayCommand]
+    private void BackToCategories()
+    {
+        SelectedCategory = null;
+        RecipeSearchQuery = string.Empty;
+        IsRecipeStepVisible = false;
+        IsCategoryStepVisible = true;
     }
 
     /// <summary>
@@ -227,7 +262,6 @@ public partial class MealPlanViewModel : ObservableObject
             {
                 Id = Guid.NewGuid(),
                 Date = _selectedDayForAdding.Date,
-                MealType = (int)_selectedMealTypeForAdding,
                 RecipeId = recipe.Id
             };
 
@@ -300,16 +334,9 @@ public partial class DayPlanItem : ObservableObject
     public string DayName { get; set; } = string.Empty;
     public string DateText { get; set; } = string.Empty;
     public bool IsToday { get; set; }
+    public bool IsPastDay { get; set; }
 
-    public ObservableCollection<MealItem> BreakfastMeals { get; set; } = [];
-    public ObservableCollection<MealItem> LunchMeals { get; set; } = [];
-    public ObservableCollection<MealItem> DinnerMeals { get; set; } = [];
-    public ObservableCollection<MealItem> SnackMeals { get; set; } = [];
-
-    public bool HasBreakfast => BreakfastMeals.Count > 0;
-    public bool HasLunch => LunchMeals.Count > 0;
-    public bool HasDinner => DinnerMeals.Count > 0;
-    public bool HasSnack => SnackMeals.Count > 0;
+    public ObservableCollection<MealItem> Meals { get; set; } = [];
 }
 
 /// <summary>
@@ -318,26 +345,6 @@ public partial class DayPlanItem : ObservableObject
 public class MealItem
 {
     public Guid Id { get; set; }
-    public MealType MealType { get; set; }
     public RecipeLocal? Recipe { get; set; }
     public string? Notes { get; set; }
-}
-
-/// <summary>
-/// Parametr do komendy dodawania posiłku. Tworzony w code-behind.
-/// </summary>
-public class AddMealParameter
-{
-    public DayPlanItem? DayPlan { get; set; }
-    public MealType MealType { get; set; }
-
-    public AddMealParameter()
-    {
-    }
-
-    public AddMealParameter(DayPlanItem dayPlan, MealType mealType)
-    {
-        DayPlan = dayPlan;
-        MealType = mealType;
-    }
 }

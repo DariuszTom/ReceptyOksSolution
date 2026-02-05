@@ -500,7 +500,6 @@ public class LocalDatabase
         return await db.Table<MealPlanLocal>()
                  .Where(mp => !mp.IsDeleted && mp.Date >= start && mp.Date < end)
               .OrderBy(mp => mp.Date)
-               .ThenBy(mp => mp.MealType)
          .ToListAsync();
     }
 
