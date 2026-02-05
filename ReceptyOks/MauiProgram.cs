@@ -1,4 +1,5 @@
-﻿using CommunityToolkit.Maui;
+﻿using AuroraControls;
+using CommunityToolkit.Maui;
 using Microsoft.Extensions.Configuration;
 using Plugin.Maui.OCR;
 using ReceptyOks.Configuration;
@@ -39,6 +40,7 @@ public static class MauiProgram
 
         builder
             .UseMauiApp<App>()
+            .UseAuroraControls<App>()
             .UseMauiCommunityToolkit()
             .UseUraniumUI()
             .UseUraniumUIMaterial()
