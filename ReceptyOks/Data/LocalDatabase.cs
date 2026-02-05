@@ -27,6 +27,7 @@ public class LocalDatabase
         await _database.CreateTableAsync<SyncInfo>();
         await _database.CreateTableAsync<LogEntry>();
         await _database.CreateTableAsync<ConversationLocal>();
+        await _database.CreateTableAsync<MealPlanLocal>();
 
         return _database;
     }
@@ -481,6 +482,100 @@ public class LocalDatabase
     {
         var db = await GetConnectionAsync();
         return await db.ExecuteAsync("DELETE FROM Conversations WHERE IsDeleted = 1");
+    }
+
+    #endregion
+
+    #region MealPlans
+
+    /// <summary>
+    /// Pobiera plany posi³ków dla zakresu dat.
+    /// </summary>
+    public async Task<List<MealPlanLocal>> GetMealPlansForDateRangeAsync(DateTime startDate, DateTime endDate)
+    {
+        var db = await GetConnectionAsync();
+        var start = startDate.Date;
+        var end = endDate.Date.AddDays(1);
+
+        return await db.Table<MealPlanLocal>()
+                 .Where(mp => !mp.IsDeleted && mp.Date >= start && mp.Date < end)
+              .OrderBy(mp => mp.Date)
+               .ThenBy(mp => mp.MealType)
+         .ToListAsync();
+    }
+
+    /// <summary>
+    /// Pobiera plany posi³ków dla konkretnego dnia.
+    /// </summary>
+    public async Task<List<MealPlanLocal>> GetMealPlansForDateAsync(DateTime date)
+    {
+        return await GetMealPlansForDateRangeAsync(date, date);
+    }
+
+    /// <summary>
+    /// Pobiera pojedynczy plan posi³ku po ID.
+    /// </summary>
+    public async Task<MealPlanLocal?> GetMealPlanAsync(Guid id)
+    {
+        var db = await GetConnectionAsync();
+        return await db.Table<MealPlanLocal>().FirstOrDefaultAsync(mp => mp.Id == id && !mp.IsDeleted);
+    }
+
+    /// <summary>
+    /// Zapisuje lub aktualizuje plan posi³ku.
+    /// </summary>
+    public async Task<int> SaveMealPlanAsync(MealPlanLocal mealPlan)
+    {
+        ArgumentNullException.ThrowIfNull(mealPlan);
+
+        var db = await GetConnectionAsync();
+        mealPlan.UpdatedAt = DateTime.UtcNow;
+        mealPlan.IsDirty = true;
+
+        var existing = await db.Table<MealPlanLocal>()
+            .FirstOrDefaultAsync(mp => mp.Id == mealPlan.Id);
+
+        if (existing is null)
+        {
+            mealPlan.CreatedAt = DateTime.UtcNow;
+            return await db.InsertAsync(mealPlan);
+        }
+        else
+        {
+            return await db.UpdateAsync(mealPlan);
+        }
+    }
+
+    /// <summary>
+    /// Usuwa plan posi³ku (soft delete).
+    /// </summary>
+    public async Task<int> DeleteMealPlanAsync(Guid id)
+    {
+        var db = await GetConnectionAsync();
+        var mealPlan = await GetMealPlanAsync(id);
+        if (mealPlan is null) return 0;
+
+        mealPlan.IsDeleted = true;
+        mealPlan.UpdatedAt = DateTime.UtcNow;
+        mealPlan.IsDirty = true;
+        return await db.UpdateAsync(mealPlan);
+    }
+
+    /// <summary>
+    /// Pobiera plany posi³ków z pe³nymi danymi przepisów dla zakresu dat.
+    /// </summary>
+    public async Task<List<(MealPlanLocal MealPlan, RecipeLocal? Recipe)>> GetMealPlansWithRecipesAsync(DateTime startDate, DateTime endDate)
+    {
+        var mealPlans = await GetMealPlansForDateRangeAsync(startDate, endDate);
+        var result = new List<(MealPlanLocal, RecipeLocal?)>();
+
+        foreach (var mp in mealPlans)
+        {
+            var recipe = await GetRecipeAsync(mp.RecipeId);
+            result.Add((mp, recipe));
+        }
+
+        return result;
     }
 
     #endregion

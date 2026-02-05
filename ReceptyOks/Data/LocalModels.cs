@@ -99,3 +99,51 @@ public class LogEntry
     
     public string? Properties { get; set; }
 }
+
+/// <summary>
+/// Model przechowuj¹cy przypisanie przepisu do konkretnego dnia i typu posi³ku.
+/// </summary>
+[Table("MealPlans")]
+public class MealPlanLocal
+{
+    [PrimaryKey]
+    public Guid Id { get; set; }
+    
+/// <summary>
+    /// Data zaplanowanego posi³ku (bez czasu).
+    /// </summary>
+    [Indexed]
+    public DateTime Date { get; set; }
+    
+    /// <summary>
+    /// Typ posi³ku: 0=Œniadanie, 1=Obiad, 2=Kolacja, 3=Przek¹ska.
+    /// </summary>
+    public int MealType { get; set; }
+    
+    /// <summary>
+    /// ID przypisanego przepisu.
+    /// </summary>
+    [Indexed]
+    public Guid RecipeId { get; set; }
+    
+    /// <summary>
+    /// Opcjonalna notatka do posi³ku.
+    /// </summary>
+    public string? Notes { get; set; }
+    
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
+    public bool IsDeleted { get; set; }
+    public bool IsDirty { get; set; }
+}
+
+/// <summary>
+/// Enum dla typów posi³ków.
+/// </summary>
+public enum MealType
+{
+    Breakfast = 0,  // Œniadanie
+    Lunch = 1,  // Obiad
+    Dinner = 2,   // Kolacja
+    Snack = 3       // Przek¹ska
+}

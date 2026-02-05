@@ -279,11 +279,32 @@ public class BoolToExpandIconConverter : IValueConverter
 /// </summary>
 public class IsNotNullOrEmptyConverter : IValueConverter
 {
-public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        return value is string str && !string.IsNullOrEmpty(str);
+     return value is string str && !string.IsNullOrEmpty(str);
     }
 
- public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+      => throw new NotImplementedException();
+}
+
+/// <summary>
+/// Konwertuje liczbê posi³ków na wysokoœæ CollectionView.
+/// Zwraca 0 gdy brak posi³ków, lub 44 * count dla widocznych elementów.
+/// </summary>
+public class MealCountToHeightConverter : IValueConverter
+{
+    private const int ItemHeight = 44;
+
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (value is int count && count > 0)
+        {
+    return count * ItemHeight;
+        }
+        return 0;
+    }
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
         => throw new NotImplementedException();
 }
