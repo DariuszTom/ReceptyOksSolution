@@ -116,6 +116,16 @@ public class MealPlanLocal
     public DateTime Date { get; set; }
 
     /// <summary>
+    /// Godzina rozpoczêcia posi³ku (0–23).
+    /// </summary>
+    public int StartHour { get; set; }
+
+    /// <summary>
+    /// Czas trwania przygotowania i gotowania w minutach (minimum 30).
+    /// </summary>
+    public int DurationMinutes { get; set; } = 30;
+
+    /// <summary>
     /// ID przypisanego przepisu.
     /// </summary>
     [Indexed]

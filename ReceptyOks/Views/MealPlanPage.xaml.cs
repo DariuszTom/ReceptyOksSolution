@@ -19,11 +19,32 @@ public partial class MealPlanPage : ContentPage
         await _viewModel.LoadDataCommand.ExecuteAsync(null);
     }
 
-    private void OnAddMealClicked(object? sender, EventArgs e)
+    private void OnTimeSlotTapped(object? sender, TappedEventArgs e)
     {
-        if (sender is ImageButton button && button.BindingContext is DayPlanItem dayPlan)
+        if (sender is not View view) return;
+
+        var hourSlot = view.BindingContext as HourSlot;
+        if (hourSlot is null) return;
+
+        var parent = view.Parent;
+        while (parent is not null)
         {
-            _viewModel.OpenRecipePickerCommand.Execute(dayPlan);
+            if (parent.BindingContext is DayPlanItem dayPlan)
+            {
+                _viewModel.OnTimeSlotTapped(dayPlan, hourSlot.Hour);
+                return;
+            }
+            parent = parent.Parent;
         }
+    }
+
+    private void OnRemoveMealClicked(object? sender, EventArgs e)
+    {
+        if (sender is not View view) return;
+
+        var hourSlot = view.BindingContext as HourSlot;
+        if (hourSlot?.MealRef is null) return;
+
+        _viewModel.RemoveMealCommand.Execute(hourSlot.MealRef);
     }
 }

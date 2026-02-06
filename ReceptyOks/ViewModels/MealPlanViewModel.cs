@@ -7,10 +7,15 @@ using System.Collections.ObjectModel;
 namespace ReceptyOks.ViewModels;
 
 /// <summary>
-/// ViewModel dla strony planowania menu na tydzień/dzień.
+/// ViewModel dla strony planowania menu na tydzień z timeline (0–24h).
 /// </summary>
 public partial class MealPlanViewModel : ObservableObject
 {
+    private const int MinDurationMinutes = 30;
+    private const int TimelineStartHour = 6;
+    private const int TimelineEndHour = 23;
+    private const double HourSlotHeight = 60.0;
+
     private readonly LocalDatabase _database;
     private readonly ILogger<MealPlanViewModel> _logger;
 
@@ -29,6 +34,7 @@ public partial class MealPlanViewModel : ObservableObject
     [ObservableProperty]
     private bool isLoading;
 
+    // Recipe picker
     [ObservableProperty]
     private bool isRecipePickerVisible;
 
@@ -50,7 +56,12 @@ public partial class MealPlanViewModel : ObservableObject
     [ObservableProperty]
     private ObservableCollection<RecipeLocal> filteredRecipes = [];
 
+    // Timeline picker state
+    [ObservableProperty]
+    private string selectedTimeSlotText = string.Empty;
+
     private DayPlanItem? _selectedDayForAdding;
+    private int _selectedStartHour;
 
     public MealPlanViewModel(LocalDatabase database, ILogger<MealPlanViewModel> logger)
     {
@@ -136,15 +147,41 @@ public partial class MealPlanViewModel : ObservableObject
                     IsPastDay = date.Date < DateTime.Today
                 };
 
-                var dayMeals = mealPlansWithRecipes.Where(mp => mp.MealPlan.Date.Date == date.Date).ToList();
+                var dayMeals = mealPlansWithRecipes
+                    .Where(mp => mp.MealPlan.Date.Date == date.Date)
+                    .OrderBy(mp => mp.MealPlan.StartHour)
+                    .ToList();
 
                 foreach (var item in dayMeals)
                 {
+                    var duration = Math.Max(item.MealPlan.DurationMinutes, MinDurationMinutes);
                     dayItem.Meals.Add(new MealItem
                     {
                         Id = item.MealPlan.Id,
                         Recipe = item.Recipe,
-                        Notes = item.MealPlan.Notes
+                        Notes = item.MealPlan.Notes,
+                        StartHour = item.MealPlan.StartHour,
+                        DurationMinutes = duration,
+                        TopOffset = (item.MealPlan.StartHour - TimelineStartHour) * HourSlotHeight,
+                        Height = duration / 60.0 * HourSlotHeight
+                    });
+                }
+
+                // Build hour slots
+                for (var h = TimelineStartHour; h < TimelineEndHour; h++)
+                {
+                    var meal = dayItem.Meals.FirstOrDefault(m =>
+                        h >= m.StartHour && h < m.StartHour + (m.DurationMinutes / 60.0));
+
+                    dayItem.HourSlots.Add(new HourSlot
+                    {
+                        Hour = h,
+                        Label = $"{h:00}:00",
+                        IsOccupied = meal is not null,
+                        IsStartHour = meal is not null && meal.StartHour == h,
+                        MealTitle = meal?.Recipe?.Title,
+                        MealTimeRange = meal?.TimeRangeText,
+                        MealRef = meal
                     });
                 }
 
@@ -164,9 +201,6 @@ public partial class MealPlanViewModel : ObservableObject
         }
     }
 
-    /// <summary>
-    /// Przechodzi do poprzedniego tygodnia.
-    /// </summary>
     [RelayCommand]
     private async Task PreviousWeekAsync()
     {
@@ -174,9 +208,6 @@ public partial class MealPlanViewModel : ObservableObject
         await LoadDataAsync();
     }
 
-    /// <summary>
-    /// Przechodzi do następnego tygodnia.
-    /// </summary>
     [RelayCommand]
     private async Task NextWeekAsync()
     {
@@ -184,9 +215,6 @@ public partial class MealPlanViewModel : ObservableObject
         await LoadDataAsync();
     }
 
-    /// <summary>
-    /// Przechodzi do bieżącego tygodnia.
-    /// </summary>
     [RelayCommand]
     private async Task GoToTodayAsync()
     {
@@ -195,14 +223,22 @@ public partial class MealPlanViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Otwiera picker — zaczyna od wyboru kategorii.
+    /// Użytkownik dotknął slot godzinowy na timeline.
     /// </summary>
-    [RelayCommand]
-    private void OpenRecipePicker(DayPlanItem dayPlan)
+    public void OnTimeSlotTapped(DayPlanItem day, int hour)
     {
-        if (dayPlan.IsPastDay) return;
+        if (day.IsPastDay) return;
 
-        _selectedDayForAdding = dayPlan;
+        // Check if slot is already occupied
+        var isOccupied = day.Meals.Any(m =>
+            hour >= m.StartHour && hour < m.StartHour + (m.DurationMinutes / 60.0));
+
+        if (isOccupied) return;
+
+        _selectedDayForAdding = day;
+        _selectedStartHour = hour;
+        SelectedTimeSlotText = $"{day.DayName} {day.DateText}, godz. {hour:00}:00";
+
         SelectedCategory = null;
         RecipeSearchQuery = string.Empty;
         IsCategoryStepVisible = true;
@@ -210,9 +246,6 @@ public partial class MealPlanViewModel : ObservableObject
         IsRecipePickerVisible = true;
     }
 
-    /// <summary>
-    /// Zamyka picker przepisów.
-    /// </summary>
     [RelayCommand]
     private void CloseRecipePicker()
     {
@@ -223,9 +256,6 @@ public partial class MealPlanViewModel : ObservableObject
         _selectedDayForAdding = null;
     }
 
-    /// <summary>
-    /// Wybiera kategorię i przechodzi do listy przepisów.
-    /// </summary>
     [RelayCommand]
     private void SelectCategory(CategoryLocal category)
     {
@@ -236,9 +266,6 @@ public partial class MealPlanViewModel : ObservableObject
         IsRecipeStepVisible = true;
     }
 
-    /// <summary>
-    /// Wraca do listy kategorii.
-    /// </summary>
     [RelayCommand]
     private void BackToCategories()
     {
@@ -249,7 +276,7 @@ public partial class MealPlanViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Dodaje wybrany przepis do planu.
+    /// Dodaje wybrany przepis do planu z godziną i czasem trwania.
     /// </summary>
     [RelayCommand]
     private async Task SelectRecipeAsync(RecipeLocal recipe)
@@ -258,10 +285,35 @@ public partial class MealPlanViewModel : ObservableObject
 
         try
         {
+            var totalTime = recipe.PreparationTimeMinutes + recipe.CookingTimeMinutes;
+            var duration = Math.Max(totalTime, MinDurationMinutes);
+
+            // Validate no overlap
+            var endHour = _selectedStartHour + (duration / 60.0);
+            var hasOverlap = _selectedDayForAdding.Meals.Any(m =>
+            {
+                var existingEnd = m.StartHour + (m.DurationMinutes / 60.0);
+                return _selectedStartHour < existingEnd && endHour > m.StartHour;
+            });
+
+            if (hasOverlap)
+            {
+                await Shell.Current.DisplayAlertAsync("Konflikt", "Wybrany slot czasowy nakłada się z innym posiłkiem.", "OK");
+                return;
+            }
+
+            if (endHour > TimelineEndHour + 1)
+            {
+                await Shell.Current.DisplayAlertAsync("Za późno", "Posiłek wykracza poza timeline. Wybierz wcześniejszą godzinę.", "OK");
+                return;
+            }
+
             var mealPlan = new MealPlanLocal
             {
                 Id = Guid.NewGuid(),
                 Date = _selectedDayForAdding.Date,
+                StartHour = _selectedStartHour,
+                DurationMinutes = duration,
                 RecipeId = recipe.Id
             };
 
@@ -276,16 +328,13 @@ public partial class MealPlanViewModel : ObservableObject
         }
     }
 
-    /// <summary>
-    /// Usuwa posiłek z planu.
-    /// </summary>
     [RelayCommand]
     private async Task RemoveMealAsync(MealItem meal)
     {
         var confirm = await Shell.Current.DisplayAlertAsync(
-       "Usuń posiłek",
-       $"Czy na pewno chcesz usunąć \"{meal.Recipe?.Title}\" z planu?",
-   "Usuń", "Anuluj");
+            "Usuń posiłek",
+            $"Czy na pewno chcesz usunąć \"{meal.Recipe?.Title}\" z planu?",
+            "Usuń", "Anuluj");
 
         if (!confirm) return;
 
@@ -301,14 +350,10 @@ public partial class MealPlanViewModel : ObservableObject
         }
     }
 
-    /// <summary>
-    /// Nawiguje do szczegółów przepisu.
-    /// </summary>
     [RelayCommand]
     private async Task GoToRecipeDetailAsync(MealItem meal)
     {
         if (meal.Recipe is null) return;
-
         await Shell.Current.GoToAsync($"RecipeDetailPage?recipeId={meal.Recipe.Id}");
     }
 
@@ -326,7 +371,7 @@ public partial class MealPlanViewModel : ObservableObject
 }
 
 /// <summary>
-/// Reprezentuje plan na jeden dzień.
+/// Reprezentuje plan na jeden dzień z timeline.
 /// </summary>
 public partial class DayPlanItem : ObservableObject
 {
@@ -337,14 +382,59 @@ public partial class DayPlanItem : ObservableObject
     public bool IsPastDay { get; set; }
 
     public ObservableCollection<MealItem> Meals { get; set; } = [];
+    public ObservableCollection<HourSlot> HourSlots { get; set; } = [];
 }
 
 /// <summary>
-/// Reprezentuje pojedynczy posiłek w planie.
+/// Slot godzinowy na timeline.
+/// </summary>
+public class HourSlot
+{
+    public int Hour { get; set; }
+    public string Label { get; set; } = string.Empty;
+    public bool IsOccupied { get; set; }
+
+    /// <summary>
+    /// True only for the first hour of the meal block.
+    /// </summary>
+    public bool IsStartHour { get; set; }
+
+    public string? MealTitle { get; set; }
+    public string? MealTimeRange { get; set; }
+    public MealItem? MealRef { get; set; }
+}
+
+/// <summary>
+/// Pojedynczy posiłek w planie z pozycją na timeline.
 /// </summary>
 public class MealItem
 {
     public Guid Id { get; set; }
     public RecipeLocal? Recipe { get; set; }
     public string? Notes { get; set; }
+    public int StartHour { get; set; }
+    public int DurationMinutes { get; set; }
+
+    /// <summary>
+    /// Offset od góry timeline w pikselach (do pozycjonowania).
+    /// </summary>
+    public double TopOffset { get; set; }
+
+    /// <summary>
+    /// Wysokość bloku w pikselach.
+    /// </summary>
+    public double Height { get; set; }
+
+    /// <summary>
+    /// Tekst czasu do wyświetlenia (np. "12:00 – 13:30").
+    /// </summary>
+    public string TimeRangeText
+    {
+        get
+        {
+            var start = TimeSpan.FromHours(StartHour);
+            var end = start.Add(TimeSpan.FromMinutes(DurationMinutes));
+            return $"{start:hh\\:mm} – {end:hh\\:mm}";
+        }
+    }
 }
