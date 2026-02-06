@@ -1,3 +1,4 @@
+using CommunityToolkit.Maui.Alerts;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
@@ -355,6 +356,15 @@ public partial class MealPlanViewModel : ObservableObject
     {
         if (meal.Recipe is null) return;
         await Shell.Current.GoToAsync($"{nameof(Views.RecipeDetailPage)}?id={meal.Recipe.Id}");
+    }
+
+    [RelayCommand]
+    private async Task GenerateShoppingListAsync()
+    {
+        // TODO: Implement shopping list generation from current week's meal plan
+        var snackbar = Snackbar.Make("Funkcja listy zakupów w przygotowaniu",
+            duration: TimeSpan.FromSeconds(3));
+        await snackbar.Show();
     }
 
     private static string GetPolishDayName(DayOfWeek dayOfWeek) => dayOfWeek switch
