@@ -1,13 +1,17 @@
 using AsyncAwaitBestPractices;
+using CommunityToolkit.Maui;
 using CommunityToolkit.Maui.Alerts;
 using CommunityToolkit.Maui.Core;
+using CommunityToolkit.Maui.Extensions;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
+using Microsoft.Maui.Controls.Shapes;
 using ReceptyOks.Data;
 using ReceptyOks.Services;
 using ReceptyOks.Shared.AI;
 using ReceptyOks.Shared.Misc;
+using ReceptyOks.Views;
 using System.Collections.ObjectModel;
 
 namespace ReceptyOks.ViewModels;
@@ -70,6 +74,13 @@ public partial class MealPlanViewModel : ObservableObject
 
     [ObservableProperty]
     private bool isAgentInitializing;
+
+    // Shopping list state
+    [ObservableProperty]
+    private string generatedShoppingList = string.Empty;
+
+    [ObservableProperty]
+    private bool isGeneratingShoppingList;
 
     // Timeline picker state
     [ObservableProperty]
@@ -446,9 +457,68 @@ public partial class MealPlanViewModel : ObservableObject
             return;
         }
 
-        // TODO: Implement shopping list generation from current week's meal plan
-        var todoSnackbar = Snackbar.Make("Funkcja listy zakupów w przygotowaniu",
-            duration: TimeSpan.FromSeconds(3));
-        await todoSnackbar.Show();
+        // Collect unique recipe IDs from the current week
+        var recipesInPlan = WeekDays
+            .SelectMany(d => d.Meals)
+            .Where(m => m.Recipe is not null)
+            .Select(m => (m.Recipe!.Id, m.Recipe.Title))
+            .Distinct()
+            .ToList();
+
+        if (recipesInPlan.Count == 0)
+        {
+            var emptySnackbar = Snackbar.Make("Brak przepisów w planie na ten tydzień.",
+                duration: TimeSpan.FromSeconds(3));
+            await emptySnackbar.Show();
+            return;
+        }
+
+        try
+        {
+            IsGeneratingShoppingList = true;
+
+            var recipeList = string.Join("\n", recipesInPlan.Select(r => $"- {r.Title} (ID: {r.Id})"));
+            var prompt = $"""                
+                Wygeneruj listę zakupów dla następujących przepisów zaplanowanych na tydzień {WeekRangeText}:
+                {recipeList}
+
+                Użyj narzędzia get_all_ingredients_for_recipes aby pobrać składniki dla tych przepisów.
+                Zsumuj duplikaty i podaj finalną listę zakupów.
+                """;
+
+            var result = await _agent.ChatAsync(prompt).ConfigureAwait(false);
+            GeneratedShoppingList = result;
+
+            await MainThread.InvokeOnMainThreadAsync(async () =>
+            {
+                var popup = new ShopingListPopup(result);
+                var options = new PopupOptions
+                {
+                    CanBeDismissedByTappingOutsideOfPopup = true,
+                    Shape = new RoundRectangle
+                    {
+                        CornerRadius = new CornerRadius(16)
+                    }
+                };
+                var page = Shell.Current.CurrentPage;
+                await page.ShowPopupAsync(popup, options, CancellationToken.None);
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generating shopping list");
+            var errorSnackbar = Snackbar.Make("Nie udało się wygenerować listy zakupów.",
+                duration: TimeSpan.FromSeconds(3),
+                visualOptions: new SnackbarOptions
+                {
+                    BackgroundColor = Colors.Red,
+                    TextColor = Colors.White
+                });
+            await errorSnackbar.Show();
+        }
+        finally
+        {
+            IsGeneratingShoppingList = false;
+        }
     }
 }
