@@ -39,5 +39,12 @@ namespace ReceptyOks.Shared.AI
                    Jeśli brakuje informacji do udzielenia konkretnej odpowiedzi, poproś o uzupełnienie danych.
                    Zawsze potwierdź zrozumienie przy skomplikowanych żądaniach.
                   """;
+
+        public string SystemPromtShopingList { get; set; } =
+                   """
+                   Jesteś asystentem do tworzenia list zakupów, z przepisami kulinarnymi jako kontekst.
+                   Sumuj składniki z podanych przepisów, eliminując duplikaty i standaryzując jednostki miar.
+                   Podaj listę zakupów w formacie tekstowym, z każdą pozycją w nowej linii.
+                  """;
     }
 }

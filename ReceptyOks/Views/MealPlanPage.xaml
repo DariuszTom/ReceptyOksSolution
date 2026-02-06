@@ -162,8 +162,52 @@
                                         </Border>
                                     </Grid>
 
+                                    <!-- Meal summary + expand toggle -->
+                                    <Grid ColumnDefinitions="*,Auto"
+                                          Padding="0,4">
+                                        <Label Text="{Binding MealCountText}"
+                                               FontSize="13"
+                                               TextColor="{StaticResource Gray500}"
+                                               VerticalOptions="Center" />
+                                        <ImageButton Grid.Column="1"
+                                                     HeightRequest="32"
+                                                     WidthRequest="32"
+                                                     Padding="4"
+                                                     BackgroundColor="Transparent"
+                                                     VerticalOptions="Center"
+                                                     Clicked="OnToggleTimelineClicked">
+                                            <ImageButton.Triggers>
+                                                <DataTrigger TargetType="ImageButton"
+                                                             Binding="{Binding IsExpanded}"
+                                                             Value="False">
+                                                    <Setter Property="Source">
+                                                        <Setter.Value>
+                                                            <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Expand_more}"
+                                                                             FontFamily="MaterialSymbolsOutlined"
+                                                                             Color="{StaticResource Gray400}"
+                                                                             Size="24" />
+                                                        </Setter.Value>
+                                                    </Setter>
+                                                </DataTrigger>
+                                                <DataTrigger TargetType="ImageButton"
+                                                             Binding="{Binding IsExpanded}"
+                                                             Value="True">
+                                                    <Setter Property="Source">
+                                                        <Setter.Value>
+                                                            <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Expand_less}"
+                                                                             FontFamily="MaterialSymbolsOutlined"
+                                                                             Color="{StaticResource Gray400}"
+                                                                             Size="24" />
+                                                        </Setter.Value>
+                                                    </Setter>
+                                                </DataTrigger>
+                                            </ImageButton.Triggers>
+                                        </ImageButton>
+                                    </Grid>
+
                                     <!-- Timeline: Hour Slots -->
                                     <VerticalStackLayout BindableLayout.ItemsSource="{Binding HourSlots}"
+                                                         IsVisible="{Binding IsExpanded}"
                                                          Spacing="0">
                                         <BindableLayout.ItemTemplate>
                                             <DataTemplate x:DataType="vm:HourSlot">

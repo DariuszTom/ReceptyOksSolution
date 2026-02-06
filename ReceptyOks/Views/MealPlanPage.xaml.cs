@@ -57,4 +57,14 @@ public partial class MealPlanPage : ContentPage
 
         _viewModel.GoToRecipeDetailCommand.Execute(hourSlot.MealRef);
     }
+
+    private void OnToggleTimelineClicked(object? sender, EventArgs e)
+    {
+        if (sender is not View view) return;
+
+        if (view.BindingContext is DayPlanItem dayPlan)
+        {
+            dayPlan.IsExpanded = !dayPlan.IsExpanded;
+        }
+    }
 }
