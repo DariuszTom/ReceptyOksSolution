@@ -1,0 +1,310 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:ReceptyOks.ViewModels"
+             xmlns:models="clr-namespace:ReceptyOks.Shared.Models;assembly=ReceptyOks.Shared"
+             xmlns:icons="clr-namespace:UraniumUI.Icons.MaterialSymbols;assembly=UraniumUI.Icons.MaterialSymbols"
+             xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+             xmlns:material="http://schemas.enisn-projects.io/dotnet/maui/uraniumui/material"
+             x:Class="ReceptyOks.Views.ShopingListPage"
+             x:DataType="vm:ShopingListViewModel"
+             Shell.NavBarIsVisible="False"
+             BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark=#121212}"
+             Title="Lista zakupów">
+
+    <Grid RowDefinitions="Auto,Auto,*,Auto">
+
+        <!-- Header -->
+        <Grid Grid.Row="0" 
+              Padding="20,16"
+              ColumnDefinitions="*,Auto,Auto"
+              BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}">
+            <Grid.Shadow>
+                <Shadow Brush="{StaticResource Gray400Brush}" Offset="0,2" Radius="4" Opacity="0.1"/>
+            </Grid.Shadow>
+
+            <VerticalStackLayout VerticalOptions="Center">
+                <Label Text="Lista zakupów" 
+                       FontSize="24"
+                       FontAttributes="Bold"
+                       TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"/>
+                <Label Text="Co trzeba kupić?" 
+                       FontSize="13"
+                       TextColor="{StaticResource Gray400}"/>
+            </VerticalStackLayout>
+
+            <!-- Loading indicator -->
+            <ActivityIndicator Grid.Column="1" 
+                               IsRunning="{Binding IsLoading}" 
+                               IsVisible="{Binding IsLoading}"
+                               HeightRequest="24" 
+                               WidthRequest="24"
+                               Color="{StaticResource Primary}"
+                               Margin="0,0,12,0"/>
+
+            <!-- Clear bought items button -->
+            <Border Grid.Column="2"
+                    StrokeThickness="0"
+                    StrokeShape="RoundRectangle 22"
+                    HeightRequest="44"
+                    WidthRequest="44"
+                    BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray600}}">
+                <Border.Behaviors>
+                    <toolkit:TouchBehavior 
+                        PressedScale="0.9"
+                        PressedOpacity="0.7"
+                        Command="{Binding ClearBoughtItemsCommand}"/>
+                </Border.Behaviors>
+                <Image HeightRequest="22" WidthRequest="22" HorizontalOptions="Center" VerticalOptions="Center">
+                    <Image.Source>
+                        <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Delete_sweep}"
+                                         FontFamily="MaterialSymbolsOutlined"
+                                         Color="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray200}}"
+                                         Size="22"/>
+                    </Image.Source>
+                </Image>
+            </Border>
+        </Grid>
+
+        <!-- Add new item section -->
+        <Border Grid.Row="1" 
+                Margin="16,12"
+                Padding="12,8"
+                StrokeThickness="0"
+                StrokeShape="RoundRectangle 12"
+                BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}">
+            <Border.Shadow>
+                <Shadow Brush="{StaticResource Gray400Brush}" Offset="0,2" Radius="6" Opacity="0.08"/>
+            </Border.Shadow>
+            <Grid RowDefinitions="Auto,Auto" RowSpacing="8">
+                <!-- First row: Product name and Add button -->
+                <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                    <material:TextField Grid.Column="0"
+                                        Text="{Binding NewItemName}"
+                                        Title="Nazwa produktu"
+                                        FontSize="14"
+                                        AllowClear="True"
+                                        VerticalOptions="Center"/>
+
+                    <!-- Add button -->
+                    <Border Grid.Column="1"
+                            StrokeThickness="0"
+                            StrokeShape="RoundRectangle 22"
+                            HeightRequest="44"
+                            WidthRequest="44"
+                            VerticalOptions="Center"
+                            BackgroundColor="{StaticResource Primary}">
+                        <Border.Behaviors>
+                            <toolkit:TouchBehavior 
+                                PressedScale="0.9"
+                                PressedOpacity="0.7"
+                                Command="{Binding AddItemCommand}"/>
+                        </Border.Behaviors>
+                        <Image HeightRequest="22" WidthRequest="22" HorizontalOptions="Center" VerticalOptions="Center">
+                            <Image.Source>
+                                <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Add}"
+                                                 FontFamily="MaterialSymbolsOutlined"
+                                                 Color="White"
+                                                 Size="22"/>
+                            </Image.Source>
+                        </Image>
+                    </Border>
+                </Grid>
+
+                <!-- Second row: Quantity and Unit -->
+                <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="12">
+                    <material:TextField Grid.Column="0"
+                                        Text="{Binding NewItemQuantity}"
+                                        Title="Ilość"
+                                        FontSize="14"
+                                        Keyboard="Numeric"
+                                        VerticalOptions="Center"/>
+
+                    <material:PickerField Grid.Column="1"
+                                          Title="Jednostka"
+                                          FontSize="14"
+                                          ItemsSource="{Binding AvailableUnits}"
+                                          SelectedItem="{Binding SelectedUnit}"
+                                          VerticalOptions="Center"/>
+                </Grid>
+
+                <!-- Error message -->
+                <Label Grid.Row="2"
+                       Text="{Binding ErrorMessage}"
+                       TextColor="{StaticResource PinkColor}"
+                       FontSize="12"
+                       IsVisible="{Binding ErrorMessage, Converter={StaticResource IsNotNullConverter}}"
+                       Margin="0,4,0,0"/>
+            </Grid>
+        </Border>
+
+        <!-- Shopping list -->
+        <RefreshView Grid.Row="2" 
+                     IsRefreshing="{Binding IsRefreshing}"
+                     Command="{Binding RefreshCommand}"
+                     RefreshColor="{StaticResource Primary}">
+            <CollectionView ItemsSource="{Binding Items}"
+                            Margin="4">
+                <CollectionView.EmptyView>
+                    <VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center" Spacing="16" Padding="20">
+                        <Border BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray600}}"
+                                StrokeThickness="0"
+                                StrokeShape="RoundRectangle 40"
+                                HeightRequest="80"
+                                WidthRequest="80"
+                                HorizontalOptions="Center">
+                            <Image HeightRequest="40" WidthRequest="40" HorizontalOptions="Center" VerticalOptions="Center">
+                                <Image.Source>
+                                    <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Shopping_cart}"
+                                                     FontFamily="MaterialSymbolsOutlined"
+                                                     Color="{StaticResource Gray400}"
+                                                     Size="40"/>
+                                </Image.Source>
+                            </Image>
+                        </Border>
+                        <Label Text="Lista jest pusta" 
+                               FontSize="18" 
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource Gray500}"
+                               HorizontalOptions="Center"/>
+                        <Label Text="Dodaj produkty do listy zakupów" 
+                               FontSize="14"
+                               TextColor="{StaticResource Gray400}"
+                               HorizontalOptions="Center"
+                               HorizontalTextAlignment="Center"/>
+                    </VerticalStackLayout>
+                </CollectionView.EmptyView>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="models:ShoppingListItem">
+                        <SwipeView>
+                            <SwipeView.RightItems>
+                                <SwipeItems>
+                                    <SwipeItem Text="Usuń"
+                                               BackgroundColor="{StaticResource PinkColor}"
+                                               Command="{Binding Source={RelativeSource AncestorType={x:Type vm:ShopingListViewModel}}, Path=DeleteItemCommand}"
+                                               CommandParameter="{Binding .}"/>
+                                </SwipeItems>
+                            </SwipeView.RightItems>
+                            <Border Stroke="Transparent"
+                                    StrokeThickness="0"
+                                    StrokeShape="RoundRectangle 12"
+                                    Margin="16,4"
+                                    Padding="12,10"
+                                    BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}">
+                                <Border.Shadow>
+                                    <Shadow Brush="{StaticResource Gray400Brush}"
+                                            Offset="0,1"
+                                            Radius="4"
+                                            Opacity="0.08"/>
+                                </Border.Shadow>
+                                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                                    <!-- Checkbox using standard MAUI CheckBox -->
+                                    <CheckBox Grid.Column="0"
+                                              IsChecked="{Binding IsBought}"
+                                              Color="{StaticResource Primary}"
+                                              VerticalOptions="Center">
+                                        <CheckBox.GestureRecognizers>
+                                            <TapGestureRecognizer 
+                                                Command="{Binding Source={RelativeSource AncestorType={x:Type vm:ShopingListViewModel}}, Path=ToggleBoughtCommand}"
+                                                CommandParameter="{Binding .}"/>
+                                        </CheckBox.GestureRecognizers>
+                                    </CheckBox>
+
+                                    <!-- Item details -->
+                                    <VerticalStackLayout Grid.Column="1" 
+                                                         VerticalOptions="Center"
+                                                         Spacing="2">
+                                        <Label Text="{Binding Name}"
+                                               FontSize="16"
+                                               TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"
+                                               TextDecorations="{Binding IsBought, Converter={StaticResource BoolToStrikethroughConverter}}"/>
+                                        <HorizontalStackLayout Spacing="4"
+                                                               IsVisible="{Binding Quantity, Converter={StaticResource IsNotNullConverter}}">
+                                            <Label Text="{Binding Quantity}"
+                                                   FontSize="13"
+                                                   TextColor="{StaticResource Gray500}"/>
+                                            <Label Text="{Binding Unit}"
+                                                   FontSize="13"
+                                                   TextColor="{StaticResource Gray500}"/>
+                                        </HorizontalStackLayout>
+                                        <Label Text="{Binding Note}"
+                                               FontSize="12"
+                                               TextColor="{StaticResource Gray400}"
+                                               IsVisible="{Binding Note, Converter={StaticResource IsNotNullConverter}}"
+                                               LineBreakMode="TailTruncation"/>
+                                    </VerticalStackLayout>
+
+                                    <!-- Bought indicator -->
+                                    <Image Grid.Column="2"
+                                           IsVisible="{Binding IsBought}"
+                                           HeightRequest="20"
+                                           WidthRequest="20"
+                                           VerticalOptions="Center">
+                                        <Image.Source>
+                                            <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Check_circle}"
+                                                             FontFamily="MaterialSymbolsOutlined"
+                                                             Color="{StaticResource GreenColor}"
+                                                             Size="20"/>
+                                        </Image.Source>
+                                    </Image>
+                                </Grid>
+                            </Border>
+                        </SwipeView>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </RefreshView>
+
+        <!-- Bottom bar with options -->
+        <Border Grid.Row="3"
+                Padding="16,12"
+                StrokeThickness="0"
+                BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}">
+            <Border.Shadow>
+                <Shadow Brush="{StaticResource Gray400Brush}" Offset="0,-2" Radius="8" Opacity="0.1"/>
+            </Border.Shadow>
+            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                <!-- Include bought toggle -->
+                <HorizontalStackLayout Grid.Column="0" Spacing="8" VerticalOptions="Center">
+                    <CheckBox IsChecked="{Binding IncludeBoughtItems}"
+                              Color="{StaticResource Primary}"/>
+                    <Label Text="Pokaż kupione"
+                           FontSize="13"
+                           TextColor="{StaticResource Gray500}"
+                           VerticalOptions="Center"/>
+                </HorizontalStackLayout>
+
+                <!-- Copy button -->
+                <Border Grid.Column="2"
+                        StrokeThickness="0"
+                        StrokeShape="RoundRectangle 20"
+                        HeightRequest="40"
+                        Padding="16,0"
+                        BackgroundColor="{StaticResource Secondary}">
+                    <Border.Behaviors>
+                        <toolkit:TouchBehavior 
+                            PressedScale="0.95"
+                            PressedOpacity="0.8"
+                            Command="{Binding CopyListCommand}"/>
+                    </Border.Behaviors>
+                    <HorizontalStackLayout Spacing="8" VerticalOptions="Center" HorizontalOptions="Center">
+                        <Image HeightRequest="18" WidthRequest="18">
+                            <Image.Source>
+                                <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Content_copy}"
+                                                 FontFamily="MaterialSymbolsOutlined"
+                                                 Color="{StaticResource Primary}"
+                                                 Size="18"/>
+                            </Image.Source>
+                        </Image>
+                        <Label Text="Kopiuj"
+                               FontSize="14"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource Primary}"
+                               VerticalOptions="Center"/>
+                    </HorizontalStackLayout>
+                </Border>
+            </Grid>
+        </Border>
+
+    </Grid>
+</ContentPage>

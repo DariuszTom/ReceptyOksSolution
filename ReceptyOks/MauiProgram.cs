@@ -117,8 +117,7 @@ public static class MauiProgram
         builder.Services.AddTransient<LoginViewModel>();
         builder.Services.AddTransient<ChatBotViewModel>();
         builder.Services.AddTransient<MealPlanViewModel>();
-
-
+        builder.Services.AddTransient<ShopingListViewModel>();
 
         // Views
         builder.Services.AddTransient<RecipesPage>();
@@ -131,6 +130,7 @@ public static class MauiProgram
         builder.Services.AddTransient<LoginPage>();
         builder.Services.AddTransient<ChatBotPage>();
         builder.Services.AddTransient<MealPlanPage>();
+        builder.Services.AddTransient<ShopingListPage>();
 
         return builder.Build();
     }

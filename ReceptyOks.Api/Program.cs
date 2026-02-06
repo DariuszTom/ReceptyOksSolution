@@ -79,6 +79,32 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<RecipeDbContext>();
     db.Database.EnsureCreated();
+
+    // Ensure ShoppingListItems table exists (for existing databases)
+    await db.Database.ExecuteSqlRawAsync("""
+        CREATE TABLE IF NOT EXISTS ShoppingListItems (
+            Id TEXT PRIMARY KEY NOT NULL,
+            Name TEXT NOT NULL,
+            Quantity REAL,
+            Unit TEXT,
+            IsBought INTEGER NOT NULL DEFAULT 0,
+            BoughtBy TEXT,
+            BoughtAt TEXT,
+            Note TEXT,
+            IngredientId TEXT,
+            RecipeId TEXT,
+            CreatedAt TEXT NOT NULL,
+            UpdatedAt TEXT NOT NULL,
+            IsDeleted INTEGER NOT NULL DEFAULT 0,
+            FOREIGN KEY (IngredientId) REFERENCES Ingredients(Id) ON DELETE SET NULL,
+            FOREIGN KEY (RecipeId) REFERENCES Recipes(Id) ON DELETE SET NULL
+        )
+        """);
+
+    // Create indexes if they don't exist
+    await db.Database.ExecuteSqlRawAsync("CREATE INDEX IF NOT EXISTS IX_ShoppingListItems_IsBought ON ShoppingListItems(IsBought)");
+    await db.Database.ExecuteSqlRawAsync("CREATE INDEX IF NOT EXISTS IX_ShoppingListItems_UpdatedAt ON ShoppingListItems(UpdatedAt)");
+    await db.Database.ExecuteSqlRawAsync("CREATE INDEX IF NOT EXISTS IX_ShoppingListItems_IsDeleted ON ShoppingListItems(IsDeleted)");
 }
 
 // Aspire health checks etc.

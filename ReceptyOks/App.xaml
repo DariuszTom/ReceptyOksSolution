@@ -29,6 +29,7 @@
        <converters:BoolToExpandIconConverter x:Key="BoolToExpandIconConverter"/>
 <converters:IsNotNullOrEmptyConverter x:Key="IsNotNullOrEmptyConverter"/>
          <converters:MealCountToHeightConverter x:Key="MealCountToHeightConverter"/>
+            <converters:BoolToStrikethroughConverter x:Key="BoolToStrikethroughConverter"/>
     </ResourceDictionary>
     </Application.Resources>
 </Application>
