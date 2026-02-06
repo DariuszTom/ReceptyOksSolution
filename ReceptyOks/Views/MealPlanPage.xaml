@@ -182,14 +182,11 @@
                                     </Grid>
 
                                     <!-- Meals -->
-                                    <FlexLayout Direction="Row"
-                                                Wrap="Wrap"
-                                                AlignContent="Start"
-                                                BindableLayout.ItemsSource="{Binding Meals}">
+                                    <VerticalStackLayout BindableLayout.ItemsSource="{Binding Meals}"
+                                                         Spacing="4">
                                         <BindableLayout.ItemTemplate>
                                             <DataTemplate x:DataType="vm:MealItem">
-                                                <Border Margin="0,4,8,4"
-                                                        Padding="12,6"
+                                                <Border Padding="12,6"
                                                         StrokeThickness="0"
                                                         StrokeShape="RoundRectangle 16"
                                                         BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray600}}">
@@ -197,12 +194,14 @@
                                                         <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:MealPlanViewModel}}, Path=GoToRecipeDetailCommand}"
                                                                               CommandParameter="{Binding}" />
                                                     </Border.GestureRecognizers>
-                                                    <HorizontalStackLayout Spacing="6">
+                                                    <Grid ColumnDefinitions="*,Auto">
                                                         <Label Text="{Binding Recipe.Title}"
                                                                FontSize="13"
                                                                VerticalOptions="Center"
+                                                               LineBreakMode="TailTruncation"
                                                                TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}" />
-                                                        <ImageButton HeightRequest="20"
+                                                        <ImageButton Grid.Column="1"
+                                                                     HeightRequest="20"
                                                                      WidthRequest="20"
                                                                      Padding="2"
                                                                      BackgroundColor="Transparent"
@@ -216,11 +215,11 @@
                                                                                  Size="14" />
                                                             </ImageButton.Source>
                                                         </ImageButton>
-                                                    </HorizontalStackLayout>
+                                                    </Grid>
                                                 </Border>
                                             </DataTemplate>
                                         </BindableLayout.ItemTemplate>
-                                    </FlexLayout>
+                                    </VerticalStackLayout>
 
                                 </VerticalStackLayout>
                             </Border>
