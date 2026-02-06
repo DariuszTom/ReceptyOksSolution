@@ -52,6 +52,67 @@ public class AgentToolsRegistrar
 
         _logger.Information("Registered {ToolCount} AI agent tools for database queries", agent.Tools.Count);
     }
+    public void RegisterToolsForShopingList(AiAgent agent)
+    {
+        ArgumentNullException.ThrowIfNull(agent);
+        agent.AddToolAsync<List<Guid>, string>(GetAllIngredientsAsyncForRecipes,
+            "get_all_ingredients_for_recipes", "Parameter: List of recipeId strings (GUIDs).");
+        _logger.Information("Registered shopping list generation tool for AI agent");
+    }
+
+    private async Task<string> GetAllIngredientsAsyncForRecipes(List<Guid> list)
+    {
+        if (list is null || list.Count == 0)
+        {
+            return "[]";
+        }
+
+        var validIds = list.Where(id => id != Guid.Empty).Distinct().ToList();
+        if (validIds.Count == 0)
+        {
+            return "[]";
+        }
+
+        var allRecipeIngredients = new List<RecipeIngredientLocal>();
+        foreach (var recipeId in validIds)
+        {
+            var recipeIngredients = await _database.GetRecipeIngredientsAsync(recipeId).ConfigureAwait(false);
+            allRecipeIngredients.AddRange(recipeIngredients);
+        }
+
+        var neededIds = allRecipeIngredients.Select(ri => ri.IngredientId).ToHashSet();
+        var ingredients = await _database.GetIngredientsAsync().ConfigureAwait(false);
+        var ingredientLookup = ingredients
+            .Where(i => neededIds.Contains(i.Id))
+            .ToDictionary(i => i.Id);
+
+        var aggregated = new Dictionary<Guid, (string Name, decimal Quantity, string? Unit)>();
+        foreach (var ri in allRecipeIngredients)
+        {
+            var name = ingredientLookup.TryGetValue(ri.IngredientId, out var ingredient)
+                ? ingredient.Name
+                : "Unknown";
+            var unit = ingredient?.Unit;
+
+            if (aggregated.TryGetValue(ri.IngredientId, out var existing))
+            {
+                aggregated[ri.IngredientId] = (existing.Name, existing.Quantity + ri.Quantity, existing.Unit);
+            }
+            else
+            {
+                aggregated[ri.IngredientId] = (name, ri.Quantity, unit);
+            }
+        }
+
+        var result = aggregated.Values.Select(v => new
+        {
+            v.Name,
+            v.Quantity,
+            v.Unit
+        });
+
+        return JsonSerializer.Serialize(result);
+    }
 
     private async Task<string> GetAllRecipesAsync()
     {
@@ -116,7 +177,7 @@ public class AgentToolsRegistrar
                Unit = ingredient?.Unit
            };
        })
-  .ToList();
+            .ToList();
 
         var result = new
         {
