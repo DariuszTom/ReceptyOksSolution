@@ -1,9 +1,11 @@
+using AsyncAwaitBestPractices;
 using CommunityToolkit.Maui.Alerts;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
 using ReceptyOks.Data;
 using ReceptyOks.Services;
+using ReceptyOks.Shared.AI;
 using ReceptyOks.Shared.Misc;
 using System.Collections.ObjectModel;
 
@@ -22,7 +24,7 @@ public partial class MealPlanViewModel : ObservableObject
     private readonly LocalDatabase _database;
     private readonly ILogger<MealPlanViewModel> _logger;
     private readonly AgentToolsRegistrar _toolsRegistrar;
-    private readonly TokenProviderService _tokenProvider;
+    private AiAgent _agent;
 
     [ObservableProperty]
     private DateTime currentWeekStart;
@@ -61,6 +63,13 @@ public partial class MealPlanViewModel : ObservableObject
     [ObservableProperty]
     private ObservableCollection<RecipeLocal> filteredRecipes = [];
 
+    // Agent readiness state
+    [ObservableProperty]
+    private bool isAgentReady;
+
+    [ObservableProperty]
+    private bool isAgentInitializing;
+
     // Timeline picker state
     [ObservableProperty]
     private string selectedTimeSlotText = string.Empty;
@@ -73,10 +82,48 @@ public partial class MealPlanViewModel : ObservableObject
         _database = database;
         _logger = logger;
         _toolsRegistrar = new AgentToolsRegistrar(database, Serilog.Log.Logger);
-        _tokenProvider = tokenProvider;
         CurrentWeekStart = DateTime.Today.GetStartOfWeek();
+        InitlizeShoppingListAgent(tokenProvider).SafeFireAndForget(ConfigureAwaitOptions.SuppressThrowing);
     }
+    public async Task InitlizeShoppingListAgent(TokenProviderService tokenProvider)
+    {
+        if (_agent is not null) return;
 
+        IsAgentInitializing = true;
+        IsAgentReady = false;
+
+        try
+        {
+            // Get API token from backend
+            var tokenResponse = await tokenProvider.GetTokenAsync(CancellationToken.None).ConfigureAwait(false);
+            if (tokenResponse is null || string.IsNullOrWhiteSpace(tokenResponse.Token))
+            {
+                throw new InvalidOperationException("Failed to retrieve API token from backend");
+            }
+
+            var tokenBytes = System.Text.Encoding.UTF8.GetBytes(tokenResponse.Token);
+
+            var settings = new AnthropicSettings();
+
+            using (var anthritopicAgent = new AnthropicAgent(settings, tokenBytes))
+            {
+                _agent = new AiAgent(anthritopicAgent.GetAgent(), settings.SystemPromtShopingList);
+            }
+
+            // Register tools
+            _toolsRegistrar.RegisterToolsForShopingList(_agent);
+            IsAgentReady = true;
+        }
+        catch
+        {
+            _logger.LogError("Failed to initialize AI agent for shopping list generation");
+            IsAgentReady = false;
+        }
+        finally
+        {
+            IsAgentInitializing = false;
+        }
+    }
     partial void OnCurrentWeekStartChanged(DateTime value)
     {
         UpdateWeekRangeText();
@@ -362,6 +409,15 @@ public partial class MealPlanViewModel : ObservableObject
     [RelayCommand]
     private async Task GenerateShoppingListAsync()
     {
+        if (!IsAgentReady || _agent is null)
+        {
+            var message = IsAgentInitializing
+                ? "Agent AI jest w trakcie inicjalizacji. Spróbuj ponownie za chwilę."
+                : "Agent AI nie jest gotowy. Sprawdź połączenie i spróbuj ponownie.";
+            await Shell.Current.DisplayAlertAsync("Niedostępne", message, "OK");
+            return;
+        }
+
         // TODO: Implement shopping list generation from current week's meal plan
         var snackbar = Snackbar.Make("Funkcja listy zakupów w przygotowaniu",
             duration: TimeSpan.FromSeconds(3));
