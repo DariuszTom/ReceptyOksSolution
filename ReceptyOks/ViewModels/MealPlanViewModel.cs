@@ -3,6 +3,8 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
 using ReceptyOks.Data;
+using ReceptyOks.Services;
+using ReceptyOks.Shared.Misc;
 using System.Collections.ObjectModel;
 
 namespace ReceptyOks.ViewModels;
@@ -19,6 +21,8 @@ public partial class MealPlanViewModel : ObservableObject
 
     private readonly LocalDatabase _database;
     private readonly ILogger<MealPlanViewModel> _logger;
+    private readonly AgentToolsRegistrar _toolsRegistrar;
+    private readonly TokenProviderService _tokenProvider;
 
     [ObservableProperty]
     private DateTime currentWeekStart;
@@ -64,11 +68,13 @@ public partial class MealPlanViewModel : ObservableObject
     private DayPlanItem? _selectedDayForAdding;
     private int _selectedStartHour;
 
-    public MealPlanViewModel(LocalDatabase database, ILogger<MealPlanViewModel> logger)
+    public MealPlanViewModel(LocalDatabase database, ILogger<MealPlanViewModel> logger, TokenProviderService tokenProvider)
     {
         _database = database;
         _logger = logger;
-        CurrentWeekStart = GetStartOfWeek(DateTime.Today);
+        _toolsRegistrar = new AgentToolsRegistrar(database, Serilog.Log.Logger);
+        _tokenProvider = tokenProvider;
+        CurrentWeekStart = DateTime.Today.GetStartOfWeek();
     }
 
     partial void OnCurrentWeekStartChanged(DateTime value)
@@ -108,11 +114,6 @@ public partial class MealPlanViewModel : ObservableObject
         FilteredRecipes = new ObservableCollection<RecipeLocal>(source);
     }
 
-    private static DateTime GetStartOfWeek(DateTime date)
-    {
-        var diff = (7 + (date.DayOfWeek - DayOfWeek.Monday)) % 7;
-        return date.AddDays(-diff).Date;
-    }
 
     /// <summary>
     /// Ładuje dane dla bieżącego tygodnia.
@@ -142,7 +143,7 @@ public partial class MealPlanViewModel : ObservableObject
                 var dayItem = new DayPlanItem
                 {
                     Date = date,
-                    DayName = GetPolishDayName(date.DayOfWeek),
+                    DayName = date.DayOfWeek.GetPolishDayName(),
                     DateText = date.ToString("dd.MM"),
                     IsToday = date.Date == DateTime.Today,
                     IsPastDay = date.Date < DateTime.Today
@@ -219,7 +220,7 @@ public partial class MealPlanViewModel : ObservableObject
     [RelayCommand]
     private async Task GoToTodayAsync()
     {
-        CurrentWeekStart = GetStartOfWeek(DateTime.Today);
+        CurrentWeekStart = DateTime.Today.GetStartOfWeek();
         await LoadDataAsync();
     }
 
@@ -366,16 +367,4 @@ public partial class MealPlanViewModel : ObservableObject
             duration: TimeSpan.FromSeconds(3));
         await snackbar.Show();
     }
-
-    private static string GetPolishDayName(DayOfWeek dayOfWeek) => dayOfWeek switch
-    {
-        DayOfWeek.Monday => "Poniedziałek",
-        DayOfWeek.Tuesday => "Wtorek",
-        DayOfWeek.Wednesday => "Środa",
-        DayOfWeek.Thursday => "Czwartek",
-        DayOfWeek.Friday => "Piątek",
-        DayOfWeek.Saturday => "Sobota",
-        DayOfWeek.Sunday => "Niedziela",
-        _ => string.Empty
-    };
 }
