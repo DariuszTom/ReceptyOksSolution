@@ -95,6 +95,16 @@ public static class MauiProgram
         })
         .AddHttpMessageHandler<ApiKeyHandler>()
         .AddServiceDiscovery();
+
+        // Configure HttpClient for ShoppingListService
+        builder.Services.AddHttpClient<ShoppingListService>(client =>
+        {
+            client.BaseAddress = new Uri($"{appSettings.Http.GetEffectiveApiUrl()}");
+            client.Timeout = TimeSpan.FromSeconds(appSettings.Http.DefaultTimeoutSeconds);
+        })
+        .AddHttpMessageHandler<ApiKeyHandler>()
+        .AddServiceDiscovery();
+
         // ViewModels
         builder.Services.AddTransient<RecipesViewModel>();
         builder.Services.AddTransient<RecipeDetailViewModel>();
