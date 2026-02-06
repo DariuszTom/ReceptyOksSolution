@@ -101,6 +101,7 @@ app.MapAuthEndpoints();
 app.MapRecipeEndpoints();
 app.MapCategoryEndpoints();
 app.MapIngredientEndpoints();
+app.MapShoppingListEndpoints();
 app.MapSyncEndpoints();
 app.MapTokenProviderEndpoints();
 app.UseRateLimiter();
