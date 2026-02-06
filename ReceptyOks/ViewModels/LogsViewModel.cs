@@ -7,13 +7,13 @@ using System.Collections.ObjectModel;
 
 namespace ReceptyOks.ViewModels;
 
-public partial class LogsViewModel : ObservableObject
+public partial class LogsViewModel(LocalDatabase database, ILogger<LogsViewModel> logger) : ObservableObject
 {
-    private readonly LocalDatabase _database;
-    private readonly ILogger<LogsViewModel> _logger;
+    private readonly LocalDatabase _database = database;
+    private readonly ILogger<LogsViewModel> _logger = logger;
 
     [ObservableProperty]
-    private ObservableCollection<LogEntry> _logs = new();
+    private ObservableCollection<LogEntry> _logs = [];
 
     [ObservableProperty]
     private bool _isLoading;
@@ -21,18 +21,12 @@ public partial class LogsViewModel : ObservableObject
     [ObservableProperty]
     private string _selectedLevel = "All";
 
-    public string AppVersion => VersionInfo.FormattedVersion;
+    public static string AppVersion => VersionInfo.FormattedVersion;
 
-    public List<string> LogLevels { get; } = new() 
-    { 
+    public List<string> LogLevels { get; } =
+    [
         "All", "Debug", "Information", "Warning", "Error", "Fatal" 
-    };
-
-    public LogsViewModel(LocalDatabase database, ILogger<LogsViewModel> logger)
-    {
-        _database = database;
-        _logger = logger;
-    }
+    ];
 
     [RelayCommand]
     private async Task LoadLogsAsync()
@@ -85,7 +79,6 @@ public partial class LogsViewModel : ObservableObject
         {
             IsLoading = true;
             var count = await _database.ClearOldLogsAsync(7);
-            _logger.LogInformation("Cleared {Count} old log entries", count);
             await LoadLogsAsync();
             await Shell.Current.DisplayAlertAsync("Success", $"Cleared {count} old logs", "OK");
         }
@@ -116,7 +109,6 @@ public partial class LogsViewModel : ObservableObject
         {
             IsLoading = true;
             var count = await _database.ClearAllLogsAsync();
-            _logger.LogInformation("Cleared all logs ({Count} entries)", count);
             await LoadLogsAsync();
             await Shell.Current.DisplayAlertAsync("Success", "All logs cleared", "OK");
         }
@@ -137,8 +129,5 @@ public partial class LogsViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private async Task GoBackAsync()
-    {
-        await Shell.Current.GoToAsync("..");
-    }
+    private static async Task GoBackAsync() => await Shell.Current.GoToAsync("..");
 }

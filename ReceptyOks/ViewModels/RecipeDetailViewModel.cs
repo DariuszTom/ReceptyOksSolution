@@ -6,9 +6,9 @@ using System.Collections.ObjectModel;
 namespace ReceptyOks.ViewModels;
 
 [QueryProperty(nameof(RecipeId), "id")]
-public partial class RecipeDetailViewModel : ObservableObject
+public partial class RecipeDetailViewModel(LocalDatabase database) : ObservableObject
 {
-    private readonly LocalDatabase _database;
+    private readonly LocalDatabase _database = database;
 
     [ObservableProperty]
     private string recipeId = string.Empty;
@@ -27,11 +27,6 @@ public partial class RecipeDetailViewModel : ObservableObject
 
     [ObservableProperty]
     private bool isIngredientsExpanded = false;
-
-    public RecipeDetailViewModel(LocalDatabase database)
-    {
-        _database = database;
-    }
 
     [RelayCommand]
     private void ToggleIngredients()
@@ -112,18 +107,5 @@ public partial class RecipeDetailViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private async Task GoBackAsync()
-    {
-        await Shell.Current.GoToAsync("..");
-    }
-}
-
-public class RecipeIngredientDisplay
-{
-    public string Name { get; set; } = string.Empty;
-    public decimal Quantity { get; set; }
-    public string Unit { get; set; } = string.Empty;
-    public string? Notes { get; set; }
-    
-    public string DisplayText => $"{Quantity} {Unit} {Name}" + (string.IsNullOrEmpty(Notes) ? "" : $" ({Notes})");
+    private static async Task GoBackAsync() => await Shell.Current.GoToAsync("..");
 }

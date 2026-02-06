@@ -9,19 +9,13 @@ namespace ReceptyOks.Services;
 /// <summary>
 /// Service for consuming shopping list API endpoints.
 /// </summary>
-public class ShoppingListService
+public class ShoppingListService(HttpClient httpClient)
 {
-    private readonly HttpClient _httpClient;
-    private readonly AsyncRetryPolicy<HttpResponseMessage> _retryPolicy;
-
-    public ShoppingListService(HttpClient httpClient)
-    {
-        _httpClient = httpClient;
-        _retryPolicy = Policy
+    private readonly HttpClient _httpClient = httpClient;
+    private readonly AsyncRetryPolicy<HttpResponseMessage> _retryPolicy = Policy
             .HandleResult<HttpResponseMessage>(r => !r.IsSuccessStatusCode && r.StatusCode != System.Net.HttpStatusCode.NotFound)
             .Or<HttpRequestException>()
             .WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)));
-    }
 
     /// <summary>
     /// Gets all shopping list items.

@@ -6,10 +6,10 @@ using System.Collections.ObjectModel;
 
 namespace ReceptyOks.ViewModels;
 
-public partial class RandomRecipeViewModel : ObservableObject
+public partial class RandomRecipeViewModel(LocalDatabase database, ILogger<RandomRecipeViewModel> logger) : ObservableObject
 {
-    private readonly LocalDatabase _database;
-    private readonly ILogger<RandomRecipeViewModel> _logger;
+    private readonly LocalDatabase _database = database;
+    private readonly ILogger<RandomRecipeViewModel> _logger = logger;
     private readonly Random _random = new();
 
     [ObservableProperty]
@@ -48,12 +48,6 @@ public partial class RandomRecipeViewModel : ObservableObject
     [ObservableProperty]
     private ObservableCollection<IngredientLocal> filteredIngredients = [];
     private Guid OldID;
-
-    public RandomRecipeViewModel(LocalDatabase database, ILogger<RandomRecipeViewModel> logger)
-    {
-        _database = database;
-        _logger = logger;
-    }
 
     partial void OnIngredientSearchQueryChanged(string value)
     {

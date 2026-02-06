@@ -55,12 +55,12 @@ public partial class ChatBotViewModel : ObservableObject
     /// <summary>
     /// Gets the collection of chat messages displayed in the UI.
     /// </summary>
-    public ObservableCollection<ChatMessageViewModel> Messages { get; } = new();
+    public ObservableCollection<ChatMessageViewModel> Messages { get; } = [];
 
     /// <summary>
     /// Gets the collection of saved conversations for the history list.
     /// </summary>
-    public ObservableCollection<ConversationHistoryItemViewModel> Conversations { get; } = new();
+    public ObservableCollection<ConversationHistoryItemViewModel> Conversations { get; } = [];
 
     public ChatBotViewModel(LocalDatabase database, TokenProviderService tokenProvider, ILogger logger)
     {
@@ -444,42 +444,29 @@ public partial class ChatBotViewModel : ObservableObject
 /// <summary>
 /// Represents a single chat message for display in the UI.
 /// </summary>
-public partial class ChatMessageViewModel : ObservableObject
+public partial class ChatMessageViewModel(string content, bool isUser) : ObservableObject
 {
     [ObservableProperty]
-    private string _content;
+    private string _content = content;
 
     /// <summary>
     /// Gets a value indicating whether this message is from the user.
     /// </summary>
-    public bool IsUser { get; }
+    public bool IsUser { get; } = isUser;
 
     /// <summary>
     /// Gets a value indicating whether this message is from the assistant.
     /// </summary>
     public bool IsAssistant => !IsUser;
-
-    public ChatMessageViewModel(string content, bool isUser)
-    {
-        _content = content;
-        IsUser = isUser;
-    }
 }
 
 /// <summary>
 /// Represents a conversation history item for display in the history list.
 /// </summary>
-public sealed class ConversationHistoryItemViewModel
+public sealed class ConversationHistoryItemViewModel(string id, string title, DateTimeOffset updatedAt)
 {
-    public string Id { get; }
-    public string Title { get; }
-    public DateTimeOffset UpdatedAt { get; }
+    public string Id { get; } = id;
+    public string Title { get; } = title;
+    public DateTimeOffset UpdatedAt { get; } = updatedAt;
     public string FormattedDate => UpdatedAt.LocalDateTime.ToString("dd MMM yyyy, HH:mm");
-
-    public ConversationHistoryItemViewModel(string id, string title, DateTimeOffset updatedAt)
-    {
-        Id = id;
-        Title = title;
-        UpdatedAt = updatedAt;
-    }
 }

@@ -6,22 +6,16 @@ using System.Collections.ObjectModel;
 
 namespace ReceptyOks.ViewModels;
 
-public partial class CategoriesViewModel : ObservableObject
+public partial class CategoriesViewModel(LocalDatabase database, ILogger<CategoriesViewModel> logger) : ObservableObject
 {
-    private readonly LocalDatabase _database;
-    private readonly ILogger<CategoriesViewModel> _logger;
+    private readonly LocalDatabase _database = database;
+    private readonly ILogger<CategoriesViewModel> _logger = logger;
 
     [ObservableProperty]
     private ObservableCollection<CategoryLocal> categories = [];
 
     [ObservableProperty]
     private bool isRefreshing;
-
-    public CategoriesViewModel(LocalDatabase database, ILogger<CategoriesViewModel> logger)
-    {
-        _database = database;
-        _logger = logger;
-    }
 
     [RelayCommand]
     private async Task LoadCategoriesAsync()

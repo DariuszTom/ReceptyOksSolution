@@ -35,10 +35,10 @@ public partial class SettingsViewModel : ObservableObject
             var apkAsset = latest?.Assets?.FirstOrDefault(a => a.Name != null && a.Name.EndsWith(".apk"));
             if (apkAsset != null)
             {
-                UpdateStatus = $"Dostępna nowa wersja: {latest.TagName}";
+                UpdateStatus = $"Dostępna nowa wersja: {latest?.TagName}";
                 var result = await Shell.Current.DisplayAlertAsync(
                     "Nowa wersja dostępna",
-                    $"Dostępna jest nowa wersja aplikacji ({latest.TagName}). Czy chcesz pobrać aktualizację?",
+                    $"Dostępna jest nowa wersja aplikacji ({latest?.TagName}). Czy chcesz pobrać aktualizację?",
                     "Pobierz", "Anuluj");
                 if (result)
                 {
