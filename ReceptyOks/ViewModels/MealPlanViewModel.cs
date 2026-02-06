@@ -462,7 +462,6 @@ public partial class MealPlanViewModel : ObservableObject
             .SelectMany(d => d.Meals)
             .Where(m => m.Recipe is not null)
             .Select(m => (m.Recipe!.Id, m.Recipe.Title))
-            .Distinct()
             .ToList();
 
         if (recipesInPlan.Count == 0)
