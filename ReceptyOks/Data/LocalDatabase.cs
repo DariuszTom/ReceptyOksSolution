@@ -562,15 +562,24 @@ public class LocalDatabase
 
     /// <summary>
     /// Pobiera plany posi³ków z pe³nymi danymi przepisów dla zakresu dat.
+    /// Batch-loads recipes to avoid N+1 queries.
     /// </summary>
     public async Task<List<(MealPlanLocal MealPlan, RecipeLocal? Recipe)>> GetMealPlansWithRecipesAsync(DateTime startDate, DateTime endDate)
     {
         var mealPlans = await GetMealPlansForDateRangeAsync(startDate, endDate);
-        var result = new List<(MealPlanLocal, RecipeLocal?)>();
+        if (mealPlans.Count == 0)
+            return [];
 
+        var db = await GetConnectionAsync();
+        var recipes = await db.Table<RecipeLocal>()
+            .Where(r => !r.IsDeleted)
+            .ToListAsync();
+        var recipeLookup = recipes.ToDictionary(r => r.Id);
+
+        var result = new List<(MealPlanLocal, RecipeLocal?)>(mealPlans.Count);
         foreach (var mp in mealPlans)
         {
-            var recipe = await GetRecipeAsync(mp.RecipeId);
+            recipeLookup.TryGetValue(mp.RecipeId, out var recipe);
             result.Add((mp, recipe));
         }
 

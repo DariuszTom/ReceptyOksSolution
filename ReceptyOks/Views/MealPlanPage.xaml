@@ -136,10 +136,9 @@
         <ScrollView Grid.Row="2"
                     IsVisible="{Binding IsLoading, Converter={StaticResource InvertedBoolConverter}}">
             <VerticalStackLayout Spacing="12"
-                                 Padding="16,0,16,16">
-                <CollectionView ItemsSource="{Binding WeekDays}"
-                                SelectionMode="None">
-                    <CollectionView.ItemTemplate>
+                                 Padding="16,0,16,16"
+                                 BindableLayout.ItemsSource="{Binding WeekDays}">
+                <BindableLayout.ItemTemplate>
                         <DataTemplate x:DataType="vm:DayPlanItem">
                             <Border Margin="0,6"
                                     Padding="16"
@@ -315,8 +314,7 @@
                                 </VerticalStackLayout>
                             </Border>
                         </DataTemplate>
-                    </CollectionView.ItemTemplate>
-                </CollectionView>
+                </BindableLayout.ItemTemplate>
             </VerticalStackLayout>
         </ScrollView>
 

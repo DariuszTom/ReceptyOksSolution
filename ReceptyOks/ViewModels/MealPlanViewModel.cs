@@ -1,5 +1,6 @@
 using AsyncAwaitBestPractices;
 using CommunityToolkit.Maui.Alerts;
+using CommunityToolkit.Maui.Core;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
@@ -76,6 +77,7 @@ public partial class MealPlanViewModel : ObservableObject
 
     private DayPlanItem? _selectedDayForAdding;
     private int _selectedStartHour;
+    private bool _categoriesAndRecipesLoaded;
 
     public MealPlanViewModel(LocalDatabase database, ILogger<MealPlanViewModel> logger, TokenProviderService tokenProvider)
     {
@@ -173,67 +175,61 @@ public partial class MealPlanViewModel : ObservableObject
             IsLoading = true;
             UpdateWeekRangeText();
 
-            var categories = await _database.GetCategoriesAsync();
-            AvailableCategories = new ObservableCollection<CategoryLocal>(categories);
+            // Cache categories and recipes — they rarely change during a session
+            if (!_categoriesAndRecipesLoaded)
+            {
+                var categories = await _database.GetCategoriesAsync();
+                AvailableCategories = new ObservableCollection<CategoryLocal>(categories);
 
-            var recipes = await _database.GetRecipesAsync();
-            AvailableRecipes = new ObservableCollection<RecipeLocal>(recipes);
-            FilterRecipes();
+                var recipes = await _database.GetRecipesAsync();
+                AvailableRecipes = new ObservableCollection<RecipeLocal>(recipes);
+                FilterRecipes();
+                _categoriesAndRecipesLoaded = true;
+            }
 
             var endOfWeek = CurrentWeekStart.AddDays(6);
             var mealPlansWithRecipes = await _database.GetMealPlansWithRecipesAsync(CurrentWeekStart, endOfWeek);
 
+            // Group meal plans by date once for O(1) lookup per day
+            var mealsByDate = mealPlansWithRecipes
+                .GroupBy(mp => mp.MealPlan.Date.Date)
+                .ToDictionary(g => g.Key, g => g.OrderBy(mp => mp.MealPlan.StartHour).ToList());
+
+            var today = DateTime.Today;
             var days = new ObservableCollection<DayPlanItem>();
             for (var i = 0; i < 7; i++)
             {
                 var date = CurrentWeekStart.AddDays(i);
+                var isToday = date.Date == today;
                 var dayItem = new DayPlanItem
                 {
                     Date = date,
                     DayName = date.DayOfWeek.GetPolishDayName(),
                     DateText = date.ToString("dd.MM"),
-                    IsToday = date.Date == DateTime.Today,
-                    IsPastDay = date.Date < DateTime.Today
+                    IsToday = isToday,
+                    IsPastDay = date.Date < today,
+                    IsExpanded = isToday
                 };
 
-                var dayMeals = mealPlansWithRecipes
-                    .Where(mp => mp.MealPlan.Date.Date == date.Date)
-                    .OrderBy(mp => mp.MealPlan.StartHour)
-                    .ToList();
-
-                foreach (var item in dayMeals)
+                if (mealsByDate.TryGetValue(date.Date, out var dayMeals))
                 {
-                    var duration = Math.Max(item.MealPlan.DurationMinutes, MinDurationMinutes);
-                    dayItem.Meals.Add(new MealItem
+                    foreach (var item in dayMeals)
                     {
-                        Id = item.MealPlan.Id,
-                        Recipe = item.Recipe,
-                        Notes = item.MealPlan.Notes,
-                        StartHour = item.MealPlan.StartHour,
-                        DurationMinutes = duration,
-                        TopOffset = (item.MealPlan.StartHour - TimelineStartHour) * HourSlotHeight,
-                        Height = duration / 60.0 * HourSlotHeight
-                    });
+                        var duration = Math.Max(item.MealPlan.DurationMinutes, MinDurationMinutes);
+                        dayItem.Meals.Add(new MealItem
+                        {
+                            Id = item.MealPlan.Id,
+                            Recipe = item.Recipe,
+                            Notes = item.MealPlan.Notes,
+                            StartHour = item.MealPlan.StartHour,
+                            DurationMinutes = duration,
+                            TopOffset = (item.MealPlan.StartHour - TimelineStartHour) * HourSlotHeight,
+                            Height = duration / 60.0 * HourSlotHeight
+                        });
+                    }
                 }
 
-                // Build hour slots
-                for (var h = TimelineStartHour; h < TimelineEndHour; h++)
-                {
-                    var meal = dayItem.Meals.FirstOrDefault(m =>
-                        h >= m.StartHour && h < m.StartHour + (m.DurationMinutes / 60.0));
-
-                    dayItem.HourSlots.Add(new HourSlot
-                    {
-                        Hour = h,
-                        Label = $"{h:00}:00",
-                        IsOccupied = meal is not null,
-                        IsStartHour = meal is not null && meal.StartHour == h,
-                        MealTitle = meal?.Recipe?.Title,
-                        MealTimeRange = meal?.TimeRangeText,
-                        MealRef = meal
-                    });
-                }
-
+                BuildHourSlots(dayItem);
                 days.Add(dayItem);
             }
 
@@ -249,6 +245,31 @@ public partial class MealPlanViewModel : ObservableObject
             IsLoading = false;
         }
     }
+
+    private static void BuildHourSlots(DayPlanItem dayItem)
+    {
+        for (var h = TimelineStartHour; h < TimelineEndHour; h++)
+        {
+            var meal = dayItem.Meals.FirstOrDefault(m =>
+                h >= m.StartHour && h < m.StartHour + (m.DurationMinutes / 60.0));
+
+            dayItem.HourSlots.Add(new HourSlot
+            {
+                Hour = h,
+                Label = $"{h:00}:00",
+                IsOccupied = meal is not null,
+                IsStartHour = meal is not null && meal.StartHour == h,
+                MealTitle = meal?.Recipe?.Title,
+                MealTimeRange = meal?.TimeRangeText,
+                MealRef = meal
+            });
+        }
+    }
+
+    /// <summary>
+    /// Invalidates cached categories/recipes so the next LoadDataAsync reloads them.
+    /// </summary>
+    public void InvalidateCatalogCache() => _categoriesAndRecipesLoaded = false;
 
     [RelayCommand]
     private async Task PreviousWeekAsync()
@@ -414,13 +435,20 @@ public partial class MealPlanViewModel : ObservableObject
             var message = IsAgentInitializing
                 ? "Agent AI jest w trakcie inicjalizacji. Spróbuj ponownie za chwilę."
                 : "Agent AI nie jest gotowy. Sprawdź połączenie i spróbuj ponownie.";
-            await Shell.Current.DisplayAlertAsync("Niedostępne", message, "OK");
+            var snackbar = Snackbar.Make(message,
+                duration: TimeSpan.FromSeconds(3),
+                visualOptions: new SnackbarOptions
+                {
+                    BackgroundColor = Colors.Gold,
+                    TextColor = Colors.Black
+                });
+            await snackbar.Show();
             return;
         }
 
         // TODO: Implement shopping list generation from current week's meal plan
-        var snackbar = Snackbar.Make("Funkcja listy zakupów w przygotowaniu",
+        var todoSnackbar = Snackbar.Make("Funkcja listy zakupów w przygotowaniu",
             duration: TimeSpan.FromSeconds(3));
-        await snackbar.Show();
+        await todoSnackbar.Show();
     }
 }
