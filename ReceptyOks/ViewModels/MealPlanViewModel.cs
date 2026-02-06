@@ -354,7 +354,7 @@ public partial class MealPlanViewModel : ObservableObject
     private async Task GoToRecipeDetailAsync(MealItem meal)
     {
         if (meal.Recipe is null) return;
-        await Shell.Current.GoToAsync($"RecipeDetailPage?recipeId={meal.Recipe.Id}");
+        await Shell.Current.GoToAsync($"{nameof(Views.RecipeDetailPage)}?id={meal.Recipe.Id}");
     }
 
     private static string GetPolishDayName(DayOfWeek dayOfWeek) => dayOfWeek switch

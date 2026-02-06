@@ -47,4 +47,14 @@ public partial class MealPlanPage : ContentPage
 
         _viewModel.RemoveMealCommand.Execute(hourSlot.MealRef);
     }
+
+    private void OnMealBlockTapped(object? sender, TappedEventArgs e)
+    {
+        if (sender is not View view) return;
+
+        var hourSlot = view.BindingContext as HourSlot;
+        if (hourSlot?.MealRef is null) return;
+
+        _viewModel.GoToRecipeDetailCommand.Execute(hourSlot.MealRef);
+    }
 }

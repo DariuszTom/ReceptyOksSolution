@@ -199,6 +199,9 @@
                                                             BackgroundColor="{StaticResource Primary}"
                                                             Padding="10,4"
                                                             IsVisible="{Binding IsOccupied}">
+                                                        <Border.GestureRecognizers>
+                                                            <TapGestureRecognizer Tapped="OnMealBlockTapped" />
+                                                        </Border.GestureRecognizers>
                                                         <Grid ColumnDefinitions="*,Auto"
                                                               ColumnSpacing="4"
                                                               IsVisible="{Binding IsStartHour}">
