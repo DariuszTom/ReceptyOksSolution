@@ -41,7 +41,10 @@ public static class MauiProgram
         builder
             .UseMauiApp<App>()
             .UseAuroraControls<App>()
-            .UseMauiCommunityToolkit()
+            .UseMauiCommunityToolkit(options =>
+            {
+                options.SetShouldEnableSnackbarOnWindows(true);
+            })
             .UseUraniumUI()
             .UseUraniumUIMaterial()
             .ConfigureFonts(fonts =>

@@ -4,6 +4,7 @@
              xmlns:vm="clr-namespace:ReceptyOks.ViewModels"
              xmlns:data="clr-namespace:ReceptyOks.Data"
              xmlns:icons="clr-namespace:UraniumUI.Icons.MaterialSymbols;assembly=UraniumUI.Icons.MaterialSymbols"
+             xmlns:aurora="http://auroracontrols.maui/controls"
              x:Class="ReceptyOks.Views.MealPlanPage"
              x:DataType="vm:MealPlanViewModel"
              Shell.NavBarIsVisible="False"

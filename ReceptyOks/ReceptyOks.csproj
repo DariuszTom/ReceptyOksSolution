@@ -55,8 +55,12 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <MauiImage Remove="Resources\Images\export.svg" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<PackageReference Include="AsyncAwaitBestPractices" Version="10.0.0" />
-		<PackageReference Include="AuroraControls.Maui" Version="4.5.4" />
+		<PackageReference Include="AuroraControls.Maui" Version="10.1.8-beta" />
 		<PackageReference Include="CommunityToolkit.Maui" Version="13.0.0" />
 		<PackageReference Include="Microsoft.Maui.Controls" Version="10.0.20" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.1" />
@@ -125,6 +129,7 @@
 
 	<ItemGroup>
 	  <EmbeddedResource Include="appsettings.json" />
+	  <EmbeddedResource Include="Resources\Images\export.svg" />
 	</ItemGroup>
 
 </Project>
