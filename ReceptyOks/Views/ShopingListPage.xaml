@@ -237,7 +237,7 @@
                                            LineBreakMode="TailTruncation"/>
                                                    <HorizontalStackLayout Spacing="4"
                                                       IsVisible="{Binding BoughtAt, Converter={StaticResource IsNotNullConverter}}">
-                                                     <Label Text="{Binding BoughtAt, StringFormat='Kupiono: {0:dd.MM.yyyy HH:mm}'}"
+                                                     <Label Text="{Binding BoughtAt, StringFormat='Kupiono: UTC {0:dd.MM.yyyy HH:mm}'}"
                                               FontSize="11"
                                                   TextColor="{StaticResource GreenColor}"/>
                                           <Label Text="{Binding BoughtBy, StringFormat='przez {0}'}"
