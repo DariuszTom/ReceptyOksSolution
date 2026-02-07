@@ -144,65 +144,65 @@ public partial class ShopingListViewModel : ObservableObject
         await LoadItemsAsync(cancellationToken);
     }
 
-    /// <summary>
-    /// Adds a new item to the shopping list.
-    /// </summary>
- [RelayCommand]
-    private async Task AddItemAsync(CancellationToken cancellationToken = default)
-    {
-        if (string.IsNullOrWhiteSpace(NewItemName))
+     /// <summary>
+        /// Adds a new item to the shopping list.
+        /// </summary>
+        [RelayCommand]
+        private async Task AddItemAsync(CancellationToken cancellationToken = default)
         {
+            if (string.IsNullOrWhiteSpace(NewItemName))
+            {
          await ShowErrorSnackbarAsync("Nazwa produktu jest wymagana");
-  return;
-        }
+                return;
+         }
 
-        try
+            try
         {
- IsLoading = true;
+                IsLoading = true;
 
             decimal? parsedQuantity = null;
-    if (!string.IsNullOrWhiteSpace(NewItemQuantity) && decimal.TryParse(NewItemQuantity, out var qty))
+     if (!string.IsNullOrWhiteSpace(NewItemQuantity) && decimal.TryParse(NewItemQuantity, out var qty))
       {
-     parsedQuantity = qty;
-  }
-
-  var newItem = new ShoppingListItem
-    {
-    Id = Guid.NewGuid(),
-   Name = NewItemName.Trim(),
-    Quantity = parsedQuantity,
-       Unit = SelectedUnit == Jednostki.Brak ? null : SelectedUnit.ToString(),
-     IsBought = false
-     };
-
- var result = await _shoppingListService.AddAsync(newItem, cancellationToken);
-
-            if (result.IsSuccess && result.Data is not null)
-     {
-     Items.Add(result.Data);
-      ClearNewItemForm();
-     _logger.LogInformation("Added shopping list item: {Name}", result.Data.Name);
+                    parsedQuantity = qty;
             }
-     else
-            {
-      _logger.LogWarning("Failed to add shopping list item: {Error}", result.ErrorMessage);
-      await ShowErrorSnackbarAsync(result.ErrorMessage ?? "Nie udało się dodać produktu");
+
+           var newItem = new ShoppingListItem
+                {
+      Id = Guid.NewGuid(),
+         Name = NewItemName.Trim(),
+       Quantity = parsedQuantity,
+        Unit = SelectedUnit == Jednostki.Brak ? null : SelectedUnit.ToString(),
+           IsBought = false
+    };
+
+      var result = await _shoppingListService.AddAsync(newItem, cancellationToken);
+
+           if (result.IsSuccess && result.Data is not null)
+              {
+               Items.Add(result.Data);
+        ClearNewItemForm();
+        _logger.LogInformation("Added shopping list item: {Name}", result.Data.Name);
+          }
+            else
+         {
+         _logger.LogWarning("Failed to add shopping list item: {Error}", result.ErrorMessage);
+        await ShowErrorSnackbarAsync(result.ErrorMessage ?? "Nie udało się dodać produktu");
+                }
             }
-        }
-        catch (Exception ex)
-  {
-            _logger.LogError(ex, "Error adding shopping list item");
-        await ShowErrorSnackbarAsync("Wystąpił błąd podczas dodawania produktu");
-        }
-   finally
+            catch (Exception ex)
         {
-            IsLoading = false;
-     }
-    }
+          _logger.LogError(ex, "Error adding shopping list item");
+              await ShowErrorSnackbarAsync("Wystąpił błąd podczas dodawania produktu");
+            }
+            finally
+      {
+                IsLoading = false;
+       }
+        }
 
-    /// <summary>
-    /// Toggles the bought status of an item.
-    /// </summary>
+        /// <summary>
+        /// Toggles the bought status of an item.
+        /// </summary>
     [RelayCommand]
     private async Task ToggleBoughtAsync(ShoppingListItem item, CancellationToken cancellationToken = default)
     {
