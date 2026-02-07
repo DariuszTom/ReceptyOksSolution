@@ -139,14 +139,8 @@ public static class MauiProgram
     private static AppSettings LoadConfiguration(MauiAppBuilder builder)
     {
         var assembly = Assembly.GetExecutingAssembly();
-        using var stream = assembly.GetManifestResourceStream("ReceptyOks.appsettings.json");
-
-        if (stream == null)
-        {
-            throw new InvalidOperationException(
+        using var stream = assembly.GetManifestResourceStream("ReceptyOks.appsettings.json") ?? throw new InvalidOperationException(
                 "appsettings.json not found. Make sure it's marked as EmbeddedResource in .csproj");
-        }
-
         var config = new ConfigurationBuilder()
             .AddJsonStream(stream)
             .Build();

@@ -65,7 +65,7 @@ public partial class UserDetailsViewModel : ObservableObject
         {
             IsSaving = true;
             await _userService.SetUserAsync(UserDetails).ConfigureAwait(false);
-            await Snackbar.Make("Dane użytkownika zostały zapisane").Show();
+            await Snackbar.Make("Dane użytkownika zostały zapisane").Show(CancellationToken.None);
         }
         finally
         {
