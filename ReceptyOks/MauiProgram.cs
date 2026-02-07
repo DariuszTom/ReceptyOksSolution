@@ -1,4 +1,5 @@
 ﻿using CommunityToolkit.Maui;
+using CommunityToolkit.Maui.ApplicationModel;
 using Maui.FreakyControls.Extensions;
 using Microsoft.Extensions.Configuration;
 using Plugin.Maui.OCR;
@@ -62,7 +63,6 @@ public static class MauiProgram
 
         // Add Aspire Service Discovery
         builder.Services.AddServiceDiscovery();
-
         // Database
         builder.Services.AddSingleton<LocalDatabase>();
         builder.Services.AddTransient<ApiKeyHandler>();
@@ -79,6 +79,7 @@ public static class MauiProgram
         builder.Services.AddSingleton(OcrPlugin.Default);
         builder.Services.AddSingleton<IOCRService, MobileOcerService>();
         builder.Services.AddSingleton<UpdateCheckerService>();
+        builder.Services.AddSingleton<IBadge>(Badge.Default);
         // Configure HttpClient for BackendAuthService so PostAsync can use relative URIs
         builder.Services.AddHttpClient<BackendAuthService>(client =>
         {

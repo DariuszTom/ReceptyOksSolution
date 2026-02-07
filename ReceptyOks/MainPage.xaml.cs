@@ -1,23 +1,17 @@
-﻿namespace ReceptyOks;
+﻿using CommunityToolkit.Maui.ApplicationModel;
+
+namespace ReceptyOks;
 
 public partial class MainPage : ContentPage
 {
-	int count = 0;
-
-	public MainPage()
+    private readonly IBadge badge;
+    public MainPage()
 	{
 		InitializeComponent();
-	}
-
-	private void OnCounterClicked(object? sender, EventArgs e)
-	{
-		count++;
-
-		if (count == 1)
-			CounterBtn.Text = $"Clicked {count} time";
-		else
-			CounterBtn.Text = $"Clicked {count} times";
-
-		SemanticScreenReader.Announce(CounterBtn.Text);
-	}
+        this.badge = badge;
+    }
+    public void SetCount(uint value)
+    {
+        badge.SetCount(value);
+    }
 }
