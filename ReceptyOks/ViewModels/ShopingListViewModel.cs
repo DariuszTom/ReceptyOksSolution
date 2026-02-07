@@ -10,6 +10,7 @@ using ReceptyOks.Services;
 using ReceptyOks.Shared;
 using ReceptyOks.Shared.Models;
 using System.Collections.ObjectModel;
+using UraniumUI.Extensions;
 
 namespace ReceptyOks.ViewModels;
 
@@ -63,6 +64,7 @@ public partial class ShopingListViewModel : ObservableObject
         {
             await ((ShopingListViewModel)r).AddItemsFromMessageAsync(m.Items);
         });
+        LoadItemsAsync().FireAndForget();
     }
 
     /// <summary>

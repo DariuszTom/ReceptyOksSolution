@@ -1,6 +1,5 @@
 ﻿using CommunityToolkit.Maui;
 using CommunityToolkit.Maui.ApplicationModel;
-using Maui.FreakyControls.Extensions;
 using Microsoft.Extensions.Configuration;
 using Plugin.Maui.OCR;
 using ReceptyOks.Configuration;
@@ -47,7 +46,6 @@ public static class MauiProgram
             })
             .UseUraniumUI()
             .UseUraniumUIMaterial()
-            .InitializeFreakyControls()
             .ConfigureFonts(fonts =>
             {
                 fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");

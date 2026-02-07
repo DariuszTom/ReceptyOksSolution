@@ -79,7 +79,7 @@ public partial class SettingsViewModel : ObservableObject
     public async Task ForceUpdateBackendAsync()
     {
         var confirm = await Shell.Current.DisplayAlertAsync("Potwierdzenie", "Czy na pewno chcesz wymusić synchronizację z serwerem?",
-            "Tak","Anuluj");
+            "Tak", "Anuluj");
         if (!confirm) return;
 
         var result = await _syncService.UploadAllAsync();
@@ -95,7 +95,7 @@ public partial class SettingsViewModel : ObservableObject
     [RelayCommand]
     public async Task GoToUserDetails()
     {
-                try
+        try
         {
             await Microsoft.Maui.ApplicationModel.MainThread.InvokeOnMainThreadAsync(async () =>
             {
