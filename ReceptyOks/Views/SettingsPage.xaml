@@ -36,6 +36,16 @@
                                          Color="{StaticResource Primary}" />
                     </Button.ImageSource>
                 </Button>
+                <Button Text="Uzytkownik"
+                    Command="{Binding GoToUserDetailsCommand}"
+                    StyleClass="ElevatedButton" Background="{StaticResource DarkGradient}">
+                                <Button.ImageSource>
+                                    <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Person}"
+                                     FontFamily="MaterialSymbolsOutlined"
+                                     Size="18"
+                                     Color="{StaticResource Primary}" />
+                                </Button.ImageSource>
+                </Button>
                 <Button Text="Backend force update" Background="{StaticResource DarkGradient}"
                         Command="{Binding ForceUpdateBackendCommand}"
                         IsEnabled="{Binding IsChecking, Converter={StaticResource InvertedBoolConverter}}"

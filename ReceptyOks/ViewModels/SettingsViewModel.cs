@@ -92,4 +92,22 @@ public partial class SettingsViewModel : ObservableObject
             await Shell.Current.DisplayAlertAsync("Synchronizacja", "Wymuszona aktualizacja nie powiodła się.", "OK");
         }
     }
+    [RelayCommand]
+    public async Task GoToUserDetails()
+    {
+                try
+        {
+            await Microsoft.Maui.ApplicationModel.MainThread.InvokeOnMainThreadAsync(async () =>
+            {
+                await Shell.Current.GoToAsync("/UserDetailsPage");
+            });
+        }
+        catch (Exception ex)
+        {
+            await Microsoft.Maui.ApplicationModel.MainThread.InvokeOnMainThreadAsync(async () =>
+            {
+                await Shell.Current.DisplayAlertAsync("Błąd nawigacji", $"Nie można otworzyć szczegółów użytkownika: {ex.Message}", "OK");
+            });
+        }
+    }
 }
