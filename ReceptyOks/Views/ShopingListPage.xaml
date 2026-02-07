@@ -205,13 +205,12 @@
                                             Radius="4"
                                             Opacity="0.08"/>
                                 </Border.Shadow>
-                                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
-                                    <!-- Checkbox - use OneWay binding to prevent local changes -->
-                                    <CheckBox Grid.Column="0"
-                                              IsChecked="{Binding IsBought, Mode=OneWay}"
-                                              Color="{StaticResource Primary}"
-                                              VerticalOptions="Center"
-                                              CheckedChanged="OnItemCheckedChanged"/>
+                                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                                     <!-- Checkbox - use OneWay binding to prevent local changes -->
+                                    <material:CheckBox Grid.Column="0"
+                                    IsChecked="{Binding IsBought, Mode=OneWay}"
+                                      VerticalOptions="Center"
+                                CheckChanged="OnItemCheckChanged"/>
 
                                                       <!-- Item details -->
                                                                  <VerticalStackLayout Grid.Column="1" 
@@ -280,11 +279,10 @@
                 <Shadow Brush="{StaticResource Gray400Brush}" Offset="0,-2" Radius="8" Opacity="0.1"/>
             </Border.Shadow>
             <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
-                <!-- Include bought toggle -->
+                    <!-- Include bought toggle -->
                 <HorizontalStackLayout Grid.Column="0" Spacing="8" VerticalOptions="Center">
-                    <CheckBox IsChecked="{Binding IncludeBoughtItems}"
-                              Color="{StaticResource Primary}"/>
-                    <Label Text="Pokaż kupione"
+                  <material:CheckBox IsChecked="{Binding IncludeBoughtItems}"/>
+                   <Label Text="Pokaż kupione"
                            FontSize="13"
                            TextColor="{StaticResource Gray500}"
                            VerticalOptions="Center"/>

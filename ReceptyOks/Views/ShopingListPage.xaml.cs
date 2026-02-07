@@ -1,6 +1,7 @@
 
 using ReceptyOks.Shared.Models;
 using ReceptyOks.ViewModels;
+using InputKitCheckBox = InputKit.Shared.Controls.CheckBox;
 
 namespace ReceptyOks.Views;
 
@@ -16,16 +17,16 @@ public partial class ShopingListPage : ContentPage
 		BindingContext = viewModel;
 	}
 
-	private async void OnItemCheckedChanged(object? sender, CheckedChangedEventArgs e)
+	private void OnItemCheckChanged(object? sender, EventArgs e)
 	{
 		// Prevent re-entry when we update the checkbox from code
 		if (_isUpdatingFromCode) return;
 
-		if (sender is CheckBox checkBox && checkBox.BindingContext is ShoppingListItem item)
+		if (sender is InputKitCheckBox checkBox && checkBox.BindingContext is ShoppingListItem item)
 		{
 			// The checkbox was clicked by user - determine desired state based on click
-			// Since binding is OneWay, e.Value reflects what user wants
-			bool wantsBought = e.Value;
+			// Since binding is OneWay, checkBox.IsChecked reflects what user wants
+			bool wantsBought = checkBox.IsChecked;
 
 			// Only call API if state actually differs
 			if (item.IsBought != wantsBought)
@@ -35,13 +36,14 @@ public partial class ShopingListPage : ContentPage
 					_viewModel.ToggleBoughtCommand.Execute(item);
 				}
 			}
-			else
-			{
-				// User clicked but item already has that state - revert checkbox
-				_isUpdatingFromCode = true;
-				checkBox.IsChecked = item.IsBought;
-				_isUpdatingFromCode = false;
-			}
+
+			// InputKit CheckBox doesn't automatically refresh from OneWay binding.
+			// Immediately revert the checkbox to the model's current state.
+			// The ViewModel will replace the item in the collection after the API call,
+			// which triggers a UI refresh with the correct state.
+			_isUpdatingFromCode = true;
+			checkBox.IsChecked = item.IsBought;
+			_isUpdatingFromCode = false;
 		}
 	}
 }
