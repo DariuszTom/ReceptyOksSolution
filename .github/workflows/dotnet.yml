@@ -36,6 +36,16 @@ jobs:
       run: dotnet build ReceptyOks.Api/ReceptyOks.Api.csproj --no-restore
     - name: Build Shared
       run: dotnet build ReceptyOks.Shared/ReceptyOks.Shared.csproj --no-restore
+  test:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 10.0.x
+    - name: Install MAUI workload
+      run: dotnet workload install maui
     - name: Restore Test dependencies
       run: dotnet restore ReceptyOks_UnitTests/ReceptyOks_UnitTests.csproj
     - name: Build Tests
