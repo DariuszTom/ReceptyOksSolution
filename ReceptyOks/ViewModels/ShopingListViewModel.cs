@@ -40,7 +40,7 @@ public partial class ShopingListViewModel : ObservableObject
     private string newItemName = string.Empty;
 
     [ObservableProperty]
-    private decimal? newItemQuantity;
+    private string newItemQuantity = string.Empty;
 
     [ObservableProperty]
     private Jednostki selectedUnit = Jednostki.Brak;
@@ -158,20 +158,26 @@ public partial class ShopingListViewModel : ObservableObject
 
         try
         {
-            IsLoading = true;
+          IsLoading = true;
 
-            var newItem = new ShoppingListItem
+    decimal? parsedQuantity = null;
+            if (!string.IsNullOrWhiteSpace(NewItemQuantity) && decimal.TryParse(NewItemQuantity, out var qty))
             {
-                Id = Guid.NewGuid(),
-                Name = NewItemName.Trim(),
-                Quantity = NewItemQuantity,
+      parsedQuantity = qty;
+     }
+
+       var newItem = new ShoppingListItem
+            {
+     Id = Guid.NewGuid(),
+    Name = NewItemName.Trim(),
+   Quantity = parsedQuantity,
                 Unit = SelectedUnit == Jednostki.Brak ? null : SelectedUnit.ToString(),
-                IsBought = false
+          IsBought = false
             };
 
-            var result = await _shoppingListService.AddAsync(newItem, cancellationToken);
+   var result = await _shoppingListService.AddAsync(newItem, cancellationToken);
 
-            if (result.IsSuccess && result.Data is not null)
+        if (result.IsSuccess && result.Data is not null)
             {
                 Items.Add(result.Data);
                 ClearNewItemForm();
@@ -382,8 +388,8 @@ public partial class ShopingListViewModel : ObservableObject
 
     private void ClearNewItemForm()
     {
-        NewItemName = string.Empty;
-        NewItemQuantity = null;
+  NewItemName = string.Empty;
+        NewItemQuantity = string.Empty;
         SelectedUnit = Jednostki.Brak;
     }
 

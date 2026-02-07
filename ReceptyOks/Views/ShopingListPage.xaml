@@ -84,7 +84,7 @@
             <Border.Shadow>
                 <Shadow Brush="{StaticResource Gray400Brush}" Offset="0,2" Radius="6" Opacity="0.08"/>
             </Border.Shadow>
-            <Grid RowDefinitions="Auto,Auto" RowSpacing="8">
+            <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="8">
                 <!-- First row: Product name and Add button -->
                 <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="12">
                     <material:TextField Grid.Column="0"
