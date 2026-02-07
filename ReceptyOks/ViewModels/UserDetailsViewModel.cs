@@ -70,4 +70,7 @@ public partial class UserDetailsViewModel : ObservableObject
             IsSaving = false;
         }
     }
+
+    [RelayCommand]
+    private static async Task GoBackAsync() => await Shell.Current.GoToAsync("..");
 }
