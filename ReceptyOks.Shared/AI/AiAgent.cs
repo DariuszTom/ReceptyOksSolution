@@ -244,4 +244,89 @@ public sealed class AiAgent : IAiAgent
 
         return textBuilder.ToString();
     }
+
+    /// <summary>
+    /// Sends a message and parses the response as a structured object.
+    /// The AI must return valid JSON matching the expected type.
+    /// </summary>
+    /// <typeparam name="T">The type to deserialize the response to.</typeparam>
+    /// <param name="userMessage">The user's message.</param>
+    /// <param name="maxToolRounds">Maximum number of tool call rounds.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The deserialized response object, or default if parsing fails.</returns>
+    public async Task<T?> ChatAsync<T>(
+        string userMessage,
+        int maxToolRounds = 5,
+        CancellationToken cancellationToken = default) where T : class
+    {
+        var responseText = await ChatAsync(userMessage, maxToolRounds, cancellationToken).ConfigureAwait(false);
+        return ParseJsonResponse<T>(responseText);
+    }
+
+    /// <summary>
+    /// Parses a JSON response, extracting JSON from markdown code blocks if present.
+    /// </summary>
+    private static T? ParseJsonResponse<T>(string responseText) where T : class
+    {
+        if (string.IsNullOrWhiteSpace(responseText))
+            return default;
+
+        var json = ExtractJsonFromResponse(responseText);
+
+        try
+        {
+            return JsonSerializer.Deserialize<T>(json, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true,
+                Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
+            });
+        }
+        catch (JsonException)
+        {
+            return default;
+        }
+    }
+
+    /// <summary>
+    /// Extracts JSON content from a response that may contain markdown code blocks.
+    /// </summary>
+    private static string ExtractJsonFromResponse(string responseText)
+    {
+        var text = responseText.Trim();
+
+        // Check for markdown JSON code block
+        const string jsonBlockStart = "```json";
+        const string blockEnd = "```";
+
+        var jsonStart = text.IndexOf(jsonBlockStart, StringComparison.OrdinalIgnoreCase);
+        if (jsonStart >= 0)
+        {
+            var contentStart = jsonStart + jsonBlockStart.Length;
+            var jsonEnd = text.IndexOf(blockEnd, contentStart, StringComparison.Ordinal);
+            if (jsonEnd > contentStart)
+            {
+                return text[contentStart..jsonEnd].Trim();
+            }
+        }
+
+        // Check for generic code block that might contain JSON
+        const string genericBlockStart = "```";
+        var genericStart = text.IndexOf(genericBlockStart, StringComparison.Ordinal);
+        if (genericStart >= 0)
+        {
+            var contentStart = text.IndexOf('\n', genericStart);
+            if (contentStart >= 0)
+            {
+                contentStart++;
+                var genericEnd = text.IndexOf(blockEnd, contentStart, StringComparison.Ordinal);
+                if (genericEnd > contentStart)
+                {
+                    return text[contentStart..genericEnd].Trim();
+                }
+            }
+        }
+
+        // If no code block, assume the entire text is JSON
+        return text;
+    }
 }

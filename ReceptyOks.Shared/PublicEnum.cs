@@ -16,4 +16,9 @@
         Garsc,
         Szczypta
     }
+    public static class EnumHelpers
+    {
+        public static List<T> ToList<T>() where T : Enum
+            => Enum.GetValues(typeof(T)).Cast<T>().ToList();
+    }
 }

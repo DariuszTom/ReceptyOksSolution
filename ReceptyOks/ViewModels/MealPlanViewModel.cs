@@ -11,6 +11,7 @@ using ReceptyOks.Data;
 using ReceptyOks.Services;
 using ReceptyOks.Shared.AI;
 using ReceptyOks.Shared.Misc;
+using ReceptyOks.Shared.Models;
 using ReceptyOks.Views;
 using System.Collections.ObjectModel;
 
@@ -81,6 +82,9 @@ public partial class MealPlanViewModel : ObservableObject
 
     [ObservableProperty]
     private bool isGeneratingShoppingList;
+
+    [ObservableProperty]
+    private ObservableCollection<ShoppingListItemDto> generatedShoppingListItems = [];
 
     // Timeline picker state
     [ObservableProperty]
@@ -477,31 +481,39 @@ public partial class MealPlanViewModel : ObservableObject
             IsGeneratingShoppingList = true;
 
             var recipeList = string.Join("\n", recipesInPlan.Select(r => $"- {r.Title} (ID: {r.Id})"));
-            var prompt = $"""                
-                Wygeneruj listę zakupów dla następujących przepisów zaplanowanych na tydzień {WeekRangeText}:
-                {recipeList}
+            var prompt = $"Wygeneruj listę zakupów dla następujących przepisów zaplanowanych na tydzień " +
+                $"{WeekRangeText}:\n{recipeList}\n\nUżyj narzędzia get_all_ingredients_for_recipes aby pobrać składniki dla tych przepisów." +
+                $" Zsumuj duplikaty i podaj finalną listę zakupów w formacie JSON.";
 
-                Użyj narzędzia get_all_ingredients_for_recipes aby pobrać składniki dla tych przepisów.
-                Zsumuj duplikaty i podaj finalną listę zakupów.
-                """;
+            var structuredResult = await _agent.ChatAsync<ShoppingListAiResponse>(prompt).ConfigureAwait(false);
 
-            var result = await _agent.ChatAsync(prompt).ConfigureAwait(false);
-            GeneratedShoppingList = result;
+            if (structuredResult is not null)
+            {
+                GeneratedShoppingList = structuredResult.Summary;
+                GeneratedShoppingListItems = new ObservableCollection<ShoppingListItemDto>(structuredResult.Items);
+            }
+            else
+            {
+                // Fallback to raw text response if JSON parsing failed
+                var rawResult = await _agent.ChatAsync(prompt).ConfigureAwait(false);
+                GeneratedShoppingList = rawResult;
+                GeneratedShoppingListItems = [];
+            }
 
             await MainThread.InvokeOnMainThreadAsync(async () =>
-            {
-                var popup = new ShopingListPopup(result);
-                var options = new PopupOptions
-                {
-                    CanBeDismissedByTappingOutsideOfPopup = true,
-                    Shape = new RoundRectangle
-                    {
-                        CornerRadius = new CornerRadius(16)
-                    }
-                };
-                var page = Shell.Current.CurrentPage;
-                await page.ShowPopupAsync(popup, options, CancellationToken.None);
-            });
+           {
+               var popup = new ShopingListPopup(GeneratedShoppingList, GeneratedShoppingListItems);
+               var options = new PopupOptions
+               {
+                   CanBeDismissedByTappingOutsideOfPopup = true,
+                   Shape = new RoundRectangle
+                   {
+                       CornerRadius = new CornerRadius(16)
+                   }
+               };
+               var page = Shell.Current.CurrentPage;
+               await page.ShowPopupAsync(popup, options, CancellationToken.None);
+           });
         }
         catch (Exception ex)
         {

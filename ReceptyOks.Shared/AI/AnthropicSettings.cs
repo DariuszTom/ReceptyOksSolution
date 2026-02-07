@@ -1,5 +1,4 @@
-﻿
-namespace ReceptyOks.Shared.AI
+﻿namespace ReceptyOks.Shared.AI
 {
     public class AnthropicSettings
     {
@@ -11,7 +10,7 @@ namespace ReceptyOks.Shared.AI
         /// <summary>
         /// Model to use (e.g. "claude-sonnet-4-latest", "claude-sonnet-4-20250514"). Match to what you have access to.
         /// </summary>
-        public string Model { get; set; } = "claude-sonnet-4-20250514";
+        public string Model { get; set; } = "claude-sonnet-4-5-20250929";
 
         /// <summary>
         /// Maximum model tokens to request (model-specific limits apply). Claude Sonnet 4 supports up to 200k output tokens.
@@ -40,11 +39,25 @@ namespace ReceptyOks.Shared.AI
                    Zawsze potwierdź zrozumienie przy skomplikowanych żądaniach.
                   """;
 
-        public string SystemPromtShopingList { get; set; } =
-                   """
-                   Jesteś asystentem do tworzenia list zakupów, z przepisami kulinarnymi jako kontekst.
-                   Sumuj składniki z podanych przepisów, eliminując duplikaty i standaryzując jednostki miar.
-                   Podaj listę zakupów w formacie tekstowym, z każdą pozycją w nowej linii.
-                  """;
+        public string SystemPromtShopingList { get; set; } = $@"
+            Jesteś asystentem do tworzenia list zakupów, z przepisami kulinarnymi jako kontekst.
+            Sumuj składniki z podanych przepisów, eliminując duplikaty i standaryzując jednostki miar.
+
+            ZAWSZE odpowiadaj w formacie JSON z następującą strukturą:
+            {{
+                ""summary"": ""Krótkie podsumowanie listy zakupów po polsku"",
+                ""items"": [
+                    {{ ""name"": ""nazwa produktu"", ""quantity"": 500, ""unit"": ""Gram"", ""note"": ""opcjonalna notatka"" }}
+                ]
+            }}
+
+            Zasady:
+            - quantity musi być liczbą (decimal) lub null jeśli nieznana
+            - unit to jednostka miary z listy: {string.Join(", ", EnumHelpers.ToList<Jednostki>())} lub null
+            - note jest opcjonalne, używaj gdy składnik wymaga wyjaśnienia
+            - Agreguj duplikaty sumując ilości
+            - Standaryzuj jednostki (np. 1000 Gram -> 1 Kilogram)
+            - NIE dodawaj żadnego tekstu poza JSON
+            ";
     }
 }
