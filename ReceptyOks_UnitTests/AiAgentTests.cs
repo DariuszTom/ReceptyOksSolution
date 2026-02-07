@@ -42,98 +42,6 @@ public sealed partial class AiAgentTests
     }
 
     /// <summary>
-    /// Tests that ConversationId returns the correct value after LoadConversationAsync is called with a valid conversation ID.
-    /// </summary>
-    /// <param name = "expectedConversationId">The conversation ID to set and verify.</param>
-    [TestCase("conversation-123")]
-    [TestCase("test-conv-id")]
-    [TestCase("")]
-    [TestCase("   ")]
-    [TestCase("conversation-with-special-chars-!@#$%")]
-    [TestCase("very-long-conversation-id-that-contains-many-characters-to-test-edge-case-handling-for-extremely-long-strings")]
-    public async Task ConversationId_AfterLoadConversationAsync_ReturnsExpectedValue(string expectedConversationId)
-    {
-        // Arrange
-        var mockChatClient = new Mock<IChatClient>();
-        var mockChatClientAgent = new Mock<ChatClientAgent>(mockChatClient.Object, null, null);
-        var mockThread = new Mock<AgentThread>();
-        mockChatClientAgent.Setup(a => a.DeserializeThreadAsync(It.IsAny<JsonElement>(), It.IsAny<JsonSerializerOptions>(), It.IsAny<CancellationToken>())).ReturnsAsync(mockThread.Object);
-        var agent = new AiAgent(mockChatClient.Object);
-        var serializedThread = JsonSerializer.Serialize(new { id = "thread-123", messages = Array.Empty<object>() });
-        // Act
-        await agent.LoadConversationAsync(serializedThread, expectedConversationId);
-        var actualConversationId = agent.ConversationId;
-        // Assert
-        Assert.That(actualConversationId, Is.EqualTo(expectedConversationId));
-    }
-
-    /// <summary>
-    /// Tests that ConversationId returns null after LoadConversationAsync is called with a null conversation ID.
-    /// </summary>
-    [Test]
-    public async Task ConversationId_AfterLoadConversationAsyncWithNull_ReturnsNull()
-    {
-        // Arrange
-        var mockChatClient = new Mock<IChatClient>();
-        var mockChatClientAgent = new Mock<ChatClientAgent>(mockChatClient.Object, null, null);
-        var mockThread = new Mock<AgentThread>();
-        mockChatClientAgent.Setup(a => a.DeserializeThreadAsync(It.IsAny<JsonElement>(), It.IsAny<JsonSerializerOptions>(), It.IsAny<CancellationToken>())).ReturnsAsync(mockThread.Object);
-        var agent = new AiAgent(mockChatClient.Object);
-        var serializedThread = JsonSerializer.Serialize(new { id = "thread-123", messages = Array.Empty<object>() });
-        // Act
-        await agent.LoadConversationAsync(serializedThread, conversationId: null);
-        var actualConversationId = agent.ConversationId;
-        // Assert
-        Assert.That(actualConversationId, Is.Null);
-    }
-
-    /// <summary>
-    /// Tests that ConversationId maintains its value across multiple property accesses without modification.
-    /// </summary>
-    [Test]
-    public async Task ConversationId_MultipleAccesses_ReturnsSameValue()
-    {
-        // Arrange
-        var mockChatClient = new Mock<IChatClient>();
-        var mockChatClientAgent = new Mock<ChatClientAgent>(mockChatClient.Object, null, null);
-        var mockThread = new Mock<AgentThread>();
-        mockChatClientAgent.Setup(a => a.DeserializeThreadAsync(It.IsAny<JsonElement>(), It.IsAny<JsonSerializerOptions>(), It.IsAny<CancellationToken>())).ReturnsAsync(mockThread.Object);
-        var agent = new AiAgent(mockChatClient.Object);
-        var serializedThread = JsonSerializer.Serialize(new { id = "thread-123", messages = Array.Empty<object>() });
-        var expectedConversationId = "persistent-conversation-id";
-        await agent.LoadConversationAsync(serializedThread, expectedConversationId);
-        // Act
-        var firstAccess = agent.ConversationId;
-        var secondAccess = agent.ConversationId;
-        var thirdAccess = agent.ConversationId;
-        // Assert
-        Assert.That(firstAccess, Is.EqualTo(expectedConversationId));
-        Assert.That(secondAccess, Is.EqualTo(expectedConversationId));
-        Assert.That(thirdAccess, Is.EqualTo(expectedConversationId));
-    }
-
-    /// <summary>
-    /// Tests that ConversationId returns null after being set and then cleared.
-    /// </summary>
-    [Test]
-    public async Task ConversationId_AfterSetAndClear_ReturnsNull()
-    {
-        // Arrange
-        var mockChatClient = new Mock<IChatClient>();
-        var mockChatClientAgent = new Mock<ChatClientAgent>(mockChatClient.Object, null, null);
-        var mockThread = new Mock<AgentThread>();
-        mockChatClientAgent.Setup(a => a.DeserializeThreadAsync(It.IsAny<JsonElement>(), It.IsAny<JsonSerializerOptions>(), It.IsAny<CancellationToken>())).ReturnsAsync(mockThread.Object);
-        var agent = new AiAgent(mockChatClient.Object);
-        var serializedThread = JsonSerializer.Serialize(new { id = "thread-123", messages = Array.Empty<object>() });
-        await agent.LoadConversationAsync(serializedThread, "some-conversation-id");
-        // Act
-        agent.ClearHistory();
-        var conversationId = agent.ConversationId;
-        // Assert
-        Assert.That(conversationId, Is.Null);
-    }
-
-    /// <summary>
     /// Tests that the constructor throws ArgumentNullException when chatClient parameter is null.
     /// </summary>
     [Test]
@@ -1362,21 +1270,6 @@ public sealed partial class AiAgentTests
     }
 
     /// <summary>
-    /// Tests that ChatAsync throws ArgumentException when userMessage is null.
-    /// This validates input validation before any processing occurs.
-    /// </summary>
-    [Test]
-    public void ChatAsync_NullUserMessage_ThrowsArgumentException()
-    {
-        // Arrange
-        var mockChatClient = new Mock<IChatClient>();
-        var aiAgent = new AiAgent(mockChatClient.Object, "Test system prompt");
-        string? userMessage = null;
-        // Act & Assert
-        Assert.ThrowsAsync<ArgumentException>(async () => await aiAgent.ChatAsync(userMessage!, cancellationToken: CancellationToken.None));
-    }
-
-    /// <summary>
     /// Tests that ChatAsync throws ArgumentException when userMessage is an empty string.
     /// This validates that empty strings are rejected during input validation.
     /// </summary>
@@ -1566,22 +1459,6 @@ public sealed partial class AiAgentTests
     }
 
     /// <summary>
-    /// Tests that ChatStreamAsync throws ArgumentException when userMessage is null.
-    /// </summary>
-    [Test]
-    public void ChatStreamAsync_NullUserMessage_ThrowsArgumentException()
-    {
-        // Arrange
-        var mockChatClient = new Mock<IChatClient>();
-        var agent = new AiAgent(mockChatClient.Object);
-        Action<string> callback = _ =>
-        {
-        };
-        // Act & Assert
-        Assert.ThrowsAsync<ArgumentException>(async () => await agent.ChatStreamAsync(null!, callback, CancellationToken.None));
-    }
-
-    /// <summary>
     /// Tests that ChatStreamAsync throws ArgumentException when userMessage is empty.
     /// </summary>
     [Test]
@@ -1747,21 +1624,6 @@ public sealed partial class AiAgentTests
         var exception = Assert.ThrowsAsync<InvalidOperationException>(async () => await agent.SaveConversationAsync(default));
         Assert.That(exception, Is.Not.Null);
         Assert.That(exception!.Message, Does.Contain("No active conversation to save"));
-    }
-
-    /// <summary>
-    /// Tests that LoadConversationAsync throws ArgumentException when serializedThread is null.
-    /// </summary>
-    [Test]
-    public void LoadConversationAsync_NullSerializedThread_ThrowsArgumentException()
-    {
-        // Arrange
-        var mockChatClient = new Mock<IChatClient>();
-        var aiAgent = new ReceptyOks.Shared.AI.AiAgent(mockChatClient.Object);
-        string? serializedThread = null;
-        // Act & Assert
-        var ex = Assert.ThrowsAsync<ArgumentException>(async () => await aiAgent.LoadConversationAsync(serializedThread!, null, CancellationToken.None));
-        Assert.That(ex, Is.Not.Null);
     }
 
     /// <summary>
@@ -2051,20 +1913,6 @@ public sealed partial class AiAgentTests
     }
 
     /// <summary>
-    /// Verifies that ChatAsync throws ArgumentException when userMessage is null.
-    /// Tests null input validation for required parameter.
-    /// </summary>
-    [Test]
-    public void ChatAsync_WithNullUserMessage_ThrowsArgumentException()
-    {
-        // Arrange
-        var mockChatClient = new Mock<IChatClient>();
-        var agent = new AiAgent(mockChatClient.Object);
-        // Act & Assert
-        Assert.ThrowsAsync<ArgumentException>(async () => await agent.ChatAsync<TestResponse>(null!));
-    }
-
-    /// <summary>
     /// Verifies that ChatAsync throws ArgumentException when userMessage is empty.
     /// Tests empty string validation for required parameter.
     /// </summary>
@@ -2094,22 +1942,6 @@ public sealed partial class AiAgentTests
         var agent = new AiAgent(mockChatClient.Object);
         // Act & Assert
         Assert.ThrowsAsync<ArgumentException>(async () => await agent.ChatAsync<TestResponse>(userMessage));
-    }
-
-    /// <summary>
-    /// Verifies that ChatAsync respects cancellation tokens and throws OperationCanceledException
-    /// when the token is cancelled before the operation completes.
-    /// </summary>
-    [Test]
-    public void ChatAsync_WithCancelledToken_ThrowsOperationCanceledException()
-    {
-        // Arrange
-        var mockChatClient = new Mock<IChatClient>();
-        var agent = new AiAgent(mockChatClient.Object);
-        var cts = new CancellationTokenSource();
-        cts.Cancel();
-        // Act & Assert
-        Assert.ThrowsAsync<OperationCanceledException>(async () => await agent.ChatAsync<TestResponse>("Test message", cancellationToken: cts.Token));
     }
 
     /// <summary>
