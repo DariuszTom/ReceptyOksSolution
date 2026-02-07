@@ -29,7 +29,6 @@ namespace ReceptyOks.Services
             catch (FileNotFoundException)
             {
                 // On Windows unpackaged apps, AppxManifest.xml doesn't exist.
-                // Assume permission is granted and let the actual speech recognition fail if not.
                 isGranted = true;
             }
 
@@ -41,8 +40,23 @@ namespace ReceptyOks.Services
 
             _speechToText.RecognitionResultUpdated += OnRecognitionTextUpdated;
             _speechToText.RecognitionResultCompleted += OnRecognitionTextCompleted;
-            await _speechToText.StartListenAsync(new SpeechToTextOptions 
-            { Culture = CultureInfo.CurrentCulture, ShouldReportPartialResults = true }, cancellationToken);
+
+            try
+            {
+                await _speechToText.StartListenAsync(new SpeechToTextOptions
+                {
+                    Culture = CultureInfo.CurrentCulture,
+                    ShouldReportPartialResults = true
+                }, cancellationToken);
+            }
+            catch (FileNotFoundException)
+            {
+                // On Windows, SpeechRecognizer may fail if speech recognition is not installed or configured.
+                Unsubscribe();
+                await SnackBarHelper.ShowErrorSnackbarAsync(
+                 "Rozpoznawanie mowy nie jest dostępne. Upewnij się, że pakiet językowy rozpoznawania mowy jest zainstalowany w systemie Windows.");
+                throw;
+            }
         }
 
         internal async Task StopListeningAsync(CancellationToken cancellationToken)
