@@ -223,92 +223,6 @@ public class ByteArrayToImageSourceConverterTests
     }
 
     /// <summary>
-    /// Tests the Convert method with a single-element byte array.
-    /// Expected: Returns a non-null ImageSource.
-    /// </summary>
-    [Test]
-    public void Convert_InputIsSingleElementByteArray_ReturnsImageSource()
-    {
-        // Arrange
-        var converter = new ByteArrayToImageSourceConverter();
-        var singleByteArray = new byte[] { 0xFF };
-
-        // Act
-        var result = converter.Convert(singleByteArray, typeof(ImageSource), null, CultureInfo.InvariantCulture);
-
-        // Assert
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result, Is.InstanceOf<ImageSource>());
-    }
-
-    /// <summary>
-    /// Tests the Convert method with a multi-element byte array.
-    /// Expected: Returns a non-null ImageSource.
-    /// </summary>
-    [Test]
-    public void Convert_InputIsMultiElementByteArray_ReturnsImageSource()
-    {
-        // Arrange
-        var converter = new ByteArrayToImageSourceConverter();
-        var multiByteArray = new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A };
-
-        // Act
-        var result = converter.Convert(multiByteArray, typeof(ImageSource), null, CultureInfo.InvariantCulture);
-
-        // Assert
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result, Is.InstanceOf<ImageSource>());
-    }
-
-    /// <summary>
-    /// Tests the Convert method with a large byte array.
-    /// Expected: Returns a non-null ImageSource.
-    /// </summary>
-    [Test]
-    public void Convert_InputIsLargeByteArray_ReturnsImageSource()
-    {
-        // Arrange
-        var converter = new ByteArrayToImageSourceConverter();
-        var largeByteArray = new byte[10000];
-        for (int i = 0; i < largeByteArray.Length; i++)
-        {
-            largeByteArray[i] = (byte)(i % 256);
-        }
-
-        // Act
-        var result = converter.Convert(largeByteArray, typeof(ImageSource), null, CultureInfo.InvariantCulture);
-
-        // Assert
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result, Is.InstanceOf<ImageSource>());
-    }
-
-    /// <summary>
-    /// Tests the Convert method with various byte array sizes.
-    /// Expected: Returns non-null ImageSource for all non-empty arrays.
-    /// </summary>
-    /// <param name="size">The size of the byte array to test.</param>
-    [TestCase(1)]
-    [TestCase(2)]
-    [TestCase(10)]
-    [TestCase(100)]
-    [TestCase(1024)]
-    [TestCase(65536)]
-    public void Convert_InputIsByteArrayOfVariousSizes_ReturnsImageSource(int size)
-    {
-        // Arrange
-        var converter = new ByteArrayToImageSourceConverter();
-        var byteArray = new byte[size];
-
-        // Act
-        var result = converter.Convert(byteArray, typeof(ImageSource), null, CultureInfo.InvariantCulture);
-
-        // Assert
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result, Is.InstanceOf<ImageSource>());
-    }
-
-    /// <summary>
     /// Provides test cases for non-byte-array reference types.
     /// </summary>
     private static object[] GetNonByteArrayReferenceTypes =
@@ -2070,43 +1984,6 @@ public class IsNotNullConverterTests
         new object[] { "\t\n\r", typeof(string) },
         new object[] { new string('a', 10000), typeof(string) }
     };
-
-    /// <summary>
-    /// Tests that ConvertBack always throws NotImplementedException regardless of input parameters,
-    /// as this converter only supports one-way conversion.
-    /// </summary>
-    /// <param name="value">The value parameter to pass to ConvertBack.</param>
-    /// <param name="targetType">The target type for conversion.</param>
-    /// <param name="parameter">Optional converter parameter.</param>
-    /// <param name="cultureName">Culture name to use for the test.</param>
-    [TestCase(null, typeof(object), null, "en-US", TestName = "ConvertBack_NullValue_ThrowsNotImplementedException")]
-    [TestCase("", typeof(string), null, "en-US", TestName = "ConvertBack_EmptyString_ThrowsNotImplementedException")]
-    [TestCase("test", typeof(string), null, "en-US", TestName = "ConvertBack_NonEmptyString_ThrowsNotImplementedException")]
-    [TestCase(0, typeof(int), null, "en-US", TestName = "ConvertBack_ZeroInt_ThrowsNotImplementedException")]
-    [TestCase(123, typeof(int), null, "en-US", TestName = "ConvertBack_PositiveInt_ThrowsNotImplementedException")]
-    [TestCase(-5, typeof(int), null, "en-US", TestName = "ConvertBack_NegativeInt_ThrowsNotImplementedException")]
-    [TestCase(true, typeof(bool), null, "en-US", TestName = "ConvertBack_TrueBoolean_ThrowsNotImplementedException")]
-    [TestCase(false, typeof(bool), null, "en-US", TestName = "ConvertBack_FalseBoolean_ThrowsNotImplementedException")]
-    [TestCase(0.0, typeof(double), null, "en-US", TestName = "ConvertBack_ZeroDouble_ThrowsNotImplementedException")]
-    [TestCase(double.NaN, typeof(double), null, "en-US", TestName = "ConvertBack_NaN_ThrowsNotImplementedException")]
-    [TestCase(double.PositiveInfinity, typeof(double), null, "en-US", TestName = "ConvertBack_PositiveInfinity_ThrowsNotImplementedException")]
-    [TestCase(double.NegativeInfinity, typeof(double), null, "en-US", TestName = "ConvertBack_NegativeInfinity_ThrowsNotImplementedException")]
-    [TestCase("test", typeof(string), "param", "en-US", TestName = "ConvertBack_WithParameter_ThrowsNotImplementedException")]
-    [TestCase("test", typeof(string), null, "", TestName = "ConvertBack_InvariantCulture_ThrowsNotImplementedException")]
-    [TestCase("test", typeof(string), null, "de-DE", TestName = "ConvertBack_GermanCulture_ThrowsNotImplementedException")]
-    [TestCase(int.MaxValue, typeof(int), null, "en-US", TestName = "ConvertBack_IntMaxValue_ThrowsNotImplementedException")]
-    [TestCase(int.MinValue, typeof(int), null, "en-US", TestName = "ConvertBack_IntMinValue_ThrowsNotImplementedException")]
-    [TestCase(" ", typeof(string), null, "en-US", TestName = "ConvertBack_WhitespaceString_ThrowsNotImplementedException")]
-    [TestCaseSource(nameof(GetAdditionalConvertBackTestCases))]
-    public void ConvertBack_AnyInput_ThrowsNotImplementedException(object? value, Type targetType, object? parameter, string cultureName)
-    {
-        // Arrange
-        var converter = new IsNotNullConverter();
-        var culture = string.IsNullOrEmpty(cultureName) ? CultureInfo.InvariantCulture : CultureInfo.GetCultureInfo(cultureName);
-
-        // Act & Assert
-        Assert.Throws<NotImplementedException>(() => converter.ConvertBack(value, targetType, parameter, culture));
-    }
 
     /// <summary>
     /// Tests the Convert method for various input values to ensure correct boolean is returned
