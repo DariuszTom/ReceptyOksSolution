@@ -343,7 +343,7 @@ Title="Uwagi"
     <Label Text="Przygotowanie" FontSize="18" FontAttributes="Bold" VerticalOptions="Center"/>
          <!-- Recording indicator GIF - shows in center when listening -->
    <Image Grid.Column="1"
-           Source="recordingmicrofone.gif"
+           Source="recordingmicrofone2.gif"
                HeightRequest="40"
               WidthRequest="40"
                   Aspect="AspectFit"
