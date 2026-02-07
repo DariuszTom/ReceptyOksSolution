@@ -62,7 +62,7 @@ public partial class ShopingListPopup : ContentView
 		// Copy formatted list with items
 		var textToCopy = FormatShoppingListForClipboard();
 		await Clipboard.Default.SetTextAsync(textToCopy);
-		await Toast.Make("Skopiowano do schowka").Show();
+		await Snackbar.Make("Skopiowano do schowka").Show();
 	}
 
 	private string FormatShoppingListForClipboard()
@@ -91,14 +91,14 @@ public partial class ShopingListPopup : ContentView
 	{
 		if (ShoppingListItems.Count == 0)
 		{
-			await Toast.Make("Brak produktów do dodania").Show();
+			await Snackbar.Make("Brak produktów do dodania").Show();
 			return;
 		}
 
 		var itemsToAdd = ShoppingListItems.Select(dto => dto.ToEntity()).ToList();
 		WeakReferenceMessenger.Default.Send(new AddShoppingItemsMessage(itemsToAdd));
 
-		await Toast.Make($"Dodano {itemsToAdd.Count} produktów do listy zakupów").Show();
+		await Snackbar.Make($"Dodano {itemsToAdd.Count} produktów do listy zakupów").Show();
 
 		var page = Shell.Current.CurrentPage;
 		await page.ClosePopupAsync(CancellationToken.None);

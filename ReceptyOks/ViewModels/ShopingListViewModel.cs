@@ -110,6 +110,11 @@ public partial class ShopingListViewModel : ObservableObject
     [RelayCommand]
     private async Task LoadItemsAsync(CancellationToken cancellationToken = default)
     {
+        if (cancellationToken.IsCancellationRequested)
+        {
+            return;
+        }
+
         try
         {
             IsLoading = true;
@@ -126,6 +131,11 @@ public partial class ShopingListViewModel : ObservableObject
                 _logger.LogWarning("Failed to load shopping list: {Error}", result.ErrorMessage);
                 await ShowErrorSnackbarAsync(result.ErrorMessage ?? "Nie udało się załadować listy");
             }
+        }
+        catch (OperationCanceledException)
+        {
+            // Request was cancelled (e.g., user triggered refresh again), ignore
+            _logger.LogDebug("Load shopping list operation was cancelled");
         }
         catch (Exception ex)
         {
@@ -396,7 +406,7 @@ public partial class ShopingListViewModel : ObservableObject
     {
         var text = GetShoppingListText();
         await Clipboard.Default.SetTextAsync(text);
-        await Toast.Make("Skopiowano do schowka").Show();
+        await Snackbar.Make("Skopiowano do schowka").Show();
     }
 
     partial void OnIncludeBoughtItemsChanged(bool value)
