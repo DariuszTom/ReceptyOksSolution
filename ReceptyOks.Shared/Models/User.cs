@@ -1,7 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
-using System.Text;
 
 namespace ReceptyOks.Shared.Models
 {
@@ -11,15 +9,27 @@ namespace ReceptyOks.Shared.Models
         public User()
         {
             AddOn = DateTime.UtcNow;
+            Id = Guid.NewGuid();
         }
+
         [DataMember]
-        public Guid Id { get; set; }
+        public Guid Id { get; init; }
+
         [DataMember]
+        [Required]
+        [MaxLength(100)]
         public string Name { get; set; }
+
         [DataMember]
-        public string Email { get; set; }= string.Empty;
+        [EmailAddress]
+        [MaxLength(256)]
+        public string Email { get; set; } = string.Empty;
+
         [DataMember]
+        [Phone]
+        [MaxLength(20)]
         public string PhoneNumber { get; set; } = string.Empty;
+
         [DataMember]
         public DateTime? AddOn { get; init; }
     }
