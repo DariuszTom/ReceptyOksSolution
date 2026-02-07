@@ -221,6 +221,24 @@ public static class ShoppingListEndpoints
         .Produces(StatusCodes.Status404NotFound)
         .WithName("DeleteShoppingListItem");
 
+        // DELETE - permanently remove item from database (hard delete)
+        group.MapDelete("/{id:guid}/permanent", async (Guid id, RecipeDbContext db) =>
+        {
+            var item = await db.ShoppingListItems.FindAsync(id);
+            if (item is null)
+            {
+                return Results.NotFound();
+            }
+
+            db.ShoppingListItems.Remove(item);
+            await db.SaveChangesAsync();
+
+            return Results.NoContent();
+        })
+        .Produces(StatusCodes.Status204NoContent)
+        .Produces(StatusCodes.Status404NotFound)
+        .WithName("HardDeleteShoppingListItem");
+
         // DELETE - clear bought items (uses ExecuteUpdateAsync for better performance)
         group.MapDelete("/clear-bought", async (RecipeDbContext db) =>
         {

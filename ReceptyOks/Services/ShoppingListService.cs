@@ -485,6 +485,43 @@ public class ShoppingListService(HttpClient httpClient)
         }
     }
 
+    /// <summary>
+    /// Permanently deletes an item from the database (hard delete).
+    /// </summary>
+    public async Task<ShoppingListResult<bool>> HardDeleteAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            if (!HasInternetConnection())
+            {
+                return ShoppingListResult<bool>.Failure("Brak połączenia z internetem");
+            }
+
+            var response = await _retryPolicy.ExecuteAsync(ct =>
+                _httpClient.DeleteAsync($"/api/shopping-list/{id}/permanent", ct), cancellationToken);
+
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                return ShoppingListResult<bool>.Failure("Element nie został znaleziony");
+            }
+
+            if (!response.IsSuccessStatusCode)
+            {
+                return ShoppingListResult<bool>.Failure($"Błąd serwera: {response.StatusCode}");
+            }
+
+            return ShoppingListResult<bool>.Success(true);
+        }
+        catch (OperationCanceledException)
+        {
+            return ShoppingListResult<bool>.Failure("Operacja została anulowana");
+        }
+        catch (Exception ex)
+        {
+            return ShoppingListResult<bool>.Failure($"Błąd: {ex.Message}");
+        }
+    }
+
     private static bool HasInternetConnection()
     {
         return Connectivity.Current.NetworkAccess == NetworkAccess.Internet;

@@ -1,4 +1,6 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+﻿using CommunityToolkit.Maui.Alerts;
+using CommunityToolkit.Maui.Core;
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 using Microsoft.Extensions.Logging;
@@ -33,9 +35,6 @@ public partial class ShopingListViewModel : ObservableObject
 
     [ObservableProperty]
     private bool includeBoughtItems;
-
-    [ObservableProperty]
-    private string? errorMessage;
 
     [ObservableProperty]
     private string newItemName = string.Empty;
@@ -73,7 +72,6 @@ public partial class ShopingListViewModel : ObservableObject
         try
         {
             IsLoading = true;
-            ErrorMessage = null;
 
             var result = await _shoppingListService.AddBulkAsync(itemsToAdd);
 
@@ -87,14 +85,14 @@ public partial class ShopingListViewModel : ObservableObject
             }
             else
             {
-                ErrorMessage = result.ErrorMessage;
                 _logger.LogWarning("Failed to add bulk items: {Error}", result.ErrorMessage);
+                await ShowErrorSnackbarAsync(result.ErrorMessage ?? "Nie udało się dodać produktów");
             }
         }
         catch (Exception ex)
         {
-            ErrorMessage = "Wystąpił błąd podczas dodawania produktów";
             _logger.LogError(ex, "Error adding bulk shopping list items");
+            await ShowErrorSnackbarAsync("Wystąpił błąd podczas dodawania produktów");
         }
         finally
         {
@@ -111,7 +109,6 @@ public partial class ShopingListViewModel : ObservableObject
         try
         {
             IsLoading = true;
-            ErrorMessage = null;
 
             var result = await _shoppingListService.GetAllAsync(IncludeBoughtItems, cancellationToken);
 
@@ -121,14 +118,14 @@ public partial class ShopingListViewModel : ObservableObject
             }
             else
             {
-                ErrorMessage = result.ErrorMessage;
                 _logger.LogWarning("Failed to load shopping list: {Error}", result.ErrorMessage);
+                await ShowErrorSnackbarAsync(result.ErrorMessage ?? "Nie udało się załadować listy");
             }
         }
         catch (Exception ex)
         {
-            ErrorMessage = "Wystąpił błąd podczas ładowania listy";
             _logger.LogError(ex, "Error loading shopping list items");
+            await ShowErrorSnackbarAsync("Wystąpił błąd podczas ładowania listy");
         }
         finally
         {
@@ -155,14 +152,13 @@ public partial class ShopingListViewModel : ObservableObject
     {
         if (string.IsNullOrWhiteSpace(NewItemName))
         {
-            ErrorMessage = "Nazwa produktu jest wymagana";
+            await ShowErrorSnackbarAsync("Nazwa produktu jest wymagana");
             return;
         }
 
         try
         {
             IsLoading = true;
-            ErrorMessage = null;
 
             var newItem = new ShoppingListItem
             {
@@ -183,14 +179,14 @@ public partial class ShopingListViewModel : ObservableObject
             }
             else
             {
-                ErrorMessage = result.ErrorMessage;
                 _logger.LogWarning("Failed to add shopping list item: {Error}", result.ErrorMessage);
+                await ShowErrorSnackbarAsync(result.ErrorMessage ?? "Nie udało się dodać produktu");
             }
         }
         catch (Exception ex)
         {
-            ErrorMessage = "Wystąpił błąd podczas dodawania produktu";
             _logger.LogError(ex, "Error adding shopping list item");
+            await ShowErrorSnackbarAsync("Wystąpił błąd podczas dodawania produktu");
         }
         finally
         {
@@ -208,35 +204,35 @@ public partial class ShopingListViewModel : ObservableObject
 
         try
         {
-            ErrorMessage = null;
-
             var result = item.IsBought
-                ? await _shoppingListService.MarkAsUnboughtAsync(item.Id, cancellationToken)
-                : await _shoppingListService.MarkAsBoughtAsync(item.Id, cancellationToken: cancellationToken);
+                          ? await _shoppingListService.MarkAsUnboughtAsync(item.Id, cancellationToken)
+              : await _shoppingListService.MarkAsBoughtAsync(item.Id, cancellationToken: cancellationToken);
 
             if (result.IsSuccess && result.Data is not null)
             {
                 var index = Items.IndexOf(item);
                 if (index >= 0)
                 {
-                    Items[index] = result.Data;
+                    // Use RemoveAt/Insert to properly trigger UI update
+                    Items.RemoveAt(index);
+                    Items.Insert(index, result.Data);
                 }
             }
             else
             {
-                ErrorMessage = result.ErrorMessage;
                 _logger.LogWarning("Failed to toggle bought status: {Error}", result.ErrorMessage);
+                await ShowErrorSnackbarAsync(result.ErrorMessage ?? "Nie udało się zmienić statusu produktu");
             }
         }
         catch (Exception ex)
         {
-            ErrorMessage = "Wystąpił błąd podczas aktualizacji produktu";
             _logger.LogError(ex, "Error toggling bought status for item {Id}", item.Id);
+            await ShowErrorSnackbarAsync("Wystąpił błąd podczas aktualizacji produktu");
         }
     }
 
     /// <summary>
-    /// Deletes an item from the shopping list.
+    /// Deletes an item from the shopping list (soft delete).
     /// </summary>
     [RelayCommand]
     private async Task DeleteItemAsync(ShoppingListItem item, CancellationToken cancellationToken = default)
@@ -245,8 +241,6 @@ public partial class ShopingListViewModel : ObservableObject
 
         try
         {
-            ErrorMessage = null;
-
             var result = await _shoppingListService.DeleteAsync(item.Id, cancellationToken);
 
             if (result.IsSuccess)
@@ -256,14 +250,52 @@ public partial class ShopingListViewModel : ObservableObject
             }
             else
             {
-                ErrorMessage = result.ErrorMessage;
                 _logger.LogWarning("Failed to delete shopping list item: {Error}", result.ErrorMessage);
+                await ShowErrorSnackbarAsync(result.ErrorMessage ?? "Nie udało się usunąć produktu");
             }
         }
         catch (Exception ex)
         {
-            ErrorMessage = "Wystąpił błąd podczas usuwania produktu";
             _logger.LogError(ex, "Error deleting shopping list item {Id}", item.Id);
+            await ShowErrorSnackbarAsync("Wystąpił błąd podczas usuwania produktu");
+        }
+    }
+
+    /// <summary>
+    /// Permanently deletes an item from the database (hard delete).
+    /// </summary>
+    [RelayCommand]
+    private async Task HardDeleteItemAsync(ShoppingListItem item, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(item);
+
+        try
+        {
+            // Show confirmation dialog
+            bool confirm = await Shell.Current.DisplayAlertAsync(
+     "Usunąć na zawsze?",
+     $"Element '{item.Name}' zostanie trwale usunięty z bazy danych. Tej operacji nie można cofnąć.",
+           "Usuń",
+          "Anuluj");
+
+            if (!confirm) return;
+
+            var result = await _shoppingListService.HardDeleteAsync(item.Id, cancellationToken);
+
+            if (result.IsSuccess)
+            {
+                Items.Remove(item);
+            }
+            else
+            {
+                _logger.LogWarning("Failed to hard delete shopping list item: {Error}", result.ErrorMessage);
+                await ShowErrorSnackbarAsync(result.ErrorMessage ?? "Nie udało się trwale usunąć produktu");
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error hard deleting shopping list item {Id}", item.Id);
+            await ShowErrorSnackbarAsync("Wystąpił błąd podczas trwałego usuwania produktu");
         }
     }
 
@@ -275,26 +307,30 @@ public partial class ShopingListViewModel : ObservableObject
     {
         try
         {
+            // Show confirmation dialog
+            bool confirm = await Shell.Current.DisplayAlertAsync(
+                "Usunąć na zawsze kupione produkty?",
+                "Wszystkie kupione produkty zostaną trwale usunięte z bazy danych. Tej operacji nie można cofnąć.",
+                "Usuń",
+                "Anuluj");
+            if (!confirm) return;
             IsLoading = true;
-            ErrorMessage = null;
 
             var result = await _shoppingListService.ClearBoughtAsync(cancellationToken);
 
             if (result.IsSuccess)
             {
                 await LoadItemsAsync(cancellationToken);
-                _logger.LogInformation("Cleared bought items from shopping list");
             }
             else
             {
-                ErrorMessage = result.ErrorMessage;
-                _logger.LogWarning("Failed to clear bought items: {Error}", result.ErrorMessage);
+                await ShowErrorSnackbarAsync(result.ErrorMessage ?? "Nie udało się wyczyścić listy");
             }
         }
         catch (Exception ex)
         {
-            ErrorMessage = "Wystąpił błąd podczas czyszczenia listy";
             _logger.LogError(ex, "Error clearing bought items");
+            await ShowErrorSnackbarAsync("Wystąpił błąd podczas czyszczenia listy");
         }
         finally
         {
@@ -349,5 +385,21 @@ public partial class ShopingListViewModel : ObservableObject
         NewItemName = string.Empty;
         NewItemQuantity = null;
         SelectedUnit = Jednostki.Brak;
+    }
+
+    /// <summary>
+    /// Shows an error snackbar with the specified message.
+    /// </summary>
+    private static async Task ShowErrorSnackbarAsync(string message)
+    {
+        var snackbar = Snackbar.Make(
+         message,
+            duration: TimeSpan.FromSeconds(3),
+            visualOptions: new SnackbarOptions
+            {
+                BackgroundColor = Colors.Red,
+                TextColor = Colors.White
+            });
+        await snackbar.Show();
     }
 }
