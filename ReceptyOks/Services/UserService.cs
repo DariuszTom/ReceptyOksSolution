@@ -1,24 +1,69 @@
 ﻿using ReceptyOks.Shared.Models;
-using System;
-using System.Collections.Generic;
-using System.Text;
+using System.Text.Json;
 
-namespace ReceptyOks.Services
+namespace ReceptyOks.Services;
+
+internal class UserService
 {
-    internal class UserService
-    {
-        private User _user;
-        public static readonly Lazy<UserService> Instance = new Lazy<UserService>(() => new UserService(), LazyThreadSafetyMode.ExecutionAndPublication);
-        private UserService() { }
+    private const string UserStorageKey = "user_data";
+    private User? _cachedUser;
 
-        public User GetUser()
+    public static readonly Lazy<UserService> Instance = new(() => new UserService(), LazyThreadSafetyMode.ExecutionAndPublication);
+
+    private UserService() { }
+
+    /// <summary>
+    /// Retrieves the user from cache or SecureStorage.
+    /// </summary>
+    public async Task<User?> GetUserAsync()
+    {
+        if (_cachedUser is not null)
         {
-            return _user;
+            return _cachedUser;
         }
 
-        public void SetUser(User user)
+        var json = await SecureStorage.Default.GetAsync(UserStorageKey);
+        if (string.IsNullOrWhiteSpace(json))
         {
-            _user = user;
-        }   
+            return null;
+        }
+
+        _cachedUser = JsonSerializer.Deserialize<User>(json);
+        return _cachedUser;
+    }
+
+    /// <summary>
+    /// Stores the user in SecureStorage and updates the cache.
+    /// </summary>
+    public async Task SetUserAsync(User user)
+    {
+        ArgumentNullException.ThrowIfNull(user);
+
+        var json = JsonSerializer.Serialize(user);
+        await SecureStorage.Default.SetAsync(UserStorageKey, json);
+        _cachedUser = user;
+    }
+
+    /// <summary>
+    /// Removes the user from SecureStorage and clears the cache.
+    /// </summary>
+    public void ClearUser()
+    {
+        SecureStorage.Default.Remove(UserStorageKey);
+        _cachedUser = null;
+    }
+
+    /// <summary>
+    /// Checks if a user is stored.
+    /// </summary>
+    public async Task<bool> HasUserAsync()
+    {
+        if (_cachedUser is not null)
+        {
+            return true;
+        }
+
+        var json = await SecureStorage.Default.GetAsync(UserStorageKey);
+        return !string.IsNullOrWhiteSpace(json);
     }
 }
