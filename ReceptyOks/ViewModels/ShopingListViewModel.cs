@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 using Microsoft.Extensions.Logging;
+using ReceptyOks.Models;
 using ReceptyOks.Services;
 using ReceptyOks.Shared;
 using ReceptyOks.Shared.Models;
@@ -81,6 +82,7 @@ public partial class ShopingListViewModel : ObservableObject
                 {
                     Items.Add(item);
                 }
+                UpdateBadgeCount();
                 _logger.LogInformation("Added {Count} items to shopping list", result.Data.Count);
             }
             else
@@ -115,6 +117,7 @@ public partial class ShopingListViewModel : ObservableObject
             if (result.IsSuccess)
             {
                 Items = new ObservableCollection<ShoppingListItem>(result.Data ?? []);
+                UpdateBadgeCount();
             }
             else
             {
@@ -144,65 +147,66 @@ public partial class ShopingListViewModel : ObservableObject
         await LoadItemsAsync(cancellationToken);
     }
 
-     /// <summary>
-        /// Adds a new item to the shopping list.
-        /// </summary>
-        [RelayCommand]
-        private async Task AddItemAsync(CancellationToken cancellationToken = default)
+    /// <summary>
+    /// Adds a new item to the shopping list.
+    /// </summary>
+    [RelayCommand]
+    private async Task AddItemAsync(CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(NewItemName))
         {
-            if (string.IsNullOrWhiteSpace(NewItemName))
-            {
-         await ShowErrorSnackbarAsync("Nazwa produktu jest wymagana");
-                return;
-         }
-
-            try
-        {
-                IsLoading = true;
-
-            decimal? parsedQuantity = null;
-     if (!string.IsNullOrWhiteSpace(NewItemQuantity) && decimal.TryParse(NewItemQuantity, out var qty))
-      {
-                    parsedQuantity = qty;
-            }
-
-           var newItem = new ShoppingListItem
-                {
-      Id = Guid.NewGuid(),
-         Name = NewItemName.Trim(),
-       Quantity = parsedQuantity,
-        Unit = SelectedUnit == Jednostki.Brak ? null : SelectedUnit.ToString(),
-           IsBought = false
-    };
-
-      var result = await _shoppingListService.AddAsync(newItem, cancellationToken);
-
-           if (result.IsSuccess && result.Data is not null)
-              {
-               Items.Add(result.Data);
-        ClearNewItemForm();
-        _logger.LogInformation("Added shopping list item: {Name}", result.Data.Name);
-          }
-            else
-         {
-         _logger.LogWarning("Failed to add shopping list item: {Error}", result.ErrorMessage);
-        await ShowErrorSnackbarAsync(result.ErrorMessage ?? "Nie udało się dodać produktu");
-                }
-            }
-            catch (Exception ex)
-        {
-          _logger.LogError(ex, "Error adding shopping list item");
-              await ShowErrorSnackbarAsync("Wystąpił błąd podczas dodawania produktu");
-            }
-            finally
-      {
-                IsLoading = false;
-       }
+            await ShowErrorSnackbarAsync("Nazwa produktu jest wymagana");
+            return;
         }
 
-        /// <summary>
-        /// Toggles the bought status of an item.
-        /// </summary>
+        try
+        {
+            IsLoading = true;
+
+            decimal? parsedQuantity = null;
+            if (!string.IsNullOrWhiteSpace(NewItemQuantity) && decimal.TryParse(NewItemQuantity, out var qty))
+            {
+                parsedQuantity = qty;
+            }
+
+            var newItem = new ShoppingListItem
+            {
+                Id = Guid.NewGuid(),
+                Name = NewItemName.Trim(),
+                Quantity = parsedQuantity,
+                Unit = SelectedUnit == Jednostki.Brak ? null : SelectedUnit.ToString(),
+                IsBought = false
+            };
+
+            var result = await _shoppingListService.AddAsync(newItem, cancellationToken);
+
+            if (result.IsSuccess && result.Data is not null)
+            {
+                Items.Add(result.Data);
+                UpdateBadgeCount();
+                ClearNewItemForm();
+                _logger.LogInformation("Added shopping list item: {Name}", result.Data.Name);
+            }
+            else
+            {
+                _logger.LogWarning("Failed to add shopping list item: {Error}", result.ErrorMessage);
+                await ShowErrorSnackbarAsync(result.ErrorMessage ?? "Nie udało się dodać produktu");
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error adding shopping list item");
+            await ShowErrorSnackbarAsync("Wystąpił błąd podczas dodawania produktu");
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    /// <summary>
+    /// Toggles the bought status of an item.
+    /// </summary>
     [RelayCommand]
     private async Task ToggleBoughtAsync(ShoppingListItem item, CancellationToken cancellationToken = default)
     {
@@ -223,6 +227,7 @@ public partial class ShopingListViewModel : ObservableObject
                     Items.RemoveAt(index);
                     Items.Insert(index, result.Data);
                 }
+                UpdateBadgeCount();
             }
             else
             {
@@ -252,6 +257,7 @@ public partial class ShopingListViewModel : ObservableObject
             if (result.IsSuccess)
             {
                 Items.Remove(item);
+                UpdateBadgeCount();
                 _logger.LogInformation("Deleted shopping list item: {Name}", item.Name);
             }
             else
@@ -291,6 +297,7 @@ public partial class ShopingListViewModel : ObservableObject
             if (result.IsSuccess)
             {
                 Items.Remove(item);
+                UpdateBadgeCount();
             }
             else
             {
@@ -388,9 +395,18 @@ public partial class ShopingListViewModel : ObservableObject
 
     private void ClearNewItemForm()
     {
-  NewItemName = string.Empty;
+        NewItemName = string.Empty;
         NewItemQuantity = string.Empty;
         SelectedUnit = Jednostki.Brak;
+    }
+
+    /// <summary>
+    /// Updates the app badge with the count of unbought items.
+    /// </summary>
+    private void UpdateBadgeCount()
+    {
+        var unboughtCount = (uint)Items.Count(i => !i.IsBought);
+        WeakReferenceMessenger.Default.Send(new BadgeCountMessage(unboughtCount));
     }
 
     /// <summary>
