@@ -1,6 +1,7 @@
 using CommunityToolkit.Maui.Alerts;
 using CommunityToolkit.Maui.Extensions;
 using CommunityToolkit.Mvvm.Messaging;
+using ReceptyOks.Services;
 using ReceptyOks.Shared.Models;
 using ReceptyOks.ViewModels;
 using System.Collections.ObjectModel;
@@ -62,7 +63,7 @@ public partial class ShopingListPopup : ContentView
 		// Copy formatted list with items
 		var textToCopy = FormatShoppingListForClipboard();
 		await Clipboard.Default.SetTextAsync(textToCopy);
-		await Snackbar.Make("Skopiowano do schowka").Show();
+		await SnackBarHelper.ShowInfoSnackbarAsync("Skopiowano do schowka");
 	}
 
 	private string FormatShoppingListForClipboard()
@@ -91,14 +92,14 @@ public partial class ShopingListPopup : ContentView
 	{
 		if (ShoppingListItems.Count == 0)
 		{
-			await Snackbar.Make("Brak produktów do dodania").Show();
+			await SnackBarHelper.ShowInfoSnackbarAsync("Brak produktów do dodania");
 			return;
 		}
 
 		var itemsToAdd = ShoppingListItems.Select(dto => dto.ToEntity()).ToList();
 		WeakReferenceMessenger.Default.Send(new AddShoppingItemsMessage(itemsToAdd));
 
-		await Snackbar.Make($"Dodano {itemsToAdd.Count} produktów do listy zakupów").Show();
+		await SnackBarHelper.ShowInfoSnackbarAsync($"Dodano {itemsToAdd.Count} produktów do listy zakupów");
 
 		var page = Shell.Current.CurrentPage;
 		await page.ClosePopupAsync(CancellationToken.None);

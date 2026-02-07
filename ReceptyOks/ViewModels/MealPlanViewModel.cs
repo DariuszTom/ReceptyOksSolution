@@ -1,7 +1,5 @@
 using AsyncAwaitBestPractices;
 using CommunityToolkit.Maui;
-using CommunityToolkit.Maui.Alerts;
-using CommunityToolkit.Maui.Core;
 using CommunityToolkit.Maui.Extensions;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -450,14 +448,8 @@ public partial class MealPlanViewModel : ObservableObject
             var message = IsAgentInitializing
                 ? "Agent AI jest w trakcie inicjalizacji. Spróbuj ponownie za chwilę."
                 : "Agent AI nie jest gotowy. Sprawdź połączenie i spróbuj ponownie.";
-            var snackbar = Snackbar.Make(message,
-                duration: TimeSpan.FromSeconds(3),
-                visualOptions: new SnackbarOptions
-                {
-                    BackgroundColor = Colors.Gold,
-                    TextColor = Colors.Black
-                });
-            await snackbar.Show();
+            await SnackBarHelper.ShowWarningSnackbarAsync(message);
+
             return;
         }
 
@@ -470,9 +462,7 @@ public partial class MealPlanViewModel : ObservableObject
 
         if (recipesInPlan.Count == 0)
         {
-            var emptySnackbar = Snackbar.Make("Brak przepisów w planie na ten tydzień.",
-                duration: TimeSpan.FromSeconds(3));
-            await emptySnackbar.Show();
+            await SnackBarHelper.ShowInfoSnackbarAsync("Brak przepisów w planie na ten tydzień.");
             return;
         }
 
@@ -518,14 +508,7 @@ public partial class MealPlanViewModel : ObservableObject
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error generating shopping list");
-            var errorSnackbar = Snackbar.Make("Nie udało się wygenerować listy zakupów.",
-                duration: TimeSpan.FromSeconds(3),
-                visualOptions: new SnackbarOptions
-                {
-                    BackgroundColor = Colors.Red,
-                    TextColor = Colors.White
-                });
-            await errorSnackbar.Show();
+            await SnackBarHelper.ShowErrorSnackbarAsync("Nie udało się wygenerować listy zakupów.");
         }
         finally
         {

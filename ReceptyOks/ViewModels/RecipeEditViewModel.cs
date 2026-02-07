@@ -1,11 +1,12 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+﻿using CommunityToolkit.Maui.Media;
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ReceptyOks.Data;
+using ReceptyOks.Services;
 using ReceptyOks.Shared;
 using ReceptyOks.Shared.OCR;
 using System.Collections.ObjectModel;
 using System.Windows.Input;
-using Microsoft.Maui.Controls;
 
 namespace ReceptyOks.ViewModels;
 
@@ -14,6 +15,8 @@ public partial class RecipeEditViewModel : ObservableObject
 {
     private readonly LocalDatabase _database;
     private readonly IOCRService _ocrService;
+    private readonly SpeechToTextService _speechToTextService;
+    private CancellationTokenSource? _speechCts;
     private bool _isNewRecipe = true;
 
     [ObservableProperty]
@@ -60,16 +63,22 @@ public partial class RecipeEditViewModel : ObservableObject
     [ObservableProperty]
     private string pageTitle = "Nowy przepis";
 
+    [ObservableProperty]
+    private bool isListening;
+
     private Guid _existingId;
     private bool _isInitialized = false;
 
     // Explicit command for removing the image (design-time friendly)
     public ICommand RemoveImageCommand { get; }
 
-    public RecipeEditViewModel(LocalDatabase database, IOCRService ocrService)
+    public RecipeEditViewModel(LocalDatabase database, IOCRService ocrService, ISpeechToText speechToText)
     {
         _database = database;
         _ocrService = ocrService;
+        _speechToTextService = new SpeechToTextService(speechToText);
+        _speechToTextService.RecognitionUpdated += OnRecognitionUpdated;
+        _speechToTextService.RecognitionCompleted += OnRecognitionCompleted;
 
         RemoveImageCommand = new Command(RemoveImageInternal);
     }
@@ -403,47 +412,66 @@ public partial class RecipeEditViewModel : ObservableObject
             await Shell.Current.DisplayAlertAsync("Błąd", $"Wystąpił błąd: {ex.Message}", "OK");
         }
     }
+    [RelayCommand]
+    private async Task ScanInstructionsFromMicrophoneAsync()
+    {
+        try
+        {
+            if (IsListening)
+            {
+                await StopListeningAsync();
+            }
+            else
+            {
+                await StartListeningAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            IsListening = false;
+            await SnackBarHelper.ShowErrorSnackbarAsync($"Wystąpił błąd: {ex.Message}");
+        }
+    }
+
+    private async Task StartListeningAsync()
+    {
+        _speechCts = new CancellationTokenSource();
+        IsListening = true;
+        await _speechToTextService.StartListeningAsync(_speechCts.Token);
+    }
+
+    private async Task StopListeningAsync()
+    {
+        if (_speechCts is not null)
+        {
+            await _speechToTextService.StopListeningAsync(_speechCts.Token);
+            _speechCts.Dispose();
+            _speechCts = null;
+        }
+        IsListening = false;
+    }
+
+    private void OnRecognitionUpdated(string text)
+    {
+        MainThread.BeginInvokeOnMainThread(() =>
+           {
+               Instructions = text;
+           });
+    }
+
+    private void OnRecognitionCompleted(string text)
+    {
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            Instructions = text;
+            IsListening = false;
+        });
+    }
 
     // Internal method backing the explicit RemoveImageCommand
     private void RemoveImageInternal()
     {
         RecipeImage = null;
         ImagePreview = null;
-    }
-}
-
-public partial class EditableIngredient : ObservableObject
-{
-    public Guid Id { get; set; }
-
-    [ObservableProperty]
-    private IngredientLocal? selectedIngredient;
-
-    [ObservableProperty]
-    private string ingredientName = string.Empty;
-
-    [ObservableProperty]
-    private decimal quantity;
-
-    [ObservableProperty]
-    private Jednostki selectedUnit=Jednostki.Brak;
-
-    [ObservableProperty]
-    private string notes = string.Empty;
-
-    partial void OnSelectedIngredientChanged(IngredientLocal? value)
-    {
-        if (value is not null)
-        {
-            IngredientName = value.Name;
-        }
-    }
-
-    partial void OnIngredientNameChanged(string value)
-    {
-        if (!string.IsNullOrWhiteSpace(value) && SelectedIngredient?.Name != value)
-        {
-            SelectedIngredient = null;
-        }
     }
 }

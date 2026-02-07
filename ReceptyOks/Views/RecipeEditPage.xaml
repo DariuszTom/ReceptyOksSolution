@@ -342,7 +342,7 @@ Title="Uwagi"
             <Grid ColumnDefinitions="*,Auto" Margin="0,16,0,0">
                 <Label Text="Przygotowanie" FontSize="18" FontAttributes="Bold" VerticalOptions="Center"/>
                 <HorizontalStackLayout Grid.Column="1" Spacing="8">
-                    <Button Command="{Binding ScanInstructionsFromGalleryCommand}"
+                    <Button Command="{Binding ScanInstructionsFromGalleryCommand}" Style="{StaticResource GradientAddButton}"
                             BackgroundColor="Transparent"
                             BorderColor="{StaticResource Primary}"
                             BorderWidth="1"
@@ -356,7 +356,7 @@ Title="Uwagi"
                                              Size="18"/>
                         </Button.ImageSource>
                     </Button>
-                    <Button Command="{Binding ScanInstructionsFromCameraCommand}"
+                    <Button Command="{Binding ScanInstructionsFromCameraCommand}" Style="{StaticResource GradientAddButton}"
                             BackgroundColor="Transparent"
                             BorderColor="{StaticResource Primary}"
                             BorderWidth="1"
@@ -368,6 +368,20 @@ Title="Uwagi"
                                              FontFamily="MaterialSymbolsOutlined"
                                              Color="{StaticResource Primary}"
                                              Size="18"/>
+                        </Button.ImageSource>
+                    </Button>
+                    <Button Command="{Binding ScanInstructionsFromMicrophoneCommand}" Style="{StaticResource GradientAddButton}"
+                         BackgroundColor="Transparent"
+                         BorderColor="{StaticResource Primary}"
+                         BorderWidth="1"
+                         CornerRadius="20"
+                         Padding="12,6"
+                         ToolTipProperties.Text="Skanuj z kamery">  
+                        <Button.ImageSource>
+                            <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Mic}"
+                          FontFamily="MaterialSymbolsOutlined"
+                          Color="{StaticResource Primary}"
+                          Size="18"/>
                         </Button.ImageSource>
                     </Button>
                 </HorizontalStackLayout>

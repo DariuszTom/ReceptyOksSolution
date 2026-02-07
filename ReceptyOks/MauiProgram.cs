@@ -1,5 +1,6 @@
 ﻿using CommunityToolkit.Maui;
 using CommunityToolkit.Maui.ApplicationModel;
+using CommunityToolkit.Maui.Media;
 using Microsoft.Extensions.Configuration;
 using Plugin.Maui.OCR;
 using ReceptyOks.Configuration;
@@ -78,6 +79,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<IOCRService, MobileOcerService>();
         builder.Services.AddSingleton<UpdateCheckerService>();
         builder.Services.AddSingleton<IBadge>(Badge.Default);
+        builder.Services.AddSingleton<ISpeechToText>(SpeechToText.Default);
         // Configure HttpClient for BackendAuthService so PostAsync can use relative URIs
         builder.Services.AddHttpClient<BackendAuthService>(client =>
         {

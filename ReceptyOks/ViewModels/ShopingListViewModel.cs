@@ -92,13 +92,13 @@ public partial class ShopingListViewModel : ObservableObject
             else
             {
                 _logger.LogWarning("Failed to add bulk items: {Error}", result.ErrorMessage);
-                await ShowErrorSnackbarAsync(result.ErrorMessage ?? "Nie udało się dodać produktów");
+                await SnackBarHelper.ShowErrorSnackbarAsync(result.ErrorMessage ?? "Nie udało się dodać produktów");
             }
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error adding bulk shopping list items");
-            await ShowErrorSnackbarAsync("Wystąpił błąd podczas dodawania produktów");
+            await SnackBarHelper.ShowErrorSnackbarAsync("Wystąpił błąd podczas dodawania produktów");
         }
         finally
         {
@@ -131,7 +131,7 @@ public partial class ShopingListViewModel : ObservableObject
             else
             {
                 _logger.LogWarning("Failed to load shopping list: {Error}", result.ErrorMessage);
-                await ShowErrorSnackbarAsync(result.ErrorMessage ?? "Nie udało się załadować listy");
+                await SnackBarHelper.ShowErrorSnackbarAsync(result.ErrorMessage ?? "Nie udało się załadować listy");
             }
         }
         catch (OperationCanceledException)
@@ -142,7 +142,7 @@ public partial class ShopingListViewModel : ObservableObject
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error loading shopping list items");
-            await ShowErrorSnackbarAsync("Wystąpił błąd podczas ładowania listy");
+            await SnackBarHelper.ShowErrorSnackbarAsync("Wystąpił błąd podczas ładowania listy");
         }
         finally
         {
@@ -169,7 +169,7 @@ public partial class ShopingListViewModel : ObservableObject
     {
         if (string.IsNullOrWhiteSpace(NewItemName))
         {
-            await ShowErrorSnackbarAsync("Nazwa produktu jest wymagana");
+            await SnackBarHelper.ShowErrorSnackbarAsync("Nazwa produktu jest wymagana");
             return;
         }
 
@@ -207,13 +207,13 @@ public partial class ShopingListViewModel : ObservableObject
             else
             {
                 _logger.LogWarning("Failed to add shopping list item: {Error}", result.ErrorMessage);
-                await ShowErrorSnackbarAsync(result.ErrorMessage ?? "Nie udało się dodać produktu");
+                await SnackBarHelper.ShowErrorSnackbarAsync(result.ErrorMessage ?? "Nie udało się dodać produktu");
             }
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error adding shopping list item");
-            await ShowErrorSnackbarAsync("Wystąpił błąd podczas dodawania produktu");
+            await SnackBarHelper.ShowErrorSnackbarAsync("Wystąpił błąd podczas dodawania produktu");
         }
         finally
         {
@@ -257,13 +257,13 @@ public partial class ShopingListViewModel : ObservableObject
             else
             {
                 _logger.LogWarning("Failed to toggle bought status: {Error}", result.ErrorMessage);
-                await ShowErrorSnackbarAsync(result.ErrorMessage ?? "Nie udało się zmienić statusu produktu");
+                await SnackBarHelper.ShowErrorSnackbarAsync(result.ErrorMessage ?? "Nie udało się zmienić statusu produktu");
             }
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error toggling bought status for item {Id}", item.Id);
-            await ShowErrorSnackbarAsync("Wystąpił błąd podczas aktualizacji produktu");
+            await SnackBarHelper.ShowErrorSnackbarAsync("Wystąpił błąd podczas aktualizacji produktu");
         }
     }
 
@@ -288,13 +288,13 @@ public partial class ShopingListViewModel : ObservableObject
             else
             {
                 _logger.LogWarning("Failed to delete shopping list item: {Error}", result.ErrorMessage);
-                await ShowErrorSnackbarAsync(result.ErrorMessage ?? "Nie udało się usunąć produktu");
+                await SnackBarHelper.ShowErrorSnackbarAsync(result.ErrorMessage ?? "Nie udało się usunąć produktu");
             }
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error deleting shopping list item {Id}", item.Id);
-            await ShowErrorSnackbarAsync("Wystąpił błąd podczas usuwania produktu");
+            await SnackBarHelper.ShowErrorSnackbarAsync("Wystąpił błąd podczas usuwania produktu");
         }
     }
 
@@ -325,13 +325,13 @@ public partial class ShopingListViewModel : ObservableObject
             else
             {
                 _logger.LogWarning("Failed to hard delete shopping list item: {Error}", result.ErrorMessage);
-                await ShowErrorSnackbarAsync(result.ErrorMessage ?? "Nie udało się trwale usunąć produktu");
+                await SnackBarHelper.ShowErrorSnackbarAsync(result.ErrorMessage ?? "Nie udało się trwale usunąć produktu");
             }
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error hard deleting shopping list item {Id}", item.Id);
-            await ShowErrorSnackbarAsync("Wystąpił błąd podczas trwałego usuwania produktu");
+            await SnackBarHelper.ShowErrorSnackbarAsync("Wystąpił błąd podczas trwałego usuwania produktu");
         }
     }
 
@@ -360,13 +360,13 @@ public partial class ShopingListViewModel : ObservableObject
             }
             else
             {
-                await ShowErrorSnackbarAsync(result.ErrorMessage ?? "Nie udało się wyczyścić listy");
+                await SnackBarHelper.ShowErrorSnackbarAsync(result.ErrorMessage ?? "Nie udało się wyczyścić listy");
             }
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error clearing bought items");
-            await ShowErrorSnackbarAsync("Wystąpił błąd podczas czyszczenia listy");
+            await SnackBarHelper.ShowErrorSnackbarAsync("Wystąpił błąd podczas czyszczenia listy");
         }
         finally
         {
@@ -408,7 +408,7 @@ public partial class ShopingListViewModel : ObservableObject
     {
         var text = GetShoppingListText();
         await Clipboard.Default.SetTextAsync(text);
-        await Snackbar.Make("Skopiowano do schowka").Show();
+        await SnackBarHelper.ShowInfoSnackbarAsync("Skopiowano do schowka");
     }
 
     partial void OnIncludeBoughtItemsChanged(bool value)
@@ -432,19 +432,4 @@ public partial class ShopingListViewModel : ObservableObject
         WeakReferenceMessenger.Default.Send(new BadgeCountMessage(unboughtCount));
     }
 
-    /// <summary>
-    /// Shows an error snackbar with the specified message.
-    /// </summary>
-    private static async Task ShowErrorSnackbarAsync(string message)
-    {
-        var snackbar = Snackbar.Make(
-         message,
-            duration: TimeSpan.FromSeconds(3),
-            visualOptions: new SnackbarOptions
-            {
-                BackgroundColor = Colors.Red,
-                TextColor = Colors.White
-            });
-        await snackbar.Show();
-    }
 }

@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ReceptyOks.Data;
 using ReceptyOks.Services;
+using ReceptyOks.Shared;
 using ReceptyOks.Shared.AI;
 using System.Collections.ObjectModel;
 using ILogger = Serilog.ILogger;
@@ -155,7 +156,7 @@ public partial class ChatBotViewModel : ObservableObject
         Messages.Add(assistantMessage);
 
         IsBusy = true;
-        _sendCts = new CancellationTokenSource();
+        _sendCts = new CancellationTokenSource(GlobalConstants.DefaultCancelationTokenTime*3);
 
         try
         {

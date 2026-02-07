@@ -13,6 +13,7 @@
 	<uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
 	<uses-permission android:name="com.sec.android.provider.badge.permission.READ" />
 	<uses-permission android:name="com.sec.android.provider.badge.permission.WRITE" />
+	<uses-permission android:name="android.permission.RECORD_AUDIO" />
 	<!-- Wymagane dla Android 11+ żeby widzieć aplikację kamery -->
 	<queries>
 		<intent>
