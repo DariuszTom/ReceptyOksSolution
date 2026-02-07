@@ -1,6 +1,8 @@
 using CommunityToolkit.Maui.Alerts;
 using CommunityToolkit.Maui.Extensions;
+using CommunityToolkit.Mvvm.Messaging;
 using ReceptyOks.Shared.Models;
+using ReceptyOks.ViewModels;
 using System.Collections.ObjectModel;
 
 namespace ReceptyOks.Views;
@@ -81,6 +83,23 @@ public partial class ShopingListPopup : ContentView
 
 	private async void OnCloseClicked(object? sender, EventArgs e)
 	{
+		var page = Shell.Current.CurrentPage;
+		await page.ClosePopupAsync(CancellationToken.None);
+	}
+
+	private async void OnAddToListClicked(object? sender, EventArgs e)
+	{
+		if (ShoppingListItems.Count == 0)
+		{
+			await Toast.Make("Brak produktów do dodania").Show();
+			return;
+		}
+
+		var itemsToAdd = ShoppingListItems.Select(dto => dto.ToEntity()).ToList();
+		WeakReferenceMessenger.Default.Send(new AddShoppingItemsMessage(itemsToAdd));
+
+		await Toast.Make($"Dodano {itemsToAdd.Count} produktów do listy zakupów").Show();
+
 		var page = Shell.Current.CurrentPage;
 		await page.ClosePopupAsync(CancellationToken.None);
 	}

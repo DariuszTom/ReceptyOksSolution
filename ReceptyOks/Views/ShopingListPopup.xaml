@@ -93,22 +93,39 @@
 
 		<!-- Footer -->
 		<HorizontalStackLayout Grid.Row="3"
-                               Padding="14,8"
-                               HorizontalOptions="End">
+		 Padding="14,8"
+			Spacing="8"
+  HorizontalOptions="End">
+			<Button Text="Dodaj do listy"
+		   FontSize="13"
+   FontAttributes="Bold"
+		 BackgroundColor="{StaticResource Primary}"
+			TextColor="White"
+		  CornerRadius="10"
+		  HeightRequest="38"
+	Padding="16,0"
+	  Clicked="OnAddToListClicked">
+				<Button.ImageSource>
+					<FontImageSource Glyph="{x:Static icons:MaterialOutlined.Add_shopping_cart}"
+		FontFamily="MaterialSymbolsOutlined"
+	   Color="White"
+	   Size="18" />
+				</Button.ImageSource>
+			</Button>
 			<Button Text="Kopiuj"
-                    FontSize="13"
-                    FontAttributes="Bold"
-                    BackgroundColor="{StaticResource Secondary}"
-                    TextColor="{StaticResource Primary}"
-                    CornerRadius="10"
-                    HeightRequest="38"
-                    Padding="16,0"
-                    Clicked="OnCopyClicked">
+	  FontSize="13"
+		 FontAttributes="Bold"
+		   BackgroundColor="{StaticResource Secondary}"
+		 TextColor="{StaticResource Primary}"
+	  CornerRadius="10"
+		   HeightRequest="38"
+	 Padding="16,0"
+	  Clicked="OnCopyClicked">
 				<Button.ImageSource>
 					<FontImageSource Glyph="{x:Static icons:MaterialOutlined.Content_copy}"
-                                     FontFamily="MaterialSymbolsOutlined"
-                                     Color="{StaticResource Primary}"
-                                     Size="18" />
+		FontFamily="MaterialSymbolsOutlined"
+	Color="{StaticResource Primary}"
+	Size="18" />
 				</Button.ImageSource>
 			</Button>
 		</HorizontalStackLayout>
