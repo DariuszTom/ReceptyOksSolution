@@ -37,10 +37,6 @@ public partial class ShopingListPage : ContentPage
 				}
 			}
 
-			// InputKit CheckBox doesn't automatically refresh from OneWay binding.
-			// Immediately revert the checkbox to the model's current state.
-			// The ViewModel will replace the item in the collection after the API call,
-			// which triggers a UI refresh with the correct state.
 			_isUpdatingFromCode = true;
 			checkBox.IsChecked = item.IsBought;
 			_isUpdatingFromCode = false;
