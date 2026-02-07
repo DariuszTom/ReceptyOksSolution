@@ -9,6 +9,7 @@
              xmlns:controls="clr-namespace:ReceptyOks.Controls"
              x:Class="ReceptyOks.Views.RecipeEditPage"
              x:DataType="vm:RecipeEditViewModel"
+             Background="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource BlackBrownPurpleGradient}}"
              Title="{Binding PageTitle}">
 
     <ContentPage.ToolbarItems>

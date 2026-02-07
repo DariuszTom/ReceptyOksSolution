@@ -10,7 +10,7 @@
              x:Name="RecipesPageRoot"
              x:DataType="vm:RecipesViewModel"
              Shell.NavBarIsVisible="False"
-             BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark=#121212}">
+             Background="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource BlackBrownPurpleGradient}}">
 
     <Grid RowDefinitions="Auto,Auto,*">
         

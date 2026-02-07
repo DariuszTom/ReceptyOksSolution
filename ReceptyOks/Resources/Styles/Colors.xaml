@@ -95,4 +95,12 @@
         <GradientStop Color="#16213e" Offset="1" />
     </LinearGradientBrush>
 
+    <LinearGradientBrush x:Key="BlackBrownPurpleGradient" EndPoint="0.5,1" StartPoint="0.5,0">
+        <GradientStop Color="#0a0a0a" Offset="0" />
+      <GradientStop Color="#1a1a1a" Offset="0.6" />
+        <GradientStop Color="#2a1f1a" Offset="0.85" />
+        <GradientStop Color="#3d2a5c" Offset="1.2" />
+    </LinearGradientBrush>
+
+
 </ResourceDictionary>

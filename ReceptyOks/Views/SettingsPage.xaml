@@ -8,7 +8,7 @@
              xmlns:uranium="http://schemas.enisn-projects.io/dotnet/maui/uraniumui"
              x:Class="ReceptyOks.Views.SettingsPage"
              x:DataType="vm:SettingsViewModel"
-             BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark=#121212}">
+             Background="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource BlackBrownPurpleGradient}}">
 
     <Grid RowDefinitions="Auto,*">
         <!-- Custom Header -->

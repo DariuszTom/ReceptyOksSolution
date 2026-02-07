@@ -9,7 +9,7 @@
              x:Class="ReceptyOks.Views.CategoriesPage"
              x:DataType="vm:CategoriesViewModel"
              Shell.NavBarIsVisible="False"
-             BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark=#121212}">
+             Background="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource BlackBrownPurpleGradient}}">
 
     <Grid RowDefinitions="Auto,*">
         

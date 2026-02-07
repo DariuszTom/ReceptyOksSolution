@@ -9,7 +9,7 @@
              x:DataType="vm:RecipeDetailViewModel"
              x:Name="PageRoot"
              Shell.NavBarIsVisible="False"
-             BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark=#121212}">
+             Background="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource BlackBrownPurpleGradient}}">
 
     <Grid RowDefinitions="Auto,*">
         <!-- Hero Image with overlay header -->

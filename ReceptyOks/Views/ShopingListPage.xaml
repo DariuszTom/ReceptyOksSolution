@@ -9,7 +9,7 @@
              x:Class="ReceptyOks.Views.ShopingListPage"
              x:DataType="vm:ShopingListViewModel"
              Shell.NavBarIsVisible="False"
-             BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark=#121212}"
+             Background="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource BlackBrownPurpleGradient}}"
              Title="Lista zakupów">
 
     <Grid RowDefinitions="Auto,Auto,*,Auto">
@@ -213,39 +213,42 @@
                                               VerticalOptions="Center"
                                               CheckedChanged="OnItemCheckedChanged"/>
 
-                                                   <!-- Item details -->
-                                                   <VerticalStackLayout Grid.Column="1" 
-                                        VerticalOptions="Center"
-                                           Spacing="2">
-                                       <Label Text="{Binding Name}"
-                                        FontSize="16"
-                                             TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"
-                                      TextDecorations="{Binding IsBought, Converter={StaticResource BoolToStrikethroughConverter}}"/>
-                                      <HorizontalStackLayout Spacing="4"
-                                         IsVisible="{Binding Quantity, Converter={StaticResource IsNotNullConverter}}">
-                                              <Label Text="{Binding Quantity}"
-                                              FontSize="13"
-                                        TextColor="{StaticResource Gray500}"/>
-                                           <Label Text="{Binding Unit}"
-                                            FontSize="13"
-                                      TextColor="{StaticResource Gray500}"/>
-                                              </HorizontalStackLayout>
-                                               <Label Text="{Binding Note}"
-                                             FontSize="12"
-                                    TextColor="{StaticResource Gray400}"
-                                          IsVisible="{Binding Note, Converter={StaticResource IsNotNullConverter}}"
-                                           LineBreakMode="TailTruncation"/>
-                                                   <HorizontalStackLayout Spacing="4"
-                                                      IsVisible="{Binding BoughtAt, Converter={StaticResource IsNotNullConverter}}">
-                                                     <Label Text="{Binding BoughtAt, StringFormat='Kupiono: UTC {0:dd.MM.yyyy HH:mm}'}"
-                                              FontSize="11"
-                                                  TextColor="{StaticResource GreenColor}"/>
-                                          <Label Text="{Binding BoughtBy, StringFormat='przez {0}'}"
-                                            FontSize="11"
-                                                 TextColor="{StaticResource GreenColor}"
-                                                    IsVisible="{Binding BoughtBy, Converter={StaticResource IsNotNullConverter}}"/>
-                                               </HorizontalStackLayout>
-                                      </VerticalStackLayout>
+                                                      <!-- Item details -->
+                                                                 <VerticalStackLayout Grid.Column="1" 
+                                                              VerticalOptions="Center"
+                                                         Spacing="2">
+                                                       <!-- Name and quantity on one line -->
+                                                              <HorizontalStackLayout Spacing="8">
+                                                        <Label Text="{Binding Name}"
+                                                       FontSize="16"
+                                                           TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"
+                                                            TextDecorations="{Binding IsBought, Converter={StaticResource BoolToStrikethroughConverter}}"/>
+                                                    <HorizontalStackLayout Spacing="4"
+                                                          IsVisible="{Binding Quantity, Converter={StaticResource IsNotNullConverter}}">
+                                                            <Label Text="{Binding Quantity}"
+                                                          FontSize="14"
+                                                            TextColor="{StaticResource Gray500}"/>
+                                                                <Label Text="{Binding Unit}"
+                                                    FontSize="14"
+                                                           TextColor="{StaticResource Gray500}"/>
+                                                        </HorizontalStackLayout>
+                                                            </HorizontalStackLayout>
+                                                          <Label Text="{Binding Note}"
+                                                          FontSize="12"
+                                                         TextColor="{StaticResource Gray400}"
+                                                          IsVisible="{Binding Note, Converter={StaticResource IsNotNullConverter}}"
+                                                           LineBreakMode="TailTruncation"/>
+                                                     <HorizontalStackLayout Spacing="4"
+                                                         IsVisible="{Binding BoughtAt, Converter={StaticResource IsNotNullConverter}}">
+                                                        <Label Text="{Binding BoughtAt, StringFormat='Kupiono: UTC {0:dd.MM.yyyy HH:mm}'}"
+                                                                FontSize="11"
+                                                   TextColor="{StaticResource GreenColor}"/>
+                                                        <Label Text="{Binding BoughtBy, StringFormat='przez {0}'}"
+                                                         FontSize="11"
+                                                      TextColor="{StaticResource GreenColor}"
+                                                         IsVisible="{Binding BoughtBy, Converter={StaticResource IsNotNullConverter}}"/>
+                                                           </HorizontalStackLayout>
+                                                                 </VerticalStackLayout>
 
                                     <!-- Bought indicator -->
                                     <Image Grid.Column="2"

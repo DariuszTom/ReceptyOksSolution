@@ -6,7 +6,7 @@
              x:Class="ReceptyOks.Views.CategoryEditPage"
              x:DataType="vm:CategoryEditViewModel"
              Shell.NavBarIsVisible="False"
-             BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark=#121212}">
+             Background="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource BlackBrownPurpleGradient}}">
 
     <Grid RowDefinitions="Auto,*,Auto">
         
