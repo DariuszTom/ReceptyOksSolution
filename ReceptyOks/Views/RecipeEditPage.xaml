@@ -339,52 +339,62 @@ Title="Uwagi"
          </toolkit:Expander.Content>
             </toolkit:Expander>
             <!-- Instrukcje - Rich Text Editor -->
-            <Grid ColumnDefinitions="*,Auto" Margin="0,16,0,0">
-                <Label Text="Przygotowanie" FontSize="18" FontAttributes="Bold" VerticalOptions="Center"/>
-                <HorizontalStackLayout Grid.Column="1" Spacing="8">
+            <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,16,0,0">
+    <Label Text="Przygotowanie" FontSize="18" FontAttributes="Bold" VerticalOptions="Center"/>
+         <!-- Recording indicator GIF - shows in center when listening -->
+   <Image Grid.Column="1"
+           Source="recordingmicrofone.gif"
+               HeightRequest="40"
+              WidthRequest="40"
+                  Aspect="AspectFit"
+                HorizontalOptions="Center"
+             VerticalOptions="Center"
+             IsAnimationPlaying="{Binding IsListening}"
+             IsVisible="{Binding IsListening}"/>
+                <HorizontalStackLayout Grid.Column="2" Spacing="8">
                     <Button Command="{Binding ScanInstructionsFromGalleryCommand}" Style="{StaticResource GradientAddButton}"
-                            BackgroundColor="Transparent"
-                            BorderColor="{StaticResource Primary}"
-                            BorderWidth="1"
-                            CornerRadius="20"
-                            Padding="12,6"
-                            ToolTipProperties.Text="Skanuj z galerii">
-                        <Button.ImageSource>
-                            <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Document_scanner}"
-                                             FontFamily="MaterialSymbolsOutlined"
-                                             Color="{StaticResource Primary}"
-                                             Size="18"/>
-                        </Button.ImageSource>
-                    </Button>
-                    <Button Command="{Binding ScanInstructionsFromCameraCommand}" Style="{StaticResource GradientAddButton}"
-                            BackgroundColor="Transparent"
-                            BorderColor="{StaticResource Primary}"
-                            BorderWidth="1"
-                            CornerRadius="20"
-                            Padding="12,6"
-                            ToolTipProperties.Text="Skanuj z kamery">
-                        <Button.ImageSource>
-                            <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Photo_camera}"
-                                             FontFamily="MaterialSymbolsOutlined"
-                                             Color="{StaticResource Primary}"
-                                             Size="18"/>
-                        </Button.ImageSource>
-                    </Button>
-                    <Button Command="{Binding ScanInstructionsFromMicrophoneCommand}" Style="{StaticResource GradientAddButton}"
-                         BackgroundColor="Transparent"
-                         BorderColor="{StaticResource Primary}"
-                         BorderWidth="1"
-                         CornerRadius="20"
-                         Padding="12,6"
-                         ToolTipProperties.Text="Skanuj z kamery">  
-                        <Button.ImageSource>
-                            <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Mic}"
-                          FontFamily="MaterialSymbolsOutlined"
-                          Color="{StaticResource Primary}"
-                          Size="18"/>
-                        </Button.ImageSource>
-                    </Button>
-                </HorizontalStackLayout>
+         BackgroundColor="Transparent"
+                    BorderColor="{StaticResource Primary}"
+                BorderWidth="1"
+               CornerRadius="20"
+        Padding="12,6"
+           ToolTipProperties.Text="Skanuj z galerii">
+      <Button.ImageSource>
+         <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Document_scanner}"
+          FontFamily="MaterialSymbolsOutlined"
+        Color="{StaticResource Primary}"
+         Size="18"/>
+           </Button.ImageSource>
+     </Button>
+        <Button Command="{Binding ScanInstructionsFromCameraCommand}" Style="{StaticResource GradientAddButton}"
+            BackgroundColor="Transparent"
+     BorderColor="{StaticResource Primary}"
+     BorderWidth="1"
+     CornerRadius="20"
+  Padding="12,6"
+         ToolTipProperties.Text="Skanuj z kamery">
+         <Button.ImageSource>
+<FontImageSource Glyph="{x:Static icons:MaterialOutlined.Photo_camera}"
+     FontFamily="MaterialSymbolsOutlined"
+  Color="{StaticResource Primary}"
+          Size="18"/>
+           </Button.ImageSource>
+     </Button>
+    <Button Command="{Binding ScanInstructionsFromMicrophoneCommand}" Style="{StaticResource GradientAddButton}"
+          BackgroundColor="Transparent"
+  BorderColor="{StaticResource Primary}"
+             BorderWidth="1"
+               CornerRadius="20"
+             Padding="12,6"
+            ToolTipProperties.Text="Skanuj z kamery">  
+       <Button.ImageSource>
+        <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Mic}"
+     FontFamily="MaterialSymbolsOutlined"
+  Color="{StaticResource Primary}"
+      Size="18"/>
+       </Button.ImageSource>
+        </Button>
+          </HorizontalStackLayout>
             </Grid>
             <Border Stroke="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray600}}"
                     StrokeThickness="1"
