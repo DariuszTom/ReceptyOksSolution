@@ -9,6 +9,4 @@ public partial class SettingsPage : ContentPage
 		InitializeComponent();
 		BindingContext = viewModel;
     }
-
-    // Navigation is handled by the ViewModel command
 }

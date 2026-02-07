@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 using Microsoft.Extensions.Logging;
+using ReceptyOks.Misc;
 using ReceptyOks.Models;
 using ReceptyOks.Services;
 using ReceptyOks.Shared;
@@ -23,6 +24,7 @@ public sealed class AddShoppingItemsMessage(List<ShoppingListItem> items)
 public partial class ShopingListViewModel : ObservableObject
 {
     private readonly ShoppingListService _shoppingListService;
+    private readonly UserService _userService;
     private readonly ILogger<ShopingListViewModel> _logger;
 
     [ObservableProperty]
@@ -55,7 +57,7 @@ public partial class ShopingListViewModel : ObservableObject
     {
         _shoppingListService = shoppingListService;
         _logger = logger;
-
+        _userService = UserService.Instance.Value;
         // Register to receive shopping items from other ViewModels
         WeakReferenceMessenger.Default.Register<AddShoppingItemsMessage>(this, async (r, m) =>
         {
@@ -169,11 +171,14 @@ public partial class ShopingListViewModel : ObservableObject
                 parsedQuantity = qty;
             }
 
+            var user = await _userService.GetUserAsync();
+
             var newItem = new ShoppingListItem
             {
                 Id = Guid.NewGuid(),
                 Name = NewItemName.Trim(),
                 Quantity = parsedQuantity,
+                BoughtBy = user?.Name,
                 Unit = SelectedUnit == Jednostki.Brak ? null : SelectedUnit.ToString(),
                 IsBought = false
             };
@@ -214,9 +219,17 @@ public partial class ShopingListViewModel : ObservableObject
 
         try
         {
-            var result = item.IsBought
-                          ? await _shoppingListService.MarkAsUnboughtAsync(item.Id, cancellationToken)
-              : await _shoppingListService.MarkAsBoughtAsync(item.Id, cancellationToken: cancellationToken);
+            ShoppingListResult<ShoppingListItem> result;
+            if (item.IsBought)
+            {
+                result = await _shoppingListService.MarkAsUnboughtAsync(item.Id, cancellationToken);
+            }
+            else
+            {
+                var user = await _userService.GetUserAsync();
+                var boughtBy = user?.Name;
+                result = await _shoppingListService.MarkAsBoughtAsync(item.Id, boughtBy, cancellationToken);
+            }
 
             if (result.IsSuccess && result.Data is not null)
             {
@@ -284,9 +297,7 @@ public partial class ShopingListViewModel : ObservableObject
         try
         {
             // Show confirmation dialog
-            bool confirm = await Shell.Current.DisplayAlertAsync(
-     "Usunąć na zawsze?",
-     $"Element '{item.Name}' zostanie trwale usunięty z bazy danych. Tej operacji nie można cofnąć.",
+            bool confirm = await Shell.Current.DisplayAlertAsync("Usunąć na zawsze?", $"Element '{item.Name}' zostanie trwale usunięty z bazy danych. Tej operacji nie można cofnąć.",
            "Usuń",
           "Anuluj");
 
@@ -385,7 +396,7 @@ public partial class ShopingListViewModel : ObservableObject
     {
         var text = GetShoppingListText();
         await Clipboard.Default.SetTextAsync(text);
-        _logger.LogInformation("Shopping list copied to clipboard");
+        await Toast.Make("Skopiowano do schowka").Show();
     }
 
     partial void OnIncludeBoughtItemsChanged(bool value)

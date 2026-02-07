@@ -1,4 +1,5 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+﻿using CommunityToolkit.Maui.Alerts;
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ReceptyOks.Services;
 using ReceptyOks.Shared.Models;
@@ -68,6 +69,10 @@ public partial class UserDetailsViewModel : ObservableObject
         finally
         {
             IsSaving = false;
+            await Toast.Make("Dane użytkownika zostały zapisane").Show();
         }
     }
+
+    [RelayCommand]
+    private static async Task GoBackAsync() => await Shell.Current.GoToAsync("..");
 }
