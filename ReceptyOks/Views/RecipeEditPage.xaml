@@ -414,11 +414,11 @@ Title="Uwagi"
     </Button>
           </HorizontalStackLayout>
             </Grid>
-                   <Border Stroke="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray600}}"
-                      StrokeThickness="1"
-                 StrokeShape="RoundRectangle 12"
-                     HeightRequest="350"
-                       BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}">
+                      <Border Stroke="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray600}}"
+                     StrokeThickness="1"
+                               HeightRequest="400"
+                           StrokeShape="RoundRectangle 10"
+                   BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}">
                             <blazor:BlazorWebView x:Name="InstructionsEditorWebView" HostPage="wwwroot/index.html">
                      <blazor:BlazorWebView.RootComponents>
                                   <blazor:RootComponent Selector="#app" 

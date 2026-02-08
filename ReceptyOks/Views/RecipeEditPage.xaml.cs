@@ -19,7 +19,12 @@ public partial class RecipeEditPage : ContentPage
 
         // Subscribe to ViewModel property changes to update Blazor component
         _viewModel.PropertyChanged += OnViewModelPropertyChanged;
+
+        // Subscribe to app theme changes
+        Application.Current!.RequestedThemeChanged += OnRequestedThemeChanged;
     }
+
+    private bool IsDarkTheme => Application.Current?.RequestedTheme == AppTheme.Dark;
 
     private void SetupBlazorEditorParameters()
     {
@@ -27,8 +32,15 @@ public partial class RecipeEditPage : ContentPage
         {
             { "Content", _viewModel.Instructions ?? string.Empty },
             { "ContentChanged", EventCallback.Factory.Create<string>(this, OnBlazorContentChanged) },
-     { "Placeholder", "Wprowadü instrukcje przygotowania..." }
+            { "Placeholder", "Wprowadü instrukcje przygotowania..." },
+            { "IsDarkTheme", IsDarkTheme }
         };
+    }
+
+    private void OnRequestedThemeChanged(object? sender, AppThemeChangedEventArgs e)
+    {
+        // Update Blazor component when theme changes
+        MainThread.BeginInvokeOnMainThread(UpdateBlazorEditorContent);
     }
 
     private void OnViewModelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
@@ -46,11 +58,12 @@ public partial class RecipeEditPage : ContentPage
         if (InstructionsEditorRoot?.Parameters is not null)
         {
             InstructionsEditorRoot.Parameters = new Dictionary<string, object?>
-    {
-        { "Content", _currentContent },
-          { "ContentChanged", EventCallback.Factory.Create<string>(this, OnBlazorContentChanged) },
-        { "Placeholder", "Wprowadü instrukcje przygotowania..." }
-      };
+            {
+                { "Content", _currentContent },
+                { "ContentChanged", EventCallback.Factory.Create<string>(this, OnBlazorContentChanged) },
+                { "Placeholder", "Wprowadü instrukcje przygotowania..." },
+                { "IsDarkTheme", IsDarkTheme }
+            };
         }
     }
 
@@ -79,6 +92,11 @@ public partial class RecipeEditPage : ContentPage
     {
         base.OnDisappearing();
         _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
+
+        if (Application.Current is not null)
+        {
+            Application.Current.RequestedThemeChanged -= OnRequestedThemeChanged;
+        }
     }
 
     /// <summary>
