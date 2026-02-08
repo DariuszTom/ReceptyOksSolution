@@ -2,6 +2,7 @@
 using CommunityToolkit.Maui.ApplicationModel;
 using CommunityToolkit.Maui.Media;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Plugin.Maui.OCR;
 using ReceptyOks.Configuration;
 using ReceptyOks.Data;
@@ -59,6 +60,13 @@ public static class MauiProgram
                 fonts.AddFont("MaterialSymbolsSharpFilled.ttf", "MaterialSymbolsSharpFilled");
                 fonts.AddMaterialSymbolsFonts();
             });
+			// Add Blazor WebView services
+				builder.Services.AddMauiBlazorWebView();
+		#if DEBUG
+				builder.Services.AddBlazorWebViewDeveloperTools();
+				// Enable detailed logging for BlazorWebView diagnostics
+				builder.Logging.AddFilter("Microsoft.AspNetCore.Components.WebView", LogLevel.Trace);
+		#endif
 
         // Add Aspire Service Discovery
         builder.Services.AddServiceDiscovery();

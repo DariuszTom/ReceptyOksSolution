@@ -9,16 +9,16 @@
              Background="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource BlackBrownPurpleGradient}}">
 
     <Grid RowDefinitions="Auto,*,Auto">
-        
+
         <!-- Header -->
-        <Grid Grid.Row="0" 
+        <Grid Grid.Row="0"
               Padding="16"
               ColumnDefinitions="Auto,*,Auto"
               BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}">
             <Grid.Shadow>
                 <Shadow Brush="{StaticResource Gray400Brush}" Offset="0,2" Radius="4" Opacity="0.1"/>
             </Grid.Shadow>
-            
+
             <Border StrokeThickness="0"
                     StrokeShape="RoundRectangle 20"
                     HeightRequest="40"
@@ -36,15 +36,15 @@
                     <TapGestureRecognizer Command="{Binding CancelCommand}"/>
                 </Border.GestureRecognizers>
             </Border>
-            
-            <Label Grid.Column="1" 
-                   Text="{Binding PageTitle}" 
-                   FontSize="20" 
+
+            <Label Grid.Column="1"
+                   Text="{Binding PageTitle}"
+                   FontSize="20"
                    FontAttributes="Bold"
                    VerticalOptions="Center"
                    HorizontalOptions="Center"
                    TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"/>
-            
+
             <Border Grid.Column="2"
                     StrokeThickness="0"
                     StrokeShape="RoundRectangle 20"
@@ -68,11 +68,11 @@
         <!-- Content -->
         <ScrollView Grid.Row="1" Padding="16">
             <VerticalStackLayout Spacing="20">
-                
+
                 <!-- Name -->
                 <VerticalStackLayout Spacing="8">
-                    <Label Text="Nazwa kategorii" 
-                           FontSize="14" 
+                    <Label Text="Nazwa kategorii"
+                           FontSize="14"
                            FontAttributes="Bold"
                            TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray300}}"/>
                     <Border StrokeThickness="0"
@@ -90,8 +90,8 @@
 
                 <!-- Description -->
                 <VerticalStackLayout Spacing="8">
-                    <Label Text="Opis (opcjonalnie)" 
-                           FontSize="14" 
+                    <Label Text="Opis (opcjonalnie)"
+                           FontSize="14"
                            FontAttributes="Bold"
                            TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray300}}"/>
                     <Border StrokeThickness="0"
@@ -110,12 +110,12 @@
 
                 <!-- Icon Selection -->
                 <VerticalStackLayout Spacing="12">
-                    <Label Text="Ikona kategorii" 
-                           FontSize="14" 
+                    <Label Text="Ikona kategorii"
+                           FontSize="14"
                            FontAttributes="Bold"
                            TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray300}}"/>
-                    
-                    <FlexLayout Wrap="Wrap" 
+
+                    <FlexLayout Wrap="Wrap"
                                 JustifyContent="Start"
                                 AlignItems="Center"
                                 BindableLayout.ItemsSource="{Binding AvailableIcons}">
@@ -139,7 +139,7 @@
                                            HeightRequest="48"
                                            WidthRequest="48"/>
                                     <Border.GestureRecognizers>
-                                        <TapGestureRecognizer 
+                                        <TapGestureRecognizer
                                             Command="{Binding Source={RelativeSource AncestorType={x:Type vm:CategoryEditViewModel}}, Path=SelectIconCommand}"
                                             CommandParameter="{Binding .}"/>
                                     </Border.GestureRecognizers>

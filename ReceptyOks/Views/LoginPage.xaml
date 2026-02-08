@@ -20,13 +20,13 @@
     </ContentPage.Behaviors>
 
     <Grid RowDefinitions="Auto,Auto,*" Padding="30">
-        
+
         <!-- Górna sekcja z GIF-em -->
-        <VerticalStackLayout Grid.Row="0" 
-                             VerticalOptions="End" 
+        <VerticalStackLayout Grid.Row="0"
+                             VerticalOptions="End"
                              HorizontalOptions="Center"
                              Spacing="20">
-            
+
             <Border StrokeShape="RoundRectangle 80"
                     StrokeThickness="0"
                     BackgroundColor="White"
@@ -37,31 +37,31 @@
                     <Shadow Brush="#00000040" Offset="0,8" Radius="16" Opacity="0.3"/>
                 </Border.Shadow>
                 <Image Source="iconslock.gif"
-                           Aspect="AspectFit"
-                           HeightRequest="140"
-                           WidthRequest="140"
-                           HorizontalOptions="Center"
-                           VerticalOptions="Center"
-                           IsAnimationPlaying="True"/>
+                       Aspect="AspectFit"
+                       HeightRequest="140"
+                       WidthRequest="140"
+                       HorizontalOptions="Center"
+                       VerticalOptions="Center"
+                       IsAnimationPlaying="True"/>
             </Border>
-            
+
             <Label Text="Witaj!"
                    FontSize="32"
                    FontAttributes="Bold"
                    TextColor="White"
                    HorizontalOptions="Center"/>
-            
+
             <Label Text="Wprowadź sekret, aby kontynuować"
                    FontSize="16"
                    TextColor="#FFFFFFCC"
                    HorizontalOptions="Center"/>
         </VerticalStackLayout>
-        
+
         <!-- Środkowa sekcja z formularzem -->
-        <VerticalStackLayout Grid.Row="1" 
-                     Spacing="20"
-                     Padding="10,30"
-                     VerticalOptions="Start">
+        <VerticalStackLayout Grid.Row="1"
+                             Spacing="20"
+                             Padding="10,30"
+                             VerticalOptions="Start">
 
             <Border StrokeShape="RoundRectangle 16"
                     StrokeThickness="1"
@@ -71,9 +71,9 @@
                 <Border.Shadow>
                     <Shadow Brush="#00000030" Offset="0,4" Radius="12" Opacity="0.2"/>
                 </Border.Shadow>
-                
+
                 <VerticalStackLayout Spacing="15">
-                    
+
                     <material:TextField Title="Sekret"
                                         Text="{Binding Secret}"
                                         IsPassword="True"
@@ -91,7 +91,7 @@
                                              Size="24"/>
                         </material:TextField.Icon>
                     </material:TextField>
-                    
+
                     <!-- Komunikat błędu -->
                     <Border StrokeShape="RoundRectangle 8"
                             StrokeThickness="0"
@@ -113,10 +113,10 @@
                                    VerticalOptions="Center"/>
                         </HorizontalStackLayout>
                     </Border>
-                    
+
                 </VerticalStackLayout>
             </Border>
-            
+
             <!-- Przycisk logowania -->
             <Button Command="{Binding LoginCommand}"
                     BackgroundColor="{StaticResource Primary}"
@@ -144,18 +144,18 @@
                     </DataTrigger>
                 </Button.Triggers>
             </Button>
-            
+
             <!-- Wskaźnik ładowania -->
             <ActivityIndicator IsRunning="{Binding IsBusy}"
                                IsVisible="{Binding IsBusy}"
                                Color="White"
                                HeightRequest="40"
                                HorizontalOptions="Center"/>
-            
+
         </VerticalStackLayout>
-        
+
         <!-- Dolna sekcja -->
-        <VerticalStackLayout Grid.Row="2" 
+        <VerticalStackLayout Grid.Row="2"
                              VerticalOptions="End"
                              HorizontalOptions="Center"
                              Padding="0,0,0,20">
@@ -175,6 +175,6 @@
                        VerticalOptions="Center"/>
             </HorizontalStackLayout>
         </VerticalStackLayout>
-        
+
     </Grid>
 </ContentPage>

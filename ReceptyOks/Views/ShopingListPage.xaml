@@ -15,67 +15,67 @@
     <Grid RowDefinitions="Auto,Auto,*,Auto">
 
         <!-- Header -->
-        <Grid Grid.Row="0" 
-         Padding="20,16"
-          ColumnDefinitions="*,Auto,Auto,Auto"
-          BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}">
+        <Grid Grid.Row="0"
+              Padding="20,16"
+              ColumnDefinitions="*,Auto,Auto,Auto"
+              BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}">
             <Grid.Shadow>
                 <Shadow Brush="{StaticResource Gray400Brush}" Offset="0,2" Radius="4" Opacity="0.1"/>
             </Grid.Shadow>
 
             <VerticalStackLayout VerticalOptions="Center">
-                <Label Text="Lista zakupów" 
+                <Label Text="Lista zakupów"
                        FontSize="24"
                        FontAttributes="Bold"
                        TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"/>
-                <Label Text="Co trzeba kupić?" 
+                <Label Text="Co trzeba kupić?"
                        FontSize="13"
                        TextColor="{StaticResource Gray400}"/>
             </VerticalStackLayout>
 
-                     <!-- Loading indicator -->
-                    <ActivityIndicator Grid.Column="1" 
-                   IsRunning="{Binding IsLoading}" 
-                      IsVisible="{Binding IsLoading}"
-               HeightRequest="24" 
-                WidthRequest="24"
-                       Color="{StaticResource Primary}"
-                      Margin="0,0,12,0"/>
+            <!-- Loading indicator -->
+            <ActivityIndicator Grid.Column="1"
+                               IsRunning="{Binding IsLoading}"
+                               IsVisible="{Binding IsLoading}"
+                               HeightRequest="24"
+                               WidthRequest="24"
+                               Color="{StaticResource Primary}"
+                               Margin="0,0,12,0"/>
 
-               <!-- Refresh button -->
-                 <ImageButton Grid.Column="2"
-              Command="{Binding RefreshCommand}"
-                 HeightRequest="44"
-                WidthRequest="44"
-              CornerRadius="22"
-               Margin="0,0,8,0"
-                  BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray600}}">
-                           <ImageButton.Source>
-                <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Sync}"
-                   FontFamily="MaterialSymbolsOutlined"
-                Color="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray200}}"
-                 Size="22"/>
-                </ImageButton.Source>
-                       </ImageButton>
-
-                <!-- Clear bought items button -->
-                 <ImageButton Grid.Column="3"
-                      Command="{Binding ClearBoughtItemsCommand}"
-            HeightRequest="44"
-                 WidthRequest="44"
-               CornerRadius="22"
-               BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray600}}">
+            <!-- Refresh button -->
+            <ImageButton Grid.Column="2"
+                         Command="{Binding RefreshCommand}"
+                         HeightRequest="44"
+                         WidthRequest="44"
+                         CornerRadius="22"
+                         Margin="0,0,8,0"
+                         BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray600}}">
                 <ImageButton.Source>
-                       <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Delete_sweep}"
-               FontFamily="MaterialSymbolsOutlined"
-             Color="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray200}}"
-               Size="22"/>
-               </ImageButton.Source>
-             </ImageButton>
+                    <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Sync}"
+                                     FontFamily="MaterialSymbolsOutlined"
+                                     Color="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray200}}"
+                                     Size="22"/>
+                </ImageButton.Source>
+            </ImageButton>
+
+            <!-- Clear bought items button -->
+            <ImageButton Grid.Column="3"
+                         Command="{Binding ClearBoughtItemsCommand}"
+                         HeightRequest="44"
+                         WidthRequest="44"
+                         CornerRadius="22"
+                         BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray600}}">
+                <ImageButton.Source>
+                    <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Delete_sweep}"
+                                     FontFamily="MaterialSymbolsOutlined"
+                                     Color="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray200}}"
+                                     Size="22"/>
+                </ImageButton.Source>
+            </ImageButton>
         </Grid>
 
         <!-- Add new item section -->
-        <Border Grid.Row="1" 
+        <Border Grid.Row="1"
                 Margin="16,12"
                 Padding="12,8"
                 StrokeThickness="0"
@@ -139,7 +139,7 @@
         </Border>
 
         <!-- Shopping list -->
-        <RefreshView Grid.Row="2" 
+        <RefreshView Grid.Row="2"
                      IsRefreshing="{Binding IsRefreshing}"
                      Command="{Binding RefreshCommand}"
                      RefreshColor="{StaticResource Primary}">
@@ -162,12 +162,12 @@
                                 </Image.Source>
                             </Image>
                         </Border>
-                        <Label Text="Lista jest pusta" 
-                               FontSize="18" 
+                        <Label Text="Lista jest pusta"
+                               FontSize="18"
                                FontAttributes="Bold"
                                TextColor="{StaticResource Gray500}"
                                HorizontalOptions="Center"/>
-                        <Label Text="Dodaj produkty do listy zakupów" 
+                        <Label Text="Dodaj produkty do listy zakupów"
                                FontSize="14"
                                TextColor="{StaticResource Gray400}"
                                HorizontalOptions="Center"
@@ -205,49 +205,49 @@
                                             Radius="4"
                                             Opacity="0.08"/>
                                 </Border.Shadow>
-                                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
-                                     <!-- Checkbox - use OneWay binding to prevent local changes -->
+                                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                                    <!-- Checkbox - use OneWay binding to prevent local changes -->
                                     <material:CheckBox Grid.Column="0"
-                                    IsChecked="{Binding IsBought, Mode=OneWay}"
-                                      VerticalOptions="Center"
-                                CheckChanged="OnItemCheckChanged"/>
+                                                       IsChecked="{Binding IsBought, Mode=OneWay}"
+                                                       VerticalOptions="Center"
+                                                       CheckChanged="OnItemCheckChanged"/>
 
-                                                      <!-- Item details -->
-                                                                 <VerticalStackLayout Grid.Column="1" 
-                                                              VerticalOptions="Center"
+                                    <!-- Item details -->
+                                    <VerticalStackLayout Grid.Column="1"
+                                                         VerticalOptions="Center"
                                                          Spacing="2">
-                                                       <!-- Name and quantity on one line -->
-                                                              <HorizontalStackLayout Spacing="8">
-                                                        <Label Text="{Binding Name}"
-                                                       FontSize="16"
-                                                           TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"
-                                                            TextDecorations="{Binding IsBought, Converter={StaticResource BoolToStrikethroughConverter}}"/>
-                                                    <HorizontalStackLayout Spacing="4"
-                                                          IsVisible="{Binding Quantity, Converter={StaticResource IsNotNullConverter}}">
-                                                            <Label Text="{Binding Quantity}"
-                                                          FontSize="14"
-                                                            TextColor="{StaticResource Gray500}"/>
-                                                                <Label Text="{Binding Unit}"
-                                                    FontSize="14"
-                                                           TextColor="{StaticResource Gray500}"/>
-                                                        </HorizontalStackLayout>
-                                                            </HorizontalStackLayout>
-                                                          <Label Text="{Binding Note}"
-                                                          FontSize="12"
-                                                         TextColor="{StaticResource Gray400}"
-                                                          IsVisible="{Binding Note, Converter={StaticResource IsNotNullConverter}}"
-                                                           LineBreakMode="TailTruncation"/>
-                                                     <HorizontalStackLayout Spacing="4"
-                                                         IsVisible="{Binding BoughtAt, Converter={StaticResource IsNotNullConverter}}">
-                                                        <Label Text="{Binding BoughtAt, StringFormat='Kupiono: UTC {0:dd.MM.yyyy HH:mm}'}"
-                                                                FontSize="11"
+                                        <!-- Name and quantity on one line -->
+                                        <HorizontalStackLayout Spacing="8">
+                                            <Label Text="{Binding Name}"
+                                                   FontSize="16"
+                                                   TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"
+                                                   TextDecorations="{Binding IsBought, Converter={StaticResource BoolToStrikethroughConverter}}"/>
+                                            <HorizontalStackLayout Spacing="4"
+                                                                   IsVisible="{Binding Quantity, Converter={StaticResource IsNotNullConverter}}">
+                                                <Label Text="{Binding Quantity}"
+                                                       FontSize="14"
+                                                       TextColor="{StaticResource Gray500}"/>
+                                                <Label Text="{Binding Unit}"
+                                                       FontSize="14"
+                                                       TextColor="{StaticResource Gray500}"/>
+                                            </HorizontalStackLayout>
+                                        </HorizontalStackLayout>
+                                        <Label Text="{Binding Note}"
+                                               FontSize="12"
+                                               TextColor="{StaticResource Gray400}"
+                                               IsVisible="{Binding Note, Converter={StaticResource IsNotNullConverter}}"
+                                               LineBreakMode="TailTruncation"/>
+                                        <HorizontalStackLayout Spacing="4"
+                                                               IsVisible="{Binding BoughtAt, Converter={StaticResource IsNotNullConverter}}">
+                                            <Label Text="{Binding BoughtAt, StringFormat='Kupiono: UTC {0:dd.MM.yyyy HH:mm}'}"
+                                                   FontSize="11"
                                                    TextColor="{StaticResource GreenColor}"/>
-                                                        <Label Text="{Binding BoughtBy, StringFormat='przez {0}'}"
-                                                         FontSize="11"
-                                                      TextColor="{StaticResource GreenColor}"
-                                                         IsVisible="{Binding BoughtBy, Converter={StaticResource IsNotNullConverter}}"/>
-                                                           </HorizontalStackLayout>
-                                                                 </VerticalStackLayout>
+                                            <Label Text="{Binding BoughtBy, StringFormat='przez {0}'}"
+                                                   FontSize="11"
+                                                   TextColor="{StaticResource GreenColor}"
+                                                   IsVisible="{Binding BoughtBy, Converter={StaticResource IsNotNullConverter}}"/>
+                                        </HorizontalStackLayout>
+                                    </VerticalStackLayout>
 
                                     <!-- Bought indicator -->
                                     <Image Grid.Column="2"
@@ -279,10 +279,10 @@
                 <Shadow Brush="{StaticResource Gray400Brush}" Offset="0,-2" Radius="8" Opacity="0.1"/>
             </Border.Shadow>
             <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
-                    <!-- Include bought toggle -->
+                <!-- Include bought toggle -->
                 <HorizontalStackLayout Grid.Column="0" Spacing="8" VerticalOptions="Center">
-                  <material:CheckBox IsChecked="{Binding IncludeBoughtItems}"/>
-                   <Label Text="Pokaż kupione"
+                    <material:CheckBox IsChecked="{Binding IncludeBoughtItems}"/>
+                    <Label Text="Pokaż kupione"
                            FontSize="13"
                            TextColor="{StaticResource Gray500}"
                            VerticalOptions="Center"/>

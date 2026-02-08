@@ -10,38 +10,39 @@
              Background="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource BlackBrownPurpleGradient}}">
 
     <Grid RowDefinitions="Auto,Auto,*,Auto">
-        
+
         <!-- Custom Header -->
-        <Grid Grid.Row="0" 
-       Padding="20,16"
-           ColumnDefinitions="Auto,*"
- ColumnSpacing="12"
-        BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}">
-  <Grid.Shadow>
-      <Shadow Brush="{StaticResource Gray400Brush}" Offset="0,2" Radius="4" Opacity="0.1"/>
-    </Grid.Shadow>
-      
+        <Grid Grid.Row="0"
+              Padding="20,16"
+              ColumnDefinitions="Auto,*"
+              ColumnSpacing="12"
+              BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}">
+            <Grid.Shadow>
+                <Shadow Brush="{StaticResource Gray400Brush}" Offset="0,2" Radius="4" Opacity="0.1"/>
+            </Grid.Shadow>
+
             <Button Grid.Column="0"
-          Padding="8"
-      CornerRadius="10"
-           BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray600}}"
-        VerticalOptions="Center"
-              Command="{Binding GoBackCommand}">
-  <Button.ImageSource>
-      <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Arrow_back}"
-    FontFamily="MaterialSymbolsOutlined" Color="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"
-           Size="24"/>
-      </Button.ImageSource>
-        </Button>
-            
-     <VerticalStackLayout Grid.Column="1" VerticalOptions="Center">
-                <Label Text="Logi Aplikacji"  Style="{StaticResource PageTitle}" FontSize="24"/>
+                    Padding="8"
+                    CornerRadius="10"
+                    BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray600}}"
+                    VerticalOptions="Center"
+                    Command="{Binding GoBackCommand}">
+                <Button.ImageSource>
+                    <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Arrow_back}"
+                                     FontFamily="MaterialSymbolsOutlined"
+                                     Color="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"
+                                     Size="24"/>
+                </Button.ImageSource>
+            </Button>
+
+            <VerticalStackLayout Grid.Column="1" VerticalOptions="Center">
+                <Label Text="Logi Aplikacji" Style="{StaticResource PageTitle}" FontSize="24"/>
                 <Label Text="Diagnostyka i debugowanie" Style="{StaticResource CaptionLabel}"/>
-     </VerticalStackLayout>
+            </VerticalStackLayout>
         </Grid>
-        
+
         <!-- Toolbar -->
-        <Border Grid.Row="1" 
+        <Border Grid.Row="1"
                 Margin="16,12"
                 Padding="12"
                 StrokeThickness="0"
@@ -54,7 +55,7 @@
                             Title="Poziom logów"
                             FontSize="14"/>
                 </Border>
-                
+
                 <Button Grid.Column="1"
                         Padding="12,8"
                         CornerRadius="10"
@@ -67,7 +68,7 @@
                                          Size="20"/>
                     </Button.ImageSource>
                 </Button>
-                
+
                 <Button Grid.Column="2"
                         Padding="12,8"
                         CornerRadius="10"
@@ -80,7 +81,7 @@
                                          Size="20"/>
                     </Button.ImageSource>
                 </Button>
-                
+
                 <Button Grid.Column="3"
                         Padding="12,8"
                         CornerRadius="10"
@@ -118,12 +119,12 @@
                             </Image.Source>
                         </Image>
                     </Border>
-                    <Label Text="Brak logów" 
-                           FontSize="18" 
+                    <Label Text="Brak logów"
+                           FontSize="18"
                            FontAttributes="Bold"
                            TextColor="{StaticResource Gray500}"
                            HorizontalOptions="Center"/>
-                    <Label Text="Logi pojawią się tutaj podczas używania aplikacji" 
+                    <Label Text="Logi pojawią się tutaj podczas używania aplikacji"
                            Style="{StaticResource CaptionLabel}"
                            HorizontalOptions="Center"
                            HorizontalTextAlignment="Center"/>
@@ -132,7 +133,7 @@
 
             <CollectionView.ItemTemplate>
                 <DataTemplate x:DataType="data:LogEntry">
-                    <Border Margin="0,4" 
+                    <Border Margin="0,4"
                             Padding="14,12"
                             StrokeThickness="0"
                             StrokeShape="RoundRectangle 12"
@@ -174,7 +175,7 @@
                                         </Label.Triggers>
                                     </Label>
                                 </Border>
-                                
+
                                 <!-- Log Level Badge -->
                                 <Border Grid.Column="1"
                                         StrokeThickness="0"
@@ -186,7 +187,7 @@
                                            FontAttributes="Bold"
                                            TextColor="{Binding Level, Converter={StaticResource LogLevelToColorConverter}}"/>
                                 </Border>
-                                
+
                                 <!-- Timestamp -->
                                 <Label Grid.Column="3"
                                        Text="{Binding Timestamp, StringFormat='{0:HH:mm:ss}'}"
@@ -199,7 +200,7 @@
                                    FontSize="14"
                                    LineBreakMode="WordWrap"
                                    TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"/>
-                            
+
                             <Label Text="{Binding Exception}"
                                    FontSize="12"
                                    TextColor="{StaticResource PinkColor}"
@@ -225,10 +226,10 @@
 
         <!-- Loading Indicator -->
         <ActivityIndicator Grid.Row="2"
-                          IsRunning="{Binding IsLoading}"
-                          IsVisible="{Binding IsLoading}"
-                          HorizontalOptions="Center"
-                          VerticalOptions="Center"
-                          Color="{StaticResource Primary}"/>
+                           IsRunning="{Binding IsLoading}"
+                           IsVisible="{Binding IsLoading}"
+                           HorizontalOptions="Center"
+                           VerticalOptions="Center"
+                           Color="{StaticResource Primary}"/>
     </Grid>
 </ContentPage>

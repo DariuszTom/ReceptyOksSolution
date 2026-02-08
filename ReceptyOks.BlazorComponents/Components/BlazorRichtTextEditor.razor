@@ -1,0 +1,290 @@
+﻿@using Microsoft.AspNetCore.Components.Web
+@using Microsoft.JSInterop
+@using Spillgebees.Blazor.RichTextEditor.Components
+@using Spillgebees.Blazor.RichTextEditor.Components.Toolbar
+@inject IJSRuntime JSRuntime
+@implements IAsyncDisposable
+
+<style>
+.blazor-rich-text-editor .ql-container {
+    max-height: var(--rte-max-height, 400px);
+    overflow-y: auto;
+}
+.blazor-rich-text-editor .ql-toolbar {
+    /* keep toolbar visible while the content scrolls */
+    position: sticky;
+    top: 0;
+    z-index: 5;
+}
+
+/* Keep a thin separator line under the toolbar (restore Quill default look) */
+.blazor-rich-text-editor .ql-toolbar.ql-snow,
+.blazor-rich-text-editor .ql-toolbar {
+    border-bottom: 1px solid var(--rte-border-color, #e0e0e0) !important;
+    box-shadow: none !important;
+    background-color: var(--rte-toolbar-bg, transparent) !important;
+}
+
+/* Remove the duplicate top border from the content container */
+.blazor-rich-text-editor .ql-container.ql-snow,
+.blazor-rich-text-editor .ql-container {
+    border-top: none !important;
+}
+
+/* Light theme (default) */
+.blazor-rich-text-editor.theme-light {
+    --rte-bg: #ffffff;
+    --rte-text: #212121;
+    --rte-border-color: #e0e0e0;
+    --rte-toolbar-bg: #fafafa;
+    --rte-placeholder: #9e9e9e;
+}
+
+/* Dark theme */
+.blazor-rich-text-editor.theme-dark {
+    --rte-bg: #1e1e1e;
+    --rte-text: #e0e0e0;
+    --rte-border-color: #424242;
+    --rte-toolbar-bg: #2d2d2d;
+    --rte-placeholder: #757575;
+}
+
+.blazor-rich-text-editor.theme-dark .ql-toolbar.ql-snow {
+    background-color: var(--rte-toolbar-bg) !important;
+    border-color: var(--rte-border-color) !important;
+}
+
+.blazor-rich-text-editor.theme-dark .ql-container.ql-snow {
+    background-color: var(--rte-bg) !important;
+    border-color: var(--rte-border-color) !important;
+}
+
+.blazor-rich-text-editor.theme-dark .ql-editor {
+    color: var(--rte-text) !important;
+}
+
+.blazor-rich-text-editor.theme-dark .ql-editor.ql-blank::before {
+    color: var(--rte-placeholder) !important;
+}
+
+/* Dark theme toolbar buttons */
+.blazor-rich-text-editor.theme-dark .ql-toolbar .ql-stroke {
+    stroke: #b0b0b0 !important;
+}
+
+.blazor-rich-text-editor.theme-dark .ql-toolbar .ql-fill {
+    fill: #b0b0b0 !important;
+}
+
+.blazor-rich-text-editor.theme-dark .ql-toolbar .ql-picker {
+    color: #b0b0b0 !important;
+}
+
+.blazor-rich-text-editor.theme-dark .ql-toolbar .ql-picker-options {
+    background-color: var(--rte-toolbar-bg) !important;
+    border-color: var(--rte-border-color) !important;
+}
+
+.blazor-rich-text-editor.theme-dark .ql-toolbar button:hover .ql-stroke,
+.blazor-rich-text-editor.theme-dark .ql-toolbar .ql-picker-label:hover .ql-stroke {
+    stroke: #ffffff !important;
+}
+
+.blazor-rich-text-editor.theme-dark .ql-toolbar button:hover .ql-fill,
+.blazor-rich-text-editor.theme-dark .ql-toolbar .ql-picker-label:hover .ql-fill {
+    fill: #ffffff !important;
+}
+
+.blazor-rich-text-editor.theme-dark .ql-toolbar button.ql-active .ql-stroke {
+    stroke: #90caf9 !important;
+}
+
+.blazor-rich-text-editor.theme-dark .ql-toolbar button.ql-active .ql-fill {
+    fill: #90caf9 !important;
+}
+</style>
+
+<div class="blazor-rich-text-editor @ThemeClass @CssClass" style="@CombinedStyle">
+    <ErrorBoundary @ref="_errorBoundary">
+      <ChildContent>
+     <RichTextEditor @ref="_editorRef"
+ @bind-Content:get="Content"
+ @bind-Content:set="SetContentAsync"
+        @bind-Text="@_plainText"
+           Theme="@Theme"
+            ToolbarOptions="@ToolbarOptions"
+          Placeholder="@Placeholder" />
+        </ChildContent>
+        <ErrorContent Context="exception">
+            <div style="padding: 16px; background: #fee; border: 1px solid #c00; color: #c00; border-radius: 8px;">
+                <strong>Błąd edytora:</strong>
+                <p>@exception.Message</p>
+                <details>
+                    <summary>Szczegóły</summary>
+                    <pre style="font-size: 12px; white-space: pre-wrap;">@exception.ToString()</pre>
+                </details>
+                <button @onclick="Recover" style="margin-top: 8px;">Spróbuj ponownie</button>
+            </div>
+        </ErrorContent>
+    </ErrorBoundary>
+</div>
+
+@code {
+    private string _plainText = string.Empty;
+    private ErrorBoundary? _errorBoundary;
+    private bool _isInitialized;
+    private string _lastKnownContent = string.Empty;
+    private RichTextEditor? _editorRef;
+
+    private string ThemeClass => IsDarkTheme ? "theme-dark" : "theme-light";
+
+    private string CombinedStyle =>
+        string.IsNullOrWhiteSpace(Style)
+            ? $"--rte-max-height:{MaxHeight};"
+   : $"--rte-max-height:{MaxHeight};{Style}";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+     {
+            await ApplyBodyThemeAsync();
+       _isInitialized = true;
+       _lastKnownContent = Content ?? string.Empty;
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_isInitialized)
+        {
+            await ApplyBodyThemeAsync();
+
+         // Detect if Content was changed externally (from MAUI)
+            var incomingContent = Content ?? string.Empty;
+     if (incomingContent != _lastKnownContent)
+       {
+              _lastKnownContent = incomingContent;
+          // Force re-render to update the underlying RichTextEditor
+       StateHasChanged();
+  }
+        }
+    }
+
+    private async Task ApplyBodyThemeAsync()
+    {
+        var themeClass = IsDarkTheme ? "theme-dark" : "theme-light";
+        var removeClass = IsDarkTheme ? "theme-light" : "theme-dark";
+
+        await JSRuntime.InvokeVoidAsync("eval", $@"
+            document.documentElement.classList.remove('{removeClass}');
+            document.documentElement.classList.add('{themeClass}');
+            document.body.classList.remove('{removeClass}');
+            document.body.classList.add('{themeClass}');
+        ");
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        // Clean up theme classes when component is disposed
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("eval", @"
+                document.documentElement.classList.remove('theme-dark', 'theme-light');
+                document.body.classList.remove('theme-dark', 'theme-light');
+            ");
+        }
+        catch
+        {
+            // Ignore errors during disposal (e.g., if JS runtime is unavailable)
+        }
+    }
+
+    /// <summary>
+    /// HTML content of the editor. Supports two-way binding.
+    /// </summary>
+    [Parameter]
+    public string Content { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Callback invoked when the content changes.
+    /// </summary>
+    [Parameter]
+    public EventCallback<string> ContentChanged { get; set; }
+
+    /// <summary>
+    /// Plain text content (read-only, derived from HTML content).
+    /// </summary>
+    [Parameter]
+    public string PlainText { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Callback invoked when the plain text changes.
+    /// </summary>
+    [Parameter]
+    public EventCallback<string> PlainTextChanged { get; set; }
+
+    /// <summary>
+    /// Quill theme to use. Defaults to Snow.
+    /// </summary>
+    [Parameter]
+    public QuillTheme Theme { get; set; } = QuillTheme.Snow;
+
+    /// <summary>
+    /// Toolbar configuration options. Defaults to full toolbar.
+    /// </summary>
+    [Parameter]
+    public ToolbarOptions ToolbarOptions { get; set; } = ToolbarOptions.FullToolbarOptions;
+
+    /// <summary>
+    /// Placeholder text shown when editor is empty.
+    /// </summary>
+    [Parameter]
+    public string Placeholder { get; set; } = "Wprowadź tekst...";
+
+    /// <summary>
+    /// Additional CSS classes to apply to the container.
+    /// </summary>
+    [Parameter]
+    public string CssClass { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Additional inline styles to apply to the container.
+    /// </summary>
+    [Parameter]
+    public string Style { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Maximum height for the editor content area (e.g. "400px", "50vh").
+    /// When the content grows beyond this height the editor body will scroll
+    /// while the toolbar remains visible.
+    /// </summary>
+    [Parameter]
+    public string MaxHeight { get; set; } = "400px";
+
+    /// <summary>
+    /// Whether to use dark theme styling. When true, applies dark theme colors.
+    /// </summary>
+    [Parameter]
+    public bool IsDarkTheme { get; set; }
+
+    private async Task SetContentAsync(string value)
+    {
+        Content = value;
+        _lastKnownContent = value ?? string.Empty;
+
+      if (ContentChanged.HasDelegate)
+        {
+            await ContentChanged.InvokeAsync(Content);
+        }
+
+        if (PlainTextChanged.HasDelegate)
+        {
+            await PlainTextChanged.InvokeAsync(_plainText);
+        }
+    }
+
+    private void Recover()
+    {
+        _errorBoundary?.Recover();
+    }
+}

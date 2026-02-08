@@ -19,13 +19,13 @@
                 <Grid HeightRequest="280">
                     <Border StrokeThickness="0"
                             BackgroundColor="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray600}}">
-                        <Image Source="{Binding RecipeImage}" 
+                        <Image Source="{Binding RecipeImage}"
                                Aspect="AspectFill"
                                IsVisible="{Binding RecipeImage, Converter={StaticResource IsNotNullConverter}}"/>
                     </Border>
                     <!-- Default image when no photo -->
-                    <Image Aspect="AspectFill" 
-                           VerticalOptions="Center" 
+                    <Image Aspect="AspectFill"
+                           VerticalOptions="Center"
                            HorizontalOptions="Center"
                            IsVisible="{Binding RecipeImage, Converter={StaticResource IsNullConverter}}">
                         <Image.Source>
@@ -83,17 +83,17 @@
                         StrokeShape="RoundRectangle 24,24,0,0"
                         BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}">
                     <VerticalStackLayout Spacing="20" Padding="20,24,20,32">
-                        
+
                         <!-- Title and Category -->
                         <VerticalStackLayout Spacing="12">
-                            <Label Text="{Binding Recipe.Title}" 
-                                   FontSize="26" 
+                            <Label Text="{Binding Recipe.Title}"
+                                   FontSize="26"
                                    FontAttributes="Bold"
                                    TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"/>
-                            
+
                             <!-- Category Badge -->
-                            <Border Background="{StaticResource PurpleGradient}" 
-                                    Padding="14,8" 
+                            <Border Background="{StaticResource PurpleGradient}"
+                                    Padding="14,8"
                                     StrokeShape="RoundRectangle 20"
                                     StrokeThickness="0"
                                     HorizontalOptions="Start"
@@ -107,23 +107,23 @@
                                                              Size="16"/>
                                         </Image.Source>
                                     </Image>
-                                    <Label Text="{Binding Category.Name}" 
-                                           TextColor="White" 
+                                    <Label Text="{Binding Category.Name}"
+                                           TextColor="White"
                                            FontSize="13"
                                            FontAttributes="Bold"/>
                                 </HorizontalStackLayout>
                             </Border>
-                            
+
                             <!-- Description -->
-                            <Label Text="{Binding Recipe.Description}" 
-                                   FontSize="15" 
+                            <Label Text="{Binding Recipe.Description}"
+                                   FontSize="15"
                                    TextColor="{StaticResource Gray500}"
                                    LineHeight="1.5"/>
                         </VerticalStackLayout>
 
                         <!-- Quick Stats -->
                         <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
-                            <Border Grid.Column="0" 
+                            <Border Grid.Column="0"
                                     StrokeThickness="0"
                                     StrokeShape="RoundRectangle 16"
                                     Padding="12"
@@ -137,7 +137,7 @@
                                                              Size="28"/>
                                         </Image.Source>
                                     </Image>
-                                    <Label FontSize="18" FontAttributes="Bold" HorizontalOptions="Center" 
+                                    <Label FontSize="18" FontAttributes="Bold" HorizontalOptions="Center"
                                            TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}">
                                         <Label.FormattedText>
                                             <FormattedString>
@@ -149,7 +149,7 @@
                                     <Label Text="Przygotowanie" FontSize="11" TextColor="{StaticResource Gray500}" HorizontalOptions="Center"/>
                                 </VerticalStackLayout>
                             </Border>
-                            <Border Grid.Column="1" 
+                            <Border Grid.Column="1"
                                     StrokeThickness="0"
                                     StrokeShape="RoundRectangle 16"
                                     Padding="12"
@@ -175,7 +175,7 @@
                                     <Label Text="Gotowanie" FontSize="11" TextColor="{StaticResource Gray500}" HorizontalOptions="Center"/>
                                 </VerticalStackLayout>
                             </Border>
-                            <Border Grid.Column="2" 
+                            <Border Grid.Column="2"
                                     StrokeThickness="0"
                                     StrokeShape="RoundRectangle 16"
                                     Padding="12"
@@ -196,84 +196,84 @@
                             </Border>
                         </Grid>
 
-             <!-- Składniki Section -->
-         <VerticalStackLayout Spacing="14">
-        <Border Padding="0"
-              StrokeThickness="0"
-             BackgroundColor="Transparent">
-        <Border.GestureRecognizers>
-  <TapGestureRecognizer Command="{Binding ToggleIngredientsCommand}"/>
-    </Border.GestureRecognizers>
-         <HorizontalStackLayout Spacing="10">
-        <Border BackgroundColor="{StaticResource Primary}"
-       StrokeThickness="0"
-    StrokeShape="RoundRectangle 10"
-   HeightRequest="36"
-       WidthRequest="36">
-    <Image HeightRequest="20" WidthRequest="20" HorizontalOptions="Center" VerticalOptions="Center">
-          <Image.Source>
-        <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Shopping_basket}"
-        FontFamily="MaterialSymbolsOutlined"
-         Color="White"
-     Size="20"/>
-       </Image.Source>
-         </Image>
-   </Border>
-       <Label Text="Składniki" FontSize="20" FontAttributes="Bold" VerticalOptions="Center"
-       TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"/>
-   <Image HeightRequest="24" WidthRequest="24" VerticalOptions="Center" Margin="8,0,0,0">
-       <Image.Source>
-        <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Expand_more}"
-     FontFamily="MaterialSymbolsOutlined"
-          Color="{StaticResource Primary}"
-                   Size="24"/>
-         </Image.Source>
- <Image.Triggers>
-   <DataTrigger TargetType="Image" 
-      Binding="{Binding IsIngredientsExpanded}" 
-     Value="True">
-            <Setter Property="Rotation" Value="180"/>
-</DataTrigger>
-  </Image.Triggers>
-</Image>
-      </HorizontalStackLayout>
-       </Border>
-      
-       <CollectionView ItemsSource="{Binding Ingredients}"
-       IsVisible="{Binding IsIngredientsExpanded}">
-        <CollectionView.ItemTemplate>
-          <DataTemplate x:DataType="vm:RecipeIngredientDisplay">
-           <Border Margin="0,4"
-   Padding="14,12"
-     StrokeThickness="0"
-   StrokeShape="RoundRectangle 12"
-          BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray600}}">
-             <Grid ColumnDefinitions="Auto,*" ColumnSpacing="14">
-      <Border BackgroundColor="{StaticResource Secondary}"
-          StrokeThickness="0"
-       StrokeShape="RoundRectangle 10"
-           HeightRequest="28"
-  WidthRequest="28">
-     <Image HeightRequest="16" WidthRequest="16" HorizontalOptions="Center" VerticalOptions="Center">
-           <Image.Source>
-      <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Check}"
-      FontFamily="MaterialSymbolsOutlined"
-    Color="{StaticResource Primary}"
-         Size="16"/>
-      </Image.Source>
-              </Image>
-          </Border>
-        <Label Grid.Column="1" 
-      Text="{Binding DisplayText}" 
-   FontSize="15"
-        VerticalOptions="Center"
-   TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"/>
-         </Grid>
-    </Border>
-                  </DataTemplate>
-        </CollectionView.ItemTemplate>
-  </CollectionView>
-   </VerticalStackLayout>
+                        <!-- Składniki Section -->
+                        <VerticalStackLayout Spacing="14">
+                            <Border Padding="0"
+                                    StrokeThickness="0"
+                                    BackgroundColor="Transparent">
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding ToggleIngredientsCommand}"/>
+                                </Border.GestureRecognizers>
+                                <HorizontalStackLayout Spacing="10">
+                                    <Border BackgroundColor="{StaticResource Primary}"
+                                            StrokeThickness="0"
+                                            StrokeShape="RoundRectangle 10"
+                                            HeightRequest="36"
+                                            WidthRequest="36">
+                                        <Image HeightRequest="20" WidthRequest="20" HorizontalOptions="Center" VerticalOptions="Center">
+                                            <Image.Source>
+                                                <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Shopping_basket}"
+                                                                 FontFamily="MaterialSymbolsOutlined"
+                                                                 Color="White"
+                                                                 Size="20"/>
+                                            </Image.Source>
+                                        </Image>
+                                    </Border>
+                                    <Label Text="Składniki" FontSize="20" FontAttributes="Bold" VerticalOptions="Center"
+                                           TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"/>
+                                    <Image HeightRequest="24" WidthRequest="24" VerticalOptions="Center" Margin="8,0,0,0">
+                                        <Image.Source>
+                                            <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Expand_more}"
+                                                             FontFamily="MaterialSymbolsOutlined"
+                                                             Color="{StaticResource Primary}"
+                                                             Size="24"/>
+                                        </Image.Source>
+                                        <Image.Triggers>
+                                            <DataTrigger TargetType="Image"
+                                                         Binding="{Binding IsIngredientsExpanded}"
+                                                         Value="True">
+                                                <Setter Property="Rotation" Value="180"/>
+                                            </DataTrigger>
+                                        </Image.Triggers>
+                                    </Image>
+                                </HorizontalStackLayout>
+                            </Border>
+
+                            <CollectionView ItemsSource="{Binding Ingredients}"
+                                            IsVisible="{Binding IsIngredientsExpanded}">
+                                <CollectionView.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:RecipeIngredientDisplay">
+                                        <Border Margin="0,4"
+                                                Padding="14,12"
+                                                StrokeThickness="0"
+                                                StrokeShape="RoundRectangle 12"
+                                                BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray600}}">
+                                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="14">
+                                                <Border BackgroundColor="{StaticResource Secondary}"
+                                                        StrokeThickness="0"
+                                                        StrokeShape="RoundRectangle 10"
+                                                        HeightRequest="28"
+                                                        WidthRequest="28">
+                                                    <Image HeightRequest="16" WidthRequest="16" HorizontalOptions="Center" VerticalOptions="Center">
+                                                        <Image.Source>
+                                                            <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Check}"
+                                                                             FontFamily="MaterialSymbolsOutlined"
+                                                                             Color="{StaticResource Primary}"
+                                                                             Size="16"/>
+                                                        </Image.Source>
+                                                    </Image>
+                                                </Border>
+                                                <Label Grid.Column="1"
+                                                       Text="{Binding DisplayText}"
+                                                       FontSize="15"
+                                                       VerticalOptions="Center"
+                                                       TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"/>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </CollectionView.ItemTemplate>
+                            </CollectionView>
+                        </VerticalStackLayout>
 
                         <!-- Instrukcje Section -->
                         <VerticalStackLayout Spacing="14">
@@ -295,13 +295,13 @@
                                 <Label Text="Przygotowanie" FontSize="20" FontAttributes="Bold" VerticalOptions="Center"
                                        TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"/>
                             </HorizontalStackLayout>
-                            
+
                             <Border Padding="0"
                                     StrokeThickness="0"
                                     StrokeShape="RoundRectangle 12"
                                     MinimumHeightRequest="200"
                                     BackgroundColor="{StaticResource Gray900}">
-                                <WebView x:Name="InstructionsWebView" 
+                                <WebView x:Name="InstructionsWebView"
                                          BackgroundColor="{StaticResource Gray600}"
                                          MinimumHeightRequest="250"/>
                             </Border>
@@ -313,7 +313,7 @@
         </ScrollView>
 
         <!-- Floating header with back button -->
-        <Grid Grid.Row="0" 
+        <Grid Grid.Row="0"
               Padding="12,12"
               ColumnDefinitions="Auto,*,Auto,Auto">
             <!-- Back button -->
@@ -326,7 +326,7 @@
                     <TapGestureRecognizer Command="{Binding Source={x:Reference PageRoot}, Path=BindingContext.GoBackCommand}"/>
                 </Border.GestureRecognizers>
                 <Border.Behaviors>
-                    <toolkit:TouchBehavior 
+                    <toolkit:TouchBehavior
                         PressedScale="0.9"
                         PressedOpacity="0.7"
                         Command="{Binding Source={x:Reference PageRoot}, Path=BindingContext.GoBackCommand}"/>
@@ -340,7 +340,7 @@
                     </Image.Source>
                 </Image>
             </Border>
-            
+
             <!-- Edit button -->
             <Border Grid.Column="2"
                     StrokeThickness="0"
@@ -353,7 +353,7 @@
                     <TapGestureRecognizer Command="{Binding Source={x:Reference PageRoot}, Path=BindingContext.EditRecipeCommand}"/>
                 </Border.GestureRecognizers>
                 <Border.Behaviors>
-                    <toolkit:TouchBehavior 
+                    <toolkit:TouchBehavior
                         PressedScale="0.9"
                         PressedOpacity="0.7"
                         Command="{Binding Source={x:Reference PageRoot}, Path=BindingContext.EditRecipeCommand}"/>
@@ -367,7 +367,7 @@
                     </Image.Source>
                 </Image>
             </Border>
-            
+
             <!-- Delete button -->
             <Border Grid.Column="3"
                     StrokeThickness="0"
@@ -379,7 +379,7 @@
                     <TapGestureRecognizer Command="{Binding Source={x:Reference PageRoot}, Path=BindingContext.DeleteRecipeCommand}"/>
                 </Border.GestureRecognizers>
                 <Border.Behaviors>
-                    <toolkit:TouchBehavior 
+                    <toolkit:TouchBehavior
                         PressedScale="0.9"
                         PressedOpacity="0.7"
                         Command="{Binding Source={x:Reference PageRoot}, Path=BindingContext.DeleteRecipeCommand}"/>

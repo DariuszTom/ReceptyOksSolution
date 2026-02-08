@@ -12,19 +12,19 @@
              Background="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource BlackBrownPurpleGradient}}">
 
     <Grid RowDefinitions="Auto,*">
-        
+
         <!-- Custom Header -->
-        <Grid Grid.Row="0" 
+        <Grid Grid.Row="0"
               Padding="20,16"
               BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}">
             <Grid.Shadow>
                 <Shadow Brush="{StaticResource Gray400Brush}" Offset="0,2" Radius="4" Opacity="0.1"/>
             </Grid.Shadow>
             <VerticalStackLayout VerticalOptions="Center">
-                <Label Text="Kategorie" 
+                <Label Text="Kategorie"
                        Style="{StaticResource PageTitle}"
                        FontSize="24"/>
-                <Label Text="Organizuj swoje przepisy" 
+                <Label Text="Organizuj swoje przepisy"
                        Style="{StaticResource CaptionLabel}"/>
             </VerticalStackLayout>
         </Grid>
@@ -35,8 +35,8 @@
                         Margin="12,16,12,0"
                         BackgroundColor="Transparent">
             <CollectionView.ItemsLayout>
-                <GridItemsLayout Orientation="Vertical" 
-                                 Span="2" 
+                <GridItemsLayout Orientation="Vertical"
+                                 Span="2"
                                  HorizontalItemSpacing="12"
                                  VerticalItemSpacing="12"/>
             </CollectionView.ItemsLayout>
@@ -57,12 +57,12 @@
                             </Image.Source>
                         </Image>
                     </Border>
-                    <Label Text="Brak kategorii" 
-                           FontSize="18" 
+                    <Label Text="Brak kategorii"
+                           FontSize="18"
                            FontAttributes="Bold"
                            TextColor="{StaticResource Gray500}"
                            HorizontalOptions="Center"/>
-                    <Label Text="Utwórz kategorie, aby lepiej organizować swoje przepisy" 
+                    <Label Text="Utwórz kategorie, aby lepiej organizować swoje przepisy"
                            FontSize="14"
                            TextColor="{StaticResource Gray400}"
                            HorizontalOptions="Center"
@@ -98,22 +98,22 @@
                         </Border.Shadow>
                         <Grid RowDefinitions="*,Auto">
                             <!-- Category Icon Area -->
-                            <Border Grid.Row="0" 
+                            <Border Grid.Row="0"
                                     StrokeThickness="0"
                                     StrokeShape="RoundRectangle 20,20,0,0"
                                     BackgroundColor="{StaticResource Primary}">
                                 <Grid>
                                     <!-- Custom category icon -->
                                     <Image Source="{Binding IconName}"
-                                           HeightRequest="56" 
-                                           WidthRequest="56" 
-                                           HorizontalOptions="Center" 
+                                           HeightRequest="56"
+                                           WidthRequest="56"
+                                           HorizontalOptions="Center"
                                            VerticalOptions="Center"
                                            Aspect="AspectFit"
                                            IsVisible="{Binding IconName, Converter={StaticResource HasCategoryIconConverter}}"/>
                                     <!-- Default folder icon -->
-                                    <Image HeightRequest="48" WidthRequest="48" 
-                                           HorizontalOptions="Center" 
+                                    <Image HeightRequest="48" WidthRequest="48"
+                                           HorizontalOptions="Center"
                                            VerticalOptions="Center"
                                            IsVisible="{Binding IconName, Converter={StaticResource IsNullConverter}}">
                                         <Image.Source>
@@ -142,7 +142,7 @@
                                                 </Image.Source>
                                             </Image>
                                             <Border.GestureRecognizers>
-                                                <TapGestureRecognizer 
+                                                <TapGestureRecognizer
                                                     Command="{Binding Source={RelativeSource AncestorType={x:Type vm:CategoriesViewModel}}, Path=EditCategoryCommand}"
                                                     CommandParameter="{Binding .}"/>
                                             </Border.GestureRecognizers>
@@ -161,7 +161,7 @@
                                                 </Image.Source>
                                             </Image>
                                             <Border.GestureRecognizers>
-                                                <TapGestureRecognizer 
+                                                <TapGestureRecognizer
                                                     Command="{Binding Source={RelativeSource AncestorType={x:Type vm:CategoriesViewModel}}, Path=DeleteCategoryCommand}"
                                                     CommandParameter="{Binding .}"/>
                                             </Border.GestureRecognizers>
@@ -169,28 +169,28 @@
                                     </HorizontalStackLayout>
                                 </Grid>
                             </Border>
-                            
+
                             <!-- Category Info -->
-                            <VerticalStackLayout Grid.Row="1" 
-                                                 Spacing="2" 
+                            <VerticalStackLayout Grid.Row="1"
+                                                 Spacing="2"
                                                  Padding="14,12"
                                                  BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}">
-                                <Label Text="{Binding Name}" 
-                                       FontSize="15" 
+                                <Label Text="{Binding Name}"
+                                       FontSize="15"
                                        FontAttributes="Bold"
                                        TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"
                                        LineBreakMode="TailTruncation"
                                        MaxLines="1"/>
-                                <Label Text="{Binding Description}" 
-                                       FontSize="12" 
+                                <Label Text="{Binding Description}"
+                                       FontSize="12"
                                        TextColor="{StaticResource Gray500}"
                                        LineBreakMode="TailTruncation"
                                        MaxLines="1"
                                        IsVisible="{Binding Description, Converter={StaticResource IsNotNullConverter}}"/>
                             </VerticalStackLayout>
-                            
+
                             <Grid.GestureRecognizers>
-                                <TapGestureRecognizer 
+                                <TapGestureRecognizer
                                     Command="{Binding Source={RelativeSource AncestorType={x:Type vm:CategoriesViewModel}}, Path=ViewRecipesInCategoryCommand}"
                                     CommandParameter="{Binding .}"/>
                             </Grid.GestureRecognizers>

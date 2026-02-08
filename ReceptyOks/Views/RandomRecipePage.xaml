@@ -12,37 +12,37 @@
              Background="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource BlackBrownPurpleGradient}}">
 
     <Grid RowDefinitions="Auto,*">
-        
+
         <!-- Custom Header -->
-        <Grid Grid.Row="0" 
+        <Grid Grid.Row="0"
               Padding="20,16"
               BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}">
             <Grid.Shadow>
                 <Shadow Brush="{StaticResource Gray400Brush}" Offset="0,2" Radius="4" Opacity="0.1"/>
             </Grid.Shadow>
             <VerticalStackLayout VerticalOptions="Center">
-                <Label Text="Losuj Przepis" 
+                <Label Text="Losuj Przepis"
                        Style="{StaticResource PageTitle}"
                        FontSize="24"/>
-                <Label Text="Co dziś ugotować?" 
+                <Label Text="Co dziś ugotować?"
                        Style="{StaticResource CaptionLabel}"/>
             </VerticalStackLayout>
         </Grid>
 
         <ScrollView Grid.Row="1">
             <VerticalStackLayout Spacing="16" Padding="16">
-                
+
                 <!-- Filter Options -->
                 <Border StrokeThickness="0"
                         StrokeShape="RoundRectangle 16"
                         Padding="16"
                         BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}">
                     <VerticalStackLayout Spacing="16">
-                        <Label Text="Opcje filtrowania" 
-                               FontSize="18" 
+                        <Label Text="Opcje filtrowania"
+                               FontSize="18"
                                FontAttributes="Bold"
                                TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"/>
-                        
+
                         <!-- Filter by Category Toggle -->
                         <Grid ColumnDefinitions="*,Auto">
                             <HorizontalStackLayout Spacing="10" VerticalOptions="Center">
@@ -54,29 +54,29 @@
                                                          Size="24"/>
                                     </Image.Source>
                                 </Image>
-                                <Label Text="Filtruj po kategorii" 
+                                <Label Text="Filtruj po kategorii"
                                        FontSize="16"
                                        VerticalOptions="Center"
                                        TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"/>
                             </HorizontalStackLayout>
-                            <Switch Grid.Column="1" 
+                            <Switch Grid.Column="1"
                                     IsToggled="{Binding FilterByCategory}"
                                     OnColor="{StaticResource Primary}"/>
                         </Grid>
-                        
+
                         <!-- Category Picker -->
                         <Border IsVisible="{Binding FilterByCategory}"
                                 StrokeThickness="1"
                                 Stroke="{StaticResource Gray300}"
                                 StrokeShape="RoundRectangle 12"
                                 Padding="12,4">
-                            <Picker Title="Wybierz kategori&#281;"
+                            <Picker Title="Wybierz kategorię"
                                     ItemsSource="{Binding Categories}"
                                     SelectedItem="{Binding SelectedCategory}"
                                     ItemDisplayBinding="{Binding Name}"
                                     TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"/>
                         </Border>
-                        
+
                         <!-- Filter by Ingredients Toggle -->
                         <Grid ColumnDefinitions="*,Auto">
                             <HorizontalStackLayout Spacing="10" VerticalOptions="Center">
@@ -88,18 +88,18 @@
                                                          Size="24"/>
                                     </Image.Source>
                                 </Image>
-                                <Label Text="Filtruj po sk&#322;adnikach" 
+                                <Label Text="Filtruj po składnikach"
                                        FontSize="16"
                                        VerticalOptions="Center"
                                        TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"/>
                             </HorizontalStackLayout>
-                            <Switch Grid.Column="1" 
+                            <Switch Grid.Column="1"
                                     IsToggled="{Binding FilterByIngredients}"
                                     OnColor="{StaticResource Primary}"/>
                         </Grid>
                     </VerticalStackLayout>
                 </Border>
-                
+
                 <!-- Ingredients Selection -->
                 <Border StrokeThickness="0"
                         StrokeShape="RoundRectangle 16"
@@ -108,13 +108,13 @@
                         BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}">
                     <VerticalStackLayout Spacing="12">
                         <Grid ColumnDefinitions="*,Auto">
-                            <Label Text="Dost&#281;pne sk&#322;adniki" 
-                                   FontSize="18" 
+                            <Label Text="Dostępne składniki"
+                                   FontSize="18"
                                    FontAttributes="Bold"
                                    VerticalOptions="Center"
                                    TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"/>
                             <Button Grid.Column="1"
-                                    Text="Wyczy&#347;&#263;"
+                                    Text="Wyczyść"
                                     FontSize="12"
                                     Padding="12,6"
                                     BackgroundColor="{StaticResource Gray300}"
@@ -122,7 +122,7 @@
                                     Command="{Binding ClearIngredientsCommand}"
                                     IsVisible="{Binding SelectedIngredients.Count, Converter={StaticResource IsNotZeroConverter}}"/>
                         </Grid>
-                        
+
                         <!-- Selected Ingredients -->
                         <FlexLayout BindableLayout.ItemsSource="{Binding SelectedIngredients}"
                                     Wrap="Wrap"
@@ -136,8 +136,8 @@
                                             StrokeShape="RoundRectangle 16"
                                             BackgroundColor="{StaticResource Primary}">
                                         <HorizontalStackLayout Spacing="6">
-                                            <Label Text="{Binding Name}" 
-                                                   TextColor="White" 
+                                            <Label Text="{Binding Name}"
+                                                   TextColor="White"
                                                    FontSize="13"/>
                                             <Image HeightRequest="16" WidthRequest="16">
                                                 <Image.Source>
@@ -147,7 +147,7 @@
                                                                      Size="16"/>
                                                 </Image.Source>
                                                 <Image.GestureRecognizers>
-                                                    <TapGestureRecognizer 
+                                                    <TapGestureRecognizer
                                                         Command="{Binding Source={RelativeSource AncestorType={x:Type vm:RandomRecipeViewModel}}, Path=RemoveIngredientCommand}"
                                                         CommandParameter="{Binding}"/>
                                                 </Image.GestureRecognizers>
@@ -157,7 +157,7 @@
                                 </DataTemplate>
                             </BindableLayout.ItemTemplate>
                         </FlexLayout>
-                        
+
                         <!-- Search Ingredients -->
                         <Border StrokeThickness="1"
                                 Stroke="{StaticResource Gray300}"
@@ -173,12 +173,12 @@
                                     </Image.Source>
                                 </Image>
                                 <Entry Grid.Column="1"
-                                       Placeholder="Szukaj sk&#322;adnik&#243;w..."
+                                       Placeholder="Szukaj składników..."
                                        Text="{Binding IngredientSearchQuery}"
                                        FontSize="15"/>
                             </Grid>
                         </Border>
-                        
+
                         <!-- Available Ingredients List -->
                         <CollectionView ItemsSource="{Binding FilteredIngredients}"
                                         HeightRequest="200"
@@ -191,12 +191,12 @@
                                             StrokeShape="RoundRectangle 10"
                                             BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray600}}">
                                         <Border.GestureRecognizers>
-                                            <TapGestureRecognizer 
+                                            <TapGestureRecognizer
                                                 Command="{Binding Source={RelativeSource AncestorType={x:Type vm:RandomRecipeViewModel}}, Path=AddIngredientCommand}"
                                                 CommandParameter="{Binding}"/>
                                         </Border.GestureRecognizers>
                                         <Grid ColumnDefinitions="*,Auto">
-                                            <Label Text="{Binding Name}" 
+                                            <Label Text="{Binding Name}"
                                                    FontSize="15"
                                                    VerticalOptions="Center"
                                                    TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"/>
@@ -215,7 +215,7 @@
                         </CollectionView>
                     </VerticalStackLayout>
                 </Border>
-                
+
                 <!-- Randomize Button -->
                 <Button Text="🎲  Losuj przepis!"
                         FontSize="18"
@@ -223,7 +223,7 @@
                         Padding="20,16"
                         Style="{StaticResource GradientButton}"
                         Command="{Binding RandomizeRecipeCommand}"/>
-                
+
                 <!-- Loading Indicator -->
                 <ActivityIndicator IsRunning="{Binding IsLoading}"
                                    IsVisible="{Binding IsLoading}"
@@ -231,7 +231,7 @@
                                    WidthRequest="50"
                                    Color="{StaticResource Primary}"
                                    HorizontalOptions="Center"/>
-                
+
                 <!-- Result Card -->
                 <Border StrokeThickness="0"
                         StrokeShape="RoundRectangle 20"
@@ -245,13 +245,13 @@
                         <Border StrokeThickness="0"
                                 StrokeShape="RoundRectangle 20,20,0,0"
                                 BackgroundColor="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray600}}">
-                            <Image Source="{Binding RecipeImage}" 
+                            <Image Source="{Binding RecipeImage}"
                                    Aspect="AspectFill"
                                    IsVisible="{Binding RecipeImage, Converter={StaticResource IsNotNullConverter}}"/>
                         </Border>
                         <!-- Default image when no photo -->
-                        <Image Aspect="AspectFill" 
-                               VerticalOptions="Center" 
+                        <Image Aspect="AspectFill"
+                               VerticalOptions="Center"
                                HorizontalOptions="Center"
                                IsVisible="{Binding RecipeImage, Converter={StaticResource IsNullConverter}}">
                             <Image.Source>
@@ -261,20 +261,20 @@
                                                  Size="60"/>
                             </Image.Source>
                         </Image>
-                        
+
                         <!-- Recipe Info -->
                         <VerticalStackLayout Grid.Row="1" Padding="16" Spacing="12">
-                            <Label Text="{Binding RandomRecipe.Title}" 
-                                   FontSize="20" 
+                            <Label Text="{Binding RandomRecipe.Title}"
+                                   FontSize="20"
                                    FontAttributes="Bold"
                                    TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"/>
-                            
-                            <Label Text="{Binding RandomRecipe.Description}" 
-                                   FontSize="14" 
+
+                            <Label Text="{Binding RandomRecipe.Description}"
+                                   FontSize="14"
                                    TextColor="{StaticResource Gray500}"
                                    MaxLines="2"
                                    LineBreakMode="TailTruncation"/>
-                            
+
                             <!-- Time Info -->
                             <HorizontalStackLayout Spacing="16">
                                 <HorizontalStackLayout Spacing="6">
@@ -314,7 +314,7 @@
                                     </Label>
                                 </HorizontalStackLayout>
                             </HorizontalStackLayout>
-                            
+
                             <!-- Action Buttons -->
                             <Grid ColumnDefinitions="*,*" ColumnSpacing="12" Margin="0,8,0,0">
                                 <Button Grid.Column="0"
@@ -337,7 +337,7 @@
                         </VerticalStackLayout>
                     </Grid>
                 </Border>
-                
+
             </VerticalStackLayout>
         </ScrollView>
     </Grid>
