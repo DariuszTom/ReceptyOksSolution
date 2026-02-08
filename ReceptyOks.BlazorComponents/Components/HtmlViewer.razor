@@ -1,24 +1,29 @@
 @using Microsoft.AspNetCore.Components
 @using Microsoft.AspNetCore.Components.Web
 
-<div class="html-viewer" style="@(AdditionalStyle)">
+<div class="html-viewer-container" style="@AdditionalStyle">
     @if (string.IsNullOrEmpty(HtmlContent))
     {
         <div class="empty-placeholder">Brak zawartoœci</div>
     }
     else
     {
-        @((MarkupString)HtmlContent)
+        <div class="html-viewer-content">
+    @((MarkupString)HtmlContent)
+   </div>
     }
 </div>
 
 @code {
+    /// <summary>
+    /// HTML content to display (e.g., recipe instructions)
+    /// </summary>
     [Parameter]
     public string HtmlContent { get; set; } = string.Empty;
 
     /// <summary>
     /// Optional additional inline style to apply on the root container (e.g. custom background/color)
-    /// </summary>
+  /// </summary>
     [Parameter]
     public string AdditionalStyle { get; set; } = string.Empty;
 }

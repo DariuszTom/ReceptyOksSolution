@@ -1,1 +1,92 @@
-.html-viewer{padding:0}
+.html-viewer-container {
+    --bg-color: #ffffff;
+  --text-color: #1f1f1f;
+    --border-color: #e0e0e0;
+    --primary-color: #512BD4;
+
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-color: transparent;
+    color: var(--text-color);
+ padding: 16px;
+    font-size: 15px;
+    line-height: 1.6;
+    box-sizing: border-box;
+}
+
+@media (prefers-color-scheme: dark) {
+    .html-viewer-container {
+      --bg-color: #1f1f1f;
+        --text-color: #ffffff;
+        --border-color: #404040;
+    }
+}
+
+.empty-placeholder {
+    color: var(--text-color);
+    opacity: 0.6;
+    font-style: italic;
+}
+
+.html-viewer-content {
+width: 100%;
+}
+
+/* Heading styles */
+.html-viewer-content ::deep h1 {
+    font-size: 24px;
+    margin-bottom: 12px;
+    font-weight: bold;
+}
+
+.html-viewer-content ::deep h2 {
+    font-size: 20px;
+    margin-bottom: 10px;
+    font-weight: bold;
+}
+
+.html-viewer-content ::deep h3 {
+    font-size: 18px;
+    margin-bottom: 8px;
+    font-weight: bold;
+}
+
+/* Paragraph and text styles */
+.html-viewer-content ::deep p {
+margin-bottom: 12px;
+}
+
+/* List styles */
+.html-viewer-content ::deep ol,
+.html-viewer-content ::deep ul {
+    padding-left: 24px;
+    margin-bottom: 12px;
+}
+
+.html-viewer-content ::deep li {
+    margin-bottom: 6px;
+}
+
+/* Blockquote styles */
+.html-viewer-content ::deep blockquote {
+    border-left: 3px solid var(--primary-color);
+    padding-left: 16px;
+    margin: 12px 0;
+font-style: italic;
+}
+
+/* Text formatting */
+.html-viewer-content ::deep strong {
+    font-weight: bold;
+}
+
+.html-viewer-content ::deep em {
+    font-style: italic;
+}
+
+.html-viewer-content ::deep u {
+    text-decoration: underline;
+}
+
+.html-viewer-content ::deep s {
+    text-decoration: line-through;
+}
