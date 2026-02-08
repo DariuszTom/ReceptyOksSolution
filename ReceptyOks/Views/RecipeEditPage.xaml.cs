@@ -61,10 +61,4 @@ public partial class RecipeEditPage : ContentPage
             await _viewModel.SaveCommand.ExecuteAsync(null);
         }
     }
-
-    // Tymczasowy handler do testowania RichEditor
-    private async void OnTestEditorClicked(object sender, EventArgs e)
-    {
-        await Shell.Current.GoToAsync(nameof(RichEditorTestPage));
-    }
 }
