@@ -10,42 +10,42 @@ public static class SyncEndpoints
     public static void MapSyncEndpoints(this WebApplication app)
     {
         var group = app.MapGroup("/api/sync")
-      .WithTags("Synchronization")
-        .RequireRateLimiting("fixed");
+            .WithTags("Synchronization")
+            .RequireRateLimiting("fixed");
 
         // POST - synchronizacja dwukierunkowa
         group.MapPost("/", async (SyncRequest request, RecipeDbContext db, ILogger<RecipeDbContext> logger) =>
-  {
-      var lastSync = request.LastSyncedAt ?? DateTime.MinValue;
+        {
+            var lastSync = request.LastSyncedAt ?? DateTime.MinValue;
 
-      logger.LogInformation("Sync started. LastSyncedAt: {LastSync}, ChangedCategories: {CatCount}, ChangedIngredients: {IngCount}, ChangedRecipes: {RecCount}",
-            lastSync, request.ChangedCategories.Count, request.ChangedIngredients.Count, request.ChangedRecipes.Count);
+            logger.LogInformation("Sync started. LastSyncedAt: {LastSync}, ChangedCategories: {CatCount}, ChangedIngredients: {IngCount}, ChangedRecipes: {RecCount}",
+                lastSync, request.ChangedCategories.Count, request.ChangedIngredients.Count, request.ChangedRecipes.Count);
 
-      // 1. Zastosuj zmiany z klienta
-      await ApplyClientChanges(request, db, logger);
+            // 1. Zastosuj zmiany z klienta
+            await ApplyClientChanges(request, db, logger);
 
-      // Capture syncTime after applying client changes so SyncedAt >= any UpdatedAt set above
-      var syncTime = DateTime.UtcNow;
+            // Capture syncTime after applying client changes so SyncedAt >= any UpdatedAt set above
+            var syncTime = DateTime.UtcNow;
 
-      // 2. Pobierz zmiany serwera od ostatniej synchronizacji
-      var response = new SyncResponse
-      {
-          SyncedAt = syncTime,
-          Categories = await GetServerCategories(lastSync, db),
-          Ingredients = await GetServerIngredients(lastSync, db),
-          Recipes = await GetServerRecipes(lastSync, db)
-      };
+            // 2. Pobierz zmiany serwera od ostatniej synchronizacji
+            var response = new SyncResponse
+            {
+                SyncedAt = syncTime,
+                Categories = await GetServerCategories(lastSync, db),
+                Ingredients = await GetServerIngredients(lastSync, db),
+                Recipes = await GetServerRecipes(lastSync, db)
+            };
 
-      logger.LogInformation(
-                   "Sync completed. SyncedAt: {SyncTime}, ReturnedCategories: {CatCount}, ReturnedIngredients: {IngCount}, ReturnedRecipes: {RecCount}",
-              syncTime,
-        response.Categories.Count,
-     response.Ingredients.Count,
-           response.Recipes.Count);
+            logger.LogInformation(
+                "Sync completed. SyncedAt: {SyncTime}, ReturnedCategories: {CatCount}, ReturnedIngredients: {IngCount}, ReturnedRecipes: {RecCount}",
+                syncTime,
+                response.Categories.Count,
+                response.Ingredients.Count,
+                response.Recipes.Count);
 
-      return Results.Ok(response);
-  })
-        .WithName("Sync");
+            return Results.Ok(response);
+        })
+            .WithName("Sync");
 
         // GET - pobierz wszystkie dane (pocz¹tkowa synchronizacja)
         group.MapGet("/full", async (RecipeDbContext db, ILogger<RecipeDbContext> logger) =>
@@ -105,7 +105,7 @@ public static class SyncEndpoints
                             Order = ri.Order
                         }).ToList()
                     })
-            .ToListAsync()
+                .ToListAsync()
             };
 
             logger.LogInformation("Full sync completed. Categories: {CatCount}, Ingredients: {IngCount}, Recipes: {RecCount}",
@@ -113,13 +113,13 @@ public static class SyncEndpoints
 
             return Results.Ok(response);
         })
-        .WithName("FullSync");
+            .WithName("FullSync");
 
         // POST - upload wszystkich danych z klienta (nadpisuje serwer)
         group.MapPost("/upload-all", async (SyncRequest request, RecipeDbContext db, ILogger<RecipeDbContext> logger) =>
         {
             logger.LogInformation("Upload-all started. Categories: {CatCount}, Ingredients: {IngCount}, Recipes: {RecCount}",
-            request.ChangedCategories.Count,request.ChangedIngredients.Count, request.ChangedRecipes.Count);
+                request.ChangedCategories.Count, request.ChangedIngredients.Count, request.ChangedRecipes.Count);
             // Zastosuj wszystkie dane z klienta (upsert)
             await ApplyClientChanges(request, db, logger);
 
@@ -137,7 +137,7 @@ public static class SyncEndpoints
 
             return Results.Ok(response);
         })
-        .WithName("UploadAll");
+            .WithName("UploadAll");
     }
 
     private static async Task ApplyClientChanges(SyncRequest request, RecipeDbContext db, ILogger logger)
@@ -168,8 +168,8 @@ public static class SyncEndpoints
             else if (categoryDto.UpdatedAt > existing.UpdatedAt)
             {
                 logger.LogDebug(
-               "Updating category: {CategoryId} - {CategoryName} (client: {ClientUpdated}, server: {ServerUpdated})",
-              categoryDto.Id, categoryDto.Name, categoryDto.UpdatedAt, existing.UpdatedAt);
+                    "Updating category: {CategoryId} - {CategoryName} (client: {ClientUpdated}, server: {ServerUpdated})",
+                    categoryDto.Id, categoryDto.Name, categoryDto.UpdatedAt, existing.UpdatedAt);
                 existing.Name = categoryDto.Name;
                 existing.Description = categoryDto.Description;
                 existing.IconName = categoryDto.IconName;
@@ -180,13 +180,13 @@ public static class SyncEndpoints
             else
             {
                 logger.LogDebug("Skipping category (server newer): {CategoryId} - {CategoryName} (client: {ClientUpdated}, server: {ServerUpdated})",
-                       categoryDto.Id, categoryDto.Name, categoryDto.UpdatedAt, existing.UpdatedAt);
+                    categoryDto.Id, categoryDto.Name, categoryDto.UpdatedAt, existing.UpdatedAt);
                 skippedCategories++;
             }
         }
 
         logger.LogInformation("Categories processed - Added: {Added}, Updated: {Updated}, Skipped: {Skipped}",
-                                addedCategories, updatedCategories, skippedCategories);
+            addedCategories, updatedCategories, skippedCategories);
 
         // Save categories first so they exist for FK references
         await db.SaveChangesAsync();
@@ -216,8 +216,8 @@ public static class SyncEndpoints
             else if (ingredientDto.UpdatedAt > existing.UpdatedAt)
             {
                 logger.LogDebug(
-               "Updating ingredient: {IngredientId} - {IngredientName} (client: {ClientUpdated}, server: {ServerUpdated})",
-           ingredientDto.Id, ingredientDto.Name, ingredientDto.UpdatedAt, existing.UpdatedAt);
+                    "Updating ingredient: {IngredientId} - {IngredientName} (client: {ClientUpdated}, server: {ServerUpdated})",
+                    ingredientDto.Id, ingredientDto.Name, ingredientDto.UpdatedAt, existing.UpdatedAt);
                 existing.Name = ingredientDto.Name;
                 existing.Unit = ingredientDto.Unit;
                 existing.UpdatedAt = DateTime.UtcNow;
@@ -227,8 +227,8 @@ public static class SyncEndpoints
             else
             {
                 logger.LogDebug(
-                      "Skipping ingredient (server newer): {IngredientId} - {IngredientName} (client: {ClientUpdated}, server: {ServerUpdated})",
-                      ingredientDto.Id, ingredientDto.Name, ingredientDto.UpdatedAt, existing.UpdatedAt);
+                    "Skipping ingredient (server newer): {IngredientId} - {IngredientName} (client: {ClientUpdated}, server: {ServerUpdated})",
+                    ingredientDto.Id, ingredientDto.Name, ingredientDto.UpdatedAt, existing.UpdatedAt);
                 skippedIngredients++;
             }
         }
@@ -256,8 +256,8 @@ public static class SyncEndpoints
             if (recipeDto.CategoryId.HasValue && !validCategoryIds.Contains(recipeDto.CategoryId.Value))
             {
                 logger.LogWarning(
-                     "Skipping recipe with invalid category reference: {RecipeId} - {RecipeTitle}, CategoryId: {CategoryId}",
-                  recipeDto.Id, recipeDto.Title, recipeDto.CategoryId);
+                    "Skipping recipe with invalid category reference: {RecipeId} - {RecipeTitle}, CategoryId: {CategoryId}",
+                    recipeDto.Id, recipeDto.Title, recipeDto.CategoryId);
                 skippedInvalidCategory++;
                 continue;
             }
@@ -272,8 +272,8 @@ public static class SyncEndpoints
             {
                 logger.LogWarning(
                     "Recipe {RecipeId} - {RecipeTitle} has {InvalidCount} invalid ingredient references (skipping them): {InvalidIds}",
-               recipeDto.Id, recipeDto.Title, invalidIngredientRefs.Count,
-                          string.Join(", ", invalidIngredientRefs.Select(r => r.IngredientId)));
+                    recipeDto.Id, recipeDto.Title, invalidIngredientRefs.Count,
+                    string.Join(", ", invalidIngredientRefs.Select(r => r.IngredientId)));
                 skippedIngredientRefs += invalidIngredientRefs.Count;
             }
 
@@ -282,7 +282,7 @@ public static class SyncEndpoints
             if (existing is null)
             {
                 logger.LogDebug("Adding new recipe: {RecipeId} - {RecipeTitle} with {IngredientCount} ingredients (valid: {ValidCount})",
-                  recipeDto.Id, recipeDto.Title, recipeDto.Ingredients.Count, validIngredients.Count);
+                    recipeDto.Id, recipeDto.Title, recipeDto.Ingredients.Count, validIngredients.Count);
 
                 var recipe = new Recipe
                 {
@@ -321,8 +321,8 @@ public static class SyncEndpoints
             else if (recipeDto.UpdatedAt > existing.UpdatedAt)
             {
                 logger.LogDebug("Updating recipe: {RecipeId} - {RecipeTitle} (client: {ClientUpdated}, server: {ServerUpdated}), ingredients: {OldCount} -> {NewCount} (valid: {ValidCount})",
-                recipeDto.Id, recipeDto.Title, recipeDto.UpdatedAt, existing.UpdatedAt,
-                   existing.Ingredients.Count, recipeDto.Ingredients.Count, validIngredients.Count);
+                    recipeDto.Id, recipeDto.Title, recipeDto.UpdatedAt, existing.UpdatedAt,
+                    existing.Ingredients.Count, recipeDto.Ingredients.Count, validIngredients.Count);
 
                 existing.Title = recipeDto.Title;
                 existing.Description = recipeDto.Description;
@@ -356,14 +356,14 @@ public static class SyncEndpoints
             else
             {
                 logger.LogDebug(
-                          "Skipping recipe (server newer): {RecipeId} - {RecipeTitle} (client: {ClientUpdated}, server: {ServerUpdated})",
-                  recipeDto.Id, recipeDto.Title, recipeDto.UpdatedAt, existing.UpdatedAt);
+                    "Skipping recipe (server newer): {RecipeId} - {RecipeTitle} (client: {ClientUpdated}, server: {ServerUpdated})",
+                    recipeDto.Id, recipeDto.Title, recipeDto.UpdatedAt, existing.UpdatedAt);
                 skippedRecipes++;
             }
         }
 
         logger.LogInformation(
-     "Recipes processed - Added: {Added}, Updated: {Updated}, Skipped: {Skipped}, SkippedInvalidCategory: {InvalidCategory}, SkippedIngredientRefs: {SkippedRefs}",
+            "Recipes processed - Added: {Added}, Updated: {Updated}, Skipped: {Skipped}, SkippedInvalidCategory: {InvalidCategory}, SkippedIngredientRefs: {SkippedRefs}",
             addedRecipes, updatedRecipes, skippedRecipes, skippedInvalidCategory, skippedIngredientRefs);
 
         await db.SaveChangesAsync();
