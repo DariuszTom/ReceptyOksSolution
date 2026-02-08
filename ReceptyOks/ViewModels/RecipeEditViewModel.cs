@@ -444,7 +444,8 @@ public partial class RecipeEditViewModel : ObservableObject
     {
         if (_speechCts is not null)
         {
-            await _speechToTextService.StopListeningAsync(_speechCts.Token);
+            await _speechCts.CancelAsync();
+            await _speechToTextService.StopListeningAsync(CancellationToken.None);
             _speechCts.Dispose();
             _speechCts = null;
         }
@@ -454,9 +455,9 @@ public partial class RecipeEditViewModel : ObservableObject
     private void OnRecognitionUpdated(string text)
     {
         MainThread.BeginInvokeOnMainThread(() =>
-           {
-               Instructions = text;
-           });
+        {
+            Instructions = text;
+        });
     }
 
     private void OnRecognitionCompleted(string text)

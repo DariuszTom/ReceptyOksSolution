@@ -46,8 +46,8 @@ namespace ReceptyOks.Services
                 duration: time ?? GlobalConstants.DefaultSnackBarTime,
                 visualOptions: new SnackbarOptions
                 {
-                    BackgroundColor = Colors.AliceBlue,
-                    TextColor = Colors.White
+                    BackgroundColor = Colors.Aquamarine,
+                    TextColor = Colors.DarkGray
                 });
             await snackbar.Show();
         }

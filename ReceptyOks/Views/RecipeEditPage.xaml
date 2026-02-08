@@ -380,20 +380,37 @@ Title="Uwagi"
           Size="18"/>
            </Button.ImageSource>
      </Button>
-    <Button Command="{Binding ScanInstructionsFromMicrophoneCommand}" Style="{StaticResource GradientAddButton}"
-          BackgroundColor="Transparent"
-  BorderColor="{StaticResource Primary}"
-             BorderWidth="1"
-               CornerRadius="20"
-             Padding="12,6"
-            ToolTipProperties.Text="Skanuj z kamery">  
-       <Button.ImageSource>
-        <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Mic}"
-     FontFamily="MaterialSymbolsOutlined"
-  Color="{StaticResource Primary}"
+    <Button x:Name="MicrophoneButton"
+            Command="{Binding ScanInstructionsFromMicrophoneCommand}" 
+     Style="{StaticResource GradientAddButton}"
+  BackgroundColor="Transparent"
+    BorderColor="{StaticResource Primary}"
+            BorderWidth="1"
+  CornerRadius="20"
+            Padding="12,6"
+          ToolTipProperties.Text="Nagrywaj głos">
+   <Button.ImageSource>
+     <FontImageSource x:Name="MicrophoneIcon"
+      Glyph="&#xe029;"
+    FontFamily="MaterialSymbolsOutlined"
+         Color="{StaticResource Primary}"
       Size="18"/>
-       </Button.ImageSource>
-        </Button>
+  </Button.ImageSource>
+        <Button.Triggers>
+    <DataTrigger TargetType="Button" Binding="{Binding IsListening}" Value="True">
+     <Setter Property="BackgroundColor" Value="#E53935"/>
+         <Setter Property="BorderColor" Value="#E53935"/>
+                <Setter Property="ImageSource">
+           <Setter.Value>
+   <FontImageSource Glyph="&#xe034;"
+     FontFamily="MaterialSymbolsOutlined"
+        Color="White"
+         Size="18"/>
+     </Setter.Value>
+   </Setter>
+   </DataTrigger>
+        </Button.Triggers>
+    </Button>
           </HorizontalStackLayout>
             </Grid>
             <Border Stroke="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray600}}"

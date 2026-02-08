@@ -30,6 +30,8 @@
 <converters:IsNotNullOrEmptyConverter x:Key="IsNotNullOrEmptyConverter"/>
          <converters:MealCountToHeightConverter x:Key="MealCountToHeightConverter"/>
             <converters:BoolToStrikethroughConverter x:Key="BoolToStrikethroughConverter"/>
+          <converters:BoolToColorConverter x:Key="BoolToColorConverter"/>
+            <converters:BoolToGlyphConverter x:Key="BoolToGlyphConverter"/>
     </ResourceDictionary>
     </Application.Resources>
 </Application>

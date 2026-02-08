@@ -314,9 +314,51 @@ public class MealCountToHeightConverter : IValueConverter
 /// </summary>
 public class BoolToStrikethroughConverter : IValueConverter
 {
-    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+  public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         return value is true ? TextDecorations.Strikethrough : TextDecorations.None;
+    }
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => throw new NotImplementedException();
+}
+
+/// <summary>
+/// Converts IsListening boolean to appropriate colors for recording button.
+/// Parameter values: "Recording" (background), "RecordingBorder" (border), "RecordingIcon" (icon color).
+/// </summary>
+public class BoolToColorConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+     bool isListening = value is true;
+        string param = parameter as string ?? "Recording";
+
+        return param switch
+      {
+        "Recording" => isListening ? Color.FromArgb("#E53935") : Colors.Transparent,
+            "RecordingBorder" => isListening ? Color.FromArgb("#E53935") : Application.Current?.Resources["Primary"] as Color ?? Colors.Blue,
+  "RecordingIcon" => isListening ? Colors.White : Application.Current?.Resources["Primary"] as Color ?? Colors.Blue,
+            _ => Colors.Transparent
+    };
+    }
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+    => throw new NotImplementedException();
+}
+
+/// <summary>
+/// Converts IsListening boolean to microphone or pause glyph.
+/// Material Symbols: mic = U+E029, pause = U+E034.
+/// </summary>
+public class BoolToGlyphConverter : IValueConverter
+{
+  private const string MicGlyph = "\ue029";
+    private const string PauseGlyph = "\ue034";
+
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        return value is true ? PauseGlyph : MicGlyph;
     }
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
