@@ -1,0 +1,89 @@
+﻿@using Spillgebees.Blazor.RichTextEditor.Components
+@using Spillgebees.Blazor.RichTextEditor.Components.Toolbar
+
+<div class="blazor-rich-text-editor @CssClass" style="@Style">
+    <RichTextEditor @bind-Content="@Content"
+          @bind-Content:after="OnContentChangedAsync"
+          @bind-Text="@_plainText"
+    Theme="@Theme"
+        ToolbarOptions="@ToolbarOptions"
+            Placeholder="@Placeholder"
+       ReadOnly="@ReadOnly" />
+</div>
+
+@code {
+    private string _plainText = string.Empty;
+
+    /// <summary>
+    /// HTML content of the editor. Supports two-way binding.
+    /// </summary>
+    [Parameter]
+    public string Content { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Callback invoked when the content changes.
+    /// </summary>
+    [Parameter]
+    public EventCallback<string> ContentChanged { get; set; }
+
+    /// <summary>
+    /// Plain text content (read-only, derived from HTML content).
+    /// </summary>
+    [Parameter]
+ public string PlainText { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Callback invoked when the plain text changes.
+    /// </summary>
+    [Parameter]
+    public EventCallback<string> PlainTextChanged { get; set; }
+
+    /// <summary>
+    /// Quill theme to use. Defaults to Snow.
+    /// </summary>
+    [Parameter]
+    public QuillTheme Theme { get; set; } = QuillTheme.Snow;
+
+    /// <summary>
+    /// Toolbar configuration options. Defaults to full toolbar.
+    /// </summary>
+ [Parameter]
+  public ToolbarOptions ToolbarOptions { get; set; } = ToolbarOptions.FullToolbarOptions;
+
+ /// <summary>
+    /// Placeholder text shown when editor is empty.
+    /// </summary>
+    [Parameter]
+    public string Placeholder { get; set; } = "Wprowadź tekst...";
+
+    /// <summary>
+    /// If true, the editor is read-only.
+    /// </summary>
+    [Parameter]
+  public bool ReadOnly { get; set; }
+
+    /// <summary>
+    /// Additional CSS classes to apply to the container.
+    /// </summary>
+    [Parameter]
+    public string CssClass { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Additional inline styles to apply to the container.
+    /// </summary>
+    [Parameter]
+    public string Style { get; set; } = string.Empty;
+
+ private async Task OnContentChangedAsync()
+    {
+        if (ContentChanged.HasDelegate)
+        {
+            await ContentChanged.InvokeAsync(Content);
+        }
+
+        if (PlainTextChanged.HasDelegate)
+        {
+       await PlainTextChanged.InvokeAsync(_plainText);
+        }
+    }
+}
