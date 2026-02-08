@@ -106,7 +106,13 @@ public partial class ChatBotViewModel : ObservableObject
 
             using (var anthritopicAgent = new AnthropicAgent(settings, tokenBytes))
             {
-                _agent = new AiAgent(anthritopicAgent.GetAgent(), settings.SystemPrompt);
+                string prompt = settings.SystemPrompt;
+                if (await UserService.Instance.Value.HasUserAsync())
+                {
+                   var user= await UserService.Instance.Value.GetUserAsync();
+                   prompt = prompt.Replace("{UserName}", user.Name??"Nie podano");
+                }
+                _agent = new AiAgent(anthritopicAgent.GetAgent(), prompt);
             }
 
             // Register tools

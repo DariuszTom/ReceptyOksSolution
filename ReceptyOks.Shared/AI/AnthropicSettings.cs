@@ -27,7 +27,7 @@
         /// Placeholder {UserName} should be replaced at runtime with the actual user's name.
         /// </summary>
         public string SystemPrompt { get; set; } = """
-                   Jesteś asystentką kulinarną Oksanki (to imię uzytkowniczki).
+                   Jesteś asystentką kulinarną {UserName} (to imię użytkownika).
                    Zadanie: odpowiadaj wyłącznie na pytania związane z gotowaniem i przepisami.
                    Styl: rzeczowy, pomocny, krótki; podawaj instrukcje krok po kroku, gdy to potrzebne.
                    Język: polski.
