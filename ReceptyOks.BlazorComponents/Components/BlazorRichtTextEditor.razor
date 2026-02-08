@@ -106,13 +106,14 @@
 
 <div class="blazor-rich-text-editor @ThemeClass @CssClass" style="@CombinedStyle">
     <ErrorBoundary @ref="_errorBoundary">
-        <ChildContent>
-            <RichTextEditor @bind-Content="@Content"
-                            @bind-Content:after="OnContentChangedAsync"
-                            @bind-Text="@_plainText"
-                            Theme="@Theme"
-                            ToolbarOptions="@ToolbarOptions"
-                            Placeholder="@Placeholder" />
+      <ChildContent>
+     <RichTextEditor @ref="_editorRef"
+ @bind-Content:get="Content"
+ @bind-Content:set="SetContentAsync"
+        @bind-Text="@_plainText"
+           Theme="@Theme"
+            ToolbarOptions="@ToolbarOptions"
+          Placeholder="@Placeholder" />
         </ChildContent>
         <ErrorContent Context="exception">
             <div style="padding: 16px; background: #fee; border: 1px solid #c00; color: #c00; border-radius: 8px;">
@@ -132,20 +133,23 @@
     private string _plainText = string.Empty;
     private ErrorBoundary? _errorBoundary;
     private bool _isInitialized;
+    private string _lastKnownContent = string.Empty;
+    private RichTextEditor? _editorRef;
 
     private string ThemeClass => IsDarkTheme ? "theme-dark" : "theme-light";
 
     private string CombinedStyle =>
         string.IsNullOrWhiteSpace(Style)
             ? $"--rte-max-height:{MaxHeight};"
-            : $"--rte-max-height:{MaxHeight};{Style}";
+   : $"--rte-max-height:{MaxHeight};{Style}";
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
-        {
+     {
             await ApplyBodyThemeAsync();
-            _isInitialized = true;
+       _isInitialized = true;
+       _lastKnownContent = Content ?? string.Empty;
         }
     }
 
@@ -154,6 +158,15 @@
         if (_isInitialized)
         {
             await ApplyBodyThemeAsync();
+
+         // Detect if Content was changed externally (from MAUI)
+            var incomingContent = Content ?? string.Empty;
+     if (incomingContent != _lastKnownContent)
+       {
+              _lastKnownContent = incomingContent;
+          // Force re-render to update the underlying RichTextEditor
+       StateHasChanged();
+  }
         }
     }
 
@@ -254,9 +267,12 @@
     [Parameter]
     public bool IsDarkTheme { get; set; }
 
-    private async Task OnContentChangedAsync()
+    private async Task SetContentAsync(string value)
     {
-        if (ContentChanged.HasDelegate)
+        Content = value;
+        _lastKnownContent = value ?? string.Empty;
+
+      if (ContentChanged.HasDelegate)
         {
             await ContentChanged.InvokeAsync(Content);
         }
