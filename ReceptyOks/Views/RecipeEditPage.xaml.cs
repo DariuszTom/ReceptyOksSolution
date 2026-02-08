@@ -1,17 +1,63 @@
+using Microsoft.AspNetCore.Components;
 using ReceptyOks.ViewModels;
-using System.Web;
 
 namespace ReceptyOks.Views;
 
 public partial class RecipeEditPage : ContentPage
 {
     private readonly RecipeEditViewModel _viewModel;
-    
+    private string _currentContent = string.Empty;
+
     public RecipeEditPage(RecipeEditViewModel viewModel)
     {
         InitializeComponent();
         _viewModel = viewModel;
         BindingContext = viewModel;
+
+        // Set up Blazor component parameters
+        SetupBlazorEditorParameters();
+
+        // Subscribe to ViewModel property changes to update Blazor component
+        _viewModel.PropertyChanged += OnViewModelPropertyChanged;
+    }
+
+    private void SetupBlazorEditorParameters()
+    {
+        InstructionsEditorRoot.Parameters = new Dictionary<string, object?>
+        {
+            { "Content", _viewModel.Instructions ?? string.Empty },
+            { "ContentChanged", EventCallback.Factory.Create<string>(this, OnBlazorContentChanged) },
+     { "Placeholder", "WprowadŸ instrukcje przygotowania..." }
+        };
+    }
+
+    private void OnViewModelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(RecipeEditViewModel.Instructions))
+        {
+            // Update Blazor component when ViewModel's Instructions change
+            _currentContent = _viewModel.Instructions ?? string.Empty;
+            UpdateBlazorEditorContent();
+        }
+    }
+
+    private void UpdateBlazorEditorContent()
+    {
+        if (InstructionsEditorRoot?.Parameters is not null)
+        {
+            InstructionsEditorRoot.Parameters = new Dictionary<string, object?>
+    {
+        { "Content", _currentContent },
+          { "ContentChanged", EventCallback.Factory.Create<string>(this, OnBlazorContentChanged) },
+        { "Placeholder", "WprowadŸ instrukcje przygotowania..." }
+      };
+        }
+    }
+
+    private void OnBlazorContentChanged(string newContent)
+    {
+        _currentContent = newContent;
+        System.Diagnostics.Debug.WriteLine($"[RecipeEditPage] Blazor content changed, length: {newContent?.Length ?? 0}");
     }
 
     protected override async void OnAppearing()
@@ -22,49 +68,42 @@ public partial class RecipeEditPage : ContentPage
             // Zawsze wywo³aj inicjalizacjê przy pojawieniu siê strony
             // InitializeAsync sprawdzi czy ju¿ jest zainicjalizowane
             await vm.InitializeCommand.ExecuteAsync(null);
+
+            // Update Blazor component with initial content after ViewModel initialization
+            _currentContent = vm.Instructions ?? string.Empty;
+            UpdateBlazorEditorContent();
         }
     }
-    
+
+    protected override void OnDisappearing()
+    {
+        base.OnDisappearing();
+        _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
+    }
+
     /// <summary>
     /// Metoda publiczna do pobierania HTML przed zapisem - wywo³ywana z ViewModelu
     /// </summary>
-    public async Task<string> GetInstructionsHtmlAsync()
+    public Task<string> GetInstructionsHtmlAsync()
     {
-        if (InstructionsEditor == null) return string.Empty;
-        
-        var html = await InstructionsEditor.GetContentAsync();
-        
-        // Unescape HTML (JavaScript zwraca escaped, np. \u003C zamiast <)
-        html = System.Text.RegularExpressions.Regex.Unescape(html);
-        
-        System.Diagnostics.Debug.WriteLine($"[RecipeEditPage] HTML retrieved: {html}");
-        
-        return html;
+        System.Diagnostics.Debug.WriteLine($"[RecipeEditPage] HTML retrieved: {_currentContent}");
+        return Task.FromResult(_currentContent);
     }
 
     private async void OnSaveClicked(object sender, EventArgs e)
     {
-        // 1. Pobierz HTML z edytora
-        var html = await InstructionsEditor.GetContentAsync();
-        
-        // 2. Unescape HTML (JavaScript zwraca \u003C zamiast <)
-        html = System.Text.RegularExpressions.Regex.Unescape(html);
-        
-        // 3. Zapisz do ViewModelu
+        // 1. Pobierz HTML z Blazor komponentu (ju¿ zsynchronizowany przez callback)
+        var html = _currentContent;
+
+        // 2. Zapisz do ViewModelu
         _viewModel.Instructions = html;
-        
+
         System.Diagnostics.Debug.WriteLine($"[RecipeEditPage] HTML saved: {html}");
-        
-        // 4. Wywo³aj SaveCommand z ViewModelu
+
+        // 3. Wywo³aj SaveCommand z ViewModelu
         if (_viewModel.SaveCommand.CanExecute(null))
         {
             await _viewModel.SaveCommand.ExecuteAsync(null);
         }
-    }
-
-    // Tymczasowy handler do testowania RichEditor
-    private async void OnTestEditorClicked(object sender, EventArgs e)
-    {
-        await Shell.Current.GoToAsync(nameof(RichEditorTestPage));
     }
 }

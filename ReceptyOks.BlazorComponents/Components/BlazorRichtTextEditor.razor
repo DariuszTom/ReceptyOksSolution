@@ -1,18 +1,35 @@
-﻿@using Spillgebees.Blazor.RichTextEditor.Components
+﻿@using Microsoft.AspNetCore.Components.Web
+@using Spillgebees.Blazor.RichTextEditor.Components
 @using Spillgebees.Blazor.RichTextEditor.Components.Toolbar
 
 <div class="blazor-rich-text-editor @CssClass" style="@Style">
-    <RichTextEditor @bind-Content="@Content"
-          @bind-Content:after="OnContentChangedAsync"
-          @bind-Text="@_plainText"
-    Theme="@Theme"
-        ToolbarOptions="@ToolbarOptions"
-            Placeholder="@Placeholder"
-       ReadOnly="@ReadOnly" />
+    <ErrorBoundary @ref="_errorBoundary">
+        <ChildContent>
+ <RichTextEditor @bind-Content="@Content"
+   @bind-Content:after="OnContentChangedAsync"
+   @bind-Text="@_plainText"
+           Theme="@Theme"
+     ToolbarOptions="@ToolbarOptions"
+    Placeholder="@Placeholder"
+  ReadOnly="@ReadOnly" />
+        </ChildContent>
+        <ErrorContent Context="exception">
+            <div style="padding: 16px; background: #fee; border: 1px solid #c00; color: #c00; border-radius: 8px;">
+         <strong>Błąd edytora:</strong>
+      <p>@exception.Message</p>
+            <details>
+           <summary>Szczegóły</summary>
+        <pre style="font-size: 12px; white-space: pre-wrap;">@exception.ToString()</pre>
+     </details>
+         <button @onclick="Recover" style="margin-top: 8px;">Spróbuj ponownie</button>
+            </div>
+      </ErrorContent>
+    </ErrorBoundary>
 </div>
 
 @code {
     private string _plainText = string.Empty;
+    private ErrorBoundary? _errorBoundary;
 
     /// <summary>
     /// HTML content of the editor. Supports two-way binding.
@@ -77,13 +94,18 @@
  private async Task OnContentChangedAsync()
     {
         if (ContentChanged.HasDelegate)
-        {
-            await ContentChanged.InvokeAsync(Content);
-        }
+     {
+    await ContentChanged.InvokeAsync(Content);
+    }
 
         if (PlainTextChanged.HasDelegate)
         {
-       await PlainTextChanged.InvokeAsync(_plainText);
+   await PlainTextChanged.InvokeAsync(_plainText);
         }
+    }
+
+    private void Recover()
+    {
+ _errorBoundary?.Recover();
     }
 }

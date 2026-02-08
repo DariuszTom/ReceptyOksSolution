@@ -6,15 +6,16 @@
              xmlns:material="http://schemas.enisn-projects.io/dotnet/maui/uraniumui/material"
              xmlns:icons="clr-namespace:UraniumUI.Icons.MaterialSymbols;assembly=UraniumUI.Icons.MaterialSymbols"
              xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
-             xmlns:controls="clr-namespace:ReceptyOks.Controls"
+              xmlns:controls="clr-namespace:ReceptyOks.Controls"
+                    xmlns:blazor="clr-namespace:Microsoft.AspNetCore.Components.WebView.Maui;assembly=Microsoft.AspNetCore.Components.WebView.Maui"
+             xmlns:blazorComponents="clr-namespace:ReceptyOks.BlazorComponents.Components;assembly=ReceptyOks.BlazorComponents"
              x:Class="ReceptyOks.Views.RecipeEditPage"
              x:DataType="vm:RecipeEditViewModel"
              Background="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource BlackBrownPurpleGradient}}"
              Title="{Binding PageTitle}">
 
     <ContentPage.ToolbarItems>
-        <ToolbarItem Text="Zapisz" Clicked="OnSaveClicked"/>
-        <ToolbarItem Text="🔧 TEST" Clicked="OnTestEditorClicked"/>
+        <ToolbarItem Text="Zapisz 🗄" Clicked="OnSaveClicked"/>
     </ContentPage.ToolbarItems>
 
     <ScrollView>
@@ -413,12 +414,18 @@ Title="Uwagi"
     </Button>
           </HorizontalStackLayout>
             </Grid>
-            <Border Stroke="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray600}}"
-                    StrokeThickness="1"
-                    StrokeShape="RoundRectangle 12"
-                    HeightRequest="350"
-                    BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}">
-                <controls:RichTextEditor x:Name="InstructionsEditor" HtmlContent="{Binding Instructions}"/>
+                   <Border Stroke="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray600}}"
+                      StrokeThickness="1"
+                 StrokeShape="RoundRectangle 12"
+                     HeightRequest="350"
+                       BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}">
+                            <blazor:BlazorWebView x:Name="InstructionsEditorWebView" HostPage="wwwroot/index.html">
+                     <blazor:BlazorWebView.RootComponents>
+                                  <blazor:RootComponent Selector="#app" 
+                          x:Name="InstructionsEditorRoot"
+                           ComponentType="{x:Type blazorComponents:BlazorRichtTextEditor}" />
+                         </blazor:BlazorWebView.RootComponents>
+                                     </blazor:BlazorWebView>
             </Border>
 
             <!-- Przyciski -->

@@ -46,7 +46,7 @@ public partial class RecipeDetailViewModel(LocalDatabase database) : ObservableO
     private async Task LoadRecipeAsync(Guid id)
     {
         Recipe = await _database.GetRecipeAsync(id);
-        
+
         if (Recipe is null) return;
 
         // Załaduj kategorię
@@ -58,7 +58,7 @@ public partial class RecipeDetailViewModel(LocalDatabase database) : ObservableO
         // Załaduj składniki z nazwami
         var recipeIngredients = await _database.GetRecipeIngredientsAsync(id);
         var allIngredients = await _database.GetIngredientsAsync();
-        
+
         var displayIngredients = recipeIngredients.Select(ri =>
         {
             var ingredient = allIngredients.FirstOrDefault(i => i.Id == ri.IngredientId);
