@@ -12,8 +12,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="10.0.1" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="10.0.2" />
     <PackageReference Include="MudBlazor" Version="8.15.0" />
+    <PackageReference Include="Spillgebees.Blazor.RichTextEditor" Version="2.2.0" />
   </ItemGroup>
 
 </Project>
