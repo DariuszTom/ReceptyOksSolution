@@ -59,6 +59,11 @@ public static class MauiProgram
                 fonts.AddFont("MaterialSymbolsSharpFilled.ttf", "MaterialSymbolsSharpFilled");
                 fonts.AddMaterialSymbolsFonts();
             });
+        // Add Blazor WebView services
+        builder.Services.AddMauiBlazorWebView();
+#if DEBUG
+		builder.Services.AddBlazorWebViewDeveloperTools();
+#endif
 
         // Add Aspire Service Discovery
         builder.Services.AddServiceDiscovery();
