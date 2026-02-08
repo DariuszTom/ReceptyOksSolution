@@ -82,6 +82,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<ProjectReference Include="..\ReceptyOks.BlazorComponents\ReceptyOks.BlazorComponents.csproj" />
 		<ProjectReference Include="..\ReceptyOks.Shared\ReceptyOks.Shared.csproj" />
 	</ItemGroup>
 
