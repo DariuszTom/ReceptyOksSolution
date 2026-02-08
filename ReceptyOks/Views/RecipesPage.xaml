@@ -13,9 +13,9 @@
              Background="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource BlackBrownPurpleGradient}}">
 
     <Grid RowDefinitions="Auto,Auto,*">
-        
+
         <!-- Custom Header -->
-        <Grid Grid.Row="0" 
+        <Grid Grid.Row="0"
               Padding="20,16"
               ColumnDefinitions="*,Auto,Auto"
               BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}">
@@ -23,16 +23,16 @@
                 <Shadow Brush="{StaticResource Gray400Brush}" Offset="0,2" Radius="4" Opacity="0.1"/>
             </Grid.Shadow>
             <VerticalStackLayout VerticalOptions="Center">
-                <Label Text="Moje Przepisy" 
+                <Label Text="Moje Przepisy"
                        Style="{StaticResource PageTitle}"
                        FontSize="24"/>
-                <Label Text="Co dziś gotujemy?" 
+                <Label Text="Co dziś gotujemy?"
                        Style="{StaticResource CaptionLabel}"/>
             </VerticalStackLayout>
-            <ActivityIndicator Grid.Column="1" 
-                               IsRunning="{Binding IsSyncing}" 
+            <ActivityIndicator Grid.Column="1"
+                               IsRunning="{Binding IsSyncing}"
                                IsVisible="{Binding IsSyncing}"
-                               HeightRequest="24" 
+                               HeightRequest="24"
                                WidthRequest="24"
                                Color="{StaticResource Primary}"
                                Margin="0,0,12,0"/>
@@ -43,7 +43,7 @@
                     WidthRequest="44"
                     BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray600}}">
                 <Border.Behaviors>
-                    <toolkit:TouchBehavior 
+                    <toolkit:TouchBehavior
                         PressedScale="0.9"
                         PressedOpacity="0.7"
                         Command="{Binding BindingContext.SyncCommand, Source={x:Reference RecipesPageRoot}}"/>
@@ -58,9 +58,9 @@
                 </Image>
             </Border>
         </Grid>
-        
+
         <!-- Search bar -->
-        <Border Grid.Row="1" 
+        <Border Grid.Row="1"
                 Margin="16,12"
                 Padding="14,10"
                 StrokeThickness="0"
@@ -78,7 +78,7 @@
                                          Size="20"/>
                     </Image.Source>
                 </Image>
-                <Entry Grid.Column="1" 
+                <Entry Grid.Column="1"
                        Text="{Binding SearchQuery}"
                        Placeholder="Szukaj przepisów..."
                        PlaceholderColor="{StaticResource Gray400}"
@@ -100,12 +100,12 @@
         </Border>
 
         <!-- Recipe list -->
-        <RefreshView Grid.Row="2" 
+        <RefreshView Grid.Row="2"
                      IsRefreshing="{Binding IsRefreshing}"
                      Command="{Binding LoadRecipesCommand}"
                      RefreshColor="{StaticResource Primary}">
             <CollectionView ItemsSource="{Binding Recipes}"
-                Margin="4" >
+                            Margin="4">
                 <CollectionView.EmptyView>
                     <VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center" Spacing="16" Padding="20">
                         <Border BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray600}}"
@@ -123,12 +123,12 @@
                                 </Image.Source>
                             </Image>
                         </Border>
-                        <Label Text="Brak przepisów" 
-                               FontSize="18" 
+                        <Label Text="Brak przepisów"
+                               FontSize="18"
                                FontAttributes="Bold"
                                TextColor="{StaticResource Gray500}"
                                HorizontalOptions="Center"/>
-                        <Label Text="Dodaj swój pierwszy przepis, aby rozpocząć kulinarną przygodę!" 
+                        <Label Text="Dodaj swój pierwszy przepis, aby rozpocząć kulinarną przygodę!"
                                FontSize="14"
                                TextColor="{StaticResource Gray400}"
                                HorizontalOptions="Center"
@@ -164,13 +164,13 @@
                                         Opacity="0.12"/>
                             </Border.Shadow>
                             <Border.GestureRecognizers>
-                                <TapGestureRecognizer 
+                                <TapGestureRecognizer
                                     Command="{Binding Source={RelativeSource AncestorType={x:Type vm:RecipesViewModel}}, Path=GoToRecipeDetailCommand}"
                                     CommandParameter="{Binding .}"/>
                             </Border.GestureRecognizers>
                             <Grid RowDefinitions="140,Auto">
                                 <!-- Recipe Image -->
-                                <Border Grid.Row="0" 
+                                <Border Grid.Row="0"
                                         StrokeShape="RoundRectangle 16,16,0,0"
                                         StrokeThickness="0"
                                         BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray600}}">
@@ -223,16 +223,16 @@
                                         </Border>
                                     </Grid>
                                 </Border>
-                                
+
                                 <!-- Info -->
                                 <VerticalStackLayout Grid.Row="1" Spacing="6" Padding="16,14">
-                                    <Label Text="{Binding Title}" 
-                                           FontSize="17" 
+                                    <Label Text="{Binding Title}"
+                                           FontSize="17"
                                            FontAttributes="Bold"
                                            TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"
                                            LineBreakMode="TailTruncation"/>
-                                    <Label Text="{Binding Description}" 
-                                           FontSize="14" 
+                                    <Label Text="{Binding Description}"
+                                           FontSize="14"
                                            TextColor="{StaticResource Gray500}"
                                            MaxLines="2"
                                            LineBreakMode="TailTruncation"/>

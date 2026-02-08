@@ -11,125 +11,125 @@
              Padding="0"
              BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}">
 
-	<Grid RowDefinitions="Auto,Auto,*,Auto"
+    <Grid RowDefinitions="Auto,Auto,*,Auto"
           Padding="0">
 
-		<!-- Header -->
-		<Grid Grid.Row="0"
+        <!-- Header -->
+        <Grid Grid.Row="0"
               Padding="4"
               ColumnDefinitions="Auto,*,Auto"
               BackgroundColor="{StaticResource Primary}">
-			<Image Grid.Column="0"
+            <Image Grid.Column="0"
                    HeightRequest="22"
                    WidthRequest="22"
                    VerticalOptions="Center">
-				<Image.Source>
-					<FontImageSource Glyph="{x:Static icons:MaterialOutlined.Shopping_cart}"
+                <Image.Source>
+                    <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Shopping_cart}"
                                      FontFamily="MaterialSymbolsOutlined"
                                      Color="White"
                                      Size="22" />
-				</Image.Source>
-			</Image>
-			<Label Grid.Column="1"
+                </Image.Source>
+            </Image>
+            <Label Grid.Column="1"
                    Text="Lista zakupów"
                    FontSize="18"
                    FontAttributes="Bold"
                    TextColor="White"
                    VerticalOptions="Center"
                    Margin="5,0,0,0" />
-			<ImageButton Grid.Column="2"
+            <ImageButton Grid.Column="2"
                          HeightRequest="30"
                          WidthRequest="30"
                          Padding="0"
                          BackgroundColor="Transparent"
                          VerticalOptions="Center"
                          Clicked="OnCloseClicked">
-				<ImageButton.Source>
-					<FontImageSource Glyph="{x:Static icons:MaterialOutlined.Close}"
+                <ImageButton.Source>
+                    <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Close}"
                                      FontFamily="MaterialSymbolsOutlined"
                                      Color="White"
                                      Size="22" />
-				</ImageButton.Source>
-			</ImageButton>
-		</Grid>
+                </ImageButton.Source>
+            </ImageButton>
+        </Grid>
 
-		<!-- Summary text -->
-		<Label Grid.Row="1"
+        <!-- Summary text -->
+        <Label Grid.Row="1"
                Text="{Binding ShoppingListText, Source={x:Reference thisPopup}}"
                FontSize="14"
                Padding="12,8"
                LineBreakMode="WordWrap"
                TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray400}}" />
 
-		<!-- Shopping list items -->
-		<CollectionView Grid.Row="2"
+        <!-- Shopping list items -->
+        <CollectionView Grid.Row="2"
                         ItemsSource="{Binding ShoppingListItems, Source={x:Reference thisPopup}}"
                         Margin="8,0">
-			<CollectionView.ItemTemplate>
-				<DataTemplate x:DataType="models:ShoppingListItemDto">
-					<Grid ColumnDefinitions="*,Auto"
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="models:ShoppingListItemDto">
+                    <Grid ColumnDefinitions="*,Auto"
                           Padding="8,6"
                           ColumnSpacing="8">
-						<Label Grid.Column="0"
+                        <Label Grid.Column="0"
                                Text="{Binding Name}"
                                FontSize="14"
                                VerticalOptions="Center"
                                TextColor="{AppThemeBinding Light={StaticResource Gray800}, Dark={StaticResource Gray200}}" />
-						<HorizontalStackLayout Grid.Column="1"
+                        <HorizontalStackLayout Grid.Column="1"
                                                Spacing="4"
                                                VerticalOptions="Center">
-							<Label Text="{Binding Quantity}"
+                            <Label Text="{Binding Quantity}"
                                    FontSize="14"
                                    FontAttributes="Bold"
                                    TextColor="{StaticResource Primary}" />
-							<Label Text="{Binding Unit}"
+                            <Label Text="{Binding Unit}"
                                    FontSize="14"
                                    TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray400}}" />
-						</HorizontalStackLayout>
-					</Grid>
-				</DataTemplate>
-			</CollectionView.ItemTemplate>
-		</CollectionView>
+                        </HorizontalStackLayout>
+                    </Grid>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
 
-		<!-- Footer -->
-		<HorizontalStackLayout Grid.Row="3"
-		 Padding="14,8"
-			Spacing="8"
-  HorizontalOptions="End">
-			<Button Text="Dodaj do listy"
-		   FontSize="13"
-   FontAttributes="Bold"
-		 BackgroundColor="{StaticResource Primary}"
-			TextColor="White"
-		  CornerRadius="10"
-		  HeightRequest="38"
-	Padding="16,0"
-	  Clicked="OnAddToListClicked">
-				<Button.ImageSource>
-					<FontImageSource Glyph="{x:Static icons:MaterialOutlined.Add_shopping_cart}"
-		FontFamily="MaterialSymbolsOutlined"
-	   Color="White"
-	   Size="18" />
-				</Button.ImageSource>
-			</Button>
-			<Button Text="Kopiuj"
-	  FontSize="13"
-		 FontAttributes="Bold"
-		   BackgroundColor="{StaticResource Secondary}"
-		 TextColor="{StaticResource Primary}"
-	  CornerRadius="10"
-		   HeightRequest="38"
-	 Padding="16,0"
-	  Clicked="OnCopyClicked">
-				<Button.ImageSource>
-					<FontImageSource Glyph="{x:Static icons:MaterialOutlined.Content_copy}"
-		FontFamily="MaterialSymbolsOutlined"
-	Color="{StaticResource Primary}"
-	Size="18" />
-				</Button.ImageSource>
-			</Button>
-		</HorizontalStackLayout>
+        <!-- Footer -->
+        <HorizontalStackLayout Grid.Row="3"
+                               Padding="14,8"
+                               Spacing="8"
+                               HorizontalOptions="End">
+            <Button Text="Dodaj do listy"
+                    FontSize="13"
+                    FontAttributes="Bold"
+                    BackgroundColor="{StaticResource Primary}"
+                    TextColor="White"
+                    CornerRadius="10"
+                    HeightRequest="38"
+                    Padding="16,0"
+                    Clicked="OnAddToListClicked">
+                <Button.ImageSource>
+                    <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Add_shopping_cart}"
+                                     FontFamily="MaterialSymbolsOutlined"
+                                     Color="White"
+                                     Size="18" />
+                </Button.ImageSource>
+            </Button>
+            <Button Text="Kopiuj"
+                    FontSize="13"
+                    FontAttributes="Bold"
+                    BackgroundColor="{StaticResource Secondary}"
+                    TextColor="{StaticResource Primary}"
+                    CornerRadius="10"
+                    HeightRequest="38"
+                    Padding="16,0"
+                    Clicked="OnCopyClicked">
+                <Button.ImageSource>
+                    <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Content_copy}"
+                                     FontFamily="MaterialSymbolsOutlined"
+                                     Color="{StaticResource Primary}"
+                                     Size="18" />
+                </Button.ImageSource>
+            </Button>
+        </HorizontalStackLayout>
 
-	</Grid>
+    </Grid>
 
 </ContentView>

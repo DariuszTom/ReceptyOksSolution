@@ -6,8 +6,8 @@
              xmlns:material="http://schemas.enisn-projects.io/dotnet/maui/uraniumui/material"
              xmlns:icons="clr-namespace:UraniumUI.Icons.MaterialSymbols;assembly=UraniumUI.Icons.MaterialSymbols"
              xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
-              xmlns:controls="clr-namespace:ReceptyOks.Controls"
-                    xmlns:blazor="clr-namespace:Microsoft.AspNetCore.Components.WebView.Maui;assembly=Microsoft.AspNetCore.Components.WebView.Maui"
+             xmlns:controls="clr-namespace:ReceptyOks.Controls"
+             xmlns:blazor="clr-namespace:Microsoft.AspNetCore.Components.WebView.Maui;assembly=Microsoft.AspNetCore.Components.WebView.Maui"
              xmlns:blazorComponents="clr-namespace:ReceptyOks.BlazorComponents.Components;assembly=ReceptyOks.BlazorComponents"
              x:Class="ReceptyOks.Views.RecipeEditPage"
              x:DataType="vm:RecipeEditViewModel"
@@ -22,7 +22,7 @@
         <VerticalStackLayout Spacing="16" Padding="16">
 
             <!-- Zdjęcie -->
-            <Border StrokeShape="RoundRectangle 16" 
+            <Border StrokeShape="RoundRectangle 16"
                     Padding="0"
                     HeightRequest="180"
                     BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray600}}"
@@ -35,7 +35,7 @@
                 </Border.Shadow>
 
                 <Grid>
-                    <Image Source="{Binding ImagePreview}" 
+                    <Image Source="{Binding ImagePreview}"
                            Aspect="AspectFill"
                            IsVisible="{Binding ImagePreview, Converter={StaticResource IsNotNullConverter}}"/>
 
@@ -66,7 +66,7 @@
                         </Button.ImageSource>
                     </Button>
 
-                    <VerticalStackLayout HorizontalOptions="Center" 
+                    <VerticalStackLayout HorizontalOptions="Center"
                                          VerticalOptions="Center"
                                          Spacing="8"
                                          IsVisible="{Binding ImagePreview, Converter={StaticResource IsNullConverter}}">
@@ -78,7 +78,7 @@
                                                  Size="48"/>
                             </Image.Source>
                         </Image>
-                        <Label Text="Dodaj zdjęcie" 
+                        <Label Text="Dodaj zdjęcie"
                                FontSize="14"
                                TextColor="{StaticResource Gray500}"/>
                     </VerticalStackLayout>
@@ -115,13 +115,13 @@
             </HorizontalStackLayout>
 
             <!-- Tytuł -->
-            <material:TextField Title="Tytuł *" 
-                                Text="{Binding Title}" 
+            <material:TextField Title="Tytuł *"
+                                Text="{Binding Title}"
                                 Icon="{FontImageSource Glyph={x:Static icons:MaterialOutlined.Title}, FontFamily=MaterialSymbolsOutlined, Size=20}"
                                 AllowClear="True"/>
 
             <!-- Opis -->
-            <material:EditorField Title="Opis" 
+            <material:EditorField Title="Opis"
                                   Text="{Binding Description}"/>
 
             <!-- Kategoria -->
@@ -133,8 +133,8 @@
                         Padding="12,8"
                         BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}">
                     <Grid ColumnDefinitions="Auto,*">
-                        <Image Grid.Column="0" 
-                               HeightRequest="20" 
+                        <Image Grid.Column="0"
+                               HeightRequest="20"
                                WidthRequest="20"
                                Margin="0,0,8,0"
                                VerticalOptions="Center">
@@ -241,202 +241,203 @@
             </Grid>
 
             <!-- Składniki -->
-       <toolkit:Expander IsExpanded="True">
-  <toolkit:Expander.Header>
-          <Border Stroke="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray600}}"
-    StrokeThickness="1"
-  StrokeShape="RoundRectangle 8"
-   Padding="12,10"
-           Margin="0,16,0,0"
-       BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray800}}">
-          <Grid ColumnDefinitions="Auto,*,Auto">
-           <Image Grid.Column="0" HeightRequest="20" WidthRequest="20" Margin="0,0,10,0">
-               <Image.Source>
- <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Restaurant}"
-     FontFamily="MaterialSymbolsOutlined"
-             Color="{StaticResource Primary}"
-             Size="20"/>
-  </Image.Source>
-           </Image>
-          <Label Grid.Column="1" 
-Text="{Binding Ingredients.Count, StringFormat='Składniki ({0})'}" 
-  FontSize="18" 
-  FontAttributes="Bold" 
-             VerticalOptions="Center"/>
-       <Image Grid.Column="2" HeightRequest="20" WidthRequest="20">
-  <Image.Source>
-      <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Expand_more}"
-     FontFamily="MaterialSymbolsOutlined"
-           Color="{StaticResource Gray500}"
-    Size="20"/>
-</Image.Source>
-       </Image>
-           </Grid>
-            </Border>
-     </toolkit:Expander.Header>
-     <toolkit:Expander.Content>
-   <VerticalStackLayout>
-        <CollectionView ItemsSource="{Binding Ingredients}">
-           <CollectionView.ItemTemplate>
-     <DataTemplate x:DataType="vm:EditableIngredient">
-              <Border Stroke="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray600}}"
-                StrokeThickness="1"
-     StrokeShape="RoundRectangle 12"
-         Padding="12" 
-                 Margin="0,6"
-             BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}">
-           <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" RowSpacing="10">
-    <material:TextField Grid.Row="0" Grid.Column="0" FontSize="16"
-               Title="Składnik"
-                Text="{Binding IngredientName}"/>
-         <Button Grid.Row="0" Grid.Column="1" 
-      BackgroundColor="Transparent"
-      VerticalOptions="Center"
-     Command="{Binding Source={RelativeSource AncestorType={x:Type vm:RecipeEditViewModel}}, Path=RemoveIngredientCommand}"
-     CommandParameter="{Binding .}">
-          <Button.ImageSource>
-  <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Delete}"
-  FontFamily="MaterialSymbolsOutlined"
-         Color="#E53935"
-    Size="22"/>
-     </Button.ImageSource>
-      </Button>
-      <Grid Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" 
-     ColumnDefinitions="*,*,*" ColumnSpacing="6">
-          <material:TextField Grid.Column="0" FontSize="14" SelectAllTextOnFocus="True"
-                    Title="Ilość"
-           Text="{Binding Quantity}" 
-       Keyboard="Numeric"/>
-  <material:PickerField Grid.Column="1" FontSize="12"
-         Title="Jednostka"
-      ItemsSource="{Binding Source={RelativeSource AncestorType={x:Type vm:RecipeEditViewModel}}, Path=AvailableUnits, Mode=OneTime}"
-               SelectedItem="{Binding SelectedUnit, Mode=TwoWay}"
-         VerticalOptions="Center"
-       BackgroundColor="Transparent"/>
-     <material:TextField Grid.Column="2" FontSize="12"
-Title="Uwagi"
-     Text="{Binding Notes}"/>
-         </Grid>
-    </Grid>
- </Border>
-    </DataTemplate>
-    </CollectionView.ItemTemplate>
-       </CollectionView>
-                 <Grid ColumnDefinitions="*,Auto" Margin="0,8,0,0">
-   <Button Grid.Column="1" VerticalOptions="End"
-   Command="{Binding AddIngredientCommand}"
-        BackgroundColor="{StaticResource Primary}"
-            CornerRadius="20"
- Padding="12,6">     
-    <Button.ImageSource>
-          <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Add}"
-          FontFamily="MaterialSymbolsOutlined"
-                  Color="White"
-             Size="18"/>
-         </Button.ImageSource>
-                 </Button>
-       </Grid>
-            </VerticalStackLayout>
-         </toolkit:Expander.Content>
+            <toolkit:Expander IsExpanded="True">
+                <toolkit:Expander.Header>
+                    <Border Stroke="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray600}}"
+                            StrokeThickness="1"
+                            StrokeShape="RoundRectangle 8"
+                            Padding="12,10"
+                            Margin="0,16,0,0"
+                            BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray800}}">
+                        <Grid ColumnDefinitions="Auto,*,Auto">
+                            <Image Grid.Column="0" HeightRequest="20" WidthRequest="20" Margin="0,0,10,0">
+                                <Image.Source>
+                                    <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Restaurant}"
+                                                     FontFamily="MaterialSymbolsOutlined"
+                                                     Color="{StaticResource Primary}"
+                                                     Size="20"/>
+                                </Image.Source>
+                            </Image>
+                            <Label Grid.Column="1"
+                                   Text="{Binding Ingredients.Count, StringFormat='Składniki ({0})'}"
+                                   FontSize="18"
+                                   FontAttributes="Bold"
+                                   VerticalOptions="Center"/>
+                            <Image Grid.Column="2" HeightRequest="20" WidthRequest="20">
+                                <Image.Source>
+                                    <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Expand_more}"
+                                                     FontFamily="MaterialSymbolsOutlined"
+                                                     Color="{StaticResource Gray500}"
+                                                     Size="20"/>
+                                </Image.Source>
+                            </Image>
+                        </Grid>
+                    </Border>
+                </toolkit:Expander.Header>
+                <toolkit:Expander.Content>
+                    <VerticalStackLayout>
+                        <CollectionView ItemsSource="{Binding Ingredients}">
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate x:DataType="vm:EditableIngredient">
+                                    <Border Stroke="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray600}}"
+                                            StrokeThickness="1"
+                                            StrokeShape="RoundRectangle 12"
+                                            Padding="12"
+                                            Margin="0,6"
+                                            BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}">
+                                        <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" RowSpacing="10">
+                                            <material:TextField Grid.Row="0" Grid.Column="0" FontSize="16"
+                                                                Title="Składnik"
+                                                                Text="{Binding IngredientName}"/>
+                                            <Button Grid.Row="0" Grid.Column="1"
+                                                    BackgroundColor="Transparent"
+                                                    VerticalOptions="Center"
+                                                    Command="{Binding Source={RelativeSource AncestorType={x:Type vm:RecipeEditViewModel}}, Path=RemoveIngredientCommand}"
+                                                    CommandParameter="{Binding .}">
+                                                <Button.ImageSource>
+                                                    <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Delete}"
+                                                                     FontFamily="MaterialSymbolsOutlined"
+                                                                     Color="#E53935"
+                                                                     Size="22"/>
+                                                </Button.ImageSource>
+                                            </Button>
+                                            <Grid Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+                                                  ColumnDefinitions="*,*,*" ColumnSpacing="6">
+                                                <material:TextField Grid.Column="0" FontSize="14" SelectAllTextOnFocus="True"
+                                                                    Title="Ilość"
+                                                                    Text="{Binding Quantity}"
+                                                                    Keyboard="Numeric"/>
+                                                <material:PickerField Grid.Column="1" FontSize="12"
+                                                                      Title="Jednostka"
+                                                                      ItemsSource="{Binding Source={RelativeSource AncestorType={x:Type vm:RecipeEditViewModel}}, Path=AvailableUnits, Mode=OneTime}"
+                                                                      SelectedItem="{Binding SelectedUnit, Mode=TwoWay}"
+                                                                      VerticalOptions="Center"
+                                                                      BackgroundColor="Transparent"/>
+                                                <material:TextField Grid.Column="2" FontSize="12"
+                                                                    Title="Uwagi"
+                                                                    Text="{Binding Notes}"/>
+                                            </Grid>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+                        </CollectionView>
+                        <Grid ColumnDefinitions="*,Auto" Margin="0,8,0,0">
+                            <Button Grid.Column="1" VerticalOptions="End"
+                                    Command="{Binding AddIngredientCommand}"
+                                    BackgroundColor="{StaticResource Primary}"
+                                    CornerRadius="20"
+                                    Padding="12,6">
+                                <Button.ImageSource>
+                                    <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Add}"
+                                                     FontFamily="MaterialSymbolsOutlined"
+                                                     Color="White"
+                                                     Size="18"/>
+                                </Button.ImageSource>
+                            </Button>
+                        </Grid>
+                    </VerticalStackLayout>
+                </toolkit:Expander.Content>
             </toolkit:Expander>
+
             <!-- Instrukcje - Rich Text Editor -->
             <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,16,0,0">
-    <Label Text="Przygotowanie" FontSize="18" FontAttributes="Bold" VerticalOptions="Center"/>
-         <!-- Recording indicator GIF - shows in center when listening -->
-   <Image Grid.Column="1"
-           Source="recordingmicrofone2.gif"
-               HeightRequest="40"
-              WidthRequest="40"
-                  Aspect="AspectFit"
-                HorizontalOptions="Center"
-             VerticalOptions="Center"
-             IsAnimationPlaying="{Binding IsListening}"
-             IsVisible="{Binding IsListening}"/>
+                <Label Text="Przygotowanie" FontSize="18" FontAttributes="Bold" VerticalOptions="Center"/>
+                <!-- Recording indicator GIF - shows in center when listening -->
+                <Image Grid.Column="1"
+                       Source="recordingmicrofone2.gif"
+                       HeightRequest="40"
+                       WidthRequest="40"
+                       Aspect="AspectFit"
+                       HorizontalOptions="Center"
+                       VerticalOptions="Center"
+                       IsAnimationPlaying="{Binding IsListening}"
+                       IsVisible="{Binding IsListening}"/>
                 <HorizontalStackLayout Grid.Column="2" Spacing="8">
                     <Button Command="{Binding ScanInstructionsFromGalleryCommand}" Style="{StaticResource GradientAddButton}"
-         BackgroundColor="Transparent"
-                    BorderColor="{StaticResource Primary}"
-                BorderWidth="1"
-               CornerRadius="20"
-        Padding="12,6"
-           ToolTipProperties.Text="Skanuj z galerii">
-      <Button.ImageSource>
-         <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Document_scanner}"
-          FontFamily="MaterialSymbolsOutlined"
-        Color="{StaticResource Primary}"
-         Size="18"/>
-           </Button.ImageSource>
-     </Button>
-        <Button Command="{Binding ScanInstructionsFromCameraCommand}" Style="{StaticResource GradientAddButton}"
-            BackgroundColor="Transparent"
-     BorderColor="{StaticResource Primary}"
-     BorderWidth="1"
-     CornerRadius="20"
-  Padding="12,6"
-         ToolTipProperties.Text="Skanuj z kamery">
-         <Button.ImageSource>
-<FontImageSource Glyph="{x:Static icons:MaterialOutlined.Photo_camera}"
-     FontFamily="MaterialSymbolsOutlined"
-  Color="{StaticResource Primary}"
-          Size="18"/>
-           </Button.ImageSource>
-     </Button>
-    <Button x:Name="MicrophoneButton"
-            Command="{Binding ScanInstructionsFromMicrophoneCommand}" 
-     Style="{StaticResource GradientAddButton}"
-  BackgroundColor="Transparent"
-    BorderColor="{StaticResource Primary}"
-            BorderWidth="1"
-  CornerRadius="20"
-            Padding="12,6"
-          ToolTipProperties.Text="Nagrywaj głos">
-   <Button.ImageSource>
-     <FontImageSource x:Name="MicrophoneIcon"
-      Glyph="&#xe029;"
-    FontFamily="MaterialSymbolsOutlined"
-         Color="{StaticResource Primary}"
-      Size="18"/>
-  </Button.ImageSource>
-        <Button.Triggers>
-    <DataTrigger TargetType="Button" Binding="{Binding IsListening}" Value="True">
-     <Setter Property="BackgroundColor" Value="#E53935"/>
-         <Setter Property="BorderColor" Value="#E53935"/>
-                <Setter Property="ImageSource">
-           <Setter.Value>
-   <FontImageSource Glyph="&#xe034;"
-     FontFamily="MaterialSymbolsOutlined"
-        Color="White"
-         Size="18"/>
-     </Setter.Value>
-   </Setter>
-   </DataTrigger>
-        </Button.Triggers>
-    </Button>
-          </HorizontalStackLayout>
+                            BackgroundColor="Transparent"
+                            BorderColor="{StaticResource Primary}"
+                            BorderWidth="1"
+                            CornerRadius="20"
+                            Padding="12,6"
+                            ToolTipProperties.Text="Skanuj z galerii">
+                        <Button.ImageSource>
+                            <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Document_scanner}"
+                                             FontFamily="MaterialSymbolsOutlined"
+                                             Color="{StaticResource Primary}"
+                                             Size="18"/>
+                        </Button.ImageSource>
+                    </Button>
+                    <Button Command="{Binding ScanInstructionsFromCameraCommand}" Style="{StaticResource GradientAddButton}"
+                            BackgroundColor="Transparent"
+                            BorderColor="{StaticResource Primary}"
+                            BorderWidth="1"
+                            CornerRadius="20"
+                            Padding="12,6"
+                            ToolTipProperties.Text="Skanuj z kamery">
+                        <Button.ImageSource>
+                            <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Photo_camera}"
+                                             FontFamily="MaterialSymbolsOutlined"
+                                             Color="{StaticResource Primary}"
+                                             Size="18"/>
+                        </Button.ImageSource>
+                    </Button>
+                    <Button x:Name="MicrophoneButton"
+                            Command="{Binding ScanInstructionsFromMicrophoneCommand}"
+                            Style="{StaticResource GradientAddButton}"
+                            BackgroundColor="Transparent"
+                            BorderColor="{StaticResource Primary}"
+                            BorderWidth="1"
+                            CornerRadius="20"
+                            Padding="12,6"
+                            ToolTipProperties.Text="Nagrywaj głos">
+                        <Button.ImageSource>
+                            <FontImageSource x:Name="MicrophoneIcon"
+                                             Glyph="&#xe029;"
+                                             FontFamily="MaterialSymbolsOutlined"
+                                             Color="{StaticResource Primary}"
+                                             Size="18"/>
+                        </Button.ImageSource>
+                        <Button.Triggers>
+                            <DataTrigger TargetType="Button" Binding="{Binding IsListening}" Value="True">
+                                <Setter Property="BackgroundColor" Value="#E53935"/>
+                                <Setter Property="BorderColor" Value="#E53935"/>
+                                <Setter Property="ImageSource">
+                                    <Setter.Value>
+                                        <FontImageSource Glyph="&#xe034;"
+                                                         FontFamily="MaterialSymbolsOutlined"
+                                                         Color="White"
+                                                         Size="18"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </DataTrigger>
+                        </Button.Triggers>
+                    </Button>
+                </HorizontalStackLayout>
             </Grid>
-                      <Border Stroke="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray600}}"
-                     StrokeThickness="1"
-                               HeightRequest="400"
-                           StrokeShape="RoundRectangle 10"
-                   BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}">
-                            <blazor:BlazorWebView x:Name="InstructionsEditorWebView" HostPage="wwwroot/index.html">
-                     <blazor:BlazorWebView.RootComponents>
-                                  <blazor:RootComponent Selector="#app" 
-                          x:Name="InstructionsEditorRoot"
-                           ComponentType="{x:Type blazorComponents:BlazorRichtTextEditor}" />
-                         </blazor:BlazorWebView.RootComponents>
-                                     </blazor:BlazorWebView>
+            <Border Stroke="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray600}}"
+                    StrokeThickness="1"
+                    HeightRequest="400"
+                    StrokeShape="RoundRectangle 10"
+                    BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}">
+                <blazor:BlazorWebView x:Name="InstructionsEditorWebView" HostPage="wwwroot/index.html">
+                    <blazor:BlazorWebView.RootComponents>
+                        <blazor:RootComponent Selector="#app"
+                                              x:Name="InstructionsEditorRoot"
+                                              ComponentType="{x:Type blazorComponents:BlazorRichtTextEditor}" />
+                    </blazor:BlazorWebView.RootComponents>
+                </blazor:BlazorWebView>
             </Border>
 
             <!-- Przyciski -->
             <Grid ColumnDefinitions="*,*" ColumnSpacing="12" Margin="0,24,0,20">
-                <Button Grid.Column="0" 
-                        Text="Anuluj" 
+                <Button Grid.Column="0"
+                        Text="Anuluj"
                         BackgroundColor="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray600}}"
                         TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray200}}"
                         CornerRadius="12"
                         Command="{Binding CancelCommand}"/>
-                <Button Grid.Column="1" 
+                <Button Grid.Column="1"
                         Text="Zapisz"
                         Style="{StaticResource GradientAddButton}"
                         Clicked="OnSaveClicked">
