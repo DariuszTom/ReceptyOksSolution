@@ -146,10 +146,10 @@
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
-     {
+        {
             await ApplyBodyThemeAsync();
-       _isInitialized = true;
-       _lastKnownContent = Content ?? string.Empty;
+            _isInitialized = true;
+            _lastKnownContent = Content ?? string.Empty;
         }
     }
 
@@ -159,14 +159,14 @@
         {
             await ApplyBodyThemeAsync();
 
-         // Detect if Content was changed externally (from MAUI)
+            // Detect if Content was changed externally (from MAUI)
             var incomingContent = Content ?? string.Empty;
-     if (incomingContent != _lastKnownContent)
-       {
-              _lastKnownContent = incomingContent;
-          // Force re-render to update the underlying RichTextEditor
-       StateHasChanged();
-  }
+            if (incomingContent != _lastKnownContent)
+            {
+                _lastKnownContent = incomingContent;
+                // Force re-render to update the underlying RichTextEditor
+                StateHasChanged();
+            }
         }
     }
 
@@ -198,7 +198,6 @@
             // Ignore errors during disposal (e.g., if JS runtime is unavailable)
         }
     }
-
     /// <summary>
     /// HTML content of the editor. Supports two-way binding.
     /// </summary>
@@ -230,10 +229,10 @@
     public QuillTheme Theme { get; set; } = QuillTheme.Snow;
 
     /// <summary>
-    /// Toolbar configuration options. Defaults to full toolbar.
+    /// Toolbar configuration options. Defaults to full toolbar without math controls.
     /// </summary>
     [Parameter]
-    public ToolbarOptions ToolbarOptions { get; set; } = ToolbarOptions.FullToolbarOptions;
+    public ToolbarOptions ToolbarOptions { get; set; } = ToolbarOptions.FullToolbarOptions with { ShowMathControls = false };
 
     /// <summary>
     /// Placeholder text shown when editor is empty.
