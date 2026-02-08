@@ -5,13 +5,13 @@ namespace ReceptyOks.Views;
 public partial class RecipeDetailPage : ContentPage
 {
     private readonly RecipeDetailViewModel _viewModel;
-    
+
     public RecipeDetailPage(RecipeDetailViewModel viewModel)
     {
         InitializeComponent();
         _viewModel = viewModel;
         BindingContext = viewModel;
-        
+
         // Nas³uchuj zmian w Recipe.Instructions
         viewModel.PropertyChanged += OnViewModelPropertyChanged;
     }
@@ -69,14 +69,14 @@ public partial class RecipeDetailPage : ContentPage
     {html}
 </body>
 </html>";
-            
+
             InstructionsWebView.Source = new HtmlWebViewSource { Html = fullHtml };
         }
         else
         {
-            InstructionsWebView.Source = new HtmlWebViewSource 
-            { 
-                Html = "<html><body style='padding:16px; color:#999;'>Brak instrukcji przygotowania</body></html>" 
+            InstructionsWebView.Source = new HtmlWebViewSource
+            {
+                Html = "<html><body style='padding:16px; color:#999;'>Brak instrukcji przygotowania</body></html>"
             };
         }
     }

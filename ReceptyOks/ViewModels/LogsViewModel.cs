@@ -25,7 +25,7 @@ public partial class LogsViewModel(LocalDatabase database, ILogger<LogsViewModel
 
     public List<string> LogLevels { get; } =
     [
-        "All", "Debug", "Information", "Warning", "Error", "Fatal" 
+        "All", "Debug", "Information", "Warning", "Error", "Fatal"
     ];
 
     [RelayCommand]
@@ -125,7 +125,7 @@ public partial class LogsViewModel(LocalDatabase database, ILogger<LogsViewModel
 
     partial void OnSelectedLevelChanged(string value)
     {
-     Task.Run(async () => await LoadLogsAsync());
+        Task.Run(async () => await LoadLogsAsync());
     }
 
     [RelayCommand]

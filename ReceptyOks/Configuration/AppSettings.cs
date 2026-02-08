@@ -17,7 +17,7 @@ public class DatabaseSettings
     /// <summary>
     /// Name of the local SQLite database file
     /// </summary>
-    public string LocalDatabaseName { get; set; }=string.Empty;
+    public string LocalDatabaseName { get; set; } = string.Empty;
 
     /// <summary>
     /// Full path to the local database file in app data directory
@@ -62,7 +62,7 @@ public class HttpSettings
     public string GetEffectiveApiUrl()
     {
 #if DEBUG
- 
+
         // In debug mode with Aspire, use service discovery
         if (!string.IsNullOrWhiteSpace(ApiServiceName))
         {
@@ -92,5 +92,5 @@ public class GitHubSettings
     /// <summary>
     /// User-Agent header value for GitHub API requests
     /// </summary>
-    public string UserAgent { get; set; } =string.Empty;
+    public string UserAgent { get; set; } = string.Empty;
 }

@@ -33,7 +33,7 @@ public class HtmlViewer : ContentView
         _webView.Navigated += OnWebViewNavigated;
 
         Content = _webView;
-        
+
         // Za³aduj szablon HTML
         LoadTemplate();
     }
@@ -46,16 +46,16 @@ public class HtmlViewer : ContentView
             using var stream = await FileSystem.OpenAppPackageFileAsync("instructions-viewer.html");
             using var reader = new StreamReader(stream);
             var template = await reader.ReadToEndAsync();
-            
+
             _webView.Source = new HtmlWebViewSource { Html = template };
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"[HtmlViewer] Error loading template: {ex.Message}");
             // Fallback - u¿yj prostego HTML
-            _webView.Source = new HtmlWebViewSource 
-            { 
-                Html = "<html><body style='font-family: sans-serif; padding: 16px;'>{{CONTENT}}</body></html>" 
+            _webView.Source = new HtmlWebViewSource
+            {
+                Html = "<html><body style='font-family: sans-serif; padding: 16px;'>{{CONTENT}}</body></html>"
             };
         }
     }
@@ -65,7 +65,7 @@ public class HtmlViewer : ContentView
         if (e.Result == WebNavigationResult.Success)
         {
             _isInitialized = true;
-            
+
             if (!string.IsNullOrEmpty(_pendingHtml))
             {
                 UpdateContent(_pendingHtml);
@@ -103,21 +103,21 @@ public class HtmlViewer : ContentView
             using var stream = await FileSystem.OpenAppPackageFileAsync("instructions-viewer.html");
             using var reader = new StreamReader(stream);
             var template = await reader.ReadToEndAsync();
-            
+
             // Zamieñ {{CONTENT}} na rzeczywist¹ zawartoœæ HTML
             var fullHtml = template.Replace("{{CONTENT}}", html);
-            
+
             _webView.Source = new HtmlWebViewSource { Html = fullHtml };
-            
+
             System.Diagnostics.Debug.WriteLine($"[HtmlViewer] Content updated, length: {html.Length}");
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"[HtmlViewer] Error updating content: {ex.Message}");
             // Fallback
-            _webView.Source = new HtmlWebViewSource 
-            { 
-                Html = $"<html><body style='font-family: sans-serif; padding: 16px;'>{html}</body></html>" 
+            _webView.Source = new HtmlWebViewSource
+            {
+                Html = $"<html><body style='font-family: sans-serif; padding: 16px;'>{html}</body></html>"
             };
         }
     }

@@ -37,10 +37,10 @@ public static class IngredientEndpoints
             ingredient.Id = ingredient.Id == Guid.Empty ? Guid.NewGuid() : ingredient.Id;
             ingredient.CreatedAt = DateTime.UtcNow;
             ingredient.UpdatedAt = DateTime.UtcNow;
-            
+
             db.Ingredients.Add(ingredient);
             await db.SaveChangesAsync();
-            
+
             return Results.Created($"/api/ingredients/{ingredient.Id}", ingredient);
         })
         .WithName("CreateIngredient");
@@ -71,7 +71,7 @@ public static class IngredientEndpoints
             ingredient.IsDeleted = true;
             ingredient.UpdatedAt = DateTime.UtcNow;
             await db.SaveChangesAsync();
-            
+
             return Results.NoContent();
         })
         .WithName("DeleteIngredient");

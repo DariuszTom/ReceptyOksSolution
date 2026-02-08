@@ -15,7 +15,7 @@ public class UpdateCheckerService
 
     public UpdateCheckerService(AppSettings settings, ILogger<UpdateCheckerService> logger)
     {
-        if(settings == null)
+        if (settings == null)
             throw new ArgumentNullException(nameof(settings));
         _settings = settings;
         _httpClient = new HttpClient()
@@ -67,7 +67,8 @@ public class UpdateCheckerService
         }
         return false;
     }
-    public async Task UpdateApp() {
+    public async Task UpdateApp()
+    {
         string currentVersion = AppInfo.VersionString; // MAUI: aktualna wersja aplikacji
 
         if (await IsUpdateAvailableAsync(currentVersion))

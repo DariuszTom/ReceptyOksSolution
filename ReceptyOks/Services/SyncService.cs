@@ -150,7 +150,7 @@ public class SyncService
     public async Task<SyncResult> UploadAllAsync()
     {
         var result = new SyncResult();
-        
+
         try
         {
             var connectivity = Connectivity.Current.NetworkAccess;

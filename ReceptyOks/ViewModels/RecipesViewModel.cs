@@ -30,7 +30,7 @@ public partial class RecipesViewModel : ObservableObject
         _database = database;
         _syncService = syncService;
         _logger = logger;
-        
+
     }
 
     [RelayCommand]
@@ -39,13 +39,13 @@ public partial class RecipesViewModel : ObservableObject
         try
         {
             IsRefreshing = true;
-            
+
             var recipeList = string.IsNullOrWhiteSpace(SearchQuery)
                 ? await _database.GetRecipesAsync()
                 : await _database.SearchRecipesAsync(SearchQuery);
-            
+
             Recipes = new ObservableCollection<RecipeLocal>(recipeList);
-            
+
         }
         catch (Exception ex)
         {
@@ -65,9 +65,9 @@ public partial class RecipesViewModel : ObservableObject
         {
             IsSyncing = true;
             _logger.LogInformation("Starting recipe synchronization");
-            
+
             var result = await _syncService.SyncAsync();
-            
+
             if (result.Success)
             {
                 _logger.LogInformation("Synchronization successful: {Message}", result.Message);

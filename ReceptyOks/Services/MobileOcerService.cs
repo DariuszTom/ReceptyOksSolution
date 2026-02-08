@@ -3,7 +3,7 @@ using Plugin.Maui.OCR;
 
 namespace ReceptyOks.Services
 {
-    internal sealed class MobileOcerService:OCSServiceBase
+    internal sealed class MobileOcerService : OCSServiceBase
     {
         private readonly IOcrService _ocrPlugin;
         public MobileOcerService()
@@ -12,7 +12,7 @@ namespace ReceptyOks.Services
         }
         public override async Task<OCRResult> RecognizeTextAsync(byte[] imageData)
         {
-            try 
+            try
             {
                 var ocrResult = await _ocrPlugin.RecognizeTextAsync(imageData);
                 return new OCRResult

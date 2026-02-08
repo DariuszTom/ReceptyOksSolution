@@ -4,7 +4,7 @@ using System.Text;
 namespace ReceptyOks.Services
 {
 
-public class ApiKeyHandler : DelegatingHandler
+    public class ApiKeyHandler : DelegatingHandler
     {
         private readonly string _secretStorageKey;
 

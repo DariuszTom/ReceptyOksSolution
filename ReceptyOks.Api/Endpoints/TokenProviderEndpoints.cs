@@ -9,8 +9,8 @@ namespace ReceptyOks.Api.Endpoints
             var group = app.MapGroup("/api/tokenprovider")
                 .WithTags("Token Provider")
                 .RequireRateLimiting("strict")
-                .DisableHttpMetrics();     
-            
+                .DisableHttpMetrics();
+
             group.MapPost("/token", (AuthRequest request, IConfiguration configuration) =>
             {
                 if (request is null || request.SecretHash?.Length == 0)
@@ -23,12 +23,12 @@ namespace ReceptyOks.Api.Endpoints
                 {
                     return Results.Problem(detail: "Server configuration error", statusCode: StatusCodes.Status500InternalServerError);
                 }
-                if(request.UserName != configuration["UserAgent"])
+                if (request.UserName != configuration["UserAgent"])
                 {
                     return Results.Forbid();
                 }
                 // Decode configured secret key (Base64 preferred, fallback to UTF8/hex)
-                byte[] hmacKeyBytes =secretKey.DecodeBase64OrHexToBytes();
+                byte[] hmacKeyBytes = secretKey.DecodeBase64OrHexToBytes();
 
                 byte[] providedDerived;
                 using (var hmac = new System.Security.Cryptography.HMACSHA256(hmacKeyBytes))
@@ -36,7 +36,7 @@ namespace ReceptyOks.Api.Endpoints
                     providedDerived = hmac.ComputeHash(request.SecretHash);
                 }
 
-                byte[] storedBytes=storedHash.DecodeBase64OrHexToBytes();
+                byte[] storedBytes = storedHash.DecodeBase64OrHexToBytes();
 
                 storedHash = null;
                 var isValid = storedBytes.Length == providedDerived.Length && System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(storedBytes, providedDerived);

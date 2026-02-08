@@ -48,8 +48,8 @@ public sealed class SecretStore : IDisposable
             _logger.LogDebug("Refreshing secrets from configuration");
 
             // support both names: ApiAuth:PasswordHash or PasswordHash (existing vault)
-            var passwordHash =  _configuration["PasswordHash"];
-            var secretKey =  _configuration["SecretKey"];
+            var passwordHash = _configuration["PasswordHash"];
+            var secretKey = _configuration["SecretKey"];
 
             if (string.IsNullOrWhiteSpace(passwordHash))
             {

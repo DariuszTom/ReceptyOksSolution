@@ -45,7 +45,7 @@ public static class AuthEndpoints
 
             // Stored hash is likely Base64-encoded HMAC; decode it before comparing
             var storedBytes = storedHash.DecodeBase64OrHexToBytes();
-            
+
             // Always perform constant-time comparison; empty/null input will naturally fail
             var isValid = providedBytes.Length > 0 &&
                           storedBytes.Length == providedDerived.Length &&
@@ -62,7 +62,7 @@ public static class AuthEndpoints
 }
 
 /// <summary>
-    /// Request do walidacji hasła.
+/// Request do walidacji hasła.
 /// </summary>
 public sealed record AuthRequest(byte[] SecretHash);
 

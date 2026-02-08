@@ -65,9 +65,9 @@ public partial class RandomRecipeViewModel(LocalDatabase database, ILogger<Rando
         {
             var query = IngredientSearchQuery;
             FilteredIngredients = new ObservableCollection<IngredientLocal>(
-                AllIngredients.Where(i => 
+                AllIngredients.Where(i =>
                     i.Name != null &&
-                    i.Name.Contains(query, StringComparison.OrdinalIgnoreCase) && 
+                    i.Name.Contains(query, StringComparison.OrdinalIgnoreCase) &&
                     !SelectedIngredients.Any(s => s.Id == i.Id)));
         }
     }
@@ -85,12 +85,12 @@ public partial class RandomRecipeViewModel(LocalDatabase database, ILogger<Rando
             var ingredientList = await _database.GetIngredientsAsync();
             AllIngredients = new ObservableCollection<IngredientLocal>(ingredientList);
             FilterIngredients();
-            
+
             if (categoryList.Count == 0)
             {
                 _logger.LogWarning("No categories found in database");
             }
-            
+
         }
         catch (Exception ex)
         {
@@ -148,7 +148,7 @@ public partial class RandomRecipeViewModel(LocalDatabase database, ILogger<Rando
             if (candidates.Count == 0)
             {
                 OldID = Guid.Empty;
-                await Shell.Current.DisplayAlertAsync("Brak przepisów", 
+                await Shell.Current.DisplayAlertAsync("Brak przepisów",
                     "Nie znaleziono przepisów spełniających wybrane kryteria", "OK");
                 return;
             }

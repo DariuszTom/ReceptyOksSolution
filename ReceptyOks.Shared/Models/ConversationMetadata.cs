@@ -23,9 +23,9 @@ public sealed class ConversationMetadata
     /// <summary>
     /// When the conversation was last updated.
     /// </summary>
-public DateTimeOffset UpdatedAt { get; set; }
+    public DateTimeOffset UpdatedAt { get; set; }
 
-  /// <summary>
+    /// <summary>
     /// Serialized AgentThread data (JSON).
     /// </summary>
     public string SerializedThread { get; set; } = string.Empty;

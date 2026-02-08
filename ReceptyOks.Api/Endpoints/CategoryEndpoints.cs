@@ -48,10 +48,10 @@ public static class CategoryEndpoints
             category.Id = category.Id == Guid.Empty ? Guid.NewGuid() : category.Id;
             category.CreatedAt = DateTime.UtcNow;
             category.UpdatedAt = DateTime.UtcNow;
-            
+
             db.Categories.Add(category);
             await db.SaveChangesAsync();
-            
+
             return Results.Created($"/api/categories/{category.Id}", category);
         })
         .WithName("CreateCategory");
@@ -83,7 +83,7 @@ public static class CategoryEndpoints
             category.IsDeleted = true;
             category.UpdatedAt = DateTime.UtcNow;
             await db.SaveChangesAsync();
-            
+
             return Results.NoContent();
         })
         .WithName("DeleteCategory");

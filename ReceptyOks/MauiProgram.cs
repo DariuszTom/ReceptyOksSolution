@@ -31,7 +31,7 @@ public static class MauiProgram
             .Enrich.FromLogContext()
             .WriteTo.Sink(new SQLiteSink(appSettings.Database.LocalDatabasePath))
 #if DEBUG
-			.WriteTo.Debug()
+            .WriteTo.Debug()
 #endif
             .CreateLogger();
 
@@ -60,13 +60,13 @@ public static class MauiProgram
                 fonts.AddFont("MaterialSymbolsSharpFilled.ttf", "MaterialSymbolsSharpFilled");
                 fonts.AddMaterialSymbolsFonts();
             });
-			// Add Blazor WebView services
-				builder.Services.AddMauiBlazorWebView();
-		#if DEBUG
-				builder.Services.AddBlazorWebViewDeveloperTools();
-				// Enable detailed logging for BlazorWebView diagnostics
-				builder.Logging.AddFilter("Microsoft.AspNetCore.Components.WebView", LogLevel.Trace);
-		#endif
+        // Add Blazor WebView services
+        builder.Services.AddMauiBlazorWebView();
+#if DEBUG
+        builder.Services.AddBlazorWebViewDeveloperTools();
+        // Enable detailed logging for BlazorWebView diagnostics
+        builder.Logging.AddFilter("Microsoft.AspNetCore.Components.WebView", LogLevel.Trace);
+#endif
 
         // Add Aspire Service Discovery
         builder.Services.AddServiceDiscovery();

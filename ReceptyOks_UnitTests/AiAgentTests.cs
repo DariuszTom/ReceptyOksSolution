@@ -1525,7 +1525,7 @@ public sealed partial class AiAgentTests
     /// - For each TextContent in the stream, the callback should be invoked
     /// - The method should accumulate all text chunks and return the complete response
     /// </summary>
-    
+
 
     /// <summary>
     /// Tests ChatStreamAsync behavior when cancellation token is cancelled before the call.
@@ -1535,7 +1535,7 @@ public sealed partial class AiAgentTests
     /// Expected behavior:
     /// - Should throw OperationCanceledException when the cancellation token is already cancelled
     /// </summary>
-    
+
 
 
     /// <summary>

@@ -33,7 +33,7 @@ namespace SharedLibrary.Misc.MessegeSender
         }
         public void CreateMail(string subject, StringBuilder body)
         {
-            if(_MyMail is null) throw new InvalidOperationException("Mail sender is not configured. Call MailConfig first.");
+            if (_MyMail is null) throw new InvalidOperationException("Mail sender is not configured. Call MailConfig first.");
             _mailMessage = new MailMessage
             {
                 From = new MailAddress(_MyMail),

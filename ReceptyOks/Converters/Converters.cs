@@ -117,7 +117,7 @@ public class LogLevelToColorConverter : IValueConverter
         if (value is string level)
         {
             bool isDarkMode = Application.Current?.RequestedTheme == AppTheme.Dark;
-            
+
             if (isDarkMode)
             {
                 return level switch
@@ -158,7 +158,7 @@ public class LogLevelToBackgroundConverter : IValueConverter
         {
             // SprawdŸ czy jesteœmy w dark mode
             bool isDarkMode = Application.Current?.RequestedTheme == AppTheme.Dark;
-            
+
             if (isDarkMode)
             {
                 return level switch
@@ -244,10 +244,10 @@ public class IsNotZeroConverter : IValueConverter
     {
         return value switch
         {
-       int intValue => intValue != 0,
-          double doubleValue => doubleValue != 0,
+            int intValue => intValue != 0,
+            double doubleValue => doubleValue != 0,
             decimal decimalValue => decimalValue != 0,
-     _ => false
+            _ => false
         };
     }
 
@@ -267,7 +267,7 @@ public class BoolToExpandIconConverter : IValueConverter
 
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-     return value is true ? ExpandLess : ExpandMore;
+        return value is true ? ExpandLess : ExpandMore;
     }
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
@@ -281,7 +281,7 @@ public class IsNotNullOrEmptyConverter : IValueConverter
 {
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-     return value is string str && !string.IsNullOrEmpty(str);
+        return value is string str && !string.IsNullOrEmpty(str);
     }
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
@@ -300,7 +300,7 @@ public class MealCountToHeightConverter : IValueConverter
     {
         if (value is int count && count > 0)
         {
-    return count * ItemHeight;
+            return count * ItemHeight;
         }
         return 0;
     }
@@ -314,7 +314,7 @@ public class MealCountToHeightConverter : IValueConverter
 /// </summary>
 public class BoolToStrikethroughConverter : IValueConverter
 {
-  public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         return value is true ? TextDecorations.Strikethrough : TextDecorations.None;
     }
@@ -331,16 +331,16 @@ public class BoolToColorConverter : IValueConverter
 {
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-     bool isListening = value is true;
+        bool isListening = value is true;
         string param = parameter as string ?? "Recording";
 
         return param switch
-      {
-        "Recording" => isListening ? Color.FromArgb("#E53935") : Colors.Transparent,
+        {
+            "Recording" => isListening ? Color.FromArgb("#E53935") : Colors.Transparent,
             "RecordingBorder" => isListening ? Color.FromArgb("#E53935") : Application.Current?.Resources["Primary"] as Color ?? Colors.Blue,
-  "RecordingIcon" => isListening ? Colors.White : Application.Current?.Resources["Primary"] as Color ?? Colors.Blue,
+            "RecordingIcon" => isListening ? Colors.White : Application.Current?.Resources["Primary"] as Color ?? Colors.Blue,
             _ => Colors.Transparent
-    };
+        };
     }
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
@@ -353,7 +353,7 @@ public class BoolToColorConverter : IValueConverter
 /// </summary>
 public class BoolToGlyphConverter : IValueConverter
 {
-  private const string MicGlyph = "\ue029";
+    private const string MicGlyph = "\ue029";
     private const string PauseGlyph = "\ue034";
 
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)

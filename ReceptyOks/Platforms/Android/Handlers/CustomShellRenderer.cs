@@ -19,7 +19,7 @@ public class CustomShellRenderer : ShellRenderer
 
 public class CustomBottomNavViewAppearanceTracker : ShellBottomNavViewAppearanceTracker
 {
-    public CustomBottomNavViewAppearanceTracker(IShellContext shellContext, ShellItem shellItem) 
+    public CustomBottomNavViewAppearanceTracker(IShellContext shellContext, ShellItem shellItem)
         : base(shellContext, shellItem)
     {
     }

@@ -24,7 +24,7 @@ public partial class CategoriesViewModel(LocalDatabase database, ILogger<Categor
         {
             IsRefreshing = true;
             var categoryList = await _database.GetCategoriesAsync();
-            
+
             Categories.Clear();
             foreach (var category in categoryList)
             {

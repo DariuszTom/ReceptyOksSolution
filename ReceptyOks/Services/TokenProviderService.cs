@@ -23,7 +23,7 @@ namespace ReceptyOks.Services
 
             var request = new TokenRequest(await SecureSecretService.GetSecretBytesAsync(GlobalConstants.ApiKeyHeaderName), _appSettings.Http?.Github?.UserAgent);
             var content = new StringContent(System.Text.Json.JsonSerializer.Serialize(request),
-                    System.Text.Encoding.UTF8,"application/json");
+                    System.Text.Encoding.UTF8, "application/json");
 
             using var response = await _httpClient.PostAsync("/api/tokenprovider/token", content, cancellationToken).ConfigureAwait(false);
 

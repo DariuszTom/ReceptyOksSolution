@@ -6,7 +6,7 @@
 
         public virtual Task<OCRResult> RecognizeTextAsync(Stream imageStream)
         {
-             throw new NotImplementedException("This method should be implemented in derived classes.");
+            throw new NotImplementedException("This method should be implemented in derived classes.");
         }
 
         public virtual Task<OCRResult> RecognizeTextAsync(byte[] imageData)

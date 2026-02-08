@@ -14,12 +14,12 @@ public class SyncRequest
     /// Przepisy zmienione lokalnie od ostatniej synchronizacji
     /// </summary>
     public List<RecipeSyncDto> ChangedRecipes { get; set; } = new List<RecipeSyncDto>();
-    
+
     /// <summary>
     /// Kategorie zmienione lokalnie
     /// </summary>
     public List<CategorySyncDto> ChangedCategories { get; set; } = new List<CategorySyncDto>();
-    
+
     /// <summary>
     /// Sk³adniki zmienione lokalnie
     /// </summary>
@@ -35,17 +35,17 @@ public class SyncResponse
     /// Timestamp tej synchronizacji - klient zapisuje jako LastSyncedAt
     /// </summary>
     public DateTime SyncedAt { get; set; }
-    
+
     /// <summary>
     /// Przepisy do zaktualizowania/dodania na kliencie
     /// </summary>
     public List<RecipeSyncDto> Recipes { get; set; } = new List<RecipeSyncDto>();
-    
+
     /// <summary>
     /// Kategorie do zaktualizowania/dodania
     /// </summary>
     public List<CategorySyncDto> Categories { get; set; } = new List<CategorySyncDto>();
-    
+
     /// <summary>
     /// Sk³adniki do zaktualizowania/dodania
     /// </summary>

@@ -8,7 +8,7 @@ public class Ingredient
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
     public bool IsDeleted { get; set; }
-    
+
     // Nawigacja
     public ICollection<RecipeIngredient> RecipeIngredients { get; set; } = [];
 }

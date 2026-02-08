@@ -109,8 +109,8 @@ public partial class ChatBotViewModel : ObservableObject
                 string prompt = settings.SystemPrompt;
                 if (await UserService.Instance.Value.HasUserAsync())
                 {
-                   var user= await UserService.Instance.Value.GetUserAsync();
-                   prompt = prompt.Replace("{UserName}", user.Name??"Nie podano");
+                    var user = await UserService.Instance.Value.GetUserAsync();
+                    prompt = prompt.Replace("{UserName}", user.Name ?? "Nie podano");
                 }
                 _agent = new AiAgent(anthritopicAgent.GetAgent(), prompt);
             }
@@ -162,7 +162,7 @@ public partial class ChatBotViewModel : ObservableObject
         Messages.Add(assistantMessage);
 
         IsBusy = true;
-        _sendCts = new CancellationTokenSource(GlobalConstants.DefaultCancelationTokenTime*3);
+        _sendCts = new CancellationTokenSource(GlobalConstants.DefaultCancelationTokenTime * 3);
 
         try
         {

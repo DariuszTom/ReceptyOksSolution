@@ -19,7 +19,7 @@ namespace ReceptyOks.Platforms.Windows
                 var bitmap = await decoder.GetSoftwareBitmapAsync();
 
                 var ocrEngine = OcrEngine.TryCreateFromUserProfileLanguages();
-                if(ocrEngine == null)
+                if (ocrEngine == null)
                 {
                     return new OCRResult
                     {
@@ -28,7 +28,7 @@ namespace ReceptyOks.Platforms.Windows
                     };
                 }
                 var ocrResult = await ocrEngine.RecognizeAsync(bitmap);
-                var text =string.Join("\n", ocrResult.Lines.Select(line => line.Text));
+                var text = string.Join("\n", ocrResult.Lines.Select(line => line.Text));
                 return new OCRResult
                 {
                     Success = true,

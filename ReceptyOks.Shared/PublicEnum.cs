@@ -2,7 +2,7 @@
 {
     public enum Jednostki
     {
-        Brak=0,
+        Brak = 0,
         Sztuka,
         Gram,
         Kilogram,
