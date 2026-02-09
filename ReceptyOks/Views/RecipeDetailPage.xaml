@@ -1,11 +1,13 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+         xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:ReceptyOks.ViewModels"
              xmlns:icons="clr-namespace:UraniumUI.Icons.MaterialSymbols;assembly=UraniumUI.Icons.MaterialSymbols"
-             xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
-             xmlns:controls="clr-namespace:ReceptyOks.Controls"
-             x:Class="ReceptyOks.Views.RecipeDetailPage"
+     xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+   xmlns:controls="clr-namespace:ReceptyOks.Controls"
+             xmlns:blazor="clr-namespace:Microsoft.AspNetCore.Components.WebView.Maui;assembly=Microsoft.AspNetCore.Components.WebView.Maui"
+           xmlns:blazorComponents="clr-namespace:ReceptyOks.BlazorComponents.Components;assembly=ReceptyOks.BlazorComponents"
+  x:Class="ReceptyOks.Views.RecipeDetailPage"
              x:DataType="vm:RecipeDetailViewModel"
              x:Name="PageRoot"
              Shell.NavBarIsVisible="False"
@@ -296,14 +298,17 @@
                                        TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"/>
                             </HorizontalStackLayout>
 
-                            <Border Padding="0"
-                                    StrokeThickness="0"
-                                    StrokeShape="RoundRectangle 12"
-                                    MinimumHeightRequest="200"
-                                    BackgroundColor="{StaticResource Gray900}">
-                                <WebView x:Name="InstructionsWebView"
-                                         BackgroundColor="{StaticResource Gray600}"
-                                         MinimumHeightRequest="250"/>
+                            <Border Padding="0" StrokeThickness="0"
+                                   StrokeShape="RoundRectangle 12" MinimumHeightRequest="450" BackgroundColor="{StaticResource Gray900}">
+                                <blazor:BlazorWebView x:Name="InstructionsWebView" HostPage="wwwroot/index.html" MinimumHeightRequest="500">
+                                    <blazor:BlazorWebView.RootComponents>
+                                        <blazor:RootComponent Selector="#app"
+                                           x:Name="InstructionsRoot"
+                                     ComponentType="{x:Type blazorComponents:HtmlViewer}"
+                                      Parameters="{Binding Source={x:Reference PageRoot}, Path=BindingContext.BlazorParameters}">
+                                        </blazor:RootComponent>
+                                    </blazor:BlazorWebView.RootComponents>
+                                </blazor:BlazorWebView>
                             </Border>
                         </VerticalStackLayout>
 

@@ -5,7 +5,8 @@ html, body {
     height: 100%;
     width: 100%;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-    background-color: transparent;
+    background-color: #1e1e1e;
+    color: #e0e0e0;
     overflow: hidden;
 }
 
@@ -24,10 +25,18 @@ body.theme-light {
 }
 
 #app {
-    height: 100%;
+  height: 100%;
     width: 100%;
     display: flex;
     flex-direction: column;
+    background-color: inherit;
+}
+
+/* Provide fallback theme variables for the HtmlViewer container so
+   global selectors that use var(--text-color) have a defined value. */
+.html-viewer-container {
+    --text-color: #e0e0e0;
+    --bg-color: #1e1e1e;
 }
 
 .blazor-rich-text-editor {
@@ -70,4 +79,24 @@ body.theme-light {
     position: absolute;
     right: 0.75rem;
     top: 0.5rem;
+}
+
+/* Ensure HtmlViewer's inner HTML elements inherit theme colors when
+   rendered via MarkupString (innerHTML). Global rules needed because
+   component CSS isolation may not reach elements created by innerHTML. */
+.html-viewer-container,
+.html-viewer-container * {
+    color: var(--text-color) !important;
+}
+
+.html-viewer-container a,
+.html-viewer-container a * {
+    color: var(--primary-color) !important;
+    text-decoration: underline !important;
+}
+
+/* Make sure the viewer background uses the container variable when
+   the container fills the area */
+.html-viewer-container {
+    background-color: var(--bg-color) !important;
 }

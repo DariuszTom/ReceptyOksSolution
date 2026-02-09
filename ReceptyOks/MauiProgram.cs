@@ -84,8 +84,9 @@ public static class MauiProgram
         .AddServiceDiscovery();
 
         // Services
-        builder.Services.AddSingleton<InstructionsEditorState>();
-        builder.Services.AddSingleton(OcrPlugin.Default);
+           builder.Services.AddSingleton<InstructionsEditorState>();
+              builder.Services.AddSingleton<HtmlViewerState>();
+              builder.Services.AddSingleton(OcrPlugin.Default);
         builder.Services.AddSingleton<IOCRService, MobileOcerService>();
         builder.Services.AddSingleton<UpdateCheckerService>();
         builder.Services.AddSingleton<IBadge>(Badge.Default);

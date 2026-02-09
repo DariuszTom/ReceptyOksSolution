@@ -10,6 +10,14 @@ public partial class RecipeDetailViewModel(LocalDatabase database) : ObservableO
 {
     private readonly LocalDatabase _database = database;
 
+    /// <summary>
+    /// Parameters passed to the Blazor HtmlViewer component.
+    /// </summary>
+    public IDictionary<string, object?> BlazorParameters { get; } = new Dictionary<string, object?>
+    {
+        ["IsDarkTheme"] = true
+    };
+
     [ObservableProperty]
     private string recipeId = string.Empty;
 
