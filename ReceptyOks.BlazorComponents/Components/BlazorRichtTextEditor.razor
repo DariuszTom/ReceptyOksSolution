@@ -102,18 +102,34 @@
 .blazor-rich-text-editor.theme-dark .ql-toolbar button.ql-active .ql-fill {
     fill: #90caf9 !important;
 }
+
+/* WebKit scrollbar styling (Chrome, Edge, Safari) */
+.blazor-rich-text-editor .ql-container::-webkit-scrollbar {
+    width: 10px;
+}
+.blazor-rich-text-editor .ql-container::-webkit-scrollbar-track {
+    background: transparent;
+}
+.blazor-rich-text-editor .ql-container::-webkit-scrollbar-thumb {
+    background-color: rgba(100,100,100,0.6);
+    border-radius: 8px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+}
+.blazor-rich-text-editor.theme-dark .ql-container::-webkit-scrollbar-thumb {
+    background-color: rgba(200,200,200,0.28);
+}
 </style>
 
 <div class="blazor-rich-text-editor @ThemeClass @CssClass" style="@CombinedStyle">
     <ErrorBoundary @ref="_errorBoundary">
-      <ChildContent>
-     <RichTextEditor @ref="_editorRef"
- @bind-Content:get="Content"
- @bind-Content:set="SetContentAsync"
-        @bind-Text="@_plainText"
-           Theme="@Theme"
-            ToolbarOptions="@ToolbarOptions"
-          Placeholder="@Placeholder" />
+        <ChildContent>
+            <RichTextEditor @bind-Content="@Content"
+                            @bind-Content:after="OnContentChangedAsync"
+                            @bind-Text="@_plainText"
+                            Theme="@Theme"
+                            ToolbarOptions="@ToolbarOptions"
+                            Placeholder="@Placeholder" />
         </ChildContent>
         <ErrorContent Context="exception">
             <div style="padding: 16px; background: #fee; border: 1px solid #c00; color: #c00; border-radius: 8px;">
@@ -133,15 +149,13 @@
     private string _plainText = string.Empty;
     private ErrorBoundary? _errorBoundary;
     private bool _isInitialized;
-    private string _lastKnownContent = string.Empty;
-    private RichTextEditor? _editorRef;
 
     private string ThemeClass => IsDarkTheme ? "theme-dark" : "theme-light";
 
     private string CombinedStyle =>
         string.IsNullOrWhiteSpace(Style)
             ? $"--rte-max-height:{MaxHeight};"
-   : $"--rte-max-height:{MaxHeight};{Style}";
+            : $"--rte-max-height:{MaxHeight};{Style}";
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -149,7 +163,6 @@
         {
             await ApplyBodyThemeAsync();
             _isInitialized = true;
-            _lastKnownContent = Content ?? string.Empty;
         }
     }
 
@@ -158,15 +171,6 @@
         if (_isInitialized)
         {
             await ApplyBodyThemeAsync();
-
-            // Detect if Content was changed externally (from MAUI)
-            var incomingContent = Content ?? string.Empty;
-            if (incomingContent != _lastKnownContent)
-            {
-                _lastKnownContent = incomingContent;
-                // Force re-render to update the underlying RichTextEditor
-                StateHasChanged();
-            }
         }
     }
 
@@ -198,6 +202,7 @@
             // Ignore errors during disposal (e.g., if JS runtime is unavailable)
         }
     }
+
     /// <summary>
     /// HTML content of the editor. Supports two-way binding.
     /// </summary>
@@ -229,10 +234,10 @@
     public QuillTheme Theme { get; set; } = QuillTheme.Snow;
 
     /// <summary>
-    /// Toolbar configuration options. Defaults to full toolbar without math controls.
+    /// Toolbar configuration options. Defaults to full toolbar.
     /// </summary>
     [Parameter]
-    public ToolbarOptions ToolbarOptions { get; set; } = ToolbarOptions.FullToolbarOptions with { ShowMathControls = false };
+    public ToolbarOptions ToolbarOptions { get; set; } = ToolbarOptions.FullToolbarOptions;
 
     /// <summary>
     /// Placeholder text shown when editor is empty.
@@ -266,12 +271,9 @@
     [Parameter]
     public bool IsDarkTheme { get; set; }
 
-    private async Task SetContentAsync(string value)
+    private async Task OnContentChangedAsync()
     {
-        Content = value;
-        _lastKnownContent = value ?? string.Empty;
-
-      if (ContentChanged.HasDelegate)
+        if (ContentChanged.HasDelegate)
         {
             await ContentChanged.InvokeAsync(Content);
         }
