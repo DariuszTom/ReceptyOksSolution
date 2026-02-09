@@ -7,7 +7,8 @@
              xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
              xmlns:material="http://schemas.enisn-projects.io/dotnet/maui/uraniumui/material"
              xmlns:uranium="http://schemas.enisn-projects.io/dotnet/maui/uraniumui"
-             xmlns:viewmodels="clr-namespace:ReceptyOks.ViewModels"
+                    xmlns:viewmodels="clr-namespace:ReceptyOks.ViewModels"
+                    xmlns:services="clr-namespace:ReceptyOks.Services"
              x:DataType="viewmodels:LoginViewModel"
              Shell.NavBarIsVisible="False"
              Title="LoginPage"
@@ -156,24 +157,29 @@
 
         <!-- Dolna sekcja -->
         <VerticalStackLayout Grid.Row="2"
-                             VerticalOptions="End"
-                             HorizontalOptions="Center"
-                             Padding="0,0,0,20">
+       VerticalOptions="End"
+           HorizontalOptions="Center"
+   Padding="0,0,0,20"
+    Spacing="4">
             <HorizontalStackLayout Spacing="8" HorizontalOptions="Center">
                 <Image HeightRequest="20" WidthRequest="20" VerticalOptions="Center">
-                    <Image.Source>
-                        <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Restaurant}"
-                                         FontFamily="MaterialSymbolsOutlined"
-                                         Color="#FFFFFF80"
-                                         Size="24"/>
-                    </Image.Source>
-                </Image>
-                <Label Text="ReceptyOks"
-                       FontSize="18"
-                       FontAttributes="Bold"
-                       TextColor="#FFFFFF80"
-                       VerticalOptions="Center"/>
-            </HorizontalStackLayout>
+  <Image.Source>
+          <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Restaurant}"
+     FontFamily="MaterialSymbolsOutlined"
+       Color="#FFFFFF80"
+          Size="24"/>
+                  </Image.Source>
+           </Image>
+         <Label Text="ReceptyOks"
+        FontSize="18"
+   FontAttributes="Bold"
+    TextColor="#FFFFFF80"
+             VerticalOptions="Center"/>
+  </HorizontalStackLayout>
+            <Label Text="{x:Static services:VersionInfo.FormattedVersion}"
+   FontSize="12"
+           TextColor="#FFFFFF60"
+         HorizontalOptions="Center"/>
         </VerticalStackLayout>
 
     </Grid>
