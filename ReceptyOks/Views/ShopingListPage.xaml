@@ -24,7 +24,7 @@
             </Grid.Shadow>
 
             <VerticalStackLayout VerticalOptions="Center">
-                <Label Text="Lista zakupów"
+                <Label Text="🛒Lista zakupów"
                        FontSize="24"
                        FontAttributes="Bold"
                        TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"/>

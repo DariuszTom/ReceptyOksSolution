@@ -21,7 +21,7 @@
                 <Shadow Brush="{StaticResource Gray400Brush}" Offset="0,2" Radius="4" Opacity="0.1"/>
             </Grid.Shadow>
             <VerticalStackLayout VerticalOptions="Center">
-                <Label Text="Losuj Przepis"
+                <Label Text="🥣Losuj Przepis"
                        Style="{StaticResource PageTitle}"
                        FontSize="24"/>
                 <Label Text="Co dziś ugotować?"

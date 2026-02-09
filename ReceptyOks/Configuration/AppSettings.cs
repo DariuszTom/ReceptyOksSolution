@@ -61,7 +61,7 @@ public class HttpSettings
     /// </summary>
     public string GetEffectiveApiUrl()
     {
-#if DEBUG && !ANDROID
+#if DEBUG
 
         // In debug mode with Aspire, use service discovery
         if (!string.IsNullOrWhiteSpace(ApiServiceName))
