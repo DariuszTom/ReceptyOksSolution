@@ -12,8 +12,6 @@
     font-size: 15px;
     line-height: 1.6;
     box-sizing: border-box;
-    min-height: 100%;
-    width: 100%;
 }
 
 /* Light theme (default) */
@@ -68,25 +66,6 @@
 width: 100%;
 }
 
-/* Ensure all rendered HTML inside the viewer inherits the theme text color
-   (Markdown/HTML coming from MarkupString may contain elements that don't
-    inherit color automatically). Use !important to override user-agent
-    defaults or inline styles from third-party HTML. */
-.html-viewer-content ::deep * {
-    color: var(--text-color) !important;
-}
-
-/* Links should use primary color on both light and dark themes */
-.html-viewer-content ::deep a {
-    color: var(--primary-color) !important;
-    text-decoration: underline;
-}
-
-.html-viewer-content ::deep a:visited {
-    color: var(--primary-color) !important;
-    opacity: 0.9;
-}
-
 /* Heading styles */
 .html-viewer-content ::deep h1 {
     font-size: 24px;
@@ -109,33 +88,6 @@ width: 100%;
 /* Paragraph and text styles */
 .html-viewer-content ::deep p {
     margin: 6px 0;
-}
-
-/* Normalize default margins/padding from pasted HTML (editors like Quill
-   may produce many <p> or <div> with default spacing). Reduce large gaps
-   by resetting margins for common block elements and applying a small
-   bottom margin. This avoids huge vertical gaps between lines. */
-.html-viewer-content ::deep p,
-.html-viewer-content ::deep div,
-.html-viewer-content ::deep section,
-.html-viewer-content ::deep article,
-.html-viewer-content ::deep ul,
-.html-viewer-content ::deep ol,
-.html-viewer-content ::deep li,
-.html-viewer-content ::deep h1,
-.html-viewer-content ::deep h2,
-.html-viewer-content ::deep h3,
-.html-viewer-content ::deep h4,
-.html-viewer-content ::deep h5,
-.html-viewer-content ::deep h6 {
-    margin-top: 0 !important;
-    margin-bottom: 8px !important;
-    padding: 0 !important;
-}
-
-/* Remove empty paragraph spacing (many editors insert <p><br></p>) */
-.html-viewer-content ::deep p:empty {
-    display: none !important;
 }
 
 /* List styles */
