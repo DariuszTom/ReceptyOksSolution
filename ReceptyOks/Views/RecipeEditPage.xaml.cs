@@ -89,12 +89,17 @@ public partial class RecipeEditPage : ContentPage
         base.OnAppearing();
         if (BindingContext is RecipeEditViewModel vm)
         {
-            await vm.InitializeCommand.ExecuteAsync(null);
+     await vm.InitializeCommand.ExecuteAsync(null);
 
-            // Push initial content to Blazor via shared state
-            _currentContent = vm.Instructions ?? string.Empty;
-            _editorState.Content = _currentContent;
-            UpdateBlazorEditorContent();
+            // Defer content update to give BlazorWebView time to initialize
+       // This helps avoid the race condition on Android where the component
+            // may not be ready when the page appears
+  Dispatcher.DispatchDelayed(TimeSpan.FromMilliseconds(100), () =>
+     {
+    _currentContent = vm.Instructions ?? string.Empty;
+                _editorState.Content = _currentContent;
+ UpdateBlazorEditorContent();
+            });
         }
     }
 

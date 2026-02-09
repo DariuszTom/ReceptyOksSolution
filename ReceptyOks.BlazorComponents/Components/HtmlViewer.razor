@@ -19,6 +19,7 @@
 
 @code {
     private string _displayContent = string.Empty;
+    private bool _isInitialized;
 
     /// <summary>
     /// HTML content to display (e.g., recipe instructions).
@@ -34,7 +35,7 @@
     public string AdditionalStyle { get; set; } = string.Empty;
 
     /// <summary>
-    /// Maximum height of the container. When content exceeds this, a scrollbar appears.
+  /// Maximum height of the container. When content exceeds this, a scrollbar appears.
     /// Use CSS units (e.g., "400px", "50vh"). Empty string means no max height.
     /// </summary>
     [Parameter]
@@ -52,7 +53,7 @@
     [Parameter]
     public bool IsDarkTheme { get; set; }
 
-    /// <summary>
+/// <summary>
     /// Padding for the content area (e.g., "8px", "1rem"). Default is "8px".
     /// </summary>
     [Parameter]
@@ -63,22 +64,37 @@
     private string ContainerStyle => BuildContainerStyle();
 
     protected override void OnInitialized()
-    {
-        // Subscribe to external content changes pushed from MAUI side
+{
+   // Subscribe to external content changes pushed from MAUI side
         ViewerState.ContentChanged += OnExternalContentChanged;
 
         // Initialize display content from state if available, otherwise from parameter
         _displayContent = !string.IsNullOrEmpty(ViewerState.Content) ? ViewerState.Content : HtmlContent;
     }
 
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender)
+    {
+         _isInitialized = true;
+     // Re-check content from state after first render in case it was set during initialization race
+          var currentContent = !string.IsNullOrEmpty(ViewerState.Content) ? ViewerState.Content : HtmlContent;
+    if (_displayContent != currentContent)
+            {
+   _displayContent = currentContent;
+       StateHasChanged();
+            }
+  }
+ }
+
     protected override void OnParametersSet()
     {
-        // If HtmlContent parameter is set and state is empty, use parameter
+   // If HtmlContent parameter is set and state is empty, use parameter
         if (!string.IsNullOrEmpty(HtmlContent) && string.IsNullOrEmpty(ViewerState.Content))
         {
-            _displayContent = HtmlContent;
+     _displayContent = HtmlContent;
         }
-    }
+  }
 
     private void OnExternalContentChanged(object? sender, string newContent)
     {

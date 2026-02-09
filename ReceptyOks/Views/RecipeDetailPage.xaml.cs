@@ -10,31 +10,37 @@ public partial class RecipeDetailPage : ContentPage
 
     public RecipeDetailPage(RecipeDetailViewModel viewModel, HtmlViewerState viewerState)
     {
-        InitializeComponent();
-        _viewModel = viewModel;
+      InitializeComponent();
+     _viewModel = viewModel;
         _viewerState = viewerState;
-        BindingContext = viewModel;
+  BindingContext = viewModel;
 
-        // Initialize content via shared state
-        UpdateInstructionsHtml();
-
-        // Subscribe to ViewModel property changes to update Blazor component
+      // Subscribe to ViewModel property changes to update Blazor component
         viewModel.PropertyChanged += OnViewModelPropertyChanged;
+    }
+
+    protected override void OnAppearing()
+    {
+        base.OnAppearing();
+        // Defer content update to give BlazorWebView time to initialize
+        // This helps avoid the race condition on Android where the component
+        // may not be ready when the page constructor runs
+      Dispatcher.DispatchDelayed(TimeSpan.FromMilliseconds(100), UpdateInstructionsHtml);
     }
 
     private void OnViewModelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(_viewModel.Recipe))
+      if (e.PropertyName == nameof(_viewModel.Recipe))
         {
             UpdateInstructionsHtml();
-        }
+      }
     }
 
     private void UpdateInstructionsHtml()
     {
         MainThread.BeginInvokeOnMainThread(() =>
-       {
-           _viewerState.Content = _viewModel.Recipe?.Instructions ?? string.Empty;
-       });
-    }
+        {
+   _viewerState.Content = _viewModel.Recipe?.Instructions ?? string.Empty;
+        });
+}
 }
