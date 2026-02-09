@@ -13,14 +13,14 @@ public sealed class HtmlViewerState
     /// </summary>
     public string Content
     {
-     get => _content;
-   set
+        get => _content;
+        set
         {
-  if (_content != value)
+            if (_content != value)
             {
-            _content = value;
-       ContentChanged?.Invoke(this, value);
-     }
+                _content = value;
+                ContentChanged?.Invoke(this, value);
+            }
         }
     }
 
