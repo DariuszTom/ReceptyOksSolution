@@ -1,8 +1,10 @@
-﻿@using Microsoft.AspNetCore.Components.Web
+@using Microsoft.AspNetCore.Components.Web
 @using Microsoft.JSInterop
 @using Spillgebees.Blazor.RichTextEditor.Components
 @using Spillgebees.Blazor.RichTextEditor.Components.Toolbar
+@using ReceptyOks.BlazorComponents.Services
 @inject IJSRuntime JSRuntime
+@inject InstructionsEditorState EditorState
 @implements IAsyncDisposable
 
 <style>
@@ -167,6 +169,7 @@
     private string _plainText = string.Empty;
     private ErrorBoundary? _errorBoundary;
     private bool _isInitialized;
+    private bool _updatingFromState;
 
     private string ThemeClass => IsDarkTheme ? "theme-dark" : "theme-light";
 
@@ -181,6 +184,16 @@
         {
             await ApplyBodyThemeAsync();
             _isInitialized = true;
+
+            // Subscribe to external content changes pushed from MAUI side
+            EditorState.ContentChanged += OnExternalContentChanged;
+
+            // Load any content that was set before the component rendered
+            if (!string.IsNullOrEmpty(EditorState.Content))
+            {
+                Content = EditorState.Content;
+                StateHasChanged();
+            }
         }
     }
 
@@ -207,6 +220,8 @@
 
     public async ValueTask DisposeAsync()
     {
+        EditorState.ContentChanged -= OnExternalContentChanged;
+
         // Clean up theme classes when component is disposed
         try
         {
@@ -219,6 +234,13 @@
         {
             // Ignore errors during disposal (e.g., if JS runtime is unavailable)
         }
+    }
+
+    private void OnExternalContentChanged(object? sender, string newContent)
+    {
+        _updatingFromState = true;
+        Content = newContent;
+        InvokeAsync(StateHasChanged);
     }
 
     /// <summary>
@@ -305,6 +327,18 @@
 
     private async Task OnContentChangedAsync()
     {
+        // Avoid echoing back content that was just set from the MAUI side
+        if (_updatingFromState)
+        {
+            _updatingFromState = false;
+            return;
+        }
+
+        // Push user edits to the shared state (without re-entering this handler)
+        EditorState.ContentChanged -= OnExternalContentChanged;
+        EditorState.Content = Content;
+        EditorState.ContentChanged += OnExternalContentChanged;
+
         if (ContentChanged.HasDelegate)
         {
             await ContentChanged.InvokeAsync(Content);

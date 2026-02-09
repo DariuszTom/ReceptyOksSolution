@@ -1,9 +1,10 @@
-﻿using CommunityToolkit.Maui;
+using CommunityToolkit.Maui;
 using CommunityToolkit.Maui.ApplicationModel;
 using CommunityToolkit.Maui.Media;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Plugin.Maui.OCR;
+using ReceptyOks.BlazorComponents.Services;
 using ReceptyOks.Configuration;
 using ReceptyOks.Data;
 using ReceptyOks.Services;
@@ -83,6 +84,7 @@ public static class MauiProgram
         .AddServiceDiscovery();
 
         // Services
+        builder.Services.AddSingleton<InstructionsEditorState>();
         builder.Services.AddSingleton(OcrPlugin.Default);
         builder.Services.AddSingleton<IOCRService, MobileOcerService>();
         builder.Services.AddSingleton<UpdateCheckerService>();
