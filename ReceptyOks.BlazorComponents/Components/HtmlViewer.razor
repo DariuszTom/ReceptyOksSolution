@@ -1,18 +1,20 @@
 @using Microsoft.AspNetCore.Components
 @using Microsoft.AspNetCore.Components.Web
 
-<div class="html-viewer-container" style="@AdditionalStyle">
+<MudPaper Class="html-viewer-container" Style="@AdditionalStyle" Elevation="@Elevation">
     @if (string.IsNullOrEmpty(HtmlContent))
     {
-        <div class="empty-placeholder">Brak zawartoœci</div>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="empty-placeholder">
+            Brak zawartoœci
+        </MudText>
     }
     else
     {
         <div class="html-viewer-content">
-    @((MarkupString)HtmlContent)
-   </div>
+                 @((MarkupString)HtmlContent)
+        </div>
     }
-</div>
+</MudPaper>
 
 @code {
     /// <summary>
@@ -23,7 +25,13 @@
 
     /// <summary>
     /// Optional additional inline style to apply on the root container (e.g. custom background/color)
-  /// </summary>
+    /// </summary>
     [Parameter]
     public string AdditionalStyle { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Paper elevation (shadow depth). Default is 0 for flat appearance.
+    /// </summary>
+    [Parameter]
+    public int Elevation { get; set; } = 0;
 }
