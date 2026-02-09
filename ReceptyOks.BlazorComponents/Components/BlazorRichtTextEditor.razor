@@ -6,15 +6,32 @@
 @implements IAsyncDisposable
 
 <style>
+.blazor-rich-text-editor {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: var(--rte-min-height, 400px);
+}
+
 .blazor-rich-text-editor .ql-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
     max-height: var(--rte-max-height, 400px);
     overflow-y: auto;
 }
+
+.blazor-rich-text-editor .ql-editor {
+    flex: 1;
+    min-height: var(--rte-editor-min-height, 400px);
+}
+
 .blazor-rich-text-editor .ql-toolbar {
     /* keep toolbar visible while the content scrolls */
     position: sticky;
     top: 0;
     z-index: 5;
+    flex-shrink: 0;
 }
 
 /* Keep a thin separator line under the toolbar (restore Quill default look) */
@@ -108,7 +125,8 @@
     width: 10px;
 }
 .blazor-rich-text-editor .ql-container::-webkit-scrollbar-track {
-    background: transparent;
+    /* Make the track subtly visible so the scrollbar is always noticeable */
+    background: rgba(0,0,0,0.06);
 }
 .blazor-rich-text-editor .ql-container::-webkit-scrollbar-thumb {
     background-color: rgba(100,100,100,0.6);
@@ -154,8 +172,8 @@
 
     private string CombinedStyle =>
         string.IsNullOrWhiteSpace(Style)
-            ? $"--rte-max-height:{MaxHeight};"
-            : $"--rte-max-height:{MaxHeight};{Style}";
+   ? $"--rte-max-height:{MaxHeight};--rte-min-height:{MinHeight};--rte-editor-min-height:{EditorMinHeight};"
+     : $"--rte-max-height:{MaxHeight};--rte-min-height:{MinHeight};--rte-editor-min-height:{EditorMinHeight};{Style}";
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -237,7 +255,7 @@
     /// Toolbar configuration options. Defaults to full toolbar.
     /// </summary>
     [Parameter]
-    public ToolbarOptions ToolbarOptions { get; set; } = ToolbarOptions.FullToolbarOptions;
+    public ToolbarOptions ToolbarOptions { get; set; } = ToolbarOptions.FullToolbarOptions with { ShowMathControls = false };
 
     /// <summary>
     /// Placeholder text shown when editor is empty.
@@ -264,6 +282,20 @@
     /// </summary>
     [Parameter]
     public string MaxHeight { get; set; } = "400px";
+
+    /// <summary>
+    /// Minimum height for the entire editor component (e.g. "300px", "100%").
+    /// Use "100%" to fill available space in parent container.
+    /// </summary>
+    [Parameter]
+    public string MinHeight { get; set; } = "300px";
+
+    /// <summary>
+    /// Minimum height for the editor content area (e.g. "250px").
+    /// This ensures the editable area has sufficient height for comfortable editing.
+    /// </summary>
+    [Parameter]
+    public string EditorMinHeight { get; set; } = "250px";
 
     /// <summary>
     /// Whether to use dark theme styling. When true, applies dark theme colors.
