@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Components;
+using ReceptyOks.BlazorComponents.Services;
 using ReceptyOks.ViewModels;
 
 namespace ReceptyOks.Views;
@@ -6,12 +7,14 @@ namespace ReceptyOks.Views;
 public partial class RecipeEditPage : ContentPage
 {
     private readonly RecipeEditViewModel _viewModel;
+    private readonly InstructionsEditorState _editorState;
     private string _currentContent = string.Empty;
 
-    public RecipeEditPage(RecipeEditViewModel viewModel)
+    public RecipeEditPage(RecipeEditViewModel viewModel, InstructionsEditorState editorState)
     {
         InitializeComponent();
         _viewModel = viewModel;
+        _editorState = editorState;
         BindingContext = viewModel;
 
         // Set up Blazor component parameters
@@ -19,6 +22,9 @@ public partial class RecipeEditPage : ContentPage
 
         // Subscribe to ViewModel property changes to update Blazor component
         _viewModel.PropertyChanged += OnViewModelPropertyChanged;
+
+        // Subscribe to state changes coming from the Blazor editor
+        _editorState.ContentChanged += OnEditorStateContentChanged;
 
         // Subscribe to app theme changes
         Application.Current!.RequestedThemeChanged += OnRequestedThemeChanged;
@@ -32,7 +38,7 @@ public partial class RecipeEditPage : ContentPage
         {
             { "Content", _viewModel.Instructions ?? string.Empty },
             { "ContentChanged", EventCallback.Factory.Create<string>(this, OnBlazorContentChanged) },
-            { "Placeholder", "Wprowadü instrukcje przygotowania..." },
+            { "Placeholder", "Wprowad\u01   7a instrukcje przygotowania..." },
             { "IsDarkTheme", IsDarkTheme }
         };
     }
@@ -47,10 +53,16 @@ public partial class RecipeEditPage : ContentPage
     {
         if (e.PropertyName == nameof(RecipeEditViewModel.Instructions))
         {
-            // Update Blazor component when ViewModel's Instructions change
+            // Push content to Blazor via shared state
             _currentContent = _viewModel.Instructions ?? string.Empty;
-            UpdateBlazorEditorContent();
+            _editorState.Content = _currentContent;
         }
+    }
+
+    private void OnEditorStateContentChanged(object? sender, string newContent)
+    {
+        _currentContent = newContent;
+        System.Diagnostics.Debug.WriteLine($"[RecipeEditPage] Editor state content changed, length: {newContent?.Length ?? 0}");
     }
 
     private void UpdateBlazorEditorContent()
@@ -61,7 +73,7 @@ public partial class RecipeEditPage : ContentPage
             {
                 { "Content", _currentContent },
                 { "ContentChanged", EventCallback.Factory.Create<string>(this, OnBlazorContentChanged) },
-                { "Placeholder", "Wprowadü instrukcje przygotowania..." },
+                { "Placeholder", "Wprowad≈∫ instrukcje przygotowania..." },
                 { "IsDarkTheme", IsDarkTheme }
             };
         }
@@ -70,7 +82,6 @@ public partial class RecipeEditPage : ContentPage
     private void OnBlazorContentChanged(string newContent)
     {
         _currentContent = newContent;
-        System.Diagnostics.Debug.WriteLine($"[RecipeEditPage] Blazor content changed, length: {newContent?.Length ?? 0}");
     }
 
     protected override async void OnAppearing()
@@ -78,12 +89,11 @@ public partial class RecipeEditPage : ContentPage
         base.OnAppearing();
         if (BindingContext is RecipeEditViewModel vm)
         {
-            // Zawsze wywo≥aj inicjalizacjÍ przy pojawieniu siÍ strony
-            // InitializeAsync sprawdzi czy juø jest zainicjalizowane
             await vm.InitializeCommand.ExecuteAsync(null);
 
-            // Update Blazor component with initial content after ViewModel initialization
+            // Push initial content to Blazor via shared state
             _currentContent = vm.Instructions ?? string.Empty;
+            _editorState.Content = _currentContent;
             UpdateBlazorEditorContent();
         }
     }
@@ -92,6 +102,7 @@ public partial class RecipeEditPage : ContentPage
     {
         base.OnDisappearing();
         _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
+        _editorState.ContentChanged -= OnEditorStateContentChanged;
 
         if (Application.Current is not null)
         {
@@ -100,7 +111,7 @@ public partial class RecipeEditPage : ContentPage
     }
 
     /// <summary>
-    /// Metoda publiczna do pobierania HTML przed zapisem - wywo≥ywana z ViewModelu
+    /// Metoda publiczna do pobierania HTML przed zapisem - wywo\u0142ywana z ViewModelu
     /// </summary>
     public Task<string> GetInstructionsHtmlAsync()
     {
@@ -110,7 +121,7 @@ public partial class RecipeEditPage : ContentPage
 
     private async void OnSaveClicked(object sender, EventArgs e)
     {
-        // 1. Pobierz HTML z Blazor komponentu (juø zsynchronizowany przez callback)
+        // 1. Pobierz HTML z Blazor komponentu (zsynchronizowany przez state service)
         var html = _currentContent;
 
         // 2. Zapisz do ViewModelu
@@ -118,7 +129,6 @@ public partial class RecipeEditPage : ContentPage
 
         System.Diagnostics.Debug.WriteLine($"[RecipeEditPage] HTML saved: {html}");
 
-        // 3. Wywo≥aj SaveCommand z ViewModelu
         if (_viewModel.SaveCommand.CanExecute(null))
         {
             await _viewModel.SaveCommand.ExecuteAsync(null);
