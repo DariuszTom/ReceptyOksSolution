@@ -182,19 +182,28 @@
     {
         if (firstRender)
         {
-            await ApplyBodyThemeAsync();
             _isInitialized = true;
 
-            // Subscribe to external content changes pushed from MAUI side
+            // Subscribe and signal readiness BEFORE any JS interop —
+            // if the JS call fails, content delivery still works.
             EditorState.ContentChanged += OnExternalContentChanged;
-
-            // Signal readiness so any content queued from MAUI is flushed
             EditorState.SignalReady();
 
-            if (!string.IsNullOrEmpty(EditorState.Content))
+            // Apply theme (non-critical — component works without it)
+            try
+            {
+                await ApplyBodyThemeAsync();
+            }
+            catch
+            {
+                // Android WebView may not have JS ready yet; theme is cosmetic
+            }
+
+            var stateContent = EditorState.Content;
+            if (!string.IsNullOrEmpty(stateContent))
             {
                 _updatingFromState = true;
-                Content = EditorState.Content;
+                Content = stateContent;
                 await InvokeAsync(() =>
                 {
                     _updatingFromState = false;
