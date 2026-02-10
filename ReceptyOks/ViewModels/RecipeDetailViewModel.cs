@@ -1,4 +1,4 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ReceptyOks.Data;
 using System.Collections.ObjectModel;
@@ -36,10 +36,19 @@ public partial class RecipeDetailViewModel(LocalDatabase database) : ObservableO
     [ObservableProperty]
     private bool isIngredientsExpanded = false;
 
+    [ObservableProperty]
+    private bool isInstructionsFullScreen = false;
+
     [RelayCommand]
     private void ToggleIngredients()
     {
         IsIngredientsExpanded = !IsIngredientsExpanded;
+    }
+
+    [RelayCommand]
+    private void ToggleInstructionsFullScreen()
+    {
+        IsInstructionsFullScreen = !IsInstructionsFullScreen;
     }
 
     partial void OnRecipeIdChanged(string value)
