@@ -111,5 +111,32 @@ namespace ReceptyOks_UnitTests.Services
 
             Assert.That(editor.Content, Is.Not.EqualTo(viewer.Content));
         }
+
+        [Test]
+        public void Pause_ThenEmptyContent_ClearsOnSignalReady()
+        {
+            var state = new InstructionsEditorState();
+
+            // Simulate editing Recipe A
+            state.SignalReady();
+            state.Content = "<p>Recipe A instructions</p>";
+            Assert.That(state.Content, Is.EqualTo("<p>Recipe A instructions</p>"));
+
+            // Navigate away - Blazor component disposes
+            state.Pause();
+
+            // Open new recipe (empty instructions)
+            state.Content = string.Empty;
+
+            string? flushed = null;
+            state.ContentChanged += (_, s) => flushed = s;
+
+            // Blazor component re-initializes
+            state.SignalReady();
+
+            // Must flush the empty string and clear old content
+            Assert.That(flushed, Is.EqualTo(string.Empty));
+            Assert.That(state.Content, Is.EqualTo(string.Empty));
+        }
     }
 }
