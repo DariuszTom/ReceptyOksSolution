@@ -9,7 +9,7 @@ public abstract class BlazorContentState
 {
     private readonly object _lock = new();
     private string _content = string.Empty;
-    private string _pendingContent = string.Empty;
+    private string? _pendingContent;
     private bool _isBlazorReady;
 
     /// <summary>
@@ -68,11 +68,11 @@ public abstract class BlazorContentState
         {
             _isBlazorReady = true;
 
-            if (!string.IsNullOrEmpty(_pendingContent))
+            if (_pendingContent is not null)
             {
                 pendingToFlush = _pendingContent;
                 _content = _pendingContent;
-                _pendingContent = string.Empty;
+                _pendingContent = null;
             }
         }
 
@@ -91,8 +91,7 @@ public abstract class BlazorContentState
         {
             _isBlazorReady = false;
 
-            if (string.IsNullOrEmpty(_pendingContent) && !string.IsNullOrEmpty(_content))
-                _pendingContent = _content;
+            _pendingContent ??= _content;
         }
     }
 
@@ -107,7 +106,7 @@ public abstract class BlazorContentState
         {
             _isBlazorReady = false;
             _content = string.Empty;
-            _pendingContent = string.Empty;
+            _pendingContent = null;
         }
     }
 }
