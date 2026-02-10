@@ -17,37 +17,18 @@
 </head>
 <body>
     <div id="app"><div id="app-loading">Ładowanie...</div></div>
-    <script src="_framework/blazor.webview.js" autostart="false"></script>
+    <script src="_framework/blazor.webview.js"></script>
     <script>
-        (function startBlazor() {
-            var maxRetries = 3, attempt = 0;
-            function tryStart() {
-                attempt++;
-                if (typeof Blazor !== 'undefined' && Blazor.start) {
-                    Blazor.start().catch(function(err) {
-                        if (attempt < maxRetries) {
-                            setTimeout(tryStart, 500 * attempt);
-                        } else {
-                            showError(err);
-                        }
-                    });
-                } else if (attempt < maxRetries) {
-                    setTimeout(tryStart, 300 * attempt);
-                } else {
-                    showError('Blazor runtime not available');
-                }
+        // Detect if Blazor failed to initialize after a generous timeout
+        setTimeout(function() {
+            var el = document.getElementById('app-loading');
+            if (el) {
+                el.className = 'error';
+                el.innerHTML = '<div>Nie udało się załadować edytora</div>'
+                    + '<button class="retry-btn" onclick="location.reload()">Spróbuj ponownie</button>';
+                console.error('Blazor did not initialize within timeout');
             }
-            function showError(err) {
-                var el = document.getElementById('app-loading');
-                if (el) {
-                    el.className = 'error';
-                    el.innerHTML = '<div>Nie udało się załadować edytora</div>'
-                        + '<button class="retry-btn" onclick="location.reload()">Spróbuj ponownie</button>';
-                }
-                console.error('Blazor init failed:', err);
-            }
-            tryStart();
-        })();
+        }, 4000);
     </script>
 </body>
 </html>
