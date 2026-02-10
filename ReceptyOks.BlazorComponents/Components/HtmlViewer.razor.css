@@ -1,3 +1,12 @@
+/* Let the native Android WebView handle scrolling.
+   Do NOT set overflow:hidden on html/body — that blocks
+   the WebView's built-in scroll when content exceeds
+   the MAUI HeightRequest constraint. */
+html, body {
+  margin: 0;
+  padding: 0;
+}
+
 :root {
   --bg-color: #ffffff;
   --fg-color: #222222;
@@ -25,11 +34,17 @@
   background-color: var(--bg-color);
   color: var(--fg-color);
   box-sizing: border-box;
-  min-height: 100%;
 }
 
 .html-viewer-content {
   color: var(--fg-color);
+}
+
+/* Match Quill editor line spacing — Quill outputs <p> tags with zero
+   margins; without this the browser default (1em) creates large gaps. *//
+.html-viewer-content p {
+  margin: 0;
+  padding: 0;
 }
 
 .html-viewer-content img {
