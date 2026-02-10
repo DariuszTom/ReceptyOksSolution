@@ -228,8 +228,8 @@
     public async ValueTask DisposeAsync()
     {
         EditorState.ContentChanged -= OnExternalContentChanged;
-        // Reset editor state so next editor instance starts fresh
-        EditorState.Reset();
+        // Pause delivery — content is preserved for the next component instance
+        EditorState.Pause();
 
         // Clean up theme classes when component is disposed
         try
@@ -249,7 +249,11 @@
     {
         _updatingFromState = true;
         Content = newContent;
-        InvokeAsync(StateHasChanged);
+        InvokeAsync(() =>
+        {
+            StateHasChanged();
+            _updatingFromState = false;
+        });
     }
 
     /// <summary>
