@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.WebView;
 using ReceptyOks.BlazorComponents.Services;
 using ReceptyOks.ViewModels;
 
@@ -9,6 +10,7 @@ public partial class RecipeEditPage : ContentPage
     private readonly RecipeEditViewModel _viewModel;
     private readonly InstructionsEditorState _editorState;
     private string _currentContent = string.Empty;
+    private bool _isBlazorInitialized;
 
     public RecipeEditPage(RecipeEditViewModel viewModel, InstructionsEditorState editorState)
     {
@@ -83,6 +85,14 @@ public partial class RecipeEditPage : ContentPage
         _currentContent = newContent;
     }
 
+    private void OnBlazorWebViewInitialized(object? sender, BlazorWebViewInitializedEventArgs e)
+    {
+        _isBlazorInitialized = true;
+        _currentContent = _viewModel.Instructions ?? string.Empty;
+        _editorState.Content = _currentContent;
+        MainThread.BeginInvokeOnMainThread(UpdateBlazorEditorContent);
+    }
+
     protected override async void OnAppearing()
     {
         base.OnAppearing();
@@ -90,15 +100,15 @@ public partial class RecipeEditPage : ContentPage
         {
             await vm.InitializeCommand.ExecuteAsync(null);
 
-            // Defer content update to give BlazorWebView time to initialize
-            // This helps avoid the race condition on Android where the component
-            // may not be ready when the page appears
-            Dispatcher.DispatchDelayed(TimeSpan.FromMilliseconds(100), () =>
-               {
-                   _currentContent = vm.Instructions ?? string.Empty;
-                   _editorState.Content = _currentContent;
-                   UpdateBlazorEditorContent();
-               });
+            // Set content immediately — state queues it until Blazor signals ready.
+            // OnBlazorWebViewInitialized handles the actual delivery timing.
+            _currentContent = vm.Instructions ?? string.Empty;
+            _editorState.Content = _currentContent;
+
+            if (_isBlazorInitialized)
+            {
+                UpdateBlazorEditorContent();
+            }
         }
     }
 
@@ -107,6 +117,7 @@ public partial class RecipeEditPage : ContentPage
         base.OnDisappearing();
         _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
         _editorState.ContentChanged -= OnEditorStateContentChanged;
+        _isBlazorInitialized = false;
 
         if (Application.Current is not null)
         {
