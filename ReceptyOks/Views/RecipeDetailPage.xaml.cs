@@ -54,6 +54,18 @@ public partial class RecipeDetailPage : ContentPage
     private void OnBlazorWebViewInitialized(object? sender, BlazorWebViewInitializedEventArgs e)
     {
         _isBlazorInitialized = true;
+
+#if ANDROID
+        // Prevent the parent ScrollView from intercepting vertical touch events
+        // so the Android WebView can scroll its own content.
+        var androidWebView = e.WebView;
+        androidWebView.Touch += (s, args) =>
+        {
+            androidWebView.Parent?.RequestDisallowInterceptTouchEvent(true);
+            args.Handled = false;
+        };
+#endif
+
         UpdateInstructionsHtml();
     }
 
@@ -68,11 +80,31 @@ public partial class RecipeDetailPage : ContentPage
         });
     }
 
+    private const double DefaultViewerHeight = 450;
+
     private void OnViewModelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(_viewModel.Recipe) && _isBlazorInitialized)
         {
             UpdateInstructionsHtml();
+        }
+        else if (e.PropertyName == nameof(_viewModel.IsInstructionsFullScreen))
+        {
+            MainThread.BeginInvokeOnMainThread(UpdateViewerHeight);
+        }
+    }
+
+    private void UpdateViewerHeight()
+    {
+        if (_viewModel.IsInstructionsFullScreen)
+        {
+            // Fill available page height, leaving room for the header row (~70px)
+            var availableHeight = this.Height - 70;
+            InstructionsBorder.HeightRequest = availableHeight > DefaultViewerHeight ? availableHeight : DefaultViewerHeight;
+        }
+        else
+        {
+            InstructionsBorder.HeightRequest = DefaultViewerHeight;
         }
     }
 
