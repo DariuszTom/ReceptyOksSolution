@@ -87,7 +87,6 @@ public partial class ShopingListViewModel : ObservableObject
                     Items.Add(item);
                 }
                 UpdateBadgeCount();
-                _logger.LogInformation("Added {Count} items to shopping list", result.Data.Count);
             }
             else
             {
@@ -137,7 +136,6 @@ public partial class ShopingListViewModel : ObservableObject
         catch (OperationCanceledException)
         {
             // Request was cancelled (e.g., user triggered refresh again), ignore
-            _logger.LogDebug("Load shopping list operation was cancelled");
         }
         catch (Exception ex)
         {
@@ -283,7 +281,6 @@ public partial class ShopingListViewModel : ObservableObject
             {
                 Items.Remove(item);
                 UpdateBadgeCount();
-                _logger.LogInformation("Deleted shopping list item: {Name}", item.Name);
             }
             else
             {

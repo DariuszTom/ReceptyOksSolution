@@ -162,8 +162,6 @@ public partial class RandomRecipeViewModel(LocalDatabase database, ILogger<Rando
             {
                 RecipeImage = ImageSource.FromStream(() => new MemoryStream(RandomRecipe.Image));
             }
-
-            _logger.LogInformation("Randomly selected recipe: {RecipeTitle}", RandomRecipe.Title);
         }
         catch (Exception ex)
         {

@@ -64,7 +64,6 @@ public partial class RecipesViewModel : ObservableObject
         try
         {
             IsSyncing = true;
-            _logger.LogInformation("Starting recipe synchronization");
 
             var result = await _syncService.SyncAsync();
 

@@ -62,7 +62,6 @@ public partial class RecipeEditPage : ContentPage
     private void OnEditorStateContentChanged(object? sender, string newContent)
     {
         _currentContent = newContent;
-        System.Diagnostics.Debug.WriteLine($"[RecipeEditPage] Editor state content changed, length: {newContent?.Length ?? 0}");
     }
 
     private void UpdateBlazorEditorContent()
@@ -89,17 +88,17 @@ public partial class RecipeEditPage : ContentPage
         base.OnAppearing();
         if (BindingContext is RecipeEditViewModel vm)
         {
-     await vm.InitializeCommand.ExecuteAsync(null);
+            await vm.InitializeCommand.ExecuteAsync(null);
 
             // Defer content update to give BlazorWebView time to initialize
-       // This helps avoid the race condition on Android where the component
+            // This helps avoid the race condition on Android where the component
             // may not be ready when the page appears
-  Dispatcher.DispatchDelayed(TimeSpan.FromMilliseconds(100), () =>
-     {
-    _currentContent = vm.Instructions ?? string.Empty;
-                _editorState.Content = _currentContent;
- UpdateBlazorEditorContent();
-            });
+            Dispatcher.DispatchDelayed(TimeSpan.FromMilliseconds(100), () =>
+               {
+                   _currentContent = vm.Instructions ?? string.Empty;
+                   _editorState.Content = _currentContent;
+                   UpdateBlazorEditorContent();
+               });
         }
     }
 
@@ -120,19 +119,13 @@ public partial class RecipeEditPage : ContentPage
     /// </summary>
     public Task<string> GetInstructionsHtmlAsync()
     {
-        System.Diagnostics.Debug.WriteLine($"[RecipeEditPage] HTML retrieved: {_currentContent}");
         return Task.FromResult(_currentContent);
     }
 
     private async void OnSaveClicked(object sender, EventArgs e)
     {
-        // 1. Pobierz HTML z Blazor komponentu (zsynchronizowany przez state service)
         var html = _currentContent;
-
-        // 2. Zapisz do ViewModelu
         _viewModel.Instructions = html;
-
-        System.Diagnostics.Debug.WriteLine($"[RecipeEditPage] HTML saved: {html}");
 
         if (_viewModel.SaveCommand.CanExecute(null))
         {

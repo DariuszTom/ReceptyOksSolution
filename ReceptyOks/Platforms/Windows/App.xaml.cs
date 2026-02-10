@@ -22,7 +22,6 @@ public partial class App : MauiWinUIApplication
             System.Diagnostics.Debug.WriteLine($"UNHANDLED EXCEPTION: {e.Message}");
             System.Diagnostics.Debug.WriteLine($"Exception Type: {e.Exception?.GetType().FullName}");
             System.Diagnostics.Debug.WriteLine($"Stack Trace: {e.Exception?.StackTrace}");
-
         };
     }
 

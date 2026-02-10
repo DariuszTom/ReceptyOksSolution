@@ -91,8 +91,6 @@ public partial class ChatBotViewModel : ObservableObject
 
         try
         {
-            _logger.Information("Initializing AI agent...");
-
             // Get API token from backend
             var tokenResponse = await _tokenProvider.GetTokenAsync(cancellationToken).ConfigureAwait(false);
             if (tokenResponse is null || string.IsNullOrWhiteSpace(tokenResponse.Token))
@@ -118,7 +116,6 @@ public partial class ChatBotViewModel : ObservableObject
             // Register tools
             _toolsRegistrar.RegisterTools(_agent);
 
-            _logger.Information("AI agent initialized successfully");
         }
         catch (Exception ex)
         {
@@ -173,7 +170,6 @@ public partial class ChatBotViewModel : ObservableObject
         }
         catch (OperationCanceledException)
         {
-            _logger.Information("Chat message sending was cancelled");
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
                 if (string.IsNullOrEmpty(assistantMessage.Content))
@@ -226,7 +222,6 @@ public partial class ChatBotViewModel : ObservableObject
         _currentConversationId = null;
         HasError = false;
         ErrorMessage = string.Empty;
-        _logger.Information("Conversation cleared");
     }
 
     /// <summary>
@@ -330,7 +325,6 @@ public partial class ChatBotViewModel : ObservableObject
                          Messages.Add(new ChatMessageViewModel($"[Załadowano rozmowę: {item.Title}]", isUser: false));
                      });
 
-            _logger.Information("Loaded conversation {Id}", item.Id);
         }
         catch (Exception ex)
         {

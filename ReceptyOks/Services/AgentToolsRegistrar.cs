@@ -50,14 +50,12 @@ public class AgentToolsRegistrar
         agent.AddToolAsync<string, string>(AddRecipeToDBAsync,
           "add_recipe", "Adds a new recipe to the database. Parameter: recipeJson - JSON string containing recipe details (Title, Description, Instructions, PreparationTimeMinutes, CookingTimeMinutes, Servings, CategoryId, Ingredients array with Name, Quantity, Unit).");
 
-        _logger.Information("Registered {ToolCount} AI agent tools for database queries", agent.Tools.Count);
     }
     public void RegisterToolsForShopingList(AiAgent agent)
     {
         ArgumentNullException.ThrowIfNull(agent);
         agent.AddToolAsync<List<Guid>, string>(GetAllIngredientsAsyncForRecipes,
             "get_all_ingredients_for_recipes", "Parameter: List of recipeId strings (GUIDs).");
-        _logger.Information("Registered shopping list generation tool for AI agent");
     }
 
     private async Task<string> GetAllIngredientsAsyncForRecipes(List<Guid> list)
