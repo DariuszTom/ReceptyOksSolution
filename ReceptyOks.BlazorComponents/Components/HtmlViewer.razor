@@ -7,7 +7,7 @@
 <div class="html-viewer-container @ThemeClass" style="@ContainerStyle">
     @if (string.IsNullOrEmpty(_displayContent))
     {
-        <span class="empty-placeholder">Brak zawarto�ci</span>
+        <span class="empty-placeholder">Brak zawartości</span>
     }
     else
     {
@@ -19,7 +19,6 @@
 
 @code {
     private string _displayContent = string.Empty;
-    private bool _isInitialized;
 
     /// <summary>
     /// HTML content to display (e.g., recipe instructions).
@@ -65,7 +64,7 @@
 
     protected override void OnInitialized()
     {
-  // Subscribe to external content changes pushed from MAUI side
+        // Subscribe to external content changes pushed from MAUI side
         ViewerState.ContentChanged += OnExternalContentChanged;
 
         // Initialize display content from parameter if provided
@@ -76,32 +75,21 @@
     }
 
     protected override void OnAfterRender(bool firstRender)
-  {
+    {
         if (firstRender)
         {
-       _isInitialized = true;
+            // Signal to MAUI side that Blazor component is ready
+            // This will flush any pending content that was set before initialization
+            ViewerState.SignalReady();
 
-  // Signal to MAUI side that Blazor component is ready
-     // This will flush any pending content that was set before initialization
-  ViewerState.SignalReady();
-
-    // Update display with current state content after signaling ready
-            if (!string.IsNullOrEmpty(ViewerState.Content) && _displayContent != ViewerState.Content)
-     {
-    _displayContent = ViewerState.Content;
-           StateHasChanged();
-         }
-        // Fallback: sometimes the flush may arrive slightly later; check again after a short delay
-        InvokeAsync(async () =>
-        {
-            await Task.Delay(50);
-            if (!string.IsNullOrEmpty(ViewerState.Content) && _displayContent != ViewerState.Content)
+            // After SignalReady, the state content is authoritative
+            var stateContent = ViewerState.Content;
+            if (!string.IsNullOrEmpty(stateContent) && _displayContent != stateContent)
             {
-                _displayContent = ViewerState.Content;
-                StateHasChanged();
+                _displayContent = stateContent;
+                InvokeAsync(StateHasChanged);
             }
-        });
-     }
+        }
     }
 
     protected override void OnParametersSet()
@@ -122,8 +110,8 @@
     public void Dispose()
     {
         ViewerState.ContentChanged -= OnExternalContentChanged;
-        // Reset state when component is disposed so next instance starts fresh
-        ViewerState.Reset();
+        // Pause delivery — content is preserved for the next component instance
+        ViewerState.Pause();
     }
 
     private string BuildContainerStyle()
