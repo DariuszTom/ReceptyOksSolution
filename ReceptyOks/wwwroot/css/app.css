@@ -30,13 +30,18 @@ body.theme-light {
     display: flex;
     flex-direction: column;
     background-color: inherit;
+    overflow: hidden;
 }
 
-/* Provide fallback theme variables for the HtmlViewer container so
-   global selectors that use var(--text-color) have a defined value. */
-.html-viewer-container {
+/* Theme variables for HtmlViewer — driven by IsDarkTheme parameter */
+.html-viewer-container.theme-dark {
     --text-color: #e0e0e0;
     --bg-color: #1e1e1e;
+}
+
+.html-viewer-container.theme-light {
+    --text-color: #222222;
+    --bg-color: #ffffff;
 }
 
 .blazor-rich-text-editor {
@@ -99,4 +104,6 @@ body.theme-light {
    the container fills the area */
 .html-viewer-container {
     background-color: var(--bg-color) !important;
+    height: 100%;
+    box-sizing: border-box;
 }
