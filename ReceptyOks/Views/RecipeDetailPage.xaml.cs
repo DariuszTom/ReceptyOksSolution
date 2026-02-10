@@ -31,7 +31,7 @@ public partial class RecipeDetailPage : ContentPage
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
-        // Reset Blazor initialization flag so next visit waits for proper init
+        _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
         _isBlazorInitialized = false;
     }
 
