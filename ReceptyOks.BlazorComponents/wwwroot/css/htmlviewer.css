@@ -1,3 +1,17 @@
+/* Height chain: html > body > #app > container must all be constrained
+   so overflow-y works inside Android WebView */
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+#app {
+  height: 100%;
+  overflow: hidden;
+}
+
 :root {
   --bg-color: #ffffff;
   --fg-color: #222222;
@@ -10,15 +24,29 @@
   }
 }
 
-.html-viewer {
-  background-color: var(--bg-color);
-  color: var(--fg-color);
-  padding: 16px;
-  box-sizing: border-box;
-  min-height: 100%;
+/* Theme classes driven by IsDarkTheme parameter from MAUI */
+.html-viewer-container.theme-light {
+  --bg-color: #ffffff;
+  --fg-color: #222222;
 }
 
-.html-viewer img {
+.html-viewer-container.theme-dark {
+  --bg-color: #0f0f10;
+  --fg-color: #e6e6e6;
+}
+
+.html-viewer-container {
+  background-color: var(--bg-color);
+  color: var(--fg-color);
+  box-sizing: border-box;
+  height: 100%;
+}
+
+.html-viewer-content {
+  color: var(--fg-color);
+}
+
+.html-viewer-content img {
   max-width: 100%;
   height: auto;
 }
