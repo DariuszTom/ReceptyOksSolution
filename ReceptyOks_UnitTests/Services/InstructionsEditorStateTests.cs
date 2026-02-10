@@ -56,5 +56,60 @@ namespace ReceptyOks_UnitTests.Services
             state.Content = "queued";
             Assert.That(state.Content, Is.EqualTo(string.Empty));
         }
+
+        [Test]
+        public void Pause_PreservesContentForNextSignalReady()
+        {
+            var state = new InstructionsEditorState();
+
+            state.SignalReady();
+            state.Content = "<p>hello</p>";
+
+            // Pause keeps content available for the next Blazor instance
+            state.Pause();
+            Assert.That(state.IsBlazorReady, Is.False);
+
+            string? flushed = null;
+            state.ContentChanged += (_, s) => flushed = s;
+
+            // Next SignalReady should re-deliver the preserved content
+            state.SignalReady();
+            Assert.That(flushed, Is.EqualTo("<p>hello</p>"));
+        }
+
+        [Test]
+        public void Pause_ThenNewContent_DeliversNewContentOnSignalReady()
+        {
+            var state = new InstructionsEditorState();
+
+            state.SignalReady();
+            state.Content = "old";
+            state.Pause();
+
+            // MAUI side sets new content while Blazor is re-creating
+            state.Content = "new recipe";
+
+            string? flushed = null;
+            state.ContentChanged += (_, s) => flushed = s;
+
+            state.SignalReady();
+            Assert.That(flushed, Is.EqualTo("new recipe"));
+            Assert.That(state.Content, Is.EqualTo("new recipe"));
+        }
+
+        [Test]
+        public void TwoSubclasses_AreIndependent()
+        {
+            var editor = new InstructionsEditorState();
+            var viewer = new HtmlViewerState();
+
+            editor.SignalReady();
+            viewer.SignalReady();
+
+            editor.Content = "editor content";
+            viewer.Content = "viewer content";
+
+            Assert.That(editor.Content, Is.Not.EqualTo(viewer.Content));
+        }
     }
 }
