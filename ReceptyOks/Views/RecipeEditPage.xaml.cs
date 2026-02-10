@@ -51,6 +51,8 @@ public partial class RecipeEditPage : ContentPage
         MainThread.BeginInvokeOnMainThread(UpdateBlazorEditorContent);
     }
 
+    private const double DefaultEditorHeight = 400;
+
     private void OnViewModelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(RecipeEditViewModel.Instructions))
@@ -58,6 +60,24 @@ public partial class RecipeEditPage : ContentPage
             // Push content to Blazor via shared state
             _currentContent = _viewModel.Instructions ?? string.Empty;
             _editorState.Content = _currentContent;
+        }
+        else if (e.PropertyName == nameof(RecipeEditViewModel.IsEditorFullScreen))
+        {
+            MainThread.BeginInvokeOnMainThread(UpdateEditorHeight);
+        }
+    }
+
+    private void UpdateEditorHeight()
+    {
+        if (_viewModel.IsEditorFullScreen)
+        {
+            // Fill available page height, leaving room for the header row (~70px)
+            var availableHeight = this.Height - 70;
+            EditorBorder.HeightRequest = availableHeight > DefaultEditorHeight ? availableHeight : DefaultEditorHeight;
+        }
+        else
+        {
+            EditorBorder.HeightRequest = DefaultEditorHeight;
         }
     }
 
@@ -90,6 +110,18 @@ public partial class RecipeEditPage : ContentPage
         _isBlazorInitialized = true;
         _currentContent = _viewModel.Instructions ?? string.Empty;
         _editorState.Content = _currentContent;
+
+#if ANDROID
+        // Prevent the parent ScrollView from intercepting vertical touch events
+        // so the Android WebView can scroll its own content.
+        var androidWebView = e.WebView;
+        androidWebView.Touch += (s, args) =>
+        {
+            androidWebView.Parent?.RequestDisallowInterceptTouchEvent(true);
+            args.Handled = false;
+        };
+#endif
+
         MainThread.BeginInvokeOnMainThread(UpdateBlazorEditorContent);
     }
 
