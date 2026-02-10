@@ -18,7 +18,8 @@
         <ScrollView Grid.RowSpan="2">
             <VerticalStackLayout Spacing="0">
                 <!-- Hero Image Area -->
-                <Grid HeightRequest="280">
+                <Grid HeightRequest="280"
+                      IsVisible="{Binding IsInstructionsFullScreen, Converter={StaticResource InvertedBoolConverter}}">
                     <Border StrokeThickness="0"
                             BackgroundColor="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray600}}">
                         <Image Source="{Binding RecipeImage}"
@@ -87,7 +88,8 @@
                     <VerticalStackLayout Spacing="20" Padding="20,24,20,32">
 
                         <!-- Title and Category -->
-                        <VerticalStackLayout Spacing="12">
+                        <VerticalStackLayout Spacing="12"
+                                             IsVisible="{Binding IsInstructionsFullScreen, Converter={StaticResource InvertedBoolConverter}}">
                             <Label Text="{Binding Recipe.Title}"
                                    FontSize="26"
                                    FontAttributes="Bold"
@@ -124,7 +126,8 @@
                         </VerticalStackLayout>
 
                         <!-- Quick Stats -->
-                        <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
+                        <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8"
+                              IsVisible="{Binding IsInstructionsFullScreen, Converter={StaticResource InvertedBoolConverter}}">
                             <Border Grid.Column="0"
                                     StrokeThickness="0"
                                     StrokeShape="RoundRectangle 16"
@@ -199,7 +202,8 @@
                         </Grid>
 
                         <!-- Składniki Section -->
-                        <VerticalStackLayout Spacing="14">
+                        <VerticalStackLayout Spacing="14"
+                                             IsVisible="{Binding IsInstructionsFullScreen, Converter={StaticResource InvertedBoolConverter}}">
                             <Border Padding="0"
                                     StrokeThickness="0"
                                     BackgroundColor="Transparent">
@@ -279,7 +283,7 @@
 
                         <!-- Instrukcje Section -->
                         <VerticalStackLayout Spacing="14">
-                            <HorizontalStackLayout Spacing="10">
+                            <Grid ColumnDefinitions="Auto,Auto,*,Auto">
                                 <Border BackgroundColor="{StaticResource Primary}"
                                         StrokeThickness="0"
                                         StrokeShape="RoundRectangle 10"
@@ -294,16 +298,46 @@
                                         </Image.Source>
                                     </Image>
                                 </Border>
-                                <Label Text="Przygotowanie" FontSize="20" FontAttributes="Bold" VerticalOptions="Center"
+                                <Label Grid.Column="1" Text="Przygotowanie" FontSize="20" FontAttributes="Bold" VerticalOptions="Center" Margin="10,0,0,0"
                                        TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"/>
-                            </HorizontalStackLayout>
+                                <Border Grid.Column="3"
+                                        StrokeThickness="0"
+                                        StrokeShape="RoundRectangle 18"
+                                        HeightRequest="36"
+                                        WidthRequest="36"
+                                        BackgroundColor="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray600}}">
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer Command="{Binding ToggleInstructionsFullScreenCommand}"/>
+                                    </Border.GestureRecognizers>
+                                    <Image HeightRequest="20" WidthRequest="20" HorizontalOptions="Center" VerticalOptions="Center">
+                                        <Image.Source>
+                                            <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Fullscreen}"
+                                                             FontFamily="MaterialSymbolsOutlined"
+                                                             Color="{StaticResource Primary}"
+                                                             Size="20"/>
+                                        </Image.Source>
+                                        <Image.Triggers>
+                                            <DataTrigger TargetType="Image" Binding="{Binding IsInstructionsFullScreen}" Value="True">
+                                                <Setter Property="Source">
+                                                    <Setter.Value>
+                                                        <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Fullscreen_exit}"
+                                                                         FontFamily="MaterialSymbolsOutlined"
+                                                                         Color="{StaticResource Primary}"
+                                                                         Size="20"/>
+                                                    </Setter.Value>
+                                                </Setter>
+                                            </DataTrigger>
+                                        </Image.Triggers>
+                                    </Image>
+                                </Border>
+                            </Grid>
 
-                                  <Border Padding="0" StrokeThickness="0"
+                                  <Border x:Name="InstructionsBorder" Padding="0" StrokeThickness="0"
                                          StrokeShape="RoundRectangle 12"
                                          HeightRequest="450"
                                          BackgroundColor="{StaticResource Gray900}">
                                         <blazor:BlazorWebView x:Name="InstructionsWebView"
-                                                              HostPage="wwwroot/index.html"
+                                                              HostPage="wwwroot/viewer.html"
                                                               BlazorWebViewInitialized="OnBlazorWebViewInitialized">
                                             <blazor:BlazorWebView.RootComponents>
                                                 <blazor:RootComponent Selector="#app"
@@ -322,7 +356,8 @@
         <!-- Floating header with back button -->
         <Grid Grid.Row="0"
               Padding="12,12"
-              ColumnDefinitions="Auto,*,Auto,Auto">
+              ColumnDefinitions="Auto,*,Auto,Auto"
+              IsVisible="{Binding IsInstructionsFullScreen, Converter={StaticResource InvertedBoolConverter}}">
             <!-- Back button -->
             <Border StrokeThickness="0"
                     StrokeShape="RoundRectangle 22"
