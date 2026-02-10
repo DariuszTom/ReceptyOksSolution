@@ -298,17 +298,20 @@
                                        TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"/>
                             </HorizontalStackLayout>
 
-                            <Border Padding="0" StrokeThickness="0"
-                                     StrokeShape="RoundRectangle 12" MinimumHeightRequest="450" BackgroundColor="{StaticResource Gray900}">
-                                <blazor:BlazorWebView x:Name="InstructionsWebView" HostPage="wwwroot/index.html" MinimumHeightRequest="500">
-                                    <blazor:BlazorWebView.RootComponents>
-                                        <blazor:RootComponent Selector="#app"
-                                            x:Name="InstructionsRoot"
-                                            ComponentType="{x:Type blazorComponents:HtmlViewer}">
+                                  <Border Padding="0" StrokeThickness="0"
+                               StrokeShape="RoundRectangle 12" MinimumHeightRequest="450" BackgroundColor="{StaticResource Gray900}">
+                                    <blazor:BlazorWebView x:Name="InstructionsWebView" 
+                                   HostPage="wwwroot/index.html" 
+                                     MinimumHeightRequest="500"
+                            BlazorWebViewInitialized="OnBlazorWebViewInitialized">
+                               <blazor:BlazorWebView.RootComponents>
+                            <blazor:RootComponent Selector="#app"
+                                  x:Name="InstructionsRoot"
+                                      ComponentType="{x:Type blazorComponents:HtmlViewer}">
                                         </blazor:RootComponent>
-                                    </blazor:BlazorWebView.RootComponents>
-                                </blazor:BlazorWebView>
-                            </Border>
+                                       </blazor:BlazorWebView.RootComponents>
+                             </blazor:BlazorWebView>
+                                 </Border>
                         </VerticalStackLayout>
 
                     </VerticalStackLayout>

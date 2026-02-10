@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Components.WebView;
 using ReceptyOks.BlazorComponents.Services;
 using ReceptyOks.ViewModels;
 
@@ -7,6 +8,7 @@ public partial class RecipeDetailPage : ContentPage
 {
     private readonly RecipeDetailViewModel _viewModel;
     private readonly HtmlViewerState _viewerState;
+    private bool _isBlazorInitialized;
 
     public RecipeDetailPage(RecipeDetailViewModel viewModel, HtmlViewerState viewerState)
     {
@@ -22,15 +24,27 @@ public partial class RecipeDetailPage : ContentPage
     protected override void OnAppearing()
     {
         base.OnAppearing();
-        // Defer content update to give BlazorWebView time to initialize
-        // This helps avoid the race condition on Android where the component
-        // may not be ready when the page constructor runs
-        Dispatcher.DispatchDelayed(TimeSpan.FromMilliseconds(100), UpdateInstructionsHtml);
+        // Always update content - it will be queued if Blazor isn't ready yet
+        UpdateInstructionsHtml();
+    }
+
+    protected override void OnDisappearing()
+    {
+        base.OnDisappearing();
+        // Reset Blazor initialization flag so next visit waits for proper init
+        _isBlazorInitialized = false;
+    }
+
+    private void OnBlazorWebViewInitialized(object? sender, BlazorWebViewInitializedEventArgs e)
+    {
+        _isBlazorInitialized = true;
+        // Now that Blazor is ready, push content to the component
+        UpdateInstructionsHtml();
     }
 
     private void OnViewModelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(_viewModel.Recipe))
+        if (e.PropertyName == nameof(_viewModel.Recipe) && _isBlazorInitialized)
         {
             UpdateInstructionsHtml();
         }
@@ -38,9 +52,12 @@ public partial class RecipeDetailPage : ContentPage
 
     private void UpdateInstructionsHtml()
     {
+        var html = _viewModel.Recipe?.Instructions ?? string.Empty;
+
         MainThread.BeginInvokeOnMainThread(() =>
         {
-            _viewerState.Content = _viewModel.Recipe?.Instructions ?? string.Empty;
+            // Always set content; HtmlViewerState will queue it until Blazor signals ready
+            _viewerState.Content = html;
         });
     }
 }

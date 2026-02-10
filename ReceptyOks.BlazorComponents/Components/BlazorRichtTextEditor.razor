@@ -188,11 +188,18 @@
             // Subscribe to external content changes pushed from MAUI side
             EditorState.ContentChanged += OnExternalContentChanged;
 
-            // Load any content that was set before the component rendered
+            // Signal readiness so any content queued from MAUI is flushed
+            EditorState.SignalReady();
+
             if (!string.IsNullOrEmpty(EditorState.Content))
             {
+                _updatingFromState = true;
                 Content = EditorState.Content;
-                StateHasChanged();
+                await InvokeAsync(() =>
+                {
+                    _updatingFromState = false;
+                    StateHasChanged();
+                });
             }
         }
     }
@@ -221,6 +228,8 @@
     public async ValueTask DisposeAsync()
     {
         EditorState.ContentChanged -= OnExternalContentChanged;
+        // Reset editor state so next editor instance starts fresh
+        EditorState.Reset();
 
         // Clean up theme classes when component is disposed
         try
@@ -349,7 +358,6 @@
             await PlainTextChanged.InvokeAsync(_plainText);
         }
     }
-
     private void Recover()
     {
         _errorBoundary?.Recover();

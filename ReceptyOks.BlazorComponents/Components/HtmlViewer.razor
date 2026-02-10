@@ -64,35 +64,52 @@
     private string ContainerStyle => BuildContainerStyle();
 
     protected override void OnInitialized()
-{
-   // Subscribe to external content changes pushed from MAUI side
+    {
+  // Subscribe to external content changes pushed from MAUI side
         ViewerState.ContentChanged += OnExternalContentChanged;
 
-        // Initialize display content from state if available, otherwise from parameter
-        _displayContent = !string.IsNullOrEmpty(ViewerState.Content) ? ViewerState.Content : HtmlContent;
+        // Initialize display content from parameter if provided
+        if (!string.IsNullOrEmpty(HtmlContent))
+        {
+            _displayContent = HtmlContent;
+        }
     }
 
     protected override void OnAfterRender(bool firstRender)
-    {
+  {
         if (firstRender)
-    {
-         _isInitialized = true;
-     // Re-check content from state after first render in case it was set during initialization race
-          var currentContent = !string.IsNullOrEmpty(ViewerState.Content) ? ViewerState.Content : HtmlContent;
-    if (_displayContent != currentContent)
+        {
+       _isInitialized = true;
+
+  // Signal to MAUI side that Blazor component is ready
+     // This will flush any pending content that was set before initialization
+  ViewerState.SignalReady();
+
+    // Update display with current state content after signaling ready
+            if (!string.IsNullOrEmpty(ViewerState.Content) && _displayContent != ViewerState.Content)
+     {
+    _displayContent = ViewerState.Content;
+           StateHasChanged();
+         }
+        // Fallback: sometimes the flush may arrive slightly later; check again after a short delay
+        InvokeAsync(async () =>
+        {
+            await Task.Delay(50);
+            if (!string.IsNullOrEmpty(ViewerState.Content) && _displayContent != ViewerState.Content)
             {
-   _displayContent = currentContent;
-       StateHasChanged();
+                _displayContent = ViewerState.Content;
+                StateHasChanged();
             }
-  }
- }
+        });
+     }
+    }
 
     protected override void OnParametersSet()
     {
-   // If HtmlContent parameter is set and state is empty, use parameter
+        // If HtmlContent parameter is set and state is empty, use parameter
         if (!string.IsNullOrEmpty(HtmlContent) && string.IsNullOrEmpty(ViewerState.Content))
         {
-     _displayContent = HtmlContent;
+            _displayContent = HtmlContent;
         }
   }
 
@@ -105,6 +122,8 @@
     public void Dispose()
     {
         ViewerState.ContentChanged -= OnExternalContentChanged;
+        // Reset state when component is disposed so next instance starts fresh
+        ViewerState.Reset();
     }
 
     private string BuildContainerStyle()
