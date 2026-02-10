@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <base href="/" />
+    <title>ReceptyOks Editor</title>
+    <!-- RichTextEditor styles from Blazor component library -->
+    <link href="_content/Spillgebees.Blazor.RichTextEditor/Spillgebees.Blazor.RichTextEditor.lib.module.css" rel="stylesheet" />
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: #1e1e1e;
+            color: #e0e0e0;
+            /* No overflow:hidden — let the WebView scroll natively on Android */
+        }
+
+        html.theme-dark, body.theme-dark { background-color: #1e1e1e; color: #e0e0e0; }
+        html.theme-light, body.theme-light { background-color: #ffffff; color: #212121; }
+
+        #app {
+            height: 100%;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            background-color: inherit;
+        }
+
+        #app-loading { display:flex; align-items:center; justify-content:center; height:100vh; font-family:sans-serif; color:#888; }
+        #app-loading.error { color:#c00; flex-direction:column; gap:12px; padding:16px; text-align:center; }
+        #app-loading .retry-btn { padding:8px 20px; border:1px solid #c00; background:transparent; color:#c00; border-radius:8px; cursor:pointer; font-size:14px; }
+    </style>
+</head>
+<body>
+    <div id="app"><div id="app-loading">Ładowanie...</div></div>
+    <script src="_framework/blazor.webview.js"></script>
+    <script>
+        // Detect if Blazor failed to initialize after a generous timeout
+        setTimeout(function() {
+            var el = document.getElementById('app-loading');
+            if (el) {
+                el.className = 'error';
+                el.innerHTML = '<div>Nie udało się załadować edytora</div>'
+                    + '<button class="retry-btn" onclick="location.reload()">Spróbuj ponownie</button>';
+                console.error('Blazor did not initialize within timeout');
+            }
+        }, 4000);
+    </script>
+</body>
+</html>
