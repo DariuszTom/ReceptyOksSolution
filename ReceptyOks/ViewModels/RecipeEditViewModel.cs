@@ -1,4 +1,4 @@
-﻿using CommunityToolkit.Maui.Media;
+using CommunityToolkit.Maui.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ReceptyOks.Data;
@@ -65,6 +65,9 @@ public partial class RecipeEditViewModel : ObservableObject
 
     [ObservableProperty]
     private bool isListening;
+
+    [ObservableProperty]
+    private bool isEditorFullScreen;
 
     private Guid _existingId;
     private bool _isInitialized = false;
@@ -224,6 +227,12 @@ public partial class RecipeEditViewModel : ObservableObject
         {
             await Shell.Current.DisplayAlertAsync("Błąd", $"Nie udało się zrobić zdjęcia: {ex.Message}", "OK");
         }
+    }
+
+    [RelayCommand]
+    private void ToggleEditorFullScreen()
+    {
+        IsEditorFullScreen = !IsEditorFullScreen;
     }
 
     [RelayCommand]
