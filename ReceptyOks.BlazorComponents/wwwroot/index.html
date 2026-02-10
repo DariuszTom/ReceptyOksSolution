@@ -11,6 +11,23 @@
 </head>
 <body>
     <div id="app">Loading...</div>
-    <script src="_framework/blazor.webview.js"></script>
+    <script src="_framework/blazor.webview.js" autostart="false"></script>
+    <script>
+        (function startBlazor() {
+            var maxRetries = 3, attempt = 0;
+            function tryStart() {
+                attempt++;
+                if (typeof Blazor !== 'undefined' && Blazor.start) {
+                    Blazor.start().catch(function(err) {
+                        if (attempt < maxRetries) setTimeout(tryStart, 500 * attempt);
+                        else console.error('Blazor init failed:', err);
+                    });
+                } else if (attempt < maxRetries) {
+                    setTimeout(tryStart, 300 * attempt);
+                }
+            }
+            tryStart();
+        })();
+    </script>
 </body>
 </html>
