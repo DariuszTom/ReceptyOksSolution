@@ -26,7 +26,8 @@
                     Padding="0"
                     HeightRequest="180"
                     BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray600}}"
-                    StrokeThickness="0">
+                    StrokeThickness="0"
+                    IsVisible="{Binding IsEditorFullScreen, Converter={StaticResource InvertedBoolConverter}}">
                 <Border.Shadow>
                     <Shadow Brush="{StaticResource Gray400Brush}"
                             Offset="0,2"
@@ -85,7 +86,8 @@
                 </Grid>
             </Border>
 
-            <HorizontalStackLayout Spacing="12" HorizontalOptions="Center">
+            <HorizontalStackLayout Spacing="12" HorizontalOptions="Center"
+                                     IsVisible="{Binding IsEditorFullScreen, Converter={StaticResource InvertedBoolConverter}}">
                 <Button Command="{Binding PickImageCommand}"
                         BackgroundColor="Transparent"
                         BorderColor="{StaticResource Primary}"
@@ -118,14 +120,17 @@
             <material:TextField Title="Tytuł *"
                                 Text="{Binding Title}"
                                 Icon="{FontImageSource Glyph={x:Static icons:MaterialOutlined.Title}, FontFamily=MaterialSymbolsOutlined, Size=20}"
-                                AllowClear="True"/>
+                                AllowClear="True"
+                                IsVisible="{Binding IsEditorFullScreen, Converter={StaticResource InvertedBoolConverter}}"/>
 
             <!-- Opis -->
             <material:EditorField Title="Opis"
-                                  Text="{Binding Description}"/>
+                                  Text="{Binding Description}"
+                                  IsVisible="{Binding IsEditorFullScreen, Converter={StaticResource InvertedBoolConverter}}"/>
 
             <!-- Kategoria -->
-            <VerticalStackLayout Spacing="4">
+            <VerticalStackLayout Spacing="4"
+                                 IsVisible="{Binding IsEditorFullScreen, Converter={StaticResource InvertedBoolConverter}}">
                 <Label Text="Kategoria" FontSize="14" TextColor="{StaticResource Gray500}"/>
                 <Border Stroke="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray600}}"
                         StrokeThickness="1"
@@ -158,8 +163,10 @@
             </VerticalStackLayout>
 
             <!-- Czasy i porcje -->
-            <Label Text="Szczegóły" FontSize="16" FontAttributes="Bold" Margin="0,6,0,0"/>
-            <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
+            <Label Text="Szczegóły" FontSize="16" FontAttributes="Bold" Margin="0,6,0,0"
+                   IsVisible="{Binding IsEditorFullScreen, Converter={StaticResource InvertedBoolConverter}}"/>
+            <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8"
+                  IsVisible="{Binding IsEditorFullScreen, Converter={StaticResource InvertedBoolConverter}}">
                 <VerticalStackLayout Grid.Column="0" Spacing="2">
                     <Label Text="Przygotowanie (min)" FontSize="12" FontAttributes="Bold"/>
                     <HorizontalStackLayout Spacing="3">
@@ -241,7 +248,8 @@
             </Grid>
 
             <!-- Składniki -->
-            <toolkit:Expander IsExpanded="True">
+            <toolkit:Expander IsExpanded="True"
+                              IsVisible="{Binding IsEditorFullScreen, Converter={StaticResource InvertedBoolConverter}}">
                 <toolkit:Expander.Header>
                     <Border Stroke="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray600}}"
                             StrokeThickness="1"
@@ -341,7 +349,7 @@
             </toolkit:Expander>
 
             <!-- Instrukcje - Rich Text Editor -->
-            <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,16,0,0">
+            <Grid ColumnDefinitions="Auto,*,Auto,Auto" Margin="0,16,0,0">
                 <Label Text="Przygotowanie" FontSize="18" FontAttributes="Bold" VerticalOptions="Center"/>
                 <!-- Recording indicator GIF - shows in center when listening -->
                 <Image Grid.Column="1"
@@ -414,13 +422,45 @@
                         </Button.Triggers>
                     </Button>
                 </HorizontalStackLayout>
+                <Border Grid.Column="3"
+                        StrokeThickness="0"
+                        StrokeShape="RoundRectangle 18"
+                        HeightRequest="36"
+                        WidthRequest="36"
+                        Margin="4,0,0,0"
+                        BackgroundColor="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray600}}">
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Command="{Binding ToggleEditorFullScreenCommand}"/>
+                    </Border.GestureRecognizers>
+                    <Image HeightRequest="20" WidthRequest="20" HorizontalOptions="Center" VerticalOptions="Center">
+                        <Image.Source>
+                            <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Fullscreen}"
+                                             FontFamily="MaterialSymbolsOutlined"
+                                             Color="{StaticResource Primary}"
+                                             Size="20"/>
+                        </Image.Source>
+                        <Image.Triggers>
+                            <DataTrigger TargetType="Image" Binding="{Binding IsEditorFullScreen}" Value="True">
+                                <Setter Property="Source">
+                                    <Setter.Value>
+                                        <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Fullscreen_exit}"
+                                                         FontFamily="MaterialSymbolsOutlined"
+                                                         Color="{StaticResource Primary}"
+                                                         Size="20"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </DataTrigger>
+                        </Image.Triggers>
+                    </Image>
+                </Border>
             </Grid>
-            <Border Stroke="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray600}}"
+            <Border x:Name="EditorBorder"
+                    Stroke="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray600}}"
                     StrokeThickness="1"
                     HeightRequest="400"
                     StrokeShape="RoundRectangle 10"
                     BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}">
-                <blazor:BlazorWebView x:Name="InstructionsEditorWebView" HostPage="wwwroot/index.html"
+                <blazor:BlazorWebView x:Name="InstructionsEditorWebView" HostPage="wwwroot/editor.html"
                                       BlazorWebViewInitialized="OnBlazorWebViewInitialized">
                     <blazor:BlazorWebView.RootComponents>
                         <blazor:RootComponent Selector="#app"
@@ -431,7 +471,8 @@
             </Border>
 
             <!-- Przyciski -->
-            <Grid ColumnDefinitions="*,*" ColumnSpacing="12" Margin="0,24,0,20">
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="12" Margin="0,24,0,20"
+                  IsVisible="{Binding IsEditorFullScreen, Converter={StaticResource InvertedBoolConverter}}">
                 <Button Grid.Column="0"
                         Text="Anuluj"
                         BackgroundColor="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray600}}"
