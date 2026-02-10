@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8" ?>
+<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
          xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:ReceptyOks.ViewModels"
@@ -299,19 +299,19 @@
                             </HorizontalStackLayout>
 
                                   <Border Padding="0" StrokeThickness="0"
-                               StrokeShape="RoundRectangle 12" MinimumHeightRequest="450" BackgroundColor="{StaticResource Gray900}">
-                                    <blazor:BlazorWebView x:Name="InstructionsWebView" 
-                                   HostPage="wwwroot/index.html" 
-                                     MinimumHeightRequest="500"
-                            BlazorWebViewInitialized="OnBlazorWebViewInitialized">
-                               <blazor:BlazorWebView.RootComponents>
-                            <blazor:RootComponent Selector="#app"
-                                  x:Name="InstructionsRoot"
-                                      ComponentType="{x:Type blazorComponents:HtmlViewer}">
-                                        </blazor:RootComponent>
-                                       </blazor:BlazorWebView.RootComponents>
-                             </blazor:BlazorWebView>
-                                 </Border>
+                                         StrokeShape="RoundRectangle 12"
+                                         HeightRequest="450"
+                                         BackgroundColor="{StaticResource Gray900}">
+                                        <blazor:BlazorWebView x:Name="InstructionsWebView"
+                                                              HostPage="wwwroot/index.html"
+                                                              BlazorWebViewInitialized="OnBlazorWebViewInitialized">
+                                            <blazor:BlazorWebView.RootComponents>
+                                                <blazor:RootComponent Selector="#app"
+                                                                      x:Name="InstructionsRoot"
+                                                                      ComponentType="{x:Type blazorComponents:HtmlViewer}" />
+                                            </blazor:BlazorWebView.RootComponents>
+                                        </blazor:BlazorWebView>
+                                    </Border>
                         </VerticalStackLayout>
 
                     </VerticalStackLayout>
