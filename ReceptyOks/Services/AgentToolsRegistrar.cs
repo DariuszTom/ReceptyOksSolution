@@ -42,14 +42,16 @@ public class AgentToolsRegistrar
           "get_all_categories", "Retrieves all recipe categories with their names and descriptions.");
 
         agent.AddToolAsync<string, string>(GetRecipesByCategoryAsync,
-    "get_recipes_by_category", "Gets all recipes in a specific category. Parameter: categoryId - the GUID of the category.");
+        "get_recipes_by_category", "Gets all recipes in a specific category. Parameter: categoryId - the GUID of the category.");
 
         agent.AddTool<Task<string>>(GetAllIngredientsAsync,
            "get_all_ingredients", "Retrieves a list of all available ingredients.");
 
         agent.AddToolAsync<string, string>(AddRecipeToDBAsync,
-          "add_recipe", "Adds a new recipe to the database. Parameter: recipeJson - JSON string containing recipe details (Title, Description, Instructions, PreparationTimeMinutes, CookingTimeMinutes, Servings, CategoryId, Ingredients array with Name, Quantity, Unit).");
+               "add_recipe", "Adds a new recipe to the database. Parameter: recipeJson - JSON string containing recipe details (Title, Description, Instructions, PreparationTimeMinutes, CookingTimeMinutes, Servings, CategoryId, Ingredients array with Name, Quantity, Unit).");
 
+        agent.AddToolAsync<string, string>(GetMealPlansWithRecipesAsync,
+                "get_meal_plans_with_recipes", "Retrieves meal plans with their associated recipes for a date range. Parameter: dateRangeJson - JSON string with StartDate and EndDate in ISO 8601 format (e.g., {\"StartDate\":\"2024-01-01\",\"EndDate\":\"2024-01-07\"}).");
     }
     public void RegisterToolsForShopingList(AiAgent agent)
     {
@@ -363,5 +365,60 @@ public class AgentToolsRegistrar
         public string? Notes { get; set; }
     }
 
+    private class DateRangeRequest
+    {
+        public DateTime StartDate { get; set; }
+        public DateTime EndDate { get; set; }
+    }
+
+    private async Task<string> GetMealPlansWithRecipesAsync(string dateRangeJson)
+    {
+        if (string.IsNullOrWhiteSpace(dateRangeJson))
+        {
+            return JsonSerializer.Serialize(new { error = "Date range JSON cannot be empty" });
+        }
+
+        try
+        {
+            var dateRange = JsonSerializer.Deserialize<DateRangeRequest>(dateRangeJson);
+            if (dateRange is null)
+            {
+                return JsonSerializer.Serialize(new { error = "Failed to parse date range JSON" });
+            }
+
+            var mealPlansWithRecipes = await _database.GetMealPlansWithRecipesAsync(
+                    dateRange.StartDate, dateRange.EndDate).ConfigureAwait(false);
+
+            var result = mealPlansWithRecipes.Select(mp => new
+            {
+                MealPlan = new
+                {
+                    mp.MealPlan.Id,
+                    mp.MealPlan.Date,
+                    mp.MealPlan.StartHour,
+                    mp.MealPlan.DurationMinutes,
+                    mp.MealPlan.RecipeId,
+                    mp.MealPlan.Notes
+                },
+                Recipe = mp.Recipe is null ? null : new
+                {
+                    mp.Recipe.Id,
+                    mp.Recipe.Title,
+                    mp.Recipe.Description,
+                    mp.Recipe.PreparationTimeMinutes,
+                    mp.Recipe.CookingTimeMinutes,
+                    mp.Recipe.Servings,
+                    mp.Recipe.CategoryId
+                }
+            });
+
+            return JsonSerializer.Serialize(result);
+        }
+        catch (JsonException ex)
+        {
+            _logger.Error(ex, "Failed to parse date range JSON for AI agent");
+            return JsonSerializer.Serialize(new { error = $"Invalid JSON format: {ex.Message}" });
+        }
+    }
 }
 
