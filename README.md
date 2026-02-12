@@ -1,18 +1,22 @@
 # ReceptyOks Solution
 
-A cross-platform recipe management application built with **.NET 10**, **.NET MAUI**, and **.NET Aspire**.
+A cross-platform recipe management application built with **.NET 10**, **.NET MAUI**, and **.NET Aspire 9.5**.
 
 ## 📋 Overview
 
 ReceptyOks is a modern recipe management solution that allows users to create, organize, and sync recipes across devices. The application features:
 
-- Cross-platform mobile/desktop client (Android, iOS, macOS, Windows)
+- Cross-platform mobile/desktop client (Android, Windows)
 - RESTful API backend with SQLite database
 - Offline-first architecture with sync capabilities
 - OCR support for extracting text from recipe images
-- Rich text editing for recipe instructions
-- AI-powered chatbot for recipe assistance and recommendations
+- Rich text editing for recipe instructions using Blazor Hybrid
+- AI-powered chatbot with function calling support using Microsoft Agent Framework
 - Random recipe generator with advanced filtering options
+- Weekly meal planning with drag-and-drop timeline
+- Shopping list management with AI-powered generation
+- Biometric authentication support
+- Speech-to-text input capabilities
   
 ![App Demo](https://github.com/DariuszTom/ReceptyOksSolution/blob/master/UsagePresentation4.gif)
 
