@@ -2,6 +2,7 @@ namespace ReceptyOks.Configuration;
 
 using CommunityToolkit.Maui.ApplicationModel;
 using CommunityToolkit.Maui.Media;
+using Microsoft.Extensions.Logging;
 using Plugin.Maui.OCR;
 using ReceptyOks.BlazorComponents.Services;
 using ReceptyOks.Data;
