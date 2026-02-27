@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 using Microsoft.Extensions.Logging;
+using ReceptyOks.Data;
 using ReceptyOks.Misc;
 using ReceptyOks.Models;
 using ReceptyOks.Services;
@@ -26,6 +27,7 @@ public partial class ShopingListViewModel : ObservableObject
 {
     private readonly ShoppingListService _shoppingListService;
     private readonly UserService _userService;
+    private readonly LocalDatabase _database;
     private readonly ILogger<ShopingListViewModel> _logger;
 
     [ObservableProperty]
@@ -54,17 +56,41 @@ public partial class ShopingListViewModel : ObservableObject
     /// </summary>
     public IReadOnlyList<Jednostki> AvailableUnits { get; } = Enum.GetValues(typeof(Jednostki)).Cast<Jednostki>().ToList();
 
-    public ShopingListViewModel(ShoppingListService shoppingListService, ILogger<ShopingListViewModel> logger)
+    /// <summary>
+    /// Ingredient name suggestions from local database for autocomplete.
+    /// </summary>
+    [ObservableProperty]
+    private IEnumerable<string> ingredientSuggestions = [];
+
+    public ShopingListViewModel(ShoppingListService shoppingListService, LocalDatabase database, ILogger<ShopingListViewModel> logger)
     {
         _shoppingListService = shoppingListService;
+        _database = database;
         _logger = logger;
-        _userService = UserService.Instance.Value;
+  _userService = UserService.Instance.Value;
         // Register to receive shopping items from other ViewModels
-        WeakReferenceMessenger.Default.Register<AddShoppingItemsMessage>(this, async (r, m) =>
+  WeakReferenceMessenger.Default.Register<AddShoppingItemsMessage>(this, async (r, m) =>
         {
-            await ((ShopingListViewModel)r).AddItemsFromMessageAsync(m.Items);
-        });
+  await ((ShopingListViewModel)r).AddItemsFromMessageAsync(m.Items);
+    });
         LoadItemsAsync().FireAndForget();
+    LoadIngredientSuggestionsAsync().FireAndForget();
+    }
+
+    /// <summary>
+    /// Loads ingredient names from local database for autocomplete suggestions.
+    /// </summary>
+    private async Task LoadIngredientSuggestionsAsync()
+    {
+        try
+      {
+      var ingredients = await _database.GetIngredientsAsync();
+            IngredientSuggestions = ingredients.Select(i => i.Name).Distinct().OrderBy(n => n).ToList();
+        }
+        catch (Exception ex)
+        {
+       _logger.LogWarning(ex, "Failed to load ingredient suggestions");
+        }
     }
 
     /// <summary>

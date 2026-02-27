@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:icons="clr-namespace:UraniumUI.Icons.MaterialSymbols;assembly=UraniumUI.Icons.MaterialSymbols"
+             xmlns:material="http://schemas.enisn-projects.io/dotnet/maui/uraniumui/material"
+             xmlns:local="clr-namespace:ReceptyOks.Controls"
+             x:Class="ReceptyOks.Controls.Ingriedent"
+             x:Name="this"
+             x:DataType="local:Ingriedent">
+    <Border Margin="16,12"
+            Padding="12,8"
+            StrokeThickness="0"
+            StrokeShape="RoundRectangle 12"
+            BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}">
+        <Border.Shadow>
+            <Shadow Brush="{StaticResource Gray400Brush}" Offset="0,2" Radius="6" Opacity="0.08"/>
+        </Border.Shadow>
+
+        <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="8">
+            <!-- First row: Product name and Add button -->
+             <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="12">
+               <material:AutoCompleteTextField Grid.Column="0"
+                   Text="{Binding ItemName, Source={x:Reference this}}"
+                       Title="{Binding ItemNameTitle, Source={x:Reference this}}"
+                        FontSize="14"
+                       AllowClear="False"
+                  ItemsSource="{Binding IngredientSuggestions, Source={x:Reference this}}"
+               VerticalOptions="Center"/>
+
+                <!-- Add button -->
+                <ImageButton Grid.Column="1"
+                             Command="{Binding AddCommand, Source={x:Reference this}}"
+                             HeightRequest="44"
+                             WidthRequest="44"
+                             CornerRadius="22"
+                             BackgroundColor="{StaticResource Primary}"
+                             VerticalOptions="Center">
+                    <ImageButton.Source>
+                        <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Add}"
+                                         FontFamily="MaterialSymbolsOutlined"
+                                         Color="White"
+                                         Size="22"/>
+                    </ImageButton.Source>
+                </ImageButton>
+            </Grid>
+
+            <!-- Second row: Quantity and Unit -->
+            <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="12">
+                <material:TextField Grid.Column="0"
+                                    Text="{Binding ItemQuantity, Source={x:Reference this}}"
+                                    Title="{Binding QuantityTitle, Source={x:Reference this}}"
+                                    FontSize="14"
+                                    Keyboard="Numeric"
+                                    VerticalOptions="Center"/>
+
+                <material:PickerField Grid.Column="1"
+                                      Title="{Binding UnitTitle, Source={x:Reference this}}"
+                                      FontSize="14"
+                                      ItemsSource="{Binding AvailableUnits, Source={x:Reference this}}"
+                                      SelectedItem="{Binding SelectedUnit, Source={x:Reference this}}"
+                                      VerticalOptions="Center"/>
+            </Grid>
+
+            <!-- Error message -->
+            <Label Grid.Row="2"
+                   Text="{Binding ErrorMessage, Source={x:Reference this}}"
+                   TextColor="{StaticResource PinkColor}"
+                   FontSize="12"
+                   IsVisible="{Binding ErrorMessage, Source={x:Reference this}, Converter={StaticResource IsNotNullConverter}}"
+                   Margin="0,4,0,0"/>
+        </Grid>
+    </Border>
+</ContentView>
