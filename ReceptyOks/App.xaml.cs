@@ -1,6 +1,8 @@
-﻿using CommunityToolkit.Maui.ApplicationModel;
+﻿using AsyncAwaitBestPractices;
+using CommunityToolkit.Maui.ApplicationModel;
 using CommunityToolkit.Mvvm.Messaging;
 using ReceptyOks.Models;
+using ReceptyOks.Services;
 
 namespace ReceptyOks;
 
@@ -8,10 +10,11 @@ public partial class App : Application
 {
     private readonly IBadge _badge;
 
-    public App(IBadge badge)
+    public App(IBadge badge, LogCleanupService logCleanup)
     {
         InitializeComponent();
         _badge = badge;
+        logCleanup.Start().SafeFireAndForget();
 
         WeakReferenceMessenger.Default.Register<BadgeCountMessage>(this, (r, m) =>
               {

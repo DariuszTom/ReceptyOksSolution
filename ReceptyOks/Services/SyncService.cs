@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Polly;
 using Polly.Retry;
 using ReceptyOks.Data;
@@ -11,11 +12,13 @@ public class SyncService
 {
     private readonly LocalDatabase _localDb;
     private readonly HttpClient _httpClient;
+    private readonly ILogger<SyncService> _logger;
 
-    public SyncService(LocalDatabase localDb, HttpClient httpClient)
+    public SyncService(LocalDatabase localDb, HttpClient httpClient, ILogger<SyncService> logger)
     {
         _localDb = localDb;
         _httpClient = httpClient;
+        _logger = logger;
     }
 
     public async Task<SyncResult> SyncAsync()
@@ -45,9 +48,14 @@ public class SyncService
             };
 
             AsyncRetryPolicy<HttpResponseMessage> retryPolicy = Policy
-                .HandleResult<HttpResponseMessage>(r => !r.IsSuccessStatusCode)
+                .HandleResult<HttpResponseMessage>(r => (int)r.StatusCode >= 500)
                 .Or<HttpRequestException>()
-                .WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)));
+                .WaitAndRetryAsync(3,
+                    retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
+                    (_, _, retryAttempt, _) =>
+                    {
+                        return Task.CompletedTask;
+                    });
 
             var response = await retryPolicy.ExecuteAsync(() =>
             {
@@ -64,6 +72,7 @@ public class SyncService
 
             if (!response.IsSuccessStatusCode)
             {
+                _logger.LogError("Sync failed with status code {StatusCode}", response.StatusCode);
                 result.Success = false;
                 result.Message = $"B≥πd serwera: {response.StatusCode}";
                 return result;
@@ -73,6 +82,7 @@ public class SyncService
 
             if (syncResponse is null)
             {
+                _logger.LogError("Sync failed: server returned null response");
                 result.Success = false;
                 result.Message = "Pusta odpowiedü serwera";
                 return result;
@@ -92,9 +102,11 @@ public class SyncService
             result.RecipesSynced = syncResponse.Recipes.Count;
             result.CategoriesSynced = syncResponse.Categories.Count;
             result.IngredientsSynced = syncResponse.Ingredients.Count;
+
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Sync failed with exception");
             result.Success = false;
             result.Message = $"B≥πd synchronizacji: {ex.Message}";
         }
@@ -108,10 +120,12 @@ public class SyncService
 
         try
         {
+
             var response = await _httpClient.GetAsync("/api/sync/full");
 
             if (!response.IsSuccessStatusCode)
             {
+                _logger.LogError("Full sync failed with status code {StatusCode}", response.StatusCode);
                 result.Success = false;
                 result.Message = $"B≥πd serwera: {response.StatusCode}";
                 return result;
@@ -121,6 +135,7 @@ public class SyncService
 
             if (syncResponse is null)
             {
+                _logger.LogError("Full sync failed: server returned null response");
                 result.Success = false;
                 result.Message = "Pusta odpowiedü serwera";
                 return result;
@@ -134,9 +149,11 @@ public class SyncService
             result.RecipesSynced = syncResponse.Recipes.Count;
             result.CategoriesSynced = syncResponse.Categories.Count;
             result.IngredientsSynced = syncResponse.Ingredients.Count;
+
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Full sync failed with exception");
             result.Success = false;
             result.Message = $"B≥πd: {ex.Message}";
         }
@@ -156,6 +173,7 @@ public class SyncService
             var connectivity = Connectivity.Current.NetworkAccess;
             if (connectivity != NetworkAccess.Internet)
             {
+                _logger.LogWarning("Upload-all aborted: no internet connection");
                 result.Success = false;
                 result.Message = "Brak po≥πczenia z internetem";
                 return result;
@@ -169,8 +187,15 @@ public class SyncService
                 ChangedIngredients = await GetAllIngredientsForUploadAsync()
             };
 
-            AsyncRetryPolicy<HttpResponseMessage> retryPolicy = Policy.HandleResult<HttpResponseMessage>(r => !r.IsSuccessStatusCode)
-                .Or<HttpRequestException>().WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)));
+            AsyncRetryPolicy<HttpResponseMessage> retryPolicy = Policy.HandleResult<HttpResponseMessage>(r => (int)r.StatusCode >= 500)
+                .Or<HttpRequestException>()
+                .WaitAndRetryAsync(3,
+                    retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
+                    (_, _, retryAttempt, _) =>
+                    {
+                        _logger.LogWarning("Upload-all retry attempt {Attempt}", retryAttempt);
+                        return Task.CompletedTask;
+                    });
 
             using var timeoutCts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
             var response = await retryPolicy.ExecuteAsync(ct =>
@@ -187,6 +212,7 @@ public class SyncService
 
             if (!response.IsSuccessStatusCode)
             {
+                _logger.LogError("Upload-all failed with status code {StatusCode}", response.StatusCode);
                 result.Success = false;
                 result.Message = $"B≥πd serwera: {response.StatusCode}";
                 return result;
@@ -196,6 +222,7 @@ public class SyncService
 
             if (syncResponse is null)
             {
+                _logger.LogError("Upload-all failed: server returned null response");
                 result.Success = false;
                 result.Message = "Pusta odpowiedü serwera";
                 return result;
@@ -209,9 +236,11 @@ public class SyncService
             result.RecipesSynced = request.ChangedRecipes.Count;
             result.CategoriesSynced = request.ChangedCategories.Count;
             result.IngredientsSynced = request.ChangedIngredients.Count;
+
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Upload-all failed with exception");
             result.Success = false;
             result.Message = $"B≥πd wysy≥ania: {ex.Message}";
         }

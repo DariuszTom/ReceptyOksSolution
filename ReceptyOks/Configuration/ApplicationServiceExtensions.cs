@@ -39,6 +39,9 @@ internal static class ApplicationServiceExtensions
         services.AddSingleton<IBadge>(Badge.Default);
         services.AddSingleton<ISpeechToText>(SpeechToText.Default);
 
+        // Background jobs
+        services.AddSingleton<LogCleanupService>();
+
         return services;
     }
 
