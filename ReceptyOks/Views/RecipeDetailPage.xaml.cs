@@ -1,4 +1,3 @@
-using AsyncAwaitBestPractices;
 using Microsoft.AspNetCore.Components.WebView;
 using ReceptyOks.BlazorComponents.Services;
 using ReceptyOks.ViewModels;
