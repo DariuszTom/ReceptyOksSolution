@@ -59,7 +59,6 @@ public class SyncService
 
             var response = await retryPolicy.ExecuteAsync(() =>
             {
-                // Twórz nowe HttpRequestMessage przy ka¿dym wywo³aniu (retry)
                 var httpRequest = new HttpRequestMessage(HttpMethod.Post, "/api/sync")
                 {
                     Content = JsonContent.Create(request)
@@ -474,13 +473,4 @@ public class SyncService
             await _localDb.SaveRecipeIngredientsAsync(recipeDto.Id, recipeIngredients);
         }
     }
-}
-
-public class SyncResult
-{
-    public bool Success { get; set; }
-    public string Message { get; set; } = string.Empty;
-    public int RecipesSynced { get; set; }
-    public int CategoriesSynced { get; set; }
-    public int IngredientsSynced { get; set; }
 }
