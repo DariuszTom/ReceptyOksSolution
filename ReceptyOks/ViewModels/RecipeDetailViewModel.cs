@@ -58,7 +58,13 @@ public partial class RecipeDetailViewModel(LocalDatabase database) : ObservableO
             LoadRecipeCommand.Execute(id);
         }
     }
-
+    public async Task Refresh()
+    {
+        if (Guid.TryParse(RecipeId, out var id))
+        {
+            await LoadRecipeAsync(id);
+        }
+    }
     [RelayCommand]
     private async Task LoadRecipeAsync(Guid id)
     {

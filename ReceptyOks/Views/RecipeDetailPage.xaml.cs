@@ -1,3 +1,4 @@
+using AsyncAwaitBestPractices;
 using Microsoft.AspNetCore.Components.WebView;
 using ReceptyOks.BlazorComponents.Services;
 using ReceptyOks.ViewModels;
@@ -33,9 +34,10 @@ public partial class RecipeDetailPage : ContentPage
         };
     }
 
-    protected override void OnAppearing()
+    protected override async void OnAppearing()
     {
         base.OnAppearing();
+        await _viewModel.Refresh();
         UpdateInstructionsHtml();
     }
 
