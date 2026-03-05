@@ -171,8 +171,9 @@ public class SyncService
 
             AsyncRetryPolicy<HttpResponseMessage> retryPolicy = Policy.HandleResult<HttpResponseMessage>(r => !r.IsSuccessStatusCode)
                 .Or<HttpRequestException>().WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)));
-            _httpClient.Timeout = TimeSpan.FromMinutes(5);
-            var response = await retryPolicy.ExecuteAsync(() =>
+
+            using var timeoutCts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+            var response = await retryPolicy.ExecuteAsync(ct =>
               {
                   var httpRequest = new HttpRequestMessage(HttpMethod.Post, "/api/sync/upload-all")
                   {
@@ -181,8 +182,8 @@ public class SyncService
 
                   httpRequest.Headers.Add(GlobalConstants.ApiKeyHeaderName, "your-api-key");
 
-                  return _httpClient.SendAsync(httpRequest);
-              });
+                  return _httpClient.SendAsync(httpRequest, ct);
+              }, timeoutCts.Token);
 
             if (!response.IsSuccessStatusCode)
             {
