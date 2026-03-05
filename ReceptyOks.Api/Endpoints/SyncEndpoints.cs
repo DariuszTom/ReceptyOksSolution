@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ReceptyOks.Api.Middleware;
 using ReceptyOks.Shared.DTOs;
@@ -45,7 +46,8 @@ public static class SyncEndpoints
 
             return Results.Ok(response);
         })
-            .WithName("Sync");
+            .WithName("Sync")
+            .WithMetadata(new RequestSizeLimitAttribute(200_000_000));
 
         // GET - pobierz wszystkie dane (pocz¹tkowa synchronizacja)
         group.MapGet("/full", async (RecipeDbContext db, ILogger<RecipeDbContext> logger) =>
@@ -137,7 +139,8 @@ public static class SyncEndpoints
 
             return Results.Ok(response);
         })
-            .WithName("UploadAll");
+            .WithName("UploadAll")
+            .WithMetadata(new RequestSizeLimitAttribute(200_000_000));
     }
 
     private static async Task ApplyClientChanges(SyncRequest request, RecipeDbContext db, ILogger logger)

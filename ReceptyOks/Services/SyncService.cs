@@ -162,7 +162,8 @@ public class SyncService
     }
 
     /// <summary>
-    /// Wysy≥a wszystkie lokalne przepisy i kategorie na backend.
+    /// Wysy≥a wszystkie lokalne przepisy i kategorie na backend w partiach,
+    /// aby uniknπÊ przekroczenia limitu rozmiaru øπdania (413 Request Entity Too Large).
     /// </summary>
     public async Task<SyncResult> UploadAllAsync()
     {
@@ -179,13 +180,21 @@ public class SyncService
                 return result;
             }
 
-            var request = new SyncRequest
-            {
-                LastSyncedAt = null,
-                ChangedRecipes = await GetAllRecipesForUploadAsync(),
-                ChangedCategories = await GetAllCategoriesForUploadAsync(),
-                ChangedIngredients = await GetAllIngredientsForUploadAsync()
-            };
+            var allRecipes = await GetAllRecipesForUploadAsync();
+            var allCategories = await GetAllCategoriesForUploadAsync();
+            var allIngredients = await GetAllIngredientsForUploadAsync();
+
+            // Batch recipes to avoid 413 (images make the payload large)
+            const int batchSize = 10;
+            var recipeBatches = allRecipes
+                .Select((recipe, index) => (recipe, index))
+                .GroupBy(x => x.index / batchSize)
+                .Select(g => g.Select(x => x.recipe).ToList())
+                .ToList();
+
+            // If there are no recipes, still send one request with categories/ingredients
+            if (recipeBatches.Count == 0)
+                recipeBatches.Add([]);
 
             AsyncRetryPolicy<HttpResponseMessage> retryPolicy = Policy.HandleResult<HttpResponseMessage>(r => (int)r.StatusCode >= 500)
                 .Or<HttpRequestException>()
@@ -193,49 +202,64 @@ public class SyncService
                     retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
                     (_, _, retryAttempt, _) =>
                     {
-                        _logger.LogWarning("Upload-all retry attempt {Attempt}", retryAttempt);
                         return Task.CompletedTask;
                     });
 
-            using var timeoutCts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
-            var response = await retryPolicy.ExecuteAsync(ct =>
-              {
-                  var httpRequest = new HttpRequestMessage(HttpMethod.Post, "/api/sync/upload-all")
-                  {
-                      Content = JsonContent.Create(request),
-                  };
+            using var timeoutCts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
+            DateTime lastSyncedAt = default;
 
-                  httpRequest.Headers.Add(GlobalConstants.ApiKeyHeaderName, "your-api-key");
-
-                  return _httpClient.SendAsync(httpRequest, ct);
-              }, timeoutCts.Token);
-
-            if (!response.IsSuccessStatusCode)
+            for (int i = 0; i < recipeBatches.Count; i++)
             {
-                _logger.LogError("Upload-all failed with status code {StatusCode}", response.StatusCode);
-                result.Success = false;
-                result.Message = $"B≥πd serwera: {response.StatusCode}";
-                return result;
-            }
+                var request = new SyncRequest
+                {
+                    LastSyncedAt = null,
+                    ChangedRecipes = recipeBatches[i],
+                    // Send categories/ingredients only in the first batch
+                    ChangedCategories = i == 0 ? allCategories : [],
+                    ChangedIngredients = i == 0 ? allIngredients : []
+                };
 
-            var syncResponse = await response.Content.ReadFromJsonAsync<SyncResponse>();
+                var response = await retryPolicy.ExecuteAsync(ct =>
+                {
+                    var httpRequest = new HttpRequestMessage(HttpMethod.Post, "/api/sync/upload-all")
+                    {
+                        Content = JsonContent.Create(request),
+                    };
 
-            if (syncResponse is null)
-            {
-                _logger.LogError("Upload-all failed: server returned null response");
-                result.Success = false;
-                result.Message = "Pusta odpowiedü serwera";
-                return result;
+                    httpRequest.Headers.Add(GlobalConstants.ApiKeyHeaderName, "your-api-key");
+
+                    return _httpClient.SendAsync(httpRequest, ct);
+                }, timeoutCts.Token);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogError("Upload-all batch {Batch} failed with status code {StatusCode}", i + 1, response.StatusCode);
+                    result.Success = false;
+                    result.Message = $"B≥πd serwera (partia {i + 1}): {response.StatusCode}";
+                    return result;
+                }
+
+                var syncResponse = await response.Content.ReadFromJsonAsync<SyncResponse>();
+
+                if (syncResponse is null)
+                {
+                    _logger.LogError("Upload-all batch {Batch} failed: server returned null response", i + 1);
+                    result.Success = false;
+                    result.Message = "Pusta odpowiedü serwera";
+                    return result;
+                }
+
+                lastSyncedAt = syncResponse.SyncedAt;
             }
 
             await _localDb.ClearDirtyFlagsAsync();
-            await _localDb.SetLastSyncTimeAsync(syncResponse.SyncedAt);
+            await _localDb.SetLastSyncTimeAsync(lastSyncedAt);
 
             result.Success = true;
             result.Message = "Wszystkie dane zosta≥y wys≥ane na serwer";
-            result.RecipesSynced = request.ChangedRecipes.Count;
-            result.CategoriesSynced = request.ChangedCategories.Count;
-            result.IngredientsSynced = request.ChangedIngredients.Count;
+            result.RecipesSynced = allRecipes.Count;
+            result.CategoriesSynced = allCategories.Count;
+            result.IngredientsSynced = allIngredients.Count;
 
         }
         catch (Exception ex)
