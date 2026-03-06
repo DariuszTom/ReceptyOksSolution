@@ -63,7 +63,7 @@ public partial class Ingriedent : ContentView
     public static readonly BindableProperty UnitTitleProperty = BindableProperty.Create(
             nameof(UnitTitle),
             typeof(string),
-            typeof(Ingriedent),"Jednostka");
+            typeof(Ingriedent), "Jednostka");
 
     public string UnitTitle
     {
@@ -114,7 +114,7 @@ public partial class Ingriedent : ContentView
 
     public string ErrorMessage
     {
-    get => (string)GetValue(ErrorMessageProperty);
+        get => (string)GetValue(ErrorMessageProperty);
         set => SetValue(ErrorMessageProperty, value);
     }
 

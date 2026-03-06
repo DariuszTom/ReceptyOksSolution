@@ -1,6 +1,4 @@
-﻿using CommunityToolkit.Maui.Alerts;
-using CommunityToolkit.Maui.Core;
-using CommunityToolkit.Mvvm.ComponentModel;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 using Microsoft.Extensions.Logging;
@@ -67,14 +65,14 @@ public partial class ShopingListViewModel : ObservableObject
         _shoppingListService = shoppingListService;
         _database = database;
         _logger = logger;
-  _userService = UserService.Instance.Value;
+        _userService = UserService.Instance.Value;
         // Register to receive shopping items from other ViewModels
-  WeakReferenceMessenger.Default.Register<AddShoppingItemsMessage>(this, async (r, m) =>
-        {
-  await ((ShopingListViewModel)r).AddItemsFromMessageAsync(m.Items);
-    });
+        WeakReferenceMessenger.Default.Register<AddShoppingItemsMessage>(this, async (r, m) =>
+              {
+                  await ((ShopingListViewModel)r).AddItemsFromMessageAsync(m.Items);
+              });
         LoadItemsAsync().FireAndForget();
-    LoadIngredientSuggestionsAsync().FireAndForget();
+        LoadIngredientSuggestionsAsync().FireAndForget();
     }
 
     /// <summary>
@@ -83,13 +81,15 @@ public partial class ShopingListViewModel : ObservableObject
     private async Task LoadIngredientSuggestionsAsync()
     {
         try
-      {
-      var ingredients = await _database.GetIngredientsAsync();
-            IngredientSuggestions = ingredients.Select(i => i.Name).Distinct().OrderBy(n => n).ToList();
+        {
+            var ingredients = await _database.GetIngredientsAsync();
+            IngredientSuggestions = [.. ingredients.Select(i => i.Name.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)];
         }
         catch (Exception ex)
         {
-       _logger.LogWarning(ex, "Failed to load ingredient suggestions");
+            _logger.LogWarning(ex, "Failed to load ingredient suggestions");
         }
     }
 

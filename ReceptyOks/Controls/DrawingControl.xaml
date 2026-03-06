@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="ReceptyOks.Controls.DrawingControl"
+             x:Name="this"
+             xmlns:icons="clr-namespace:UraniumUI.Icons.MaterialSymbols;assembly=UraniumUI.Icons.MaterialSymbols"
+             xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+             xmlns:material="http://schemas.enisn-projects.io/dotnet/maui/uraniumui/material"
+             xmlns:uranium="http://schemas.enisn-projects.io/dotnet/maui/uraniumui"
+             xmlns:local="clr-namespace:ReceptyOks.Controls"
+             xmlns:converters="clr-namespace:ReceptyOks.Converters"
+             x:DataType="local:DrawingControl">
+
+    <Grid RowDefinitions="Auto,*,Auto">
+
+        <!-- Toolbar: color palette + size slider -->
+        <Border Grid.Row="0"
+                Padding="8,4"
+                StrokeThickness="0"
+                StrokeShape="RoundRectangle 0,0,12,12"
+                BackgroundColor="{AppThemeBinding Light={StaticResource Gray50}, Dark={StaticResource Gray900}}">
+            <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,Auto" RowSpacing="6" ColumnSpacing="8">
+
+                <!-- Color palette -->
+                <HorizontalStackLayout Grid.Row="0" Grid.Column="0" Spacing="6">
+                    <Border Style="{StaticResource ColorSwatchStyle}"
+                            BackgroundColor="Black"
+                            StrokeThickness="{Binding SelectedColor, Source={x:Reference this}, Converter={converters:ColorMatchToBorderConverter}, ConverterParameter=Black}">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding SelectColorCommand, Source={x:Reference this}}" CommandParameter="Black" />
+                        </Border.GestureRecognizers>
+                    </Border>
+                    <Border Style="{StaticResource ColorSwatchStyle}"
+                            BackgroundColor="Red"
+                            StrokeThickness="{Binding SelectedColor, Source={x:Reference this}, Converter={converters:ColorMatchToBorderConverter}, ConverterParameter=Red}">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding SelectColorCommand, Source={x:Reference this}}" CommandParameter="Red" />
+                        </Border.GestureRecognizers>
+                    </Border>
+                    <Border Style="{StaticResource ColorSwatchStyle}"
+                            BackgroundColor="Blue"
+                            StrokeThickness="{Binding SelectedColor, Source={x:Reference this}, Converter={converters:ColorMatchToBorderConverter}, ConverterParameter=Blue}">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding SelectColorCommand, Source={x:Reference this}}" CommandParameter="Blue" />
+                        </Border.GestureRecognizers>
+                    </Border>
+                    <Border Style="{StaticResource ColorSwatchStyle}"
+                            BackgroundColor="Green"
+                            StrokeThickness="{Binding SelectedColor, Source={x:Reference this}, Converter={converters:ColorMatchToBorderConverter}, ConverterParameter=Green}">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding SelectColorCommand, Source={x:Reference this}}" CommandParameter="Green" />
+                        </Border.GestureRecognizers>
+                    </Border>
+                    <Border Style="{StaticResource ColorSwatchStyle}"
+                            BackgroundColor="Orange"
+                            StrokeThickness="{Binding SelectedColor, Source={x:Reference this}, Converter={converters:ColorMatchToBorderConverter}, ConverterParameter=Orange}">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding SelectColorCommand, Source={x:Reference this}}" CommandParameter="Orange" />
+                        </Border.GestureRecognizers>
+                    </Border>
+                    <Border Style="{StaticResource ColorSwatchStyle}"
+                            BackgroundColor="Purple"
+                            StrokeThickness="{Binding SelectedColor, Source={x:Reference this}, Converter={converters:ColorMatchToBorderConverter}, ConverterParameter=Purple}">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding SelectColorCommand, Source={x:Reference this}}" CommandParameter="Purple" />
+                        </Border.GestureRecognizers>
+                    </Border>
+                    <Border Style="{StaticResource ColorSwatchStyle}"
+                            BackgroundColor="White"
+                            StrokeThickness="{Binding SelectedColor, Source={x:Reference this}, Converter={converters:ColorMatchToBorderConverter}, ConverterParameter=White}">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding SelectColorCommand, Source={x:Reference this}}" CommandParameter="White" />
+                        </Border.GestureRecognizers>
+                    </Border>
+                </HorizontalStackLayout>
+
+                <!-- Undo / Clear buttons -->
+                <HorizontalStackLayout Grid.Row="0" Grid.Column="1" Spacing="4">
+                    <ImageButton Command="{Binding UndoCommand, Source={x:Reference this}}"
+                                 HeightRequest="36" WidthRequest="36"
+                                 CornerRadius="18"
+                                 BackgroundColor="{StaticResource Primary}">
+                        <ImageButton.Source>
+                            <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Undo}"
+                                             FontFamily="MaterialSymbolsOutlined"
+                                             Color="White" Size="18" />
+                        </ImageButton.Source>
+                    </ImageButton>
+                    <ImageButton Command="{Binding ClearCommand, Source={x:Reference this}}"
+                                 HeightRequest="36" WidthRequest="36"
+                                 CornerRadius="18"
+                                 BackgroundColor="{StaticResource Primary}">
+                        <ImageButton.Source>
+                            <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Delete}"
+                                             FontFamily="MaterialSymbolsOutlined"
+                                             Color="White" Size="18" />
+                        </ImageButton.Source>
+                    </ImageButton>
+                </HorizontalStackLayout>
+
+                <!-- Pencil size slider -->
+                <Grid Grid.Row="1" Grid.ColumnSpan="2" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+                    <Label Grid.Column="0" Text="&#xE3AE;" FontFamily="MaterialSymbolsOutlined" FontSize="16"
+                           VerticalOptions="Center" />
+                    <Slider Grid.Column="1"
+                            Minimum="1" Maximum="30"
+                            Value="{Binding SelectedLineWidth, Source={x:Reference this}}"
+                            MinimumTrackColor="{StaticResource Primary}"
+                            ThumbColor="{StaticResource Primary}" />
+                    <Label Grid.Column="2"
+                           Text="{Binding SelectedLineWidth, Source={x:Reference this}, StringFormat='{0:F0}'}"
+                           FontSize="12" WidthRequest="24"
+                           VerticalOptions="Center" HorizontalTextAlignment="Center" />
+                </Grid>
+            </Grid>
+        </Border>
+
+        <!-- Drawing surface -->
+        <toolkit:DrawingView Grid.Row="1"
+                             x:Name="DrawingViewControl"
+                             Lines="{Binding Lines, Source={x:Reference this}}"
+                             LineColor="{Binding SelectedColor, Source={x:Reference this}}"
+                             LineWidth="{Binding SelectedLineWidth, Source={x:Reference this}}"
+                             IsMultiLineModeEnabled="True"
+                             ShouldClearOnFinish="False"
+                             BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray800}}"
+                             HorizontalOptions="Fill"
+                             VerticalOptions="Fill" />
+
+        <!-- Save button -->
+        <Button Grid.Row="2"
+                Text="Zapisz rysunek"
+                Command="{Binding SaveCommand, Source={x:Reference this}}"
+                BackgroundColor="{StaticResource Primary}"
+                TextColor="White"
+                Margin="8,4"
+                CornerRadius="12" />
+    </Grid>
+
+    <ContentView.Resources>
+        <Style x:Key="ColorSwatchStyle" TargetType="Border">
+            <Setter Property="WidthRequest" Value="32" />
+            <Setter Property="HeightRequest" Value="32" />
+            <Setter Property="StrokeShape" Value="RoundRectangle 16" />
+            <Setter Property="Stroke" Value="{StaticResource Primary}" />
+        </Style>
+    </ContentView.Resources>
+</ContentView>

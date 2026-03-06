@@ -92,6 +92,9 @@
 	  <MauiXaml Update="Controls\ChatAIButton.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
+	  <MauiXaml Update="Controls\DrawingControl.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
 	  <MauiXaml Update="Controls\Ingriedent.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
