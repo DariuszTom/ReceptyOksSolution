@@ -1,8 +1,7 @@
-﻿using AsyncAwaitBestPractices;
-using CommunityToolkit.Maui.ApplicationModel;
+﻿using CommunityToolkit.Maui.ApplicationModel;
 using CommunityToolkit.Mvvm.Messaging;
+using Microsoft.Extensions.Hosting;
 using ReceptyOks.Models;
-using ReceptyOks.Services;
 
 namespace ReceptyOks;
 
@@ -10,11 +9,15 @@ public partial class App : Application
 {
     private readonly IBadge _badge;
 
-    public App(IBadge badge, LogCleanupService logCleanup)
+    public App(IBadge badge, IEnumerable<IHostedService> hostedServices)
     {
         InitializeComponent();
         _badge = badge;
-        logCleanup.Start().SafeFireAndForget();
+
+        // MAUI does not auto-start hosted services; start them manually.
+        Array.ForEach(
+            hostedServices.ToArray(),
+            s => _ = s.StartAsync(CancellationToken.None));
 
         WeakReferenceMessenger.Default.Register<BadgeCountMessage>(this, (r, m) =>
               {

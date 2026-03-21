@@ -40,7 +40,7 @@ internal static class ApplicationServiceExtensions
         services.AddSingleton<ISpeechToText>(SpeechToText.Default);
 
         // Background jobs
-        services.AddSingleton<LogCleanupService>();
+        services.AddHostedService<LogCleanupService>();
 
         return services;
     }
