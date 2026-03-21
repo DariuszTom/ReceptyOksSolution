@@ -31,18 +31,18 @@ public class SyncService
 
         try
         {
-            // Sprawd� po��czenie
+            // Sprawdź połączenie
             var connectivity = Connectivity.Current.NetworkAccess;
             if (connectivity != NetworkAccess.Internet)
             {
                 result.Success = false;
-                result.Message = "Brak po��czenia z internetem";
+                result.Message = "Brak połączenia z internetem";
                 return result;
             }
 
             var lastSync = await _localDb.GetLastSyncTimeAsync();
 
-            // Pobierz lokalne zmiany do wys�ania
+            // Pobierz lokalne zmiany do wysłania
             var request = new SyncRequest
             {
                 LastSyncedAt = lastSync,
@@ -67,7 +67,7 @@ public class SyncService
             {
                 _logger.LogError("Sync failed with status code {StatusCode}", response.StatusCode);
                 result.Success = false;
-                result.Message = $"B��d serwera: {response.StatusCode}";
+                result.Message = $"Błąd serwera: {response.StatusCode}";
                 return result;
             }
 
@@ -77,21 +77,21 @@ public class SyncService
             {
                 _logger.LogError("Sync failed: server returned null response");
                 result.Success = false;
-                result.Message = "Pusta odpowied� serwera";
+                result.Message = "Pusta odpowiedź serwera";
                 return result;
             }
 
             // Zastosuj zmiany z serwera lokalnie
             await ApplyServerChangesAsync(syncResponse);
 
-            // Wyczy�� flagi dirty
+            // Wyczyść flagi dirty
             await _localDb.ClearDirtyFlagsAsync();
 
             // Zapisz czas synchronizacji
             await _localDb.SetLastSyncTimeAsync(syncResponse.SyncedAt);
 
             result.Success = true;
-            result.Message = "Synchronizacja zako�czona pomy�lnie";
+            result.Message = "Synchronizacja zakończona pomyślnie";
             result.RecipesSynced = syncResponse.Recipes.Count;
             result.CategoriesSynced = syncResponse.Categories.Count;
             result.IngredientsSynced = syncResponse.Ingredients.Count;
@@ -101,7 +101,7 @@ public class SyncService
         {
             _logger.LogError(ex, "Sync failed with exception");
             result.Success = false;
-            result.Message = $"B��d synchronizacji: {ex.Message}";
+            result.Message = $"Błąd synchronizacji: {ex.Message}";
         }
 
         return result;
@@ -120,7 +120,7 @@ public class SyncService
             {
                 _logger.LogError("Full sync failed with status code {StatusCode}", response.StatusCode);
                 result.Success = false;
-                result.Message = $"B��d serwera: {response.StatusCode}";
+                result.Message = $"Błąd serwera: {response.StatusCode}";
                 return result;
             }
 
@@ -130,7 +130,7 @@ public class SyncService
             {
                 _logger.LogError("Full sync failed: server returned null response");
                 result.Success = false;
-                result.Message = "Pusta odpowied� serwera";
+                result.Message = "Pusta odpowiedź serwera";
                 return result;
             }
 
@@ -138,7 +138,7 @@ public class SyncService
             await _localDb.SetLastSyncTimeAsync(syncResponse.SyncedAt);
 
             result.Success = true;
-            result.Message = "Pe�na synchronizacja zako�czona";
+            result.Message = "Pełna synchronizacja zakończona";
             result.RecipesSynced = syncResponse.Recipes.Count;
             result.CategoriesSynced = syncResponse.Categories.Count;
             result.IngredientsSynced = syncResponse.Ingredients.Count;
@@ -148,15 +148,15 @@ public class SyncService
         {
             _logger.LogError(ex, "Full sync failed with exception");
             result.Success = false;
-            result.Message = $"B��d: {ex.Message}";
+            result.Message = $"Błąd: {ex.Message}";
         }
 
         return result;
     }
 
     /// <summary>
-    /// Wysy�a wszystkie lokalne przepisy i kategorie na backend w partiach,
-    /// aby unikn�� przekroczenia limitu rozmiaru ��dania (413 Request Entity Too Large).
+    /// Wysyła wszystkie lokalne przepisy i kategorie na backend w partiach,
+    /// aby uniknąć przekroczenia limitu rozmiaru żądania (413 Request Entity Too Large).
     /// </summary>
     public async Task<SyncResult> UploadAllAsync()
     {
@@ -169,7 +169,7 @@ public class SyncService
             {
                 _logger.LogWarning("Upload-all aborted: no internet connection");
                 result.Success = false;
-                result.Message = "Brak po��czenia z internetem";
+                result.Message = "Brak połączenia z internetem";
                 return result;
             }
 
@@ -219,7 +219,7 @@ public class SyncService
                 {
                     _logger.LogError("Upload-all batch {Batch} failed with status code {StatusCode}", i + 1, response.StatusCode);
                     result.Success = false;
-                    result.Message = $"B��d serwera (partia {i + 1}): {response.StatusCode}";
+                    result.Message = $"Błąd serwera (partia {i + 1}): {response.StatusCode}";
                     return result;
                 }
 
@@ -229,7 +229,7 @@ public class SyncService
                 {
                     _logger.LogError("Upload-all batch {Batch} failed: server returned null response", i + 1);
                     result.Success = false;
-                    result.Message = "Pusta odpowied� serwera";
+                    result.Message = "Pusta odpowiedź serwera";
                     return result;
                 }
 
@@ -240,7 +240,7 @@ public class SyncService
             await _localDb.SetLastSyncTimeAsync(lastSyncedAt);
 
             result.Success = true;
-            result.Message = "Wszystkie dane zosta�y wys�ane na serwer";
+            result.Message = "Wszystkie dane zostały wysłane na serwer";
             result.RecipesSynced = allRecipes.Count;
             result.CategoriesSynced = allCategories.Count;
             result.IngredientsSynced = allIngredients.Count;
@@ -250,7 +250,7 @@ public class SyncService
         {
             _logger.LogError(ex, "Upload-all failed with exception");
             result.Success = false;
-            result.Message = $"B��d wysy�ania: {ex.Message}";
+            result.Message = $"Błąd wysyłania: {ex.Message}";
         }
 
         return result;
@@ -371,7 +371,7 @@ public class SyncService
             });
         }
 
-        // Sk�adniki
+        // Składniki
         foreach (var ingredientDto in response.Ingredients)
         {
             await _localDb.ApplyServerIngredientAsync(new IngredientLocal
@@ -405,7 +405,7 @@ public class SyncService
                 IsDeleted = recipeDto.IsDeleted
             });
 
-            // Sk�adniki przepisu
+            // Składniki przepisu
             var recipeIngredients = recipeDto.Ingredients.Select(i => new RecipeIngredientLocal
             {
                 Id = i.Id,
