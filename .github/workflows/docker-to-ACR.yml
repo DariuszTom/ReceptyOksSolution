@@ -14,9 +14,11 @@ permissions:
 
 jobs:
   build-and-push:
-    # Run only when the upstream workflow finished successfully
-    # and that upstream workflow was triggered manually (workflow_dispatch)
-    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'workflow_dispatch' }}
+    # Run when: upstream workflow finished successfully (manual dispatch) OR this workflow is triggered directly
+    if: >
+      ${{ github.event_name == 'workflow_dispatch'
+          || (github.event.workflow_run.conclusion == 'success'
+              && github.event.workflow_run.event == 'workflow_dispatch') }}
     runs-on: ubuntu-latest
     env:
       ACR_NAME: ${{ secrets.ACR_NAME }}
@@ -40,18 +42,23 @@ jobs:
         run: |
           OWNER="${{ github.repository_owner }}"
           OWNER="${OWNER,,}"
+          SHA="${{ github.sha }}"
           IMAGE="ghcr.io/$OWNER/receptyoks-api:latest"
-          TARGET="$ACR_NAME.azurecr.io/$OWNER/receptyoks-api:latest"
+          TARGET_LATEST="$ACR_NAME.azurecr.io/$OWNER/receptyoks-api:latest"
+          TARGET_SHA="$ACR_NAME.azurecr.io/$OWNER/receptyoks-api:$SHA"
           docker pull "$IMAGE"
-          docker tag "$IMAGE" "$TARGET"
-          docker push "$TARGET"
+          docker tag "$IMAGE" "$TARGET_LATEST"
+          docker tag "$IMAGE" "$TARGET_SHA"
+          docker push "$TARGET_LATEST"
+          docker push "$TARGET_SHA"
 
       - name: Update Azure Container App
         run: |
           OWNER="${{ github.repository_owner }}"
           OWNER="${OWNER,,}"
+          SHA="${{ github.sha }}"
           az containerapp update \
             --name ${{ secrets.CONTAINER_APP_NAME }} \
             --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
-            --image $ACR_NAME.azurecr.io/$OWNER/receptyoks-api:latest
+            --image $ACR_NAME.azurecr.io/$OWNER/receptyoks-api:$SHA
 
