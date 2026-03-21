@@ -1,6 +1,7 @@
 using Polly;
 using Polly.Retry;
 using ReceptyOks.Misc;
+using ReceptyOks.Shared.DTOs;
 using ReceptyOks.Shared.Models;
 using System.Net.Http.Json;
 
@@ -527,26 +528,6 @@ public class ShoppingListService(HttpClient httpClient)
         return Connectivity.Current.NetworkAccess == NetworkAccess.Internet;
     }
 }
-
-/// <summary>
-/// Request to mark an item as bought.
-/// </summary>
-public record BoughtRequest(string? BoughtBy);
-
-/// <summary>
-/// Request to mark multiple items as bought.
-/// </summary>
-public record BulkBoughtRequest(List<Guid> Ids, string? BoughtBy);
-
-/// <summary>
-/// Response for bulk operations.
-/// </summary>
-public record BulkOperationResponse(int AffectedCount);
-
-/// <summary>
-/// Shopping list statistics.
-/// </summary>
-public record ShoppingListStats(int TotalItems, int BoughtItems, int PendingItems);
 
 /// <summary>
 /// Error response from API.

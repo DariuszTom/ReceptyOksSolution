@@ -13,6 +13,10 @@ public class SyncService
     private readonly LocalDatabase _localDb;
     private readonly HttpClient _httpClient;
     private readonly ILogger<SyncService> _logger;
+    private readonly AsyncRetryPolicy<HttpResponseMessage> _retryPolicy = Policy
+        .HandleResult<HttpResponseMessage>(r => (int)r.StatusCode >= 500)
+        .Or<HttpRequestException>()
+        .WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)));
 
     public SyncService(LocalDatabase localDb, HttpClient httpClient, ILogger<SyncService> logger)
     {
@@ -27,18 +31,18 @@ public class SyncService
 
         try
         {
-            // SprawdŸ po³¹czenie
+            // Sprawdï¿½ poï¿½ï¿½czenie
             var connectivity = Connectivity.Current.NetworkAccess;
             if (connectivity != NetworkAccess.Internet)
             {
                 result.Success = false;
-                result.Message = "Brak po³¹czenia z internetem";
+                result.Message = "Brak poï¿½ï¿½czenia z internetem";
                 return result;
             }
 
             var lastSync = await _localDb.GetLastSyncTimeAsync();
 
-            // Pobierz lokalne zmiany do wys³ania
+            // Pobierz lokalne zmiany do wysï¿½ania
             var request = new SyncRequest
             {
                 LastSyncedAt = lastSync,
@@ -47,17 +51,7 @@ public class SyncService
                 ChangedIngredients = await GetChangedIngredientsAsync()
             };
 
-            AsyncRetryPolicy<HttpResponseMessage> retryPolicy = Policy
-                .HandleResult<HttpResponseMessage>(r => (int)r.StatusCode >= 500)
-                .Or<HttpRequestException>()
-                .WaitAndRetryAsync(3,
-                    retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
-                    (_, _, retryAttempt, _) =>
-                    {
-                        return Task.CompletedTask;
-                    });
-
-            var response = await retryPolicy.ExecuteAsync(() =>
+            var response = await _retryPolicy.ExecuteAsync(() =>
             {
                 var httpRequest = new HttpRequestMessage(HttpMethod.Post, "/api/sync")
                 {
@@ -73,7 +67,7 @@ public class SyncService
             {
                 _logger.LogError("Sync failed with status code {StatusCode}", response.StatusCode);
                 result.Success = false;
-                result.Message = $"B³¹d serwera: {response.StatusCode}";
+                result.Message = $"Bï¿½ï¿½d serwera: {response.StatusCode}";
                 return result;
             }
 
@@ -83,21 +77,21 @@ public class SyncService
             {
                 _logger.LogError("Sync failed: server returned null response");
                 result.Success = false;
-                result.Message = "Pusta odpowiedŸ serwera";
+                result.Message = "Pusta odpowiedï¿½ serwera";
                 return result;
             }
 
             // Zastosuj zmiany z serwera lokalnie
             await ApplyServerChangesAsync(syncResponse);
 
-            // Wyczyœæ flagi dirty
+            // Wyczyï¿½ï¿½ flagi dirty
             await _localDb.ClearDirtyFlagsAsync();
 
             // Zapisz czas synchronizacji
             await _localDb.SetLastSyncTimeAsync(syncResponse.SyncedAt);
 
             result.Success = true;
-            result.Message = "Synchronizacja zakoñczona pomyœlnie";
+            result.Message = "Synchronizacja zakoï¿½czona pomyï¿½lnie";
             result.RecipesSynced = syncResponse.Recipes.Count;
             result.CategoriesSynced = syncResponse.Categories.Count;
             result.IngredientsSynced = syncResponse.Ingredients.Count;
@@ -107,7 +101,7 @@ public class SyncService
         {
             _logger.LogError(ex, "Sync failed with exception");
             result.Success = false;
-            result.Message = $"B³¹d synchronizacji: {ex.Message}";
+            result.Message = $"Bï¿½ï¿½d synchronizacji: {ex.Message}";
         }
 
         return result;
@@ -126,7 +120,7 @@ public class SyncService
             {
                 _logger.LogError("Full sync failed with status code {StatusCode}", response.StatusCode);
                 result.Success = false;
-                result.Message = $"B³¹d serwera: {response.StatusCode}";
+                result.Message = $"Bï¿½ï¿½d serwera: {response.StatusCode}";
                 return result;
             }
 
@@ -136,7 +130,7 @@ public class SyncService
             {
                 _logger.LogError("Full sync failed: server returned null response");
                 result.Success = false;
-                result.Message = "Pusta odpowiedŸ serwera";
+                result.Message = "Pusta odpowiedï¿½ serwera";
                 return result;
             }
 
@@ -144,7 +138,7 @@ public class SyncService
             await _localDb.SetLastSyncTimeAsync(syncResponse.SyncedAt);
 
             result.Success = true;
-            result.Message = "Pe³na synchronizacja zakoñczona";
+            result.Message = "Peï¿½na synchronizacja zakoï¿½czona";
             result.RecipesSynced = syncResponse.Recipes.Count;
             result.CategoriesSynced = syncResponse.Categories.Count;
             result.IngredientsSynced = syncResponse.Ingredients.Count;
@@ -154,15 +148,15 @@ public class SyncService
         {
             _logger.LogError(ex, "Full sync failed with exception");
             result.Success = false;
-            result.Message = $"B³¹d: {ex.Message}";
+            result.Message = $"Bï¿½ï¿½d: {ex.Message}";
         }
 
         return result;
     }
 
     /// <summary>
-    /// Wysy³a wszystkie lokalne przepisy i kategorie na backend w partiach,
-    /// aby unikn¹æ przekroczenia limitu rozmiaru ¿¹dania (413 Request Entity Too Large).
+    /// Wysyï¿½a wszystkie lokalne przepisy i kategorie na backend w partiach,
+    /// aby uniknï¿½ï¿½ przekroczenia limitu rozmiaru ï¿½ï¿½dania (413 Request Entity Too Large).
     /// </summary>
     public async Task<SyncResult> UploadAllAsync()
     {
@@ -175,7 +169,7 @@ public class SyncService
             {
                 _logger.LogWarning("Upload-all aborted: no internet connection");
                 result.Success = false;
-                result.Message = "Brak po³¹czenia z internetem";
+                result.Message = "Brak poï¿½ï¿½czenia z internetem";
                 return result;
             }
 
@@ -195,15 +189,6 @@ public class SyncService
             if (recipeBatches.Count == 0)
                 recipeBatches.Add([]);
 
-            AsyncRetryPolicy<HttpResponseMessage> retryPolicy = Policy.HandleResult<HttpResponseMessage>(r => (int)r.StatusCode >= 500)
-                .Or<HttpRequestException>()
-                .WaitAndRetryAsync(3,
-                    retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
-                    (_, _, retryAttempt, _) =>
-                    {
-                        return Task.CompletedTask;
-                    });
-
             using var timeoutCts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
             DateTime lastSyncedAt = default;
 
@@ -218,7 +203,7 @@ public class SyncService
                     ChangedIngredients = i == 0 ? allIngredients : []
                 };
 
-                var response = await retryPolicy.ExecuteAsync(ct =>
+                var response = await _retryPolicy.ExecuteAsync(ct =>
                 {
                     var httpRequest = new HttpRequestMessage(HttpMethod.Post, "/api/sync/upload-all")
                     {
@@ -234,7 +219,7 @@ public class SyncService
                 {
                     _logger.LogError("Upload-all batch {Batch} failed with status code {StatusCode}", i + 1, response.StatusCode);
                     result.Success = false;
-                    result.Message = $"B³¹d serwera (partia {i + 1}): {response.StatusCode}";
+                    result.Message = $"Bï¿½ï¿½d serwera (partia {i + 1}): {response.StatusCode}";
                     return result;
                 }
 
@@ -244,7 +229,7 @@ public class SyncService
                 {
                     _logger.LogError("Upload-all batch {Batch} failed: server returned null response", i + 1);
                     result.Success = false;
-                    result.Message = "Pusta odpowiedŸ serwera";
+                    result.Message = "Pusta odpowiedï¿½ serwera";
                     return result;
                 }
 
@@ -255,7 +240,7 @@ public class SyncService
             await _localDb.SetLastSyncTimeAsync(lastSyncedAt);
 
             result.Success = true;
-            result.Message = "Wszystkie dane zosta³y wys³ane na serwer";
+            result.Message = "Wszystkie dane zostaï¿½y wysï¿½ane na serwer";
             result.RecipesSynced = allRecipes.Count;
             result.CategoriesSynced = allCategories.Count;
             result.IngredientsSynced = allIngredients.Count;
@@ -265,7 +250,7 @@ public class SyncService
         {
             _logger.LogError(ex, "Upload-all failed with exception");
             result.Success = false;
-            result.Message = $"B³¹d wysy³ania: {ex.Message}";
+            result.Message = $"Bï¿½ï¿½d wysyï¿½ania: {ex.Message}";
         }
 
         return result;
@@ -274,12 +259,45 @@ public class SyncService
     private async Task<List<RecipeSyncDto>> GetAllRecipesForUploadAsync()
     {
         var recipes = await _localDb.GetRecipesAsync();
-        var result = new List<RecipeSyncDto>();
+        return await MapRecipesToSyncDtosAsync(recipes);
+    }
 
+    private async Task<List<CategorySyncDto>> GetAllCategoriesForUploadAsync()
+    {
+        var categories = await _localDb.GetCategoriesAsync();
+        return MapCategoriesToSyncDtos(categories);
+    }
+
+    private async Task<List<IngredientSyncDto>> GetAllIngredientsForUploadAsync()
+    {
+        var ingredients = await _localDb.GetIngredientsAsync();
+        return MapIngredientsToSyncDtos(ingredients);
+    }
+
+    private async Task<List<RecipeSyncDto>> GetChangedRecipesAsync()
+    {
+        var dirtyRecipes = await _localDb.GetDirtyRecipesAsync();
+        return await MapRecipesToSyncDtosAsync(dirtyRecipes);
+    }
+
+    private async Task<List<CategorySyncDto>> GetChangedCategoriesAsync()
+    {
+        var dirtyCategories = await _localDb.GetDirtyCategoriesAsync();
+        return MapCategoriesToSyncDtos(dirtyCategories);
+    }
+
+    private async Task<List<IngredientSyncDto>> GetChangedIngredientsAsync()
+    {
+        var dirtyIngredients = await _localDb.GetDirtyIngredientsAsync();
+        return MapIngredientsToSyncDtos(dirtyIngredients);
+    }
+
+    private async Task<List<RecipeSyncDto>> MapRecipesToSyncDtosAsync(List<RecipeLocal> recipes)
+    {
+        var result = new List<RecipeSyncDto>();
         foreach (var recipe in recipes)
         {
             var ingredients = await _localDb.GetRecipeIngredientsAsync(recipe.Id);
-
             result.Add(new RecipeSyncDto
             {
                 Id = recipe.Id,
@@ -306,13 +324,11 @@ public class SyncService
                 }).ToList()
             });
         }
-
         return result;
     }
 
-    private async Task<List<CategorySyncDto>> GetAllCategoriesForUploadAsync()
+    private static List<CategorySyncDto> MapCategoriesToSyncDtos(List<CategoryLocal> categories)
     {
-        var categories = await _localDb.GetCategoriesAsync();
         return categories.Select(c => new CategorySyncDto
         {
             Id = c.Id,
@@ -325,78 +341,9 @@ public class SyncService
         }).ToList();
     }
 
-    private async Task<List<IngredientSyncDto>> GetAllIngredientsForUploadAsync()
+    private static List<IngredientSyncDto> MapIngredientsToSyncDtos(List<IngredientLocal> ingredients)
     {
-        var ingredients = await _localDb.GetIngredientsAsync();
         return ingredients.Select(i => new IngredientSyncDto
-        {
-            Id = i.Id,
-            Name = i.Name,
-            Unit = i.Unit,
-            CreatedAt = i.CreatedAt,
-            UpdatedAt = i.UpdatedAt,
-            IsDeleted = i.IsDeleted
-        }).ToList();
-    }
-
-    private async Task<List<RecipeSyncDto>> GetChangedRecipesAsync()
-    {
-        var dirtyRecipes = await _localDb.GetDirtyRecipesAsync();
-        var result = new List<RecipeSyncDto>();
-
-        foreach (var recipe in dirtyRecipes)
-        {
-            var ingredients = await _localDb.GetRecipeIngredientsAsync(recipe.Id);
-
-            result.Add(new RecipeSyncDto
-            {
-                Id = recipe.Id,
-                Title = recipe.Title,
-                Description = recipe.Description,
-                Instructions = recipe.Instructions,
-                PreparationTimeMinutes = recipe.PreparationTimeMinutes,
-                CookingTimeMinutes = recipe.CookingTimeMinutes,
-                Servings = recipe.Servings,
-                Image = recipe.Image,
-                ImageContentType = recipe.ImageContentType,
-                CategoryId = recipe.CategoryId,
-                CreatedAt = recipe.CreatedAt,
-                UpdatedAt = recipe.UpdatedAt,
-                IsDeleted = recipe.IsDeleted,
-                Ingredients = ingredients.Select(i => new RecipeIngredientSyncDto
-                {
-                    Id = i.Id,
-                    IngredientId = i.IngredientId,
-                    Quantity = i.Quantity,
-                    Unit = i.Unit,
-                    Notes = i.Notes,
-                    Order = i.Order
-                }).ToList()
-            });
-        }
-
-        return result;
-    }
-
-    private async Task<List<CategorySyncDto>> GetChangedCategoriesAsync()
-    {
-        var dirtyCategories = await _localDb.GetDirtyCategoriesAsync();
-        return dirtyCategories.Select(c => new CategorySyncDto
-        {
-            Id = c.Id,
-            Name = c.Name,
-            Description = c.Description,
-            IconName = c.IconName,
-            CreatedAt = c.CreatedAt,
-            UpdatedAt = c.UpdatedAt,
-            IsDeleted = c.IsDeleted
-        }).ToList();
-    }
-
-    private async Task<List<IngredientSyncDto>> GetChangedIngredientsAsync()
-    {
-        var dirtyIngredients = await _localDb.GetDirtyIngredientsAsync();
-        return dirtyIngredients.Select(i => new IngredientSyncDto
         {
             Id = i.Id,
             Name = i.Name,
@@ -424,7 +371,7 @@ public class SyncService
             });
         }
 
-        // Sk³adniki
+        // Skï¿½adniki
         foreach (var ingredientDto in response.Ingredients)
         {
             await _localDb.ApplyServerIngredientAsync(new IngredientLocal
@@ -458,7 +405,7 @@ public class SyncService
                 IsDeleted = recipeDto.IsDeleted
             });
 
-            // Sk³adniki przepisu
+            // Skï¿½adniki przepisu
             var recipeIngredients = recipeDto.Ingredients.Select(i => new RecipeIngredientLocal
             {
                 Id = i.Id,
