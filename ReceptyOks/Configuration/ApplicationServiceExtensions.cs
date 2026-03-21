@@ -7,6 +7,7 @@ using Plugin.Maui.OCR;
 using ReceptyOks.BlazorComponents.Services;
 using ReceptyOks.Data;
 using ReceptyOks.Services;
+using ReceptyOks.Shared.Configuration;
 using ReceptyOks.Shared.OCR;
 
 /// <summary>
@@ -40,6 +41,12 @@ internal static class ApplicationServiceExtensions
         services.AddSingleton<ISpeechToText>(SpeechToText.Default);
 
         // Background jobs
+        services.AddSingleton(new CleanupOptions
+        {
+            Interval = TimeSpan.FromHours(12),
+            StartupDelay = TimeSpan.FromSeconds(30),
+            MaxAge = TimeSpan.FromDays(7)
+        });
         services.AddHostedService<LogCleanupService>();
 
         return services;

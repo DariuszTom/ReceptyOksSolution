@@ -1,35 +1,33 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using ReceptyOks.Data;
+using ReceptyOks.Shared.Configuration;
 
 namespace ReceptyOks.Services;
 
 /// <summary>
-/// Background service that periodically deletes log entries older than 20 days.
-/// Runs once on startup and then every 24 hours.
+/// Background service that periodically deletes log entries older than the configured max age.
+/// Runs once after a startup delay and then on a recurring interval.
 /// </summary>
 public sealed class LogCleanupService(
     LocalDatabase database,
+    CleanupOptions options,
     ILogger<LogCleanupService> logger) : BackgroundService
 {
-    private const int MaxLogAgeDays = 7;
-    private static readonly TimeSpan Interval = TimeSpan.FromHours(12);
-    private static readonly TimeSpan StartupDelay = TimeSpan.FromSeconds(30);
-
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         // Let the app finish loading before running non-critical cleanup.
-        await Task.Delay(StartupDelay, stoppingToken);
+        await Task.Delay(options.StartupDelay, stoppingToken).ConfigureAwait(false);
 
-        await CleanupAsync();
+        await CleanupAsync().ConfigureAwait(false);
 
-        using PeriodicTimer timer = new(Interval);
+        using PeriodicTimer timer = new(options.Interval);
 
         try
         {
             while (await timer.WaitForNextTickAsync(stoppingToken))
             {
-                await CleanupAsync();
+                await CleanupAsync().ConfigureAwait(false);
             }
         }
         catch (OperationCanceledException)
@@ -42,7 +40,7 @@ public sealed class LogCleanupService(
     {
         try
         {
-            await database.ClearOldLogsAsync(MaxLogAgeDays);
+            await database.ClearOldLogsAsync(options.MaxAge.Days).ConfigureAwait(false);
         }
         catch (Exception ex)
         {

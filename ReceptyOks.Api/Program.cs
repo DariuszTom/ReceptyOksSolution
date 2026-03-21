@@ -5,6 +5,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.EntityFrameworkCore;
 using ReceptyOks.Api.Endpoints;
 using ReceptyOks.Api.Middleware;
+using ReceptyOks.Shared.Configuration;
 using Scalar.AspNetCore;
 
 
@@ -68,6 +69,15 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 System.Text.Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? "default_secret_key"))
         };
     });
+
+builder.Services.AddSingleton(new CleanupOptions
+{
+    Interval = TimeSpan.FromHours(24),
+    StartupDelay = TimeSpan.FromSeconds(30),
+    MaxAge = TimeSpan.FromDays(7)
+});
+builder.Services.AddHostedService<ShopingListCleaner>();
+
 var app = builder.Build();
 
 app.UseAuthentication();
