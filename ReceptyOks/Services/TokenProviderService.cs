@@ -1,5 +1,6 @@
 ﻿using ReceptyOks.Configuration;
 using ReceptyOks.Shared;
+using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 
 namespace ReceptyOks.Services
@@ -22,17 +23,13 @@ namespace ReceptyOks.Services
                 throw new InvalidOperationException("UserAgent is not configured");
 
             var request = new TokenRequest(await SecureSecretService.GetSecretBytesAsync(GlobalConstants.ApiKeyHeaderName), _appSettings.Http?.Github?.UserAgent);
-            var content = new StringContent(System.Text.Json.JsonSerializer.Serialize(request),
-                    System.Text.Encoding.UTF8, "application/json");
 
-            using var response = await _httpClient.PostAsync("/api/tokenprovider/token", content, cancellationToken).ConfigureAwait(false);
+            using var response = await _httpClient.PostAsJsonAsync("/api/tokenprovider/token", request, cancellationToken).ConfigureAwait(false);
 
             if (!response.IsSuccessStatusCode)
                 return null;
 
-            var responseString = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
-            return System.Text.Json.JsonSerializer.Deserialize<TokenResponse>(responseString);
-
+            return await response.Content.ReadFromJsonAsync<TokenResponse>(cancellationToken: cancellationToken).ConfigureAwait(false);
         }
 
         private sealed record TokenRequest(byte[] SecretHash, string UserName);
