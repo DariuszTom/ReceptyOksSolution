@@ -23,6 +23,23 @@ public partial class EditableIngredient : ObservableObject
     [ObservableProperty]
     private string notes = string.Empty;
 
+    /// <summary>
+    /// Display text for the ingredient chip (e.g. "Mąka 200g").
+    /// </summary>
+    public string ChipDisplayName
+    {
+        get
+        {
+            var parts = new List<string> { IngredientName };
+            if (Quantity > 0)
+            {
+                var unitText = SelectedUnit != Jednostki.Brak ? SelectedUnit.ToString() : "";
+                parts.Add($"{Quantity} {unitText}");
+            }
+            return string.Join(" ", parts);
+        }
+    }
+
     partial void OnSelectedIngredientChanged(IngredientLocal? value)
     {
         if (value is not null)
@@ -37,5 +54,6 @@ public partial class EditableIngredient : ObservableObject
         {
             SelectedIngredient = null;
         }
+        OnPropertyChanged(nameof(ChipDisplayName));
     }
 }

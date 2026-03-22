@@ -248,105 +248,77 @@
             </Grid>
 
             <!-- Składniki -->
-            <toolkit:Expander IsExpanded="True"
-                              IsVisible="{Binding IsEditorFullScreen, Converter={StaticResource InvertedBoolConverter}}">
-                <toolkit:Expander.Header>
-                    <Border Stroke="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray600}}"
-                            StrokeThickness="1"
-                            StrokeShape="RoundRectangle 8"
-                            Padding="12,10"
-                            Margin="0,16,0,0"
-                            BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray800}}">
-                        <Grid ColumnDefinitions="Auto,*,Auto">
-                            <Image Grid.Column="0" HeightRequest="20" WidthRequest="20" Margin="0,0,10,0">
-                                <Image.Source>
-                                    <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Restaurant}"
-                                                     FontFamily="MaterialSymbolsOutlined"
-                                                     Color="{StaticResource Primary}"
-                                                     Size="20"/>
-                                </Image.Source>
-                            </Image>
-                            <Label Grid.Column="1"
-                                   Text="{Binding Ingredients.Count, StringFormat='Składniki ({0})'}"
-                                   FontSize="18"
-                                   FontAttributes="Bold"
-                                   VerticalOptions="Center"/>
-                            <Image Grid.Column="2" HeightRequest="20" WidthRequest="20">
-                                <Image.Source>
-                                    <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Expand_more}"
-                                                     FontFamily="MaterialSymbolsOutlined"
-                                                     Color="{StaticResource Gray500}"
-                                                     Size="20"/>
-                                </Image.Source>
-                            </Image>
-                        </Grid>
-                    </Border>
-                </toolkit:Expander.Header>
-                <toolkit:Expander.Content>
-                    <VerticalStackLayout>
-                        <CollectionView ItemsSource="{Binding Ingredients}">
-                            <CollectionView.ItemTemplate>
-                                <DataTemplate x:DataType="vm:EditableIngredient">
-                                    <Border Stroke="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray600}}"
-                                            StrokeThickness="1"
-                                            StrokeShape="RoundRectangle 12"
-                                            Padding="12"
-                                            Margin="0,6"
-                                            BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}">
-                                        <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" RowSpacing="10">
-                                            <material:TextField Grid.Row="0" Grid.Column="0" FontSize="16"
-                                                                Title="Składnik"
-                                                                Text="{Binding IngredientName}"/>
-                                            <Button Grid.Row="0" Grid.Column="1"
-                                                    BackgroundColor="Transparent"
-                                                    VerticalOptions="Center"
-                                                    Command="{Binding Source={RelativeSource AncestorType={x:Type vm:RecipeEditViewModel}}, Path=RemoveIngredientCommand}"
-                                                    CommandParameter="{Binding .}">
-                                                <Button.ImageSource>
-                                                    <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Delete}"
-                                                                     FontFamily="MaterialSymbolsOutlined"
-                                                                     Color="#E53935"
-                                                                     Size="22"/>
-                                                </Button.ImageSource>
-                                            </Button>
-                                            <Grid Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
-                                                  ColumnDefinitions="*,*,*" ColumnSpacing="6">
-                                                <material:TextField Grid.Column="0" FontSize="14" SelectAllTextOnFocus="True"
-                                                                    Title="Ilość"
-                                                                    Text="{Binding Quantity}"
-                                                                    Keyboard="Numeric"/>
-                                                <material:PickerField Grid.Column="1" FontSize="12"
-                                                                      Title="Jednostka"
-                                                                      ItemsSource="{Binding Source={RelativeSource AncestorType={x:Type vm:RecipeEditViewModel}}, Path=AvailableUnits, Mode=OneTime}"
-                                                                      SelectedItem="{Binding SelectedUnit, Mode=TwoWay}"
-                                                                      VerticalOptions="Center"
-                                                                      BackgroundColor="Transparent"/>
-                                                <material:TextField Grid.Column="2" FontSize="12"
-                                                                    Title="Uwagi"
-                                                                    Text="{Binding Notes}"/>
-                                            </Grid>
-                                        </Grid>
-                                    </Border>
-                                </DataTemplate>
-                            </CollectionView.ItemTemplate>
-                        </CollectionView>
-                        <Grid ColumnDefinitions="*,Auto" Margin="0,8,0,0">
-                            <Button Grid.Column="1" VerticalOptions="End"
-                                    Command="{Binding AddIngredientCommand}"
-                                    BackgroundColor="{StaticResource Primary}"
-                                    CornerRadius="20"
-                                    Padding="12,6">
-                                <Button.ImageSource>
-                                    <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Add}"
-                                                     FontFamily="MaterialSymbolsOutlined"
-                                                     Color="White"
-                                                     Size="18"/>
-                                </Button.ImageSource>
-                            </Button>
-                        </Grid>
-                    </VerticalStackLayout>
-                </toolkit:Expander.Content>
-            </toolkit:Expander>
+            <VerticalStackLayout Spacing="8"
+                                 IsVisible="{Binding IsEditorFullScreen, Converter={StaticResource InvertedBoolConverter}}">
+
+                <!-- Header -->
+                <Grid ColumnDefinitions="Auto,*" Margin="0,16,0,0">
+                    <Image HeightRequest="20" WidthRequest="20" Margin="0,0,10,0" VerticalOptions="Center">
+                        <Image.Source>
+                            <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Restaurant}"
+                                             FontFamily="MaterialSymbolsOutlined"
+                                             Color="{StaticResource Primary}"
+                                             Size="20"/>
+                        </Image.Source>
+                    </Image>
+                    <Label Grid.Column="1"
+                           Text="{Binding Ingredients.Count, StringFormat='Składniki ({0})'}"
+                           FontSize="18"
+                           FontAttributes="Bold"
+                           VerticalOptions="Center"/>
+                </Grid>
+
+                <!-- Ingriedent control for adding -->
+                <controls:Ingriedent ItemName="{Binding NewIngredientName}"
+                                     ItemQuantity="{Binding NewIngredientQuantity}"
+                                     SelectedUnit="{Binding NewIngredientUnit}"
+                                     AvailableUnits="{Binding AvailableUnits}"
+                                     IngredientSuggestions="{Binding IngredientSuggestions}"
+                                     AddCommand="{Binding AddIngredientCommand}"
+                                     ErrorMessage="{Binding IngredientErrorMessage}"/>
+
+                <!-- Chips for added ingredients -->
+                <FlexLayout BindableLayout.ItemsSource="{Binding Ingredients}"
+                            Wrap="Wrap"
+                            Direction="Row"
+                            JustifyContent="Start"
+                            AlignItems="Center"
+                            AlignContent="Start">
+                    <BindableLayout.ItemTemplate>
+                        <DataTemplate x:DataType="vm:EditableIngredient">
+                            <Border Stroke="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource BlazorGradient}}"
+                                    StrokeThickness="1"
+                                    StrokeShape="RoundRectangle 20"
+                                    Padding="14,6,8,6"
+                                    Margin="4"
+                                    BackgroundColor="{AppThemeBinding Light={StaticResource Secondary}, Dark={StaticResource Gray800}}">
+                                <Grid ColumnDefinitions="Auto,*,Auto" VerticalOptions="Center">
+                                    <Label Grid.Column="0"
+                                           Text="{Binding ChipDisplayName}"
+                                           FontSize="14"
+                                           VerticalOptions="Center"
+                                           TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"/>
+                                    <ImageButton Grid.Column="2"
+                                                 Command="{Binding Source={RelativeSource AncestorType={x:Type vm:RecipeEditViewModel}}, Path=RemoveIngredientCommand}"
+                                                 CommandParameter="{Binding .}"
+                                                 HeightRequest="24"
+                                                 WidthRequest="24"
+                                                 BackgroundColor="Transparent"
+                                                 Margin="12,0,0,0"
+                                                 VerticalOptions="Center">
+                                        <ImageButton.Source>
+                                            <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Close}"
+                                                             FontFamily="MaterialSymbolsOutlined"
+                                                             Color="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray300}}"
+                                                             Size="16"/>
+                                        </ImageButton.Source>
+                                    </ImageButton>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </BindableLayout.ItemTemplate>
+                </FlexLayout>
+            </VerticalStackLayout>
 
             <!-- Instrukcje - Rich Text Editor -->
             <Grid ColumnDefinitions="Auto,*,Auto,Auto" Margin="0,16,0,0">

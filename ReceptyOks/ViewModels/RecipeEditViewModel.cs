@@ -61,6 +61,24 @@ public partial class RecipeEditViewModel : ObservableObject
     public IReadOnlyList<Jednostki> AvailableUnits { get; } = Enum.GetValues(typeof(Jednostki)).Cast<Jednostki>().ToList();
 
     [ObservableProperty]
+    private string newIngredientName = string.Empty;
+
+    [ObservableProperty]
+    private string newIngredientQuantity = string.Empty;
+
+    [ObservableProperty]
+    private Jednostki newIngredientUnit = Jednostki.Brak;
+
+    [ObservableProperty]
+    private string? ingredientErrorMessage;
+
+    /// <summary>
+    /// Ingredient name suggestions from local database for autocomplete.
+    /// </summary>
+    [ObservableProperty]
+    private IEnumerable<string> ingredientSuggestions = [];
+
+    [ObservableProperty]
     private string pageTitle = "Nowy przepis";
 
     [ObservableProperty]
@@ -120,6 +138,7 @@ public partial class RecipeEditViewModel : ObservableObject
         {
             AvailableIngredients.Add(ing);
         }
+        RefreshIngredientSuggestions();
 
         _isInitialized = true;
     }
@@ -238,16 +257,49 @@ public partial class RecipeEditViewModel : ObservableObject
     [RelayCommand]
     private void AddIngredient()
     {
+        if (string.IsNullOrWhiteSpace(NewIngredientName))
+        {
+            IngredientErrorMessage = "Podaj nazwę składnika";
+            return;
+        }
+
+        var existingIngredient = AvailableIngredients.FirstOrDefault(
+            i => i.Name.Equals(NewIngredientName, StringComparison.OrdinalIgnoreCase));
+
+        decimal.TryParse(NewIngredientQuantity, out var qty);
+
         Ingredients.Add(new EditableIngredient
         {
-            Id = Guid.NewGuid()
+            Id = Guid.NewGuid(),
+            IngredientName = NewIngredientName,
+            SelectedIngredient = existingIngredient,
+            Quantity = qty,
+            SelectedUnit = NewIngredientUnit
         });
+
+        NewIngredientName = string.Empty;
+        NewIngredientQuantity = string.Empty;
+        NewIngredientUnit = Jednostki.Brak;
+        IngredientErrorMessage = null;
+        RefreshIngredientSuggestions();
     }
 
     [RelayCommand]
     private void RemoveIngredient(EditableIngredient ingredient)
     {
         Ingredients.Remove(ingredient);
+    }
+
+    /// <summary>
+    /// Rebuilds sorted, deduplicated autocomplete suggestions from available and current ingredients.
+    /// </summary>
+    private void RefreshIngredientSuggestions()
+    {
+        IngredientSuggestions = [.. AvailableIngredients.Select(i => i.Name.Trim())
+            .Concat(Ingredients.Select(i => i.IngredientName.Trim()))
+            .Where(n => !string.IsNullOrWhiteSpace(n))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)];
     }
 
     [RelayCommand]
