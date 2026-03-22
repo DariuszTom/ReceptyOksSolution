@@ -58,7 +58,7 @@ public partial class RecipeEditViewModel : ObservableObject
     [ObservableProperty]
     private ObservableCollection<IngredientLocal> availableIngredients = [];
 
-    public IReadOnlyList<Jednostki> AvailableUnits { get; } = Enum.GetValues(typeof(Jednostki)).Cast<Jednostki>().ToList();
+    public IReadOnlyList<Jednostki> AvailableUnits { get; } = [.. Enum.GetValues<Jednostki>().Cast<Jednostki>()];
 
     [ObservableProperty]
     private string newIngredientName = string.Empty;
@@ -266,7 +266,7 @@ public partial class RecipeEditViewModel : ObservableObject
         var existingIngredient = AvailableIngredients.FirstOrDefault(
             i => i.Name.Equals(NewIngredientName, StringComparison.OrdinalIgnoreCase));
 
-        decimal.TryParse(NewIngredientQuantity, out var qty);
+        decimal.TryParse(NewIngredientQuantity, out decimal qty);
 
         Ingredients.Add(new EditableIngredient
         {
@@ -427,7 +427,7 @@ public partial class RecipeEditViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private async Task CancelAsync()
+    private static async Task CancelAsync()
     {
         await Shell.Current.GoToAsync("..");
     }

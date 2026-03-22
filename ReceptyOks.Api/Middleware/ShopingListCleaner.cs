@@ -45,7 +45,7 @@ public sealed class ShopingListCleaner(
                 .Where(s => s.IsBought && s.BoughtAt != null && s.BoughtAt < cutoff)
                 .ExecuteDeleteAsync(ct).ConfigureAwait(false);
 
-            if (deleted > 0)
+            if (deleted > 0  && logger.IsEnabled(LogLevel.Information))
             {
                 logger.LogInformation("Deleted {Count} bought shopping list items older than {Days} days",
                     deleted, options.MaxAge.Days);
