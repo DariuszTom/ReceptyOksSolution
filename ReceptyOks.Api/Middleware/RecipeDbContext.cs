@@ -3,11 +3,8 @@ using ReceptyOks.Shared.Models;
 
 namespace ReceptyOks.Api.Middleware;
 
-public class RecipeDbContext : DbContext
+public class RecipeDbContext(DbContextOptions<RecipeDbContext> options) : DbContext(options)
 {
-    public RecipeDbContext(DbContextOptions<RecipeDbContext> options)
-        : base(options) { }
-
     public DbSet<Recipe> Recipes => Set<Recipe>();
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<Ingredient> Ingredients => Set<Ingredient>();
