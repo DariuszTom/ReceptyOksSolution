@@ -32,12 +32,9 @@ public class NotificationManagerService : INotificationManagerService
 
     public NotificationManagerService()
     {
-        if (Instance is null)
-        {
-            CreateNotificationChannel();
-            _compatManager = NotificationManagerCompat.From(Platform.AppContext);
-            Instance = this;
-        }
+        CreateNotificationChannel();
+        _compatManager = NotificationManagerCompat.From(Platform.AppContext);
+        Instance ??= this;
     }
 
     public void SendNotification(string title, string message, DateTime? notifyTime = null)

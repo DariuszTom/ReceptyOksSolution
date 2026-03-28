@@ -54,7 +54,7 @@ internal static class ApplicationServiceExtensions
         services.AddSingleton<INotificationManagerService, ReceptyOks.Platforms.Android.NotificationManagerService>();
 #endif
         services.AddSingleton<AppNotification>();
-        services.AddSingleton<ShopingListNotification>();
+        services.AddHostedService<ShopingListNotification>();
 
         return services;
     }

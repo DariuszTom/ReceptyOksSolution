@@ -1,26 +1,40 @@
-﻿using Hangfire;
+﻿using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using ReceptyOks.Configuration;
 
 namespace ReceptyOks.Services;
 
-internal sealed class ShopingListNotification
+/// <summary>
+/// Background service that periodically checks for new shopping list items
+/// and sends OS-level notifications when new ones are found.
+/// </summary>
+internal sealed class ShopingListNotification(
+    ShoppingListService service,
+    AppNotification notification,
+    ILogger<ShopingListNotification> logger,
+    AppSettings appSettings) : BackgroundService
 {
-    private readonly ShoppingListService _service;
-    private readonly AppNotification _notification;
-    private readonly ILogger<ShopingListNotification> _logger;
-    private readonly NotificationSettings _settings;
+    private readonly NotificationSettings _settings = appSettings.Notifications;
 
-    public ShopingListNotification(
-        ShoppingListService service,
-        AppNotification notification,
-        ILogger<ShopingListNotification> logger,
-        AppSettings appSettings)
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _service = service;
-        _notification = notification;
-        _logger = logger;
-        _settings = appSettings.Notifications;
+        await Task.Delay(_settings.StartupDelay, stoppingToken).ConfigureAwait(false);
+
+        await CheckForNewItemsAsync().ConfigureAwait(false);
+
+        using PeriodicTimer timer = new(TimeSpan.FromMinutes(_settings.ShoppingListCheckIntervalMinutes));
+
+        try
+        {
+            while (await timer.WaitForNextTickAsync(stoppingToken))
+            {
+                await CheckForNewItemsAsync().ConfigureAwait(false);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            logger.LogInformation("Shopping list notification service is stopping");
+        }
     }
 
     private DateTime GetLastTimeCheck()
@@ -34,31 +48,17 @@ internal sealed class ShopingListNotification
         Preferences.Default.Set(_settings.PreferenceKey, value.Ticks);
     }
 
-    public void ScheduleRecurringCheck()
-    {
-        var intervalMinutes = _settings.ShoppingListCheckIntervalMinutes;
-
-        RecurringJob.AddOrUpdate(
-            "shopping-list-new-items-check",
-            () => CheckForNewItemsAsync(),
-            $"*/{intervalMinutes} * * * *");
-
-        _logger.LogInformation(
-            "Scheduled shopping list check every {Interval} minutes", intervalMinutes);
-    }
-
-    [AutomaticRetry(Attempts = 1)]
-    public async Task CheckForNewItemsAsync()
+    private async Task CheckForNewItemsAsync()
     {
         var checkTime = DateTime.UtcNow;
 
         try
         {
-            var result = await _service.GetAllAsync(includeBought: false).ConfigureAwait(false);
+            var result = await service.GetAllAsync(includeBought: false).ConfigureAwait(false);
 
             if (!result.IsSuccess || result.Data is null)
             {
-                _logger.LogWarning(
+                logger.LogWarning(
                     "Shopping list fetch failed: {Error}", result.ErrorMessage);
                 return;
             }
@@ -74,14 +74,14 @@ internal sealed class ShopingListNotification
                     ? $"Nowy element na liście zakupów: {newItems[0].Name}"
                     : $"Nowe elementy na liście zakupów: {newItems.Count}";
 
-                _notification.SendNotification("Lista zakupów", message);
+                notification.SendNotification("Lista zakupów", message);
             }
 
             SetLastTimeCheck(checkTime);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error checking for new shopping list items");
+            logger.LogError(ex, "Error checking for new shopping list items");
         }
     }
 }

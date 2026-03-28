@@ -102,6 +102,16 @@ public class GitHubSettings
 public class NotificationSettings
 {
     /// <summary>
+    /// Delay before the first check after app startup, letting the app finish loading.
+    /// </summary>
+    public int StartupDelaySeconds { get; set; } = 45;
+
+    /// <summary>
+    /// Computed startup delay.
+    /// </summary>
+    public TimeSpan StartupDelay => TimeSpan.FromSeconds(StartupDelaySeconds);
+
+    /// <summary>
     /// Interval in minutes between shopping list checks.
     /// </summary>
     public int ShoppingListCheckIntervalMinutes { get; set; } = 20;
