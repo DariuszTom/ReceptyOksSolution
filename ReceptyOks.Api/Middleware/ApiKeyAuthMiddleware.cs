@@ -1,6 +1,7 @@
 using ReceptyOks.Shared;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading.RateLimiting;
 
 namespace ReceptyOks.Api.Middleware;
 
@@ -13,6 +14,16 @@ public sealed class ApiKeyAuthMiddleware
     // Cached decoded bytes (provided by SecretStore)
     private readonly byte[]? _storedHashBytes;
     private readonly byte[]? _hmacKeyBytes;
+
+    // Rate limiter: 60 requests per minute per instance
+    private static readonly RateLimiter _rateLimiter = new FixedWindowRateLimiter(
+        new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 60,
+            Window = TimeSpan.FromMinutes(1),
+            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+            QueueLimit = 0
+        });
 
     public ApiKeyAuthMiddleware(
         RequestDelegate next,
@@ -36,7 +47,7 @@ public sealed class ApiKeyAuthMiddleware
         var path = context.Request.Path.Value ?? string.Empty;
 
         // Pomijamy autoryzacji dla:
-        // - endpointu auth (¿eby mo¿na by³o siê uwierzytelniæ)
+        // - endpointu auth (Å¼eby moÅ¼na byÅ‚o siÄ™ uwierzytelniÄ‡)
         // - health checks
         // - OpenAPI/Scalar (tylko w development)
         if (ShouldSkipAuth(path, context.RequestServices.GetRequiredService<IWebHostEnvironment>()))
@@ -45,7 +56,18 @@ public sealed class ApiKeyAuthMiddleware
             return;
         }
 
-        // Sprawdzamy nag³ówek X-Api-Key
+        // Rate limiting - przed sprawdzeniem klucza
+        using var lease = await _rateLimiter.AcquireAsync(permitCount: 1);
+        if (!lease.IsAcquired)
+        {
+            _logger.LogWarning("Rate limit exceeded for request to {Path}", path);
+            context.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+            context.Response.Headers["Retry-After"] = "60";
+            await context.Response.WriteAsJsonAsync(new { error = "Too many requests. Please try again later." });
+            return;
+        }
+
+        // Sprawdzamy nagÅ‚Ã³wek X-Api-Key
         if (!context.Request.Headers.TryGetValue(GlobalConstants.ApiKeyHeaderName, out var providedApiKey))
         {
             _logger.LogWarning("Request to {Path} rejected - missing {Header} header", path, GlobalConstants.ApiKeyHeaderName);
