@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -18,6 +19,18 @@ builder.AddServiceDefaults();
 
 // Register SecretStore
 builder.Services.AddSingleton<SecretStore>();
+
+// Per-IP rate limiter for API key auth middleware
+builder.Services.AddSingleton(PartitionedRateLimiter.Create<HttpContext, string>(context =>
+{
+    var remoteIp = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+    return RateLimitPartition.GetFixedWindowLimiter(remoteIp, _ => new FixedWindowRateLimiterOptions
+    {
+        PermitLimit = 60,
+        Window = TimeSpan.FromMinutes(1),
+        QueueLimit = 0
+    });
+}));
 
 // Configure JSON serialization to avoid cycles when returning EF entities with navigation properties
 builder.Services.ConfigureHttpJsonOptions(opts =>

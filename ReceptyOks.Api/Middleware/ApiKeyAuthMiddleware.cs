@@ -8,32 +8,22 @@ namespace ReceptyOks.Api.Middleware;
 public sealed class ApiKeyAuthMiddleware
 {
     private readonly RequestDelegate _next;
-    private readonly IConfiguration _configuration;
     private readonly ILogger<ApiKeyAuthMiddleware> _logger;
+    private readonly PartitionedRateLimiter<HttpContext> _rateLimiter;
 
     // Cached decoded bytes (provided by SecretStore)
     private readonly byte[]? _storedHashBytes;
     private readonly byte[]? _hmacKeyBytes;
 
-    // Rate limiter: 60 requests per minute per instance
-    private static readonly RateLimiter _rateLimiter = new FixedWindowRateLimiter(
-        new FixedWindowRateLimiterOptions
-        {
-            PermitLimit = 60,
-            Window = TimeSpan.FromMinutes(1),
-            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
-            QueueLimit = 0
-        });
-
     public ApiKeyAuthMiddleware(
         RequestDelegate next,
-        IConfiguration configuration,
         ILogger<ApiKeyAuthMiddleware> logger,
+        PartitionedRateLimiter<HttpContext> rateLimiter,
         SecretStore secretStore)
     {
         _next = next;
-        _configuration = configuration;
         _logger = logger;
+        _rateLimiter = rateLimiter;
 
         // Use SecretStore to get cached secret bytes
         secretStore.Initialize();
@@ -56,13 +46,18 @@ public sealed class ApiKeyAuthMiddleware
             return;
         }
 
-        // Rate limiting - przed sprawdzeniem klucza
-        using var lease = await _rateLimiter.AcquireAsync(permitCount: 1);
+        // Rate limiting (per-partition) - przed sprawdzeniem klucza
+        using var lease = await _rateLimiter.AcquireAsync(context, permitCount: 1, context.RequestAborted);
         if (!lease.IsAcquired)
         {
             _logger.LogWarning("Rate limit exceeded for request to {Path}", path);
             context.Response.StatusCode = StatusCodes.Status429TooManyRequests;
-            context.Response.Headers["Retry-After"] = "60";
+
+            if (lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
+            {
+                context.Response.Headers["Retry-After"] = ((int)Math.Ceiling(retryAfter.TotalSeconds)).ToString();
+            }
+
             await context.Response.WriteAsJsonAsync(new { error = "Too many requests. Please try again later." });
             return;
         }
