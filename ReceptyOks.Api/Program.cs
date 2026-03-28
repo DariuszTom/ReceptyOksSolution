@@ -69,7 +69,6 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 System.Text.Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? "default_secret_key"))
         };
     });
-
 builder.Services.AddSingleton(new CleanupOptions
 {
     Interval = TimeSpan.FromHours(24),
@@ -83,7 +82,7 @@ var app = builder.Build();
 app.UseAuthentication();
 // Use API key auth middleware for all endpoints
 app.UseApiKeyAuth();
-
+app.UseRateLimiter();
 // Automatyczne tworzenie/migracja bazy danych
 using (var scope = app.Services.CreateScope())
 {
@@ -114,5 +113,4 @@ app.MapIngredientEndpoints();
 app.MapShoppingListEndpoints();
 app.MapSyncEndpoints();
 app.MapTokenProviderEndpoints();
-app.UseRateLimiter();
 app.Run();

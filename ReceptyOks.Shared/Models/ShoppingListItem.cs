@@ -54,7 +54,6 @@ public class ShoppingListItem
     /// </summary>
     public Guid? RecipeId { get; set; }
     public Recipe? Recipe { get; set; }
-
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
     public bool IsDeleted { get; set; }
