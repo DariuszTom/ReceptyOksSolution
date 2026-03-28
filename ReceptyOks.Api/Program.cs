@@ -68,6 +68,11 @@ builder.Services.AddRateLimiter(options =>
     });
 });
 
+var jwtKey = builder.Configuration["Jwt:Key"]
+    ?? throw new InvalidOperationException("Jwt:Key is not configured. Set it in environment variables or user secrets.");
+if (jwtKey.Length < 32)
+    throw new InvalidOperationException("Jwt:Key must be at least 32 characters long (256 bits).");
+
 builder.Services.AddAuthorization();
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -79,7 +84,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
             IssuerSigningKey = new SymmetricSecurityKey(
-                System.Text.Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? "default_secret_key"))
+                System.Text.Encoding.UTF8.GetBytes(jwtKey))
         };
     });
 builder.Services.AddSingleton(new CleanupOptions
