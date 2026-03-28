@@ -49,6 +49,13 @@ internal static class ApplicationServiceExtensions
         });
         services.AddHostedService<LogCleanupService>();
 
+        // Notifications
+#if ANDROID
+        services.AddSingleton<INotificationManagerService, ReceptyOks.Platforms.Android.NotificationManagerService>();
+#endif
+        services.AddSingleton<AppNotification>();
+        services.AddSingleton<ShopingListNotification>();
+
         return services;
     }
 

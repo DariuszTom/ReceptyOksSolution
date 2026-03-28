@@ -58,6 +58,8 @@
 		<PackageReference Include="Anthropic" Version="12.3.0" />
 		<PackageReference Include="AsyncAwaitBestPractices" Version="10.0.0" />
 		<PackageReference Include="CommunityToolkit.Maui" Version="13.0.0" />
+		<PackageReference Include="Hangfire.Core" Version="1.8.23" />
+		<PackageReference Include="Hangfire.MemoryStorage" Version="1.8.1.2" />
 		<PackageReference Include="Microsoft.Maui.Controls" Version="10.0.31" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.1" />
 		<PackageReference Include="Microsoft.Extensions.Http" Version="10.0.1" />
