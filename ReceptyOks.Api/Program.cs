@@ -78,11 +78,10 @@ builder.Services.AddSingleton(new CleanupOptions
 builder.Services.AddHostedService<ShopingListCleaner>();
 
 var app = builder.Build();
-
+app.UseRateLimiter();
 app.UseAuthentication();
 // Use API key auth middleware for all endpoints
 app.UseApiKeyAuth();
-app.UseRateLimiter();
 // Automatyczne tworzenie/migracja bazy danych
 using (var scope = app.Services.CreateScope())
 {
