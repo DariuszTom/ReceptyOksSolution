@@ -6,7 +6,7 @@ namespace ReceptyOks.Services;
 /// Service for dispatching OS-level local notifications from background work.
 /// Falls back to no-op if the platform notification service is unavailable.
 /// </summary>
-internal sealed class AppNotification(
+public sealed class AppNotification(
     INotificationManagerService notificationManager,
     ILogger<AppNotification> logger)
 {

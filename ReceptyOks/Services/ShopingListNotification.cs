@@ -8,8 +8,8 @@ namespace ReceptyOks.Services;
 /// Background service that periodically checks for new shopping list items
 /// and sends OS-level notifications when new ones are found.
 /// </summary>
-internal sealed class ShopingListNotification(
-    ShoppingListService service,
+public sealed class ShopingListNotification(
+    IShoppingListService service,
     AppNotification notification,
     ILogger<ShopingListNotification> logger,
     AppSettings appSettings,
@@ -65,16 +65,9 @@ internal sealed class ShopingListNotification(
                 return;
             }
 
-            string? userName = null;
-            if (UserService.Instance.IsValueCreated)
-            {
-                var user = await UserService.Instance.Value.GetUserAsync().ConfigureAwait(false);
-                userName = user?.Name;
-            }
-            
             var previousCheck = GetLastTimeCheck();
             var newItems = result.Data
-                .Where(item => item.CreatedAt > previousCheck && userName != item.BoughtBy )
+                .Where(item => item.CreatedAt > previousCheck )
                 .ToList();
 
             if (newItems.Count > 0)

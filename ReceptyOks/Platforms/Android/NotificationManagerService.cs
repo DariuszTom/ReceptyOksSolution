@@ -21,8 +21,8 @@ public class NotificationManagerService : INotificationManagerService
     public const string MessageKey = "message";
 
     private bool _channelInitialized;
-    private int _messageId;
-    private int _pendingIntentId;
+    private int _messageId = System.Environment.TickCount;
+    private int _pendingIntentId = System.Environment.TickCount;
 
     private NotificationManagerCompat _compatManager = null!;
 
@@ -122,8 +122,8 @@ public class NotificationManagerService : INotificationManagerService
 
             var manager = (NotificationManager)Platform.AppContext.GetSystemService(Context.NotificationService)!;
             manager.CreateNotificationChannel(channel);
-            _channelInitialized = true;
         }
+        _channelInitialized = true;
     }
 
     private static long GetNotifyTime(DateTime notifyTime)

@@ -54,7 +54,7 @@ internal sealed class SnackbarNotificationService : INotificationManagerService
             ? message
             : $"{title}: {message}";
 
-        MainThread.BeginInvokeOnMainThread(async () =>
-            await SnackBarHelper.ShowInfoSnackbarAsync(text));
+        MainThread.BeginInvokeOnMainThread(() =>
+            SnackBarHelper.ShowInfoSnackbarAsync(text).SafeFireAndForget());
     }
 }
