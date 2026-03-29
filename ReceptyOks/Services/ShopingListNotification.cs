@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using ReceptyOks.Configuration;
+using System.Globalization;
 
 namespace ReceptyOks.Services;
 
@@ -63,9 +64,16 @@ internal sealed class ShopingListNotification(
                 return;
             }
 
+            string? userName = null;
+            if (UserService.Instance.IsValueCreated)
+            {
+                var user = await UserService.Instance.Value.GetUserAsync().ConfigureAwait(false);
+                userName = user?.Name;
+            }
+            
             var previousCheck = GetLastTimeCheck();
             var newItems = result.Data
-                .Where(item => item.CreatedAt > previousCheck)
+                .Where(item => item.CreatedAt > previousCheck && userName != item.BoughtBy )
                 .ToList();
 
             if (newItems.Count > 0)
