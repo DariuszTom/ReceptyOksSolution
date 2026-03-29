@@ -9,7 +9,7 @@ using ReceptyOks.Shared.Models;
 namespace ReceptyOks_UnitTests.Services;
 
 [TestFixture]
-public class ShopingListNotificationTests
+public class ShoppingListNotificationTests
 {
     private Mock<IShoppingListService> _serviceMock = null!;
     private Mock<INotificationManagerService> _notificationManagerMock = null!;
@@ -203,11 +203,11 @@ public class ShopingListNotificationTests
         Assert.Pass();
     }
 
-    private ShopingListNotification CreateSut() =>
+    private ShoppingListNotification CreateSut() =>
         new(
             _serviceMock.Object,
             _appNotification,
-            Mock.Of<ILogger<ShopingListNotification>>(),
+            Mock.Of<ILogger<ShoppingListNotification>>(),
             _appSettings,
             _preferencesMock.Object);
 

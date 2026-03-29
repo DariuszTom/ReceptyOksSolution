@@ -8,10 +8,10 @@ namespace ReceptyOks.Services;
 /// Background service that periodically checks for new shopping list items
 /// and sends OS-level notifications when new ones are found.
 /// </summary>
-public sealed class ShopingListNotification(
+public sealed class ShoppingListNotification(
     IShoppingListService service,
     AppNotification notification,
-    ILogger<ShopingListNotification> logger,
+    ILogger<ShoppingListNotification> logger,
     AppSettings appSettings,
     IPreferences preferences) : BackgroundService
 {

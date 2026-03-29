@@ -56,7 +56,7 @@ internal static class ApplicationServiceExtensions
         services.AddSingleton<INotificationManagerService, ReceptyOks.Platforms.Windows.SnackbarNotificationService>();
 #endif
         services.AddSingleton<AppNotification>();
-        services.AddHostedService<ShopingListNotification>();
+        services.AddHostedService<ShoppingListNotification>();
 
         return services;
     }
