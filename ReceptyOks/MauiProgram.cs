@@ -71,7 +71,7 @@ public static class MauiProgram
         var appSettings = new AppSettings();
         config.Bind(appSettings);
         builder.Services.AddSingleton(appSettings);
-
+        builder.Services.AddSingleton<IPreferences>(Preferences.Default);
         return appSettings;
     }
 }

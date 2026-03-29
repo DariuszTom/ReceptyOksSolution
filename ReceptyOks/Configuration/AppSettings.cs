@@ -7,6 +7,7 @@ public class AppSettings
 {
     public DatabaseSettings Database { get; set; } = new();
     public HttpSettings Http { get; set; } = new();
+    public NotificationSettings Notifications { get; set; } = new();
 }
 
 /// <summary>
@@ -93,4 +94,30 @@ public class GitHubSettings
     /// User-Agent header value for GitHub API requests
     /// </summary>
     public string UserAgent { get; set; } = string.Empty;
+}
+
+/// <summary>
+/// Configuration for shopping list notification polling.
+/// </summary>
+public class NotificationSettings
+{
+    /// <summary>
+    /// Delay before the first check after app startup, letting the app finish loading.
+    /// </summary>
+    public int StartupDelaySeconds { get; set; } = 45;
+
+    /// <summary>
+    /// Computed startup delay.
+    /// </summary>
+    public TimeSpan StartupDelay => TimeSpan.FromSeconds(StartupDelaySeconds);
+
+    /// <summary>
+    /// Interval in minutes between shopping list checks.
+    /// </summary>
+    public int ShoppingListCheckIntervalMinutes { get; set; } = 20;
+
+    /// <summary>
+    /// Preferences key used to persist the last check timestamp.
+    /// </summary>
+    public string PreferenceKey { get; set; } = "shopping_list_last_check_utc";
 }

@@ -10,7 +10,7 @@ namespace ReceptyOks.Services;
 /// <summary>
 /// Service for consuming shopping list API endpoints.
 /// </summary>
-public class ShoppingListService(HttpClient httpClient)
+public class ShoppingListService(HttpClient httpClient) : IShoppingListService
 {
     private readonly HttpClient _httpClient = httpClient;
     private readonly AsyncRetryPolicy<HttpResponseMessage> _retryPolicy = Policy

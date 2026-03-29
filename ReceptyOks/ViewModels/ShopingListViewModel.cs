@@ -23,7 +23,7 @@ public sealed class AddShoppingItemsMessage(List<ShoppingListItem> items)
 
 public partial class ShopingListViewModel : ObservableObject
 {
-    private readonly ShoppingListService _shoppingListService;
+    private readonly IShoppingListService _shoppingListService;
     private readonly UserService _userService;
     private readonly LocalDatabase _database;
     private readonly ILogger<ShopingListViewModel> _logger;
@@ -60,7 +60,7 @@ public partial class ShopingListViewModel : ObservableObject
     [ObservableProperty]
     private IEnumerable<string> ingredientSuggestions = [];
 
-    public ShopingListViewModel(ShoppingListService shoppingListService, LocalDatabase database, ILogger<ShopingListViewModel> logger)
+    public ShopingListViewModel(IShoppingListService shoppingListService, LocalDatabase database, ILogger<ShopingListViewModel> logger)
     {
         _shoppingListService = shoppingListService;
         _database = database;

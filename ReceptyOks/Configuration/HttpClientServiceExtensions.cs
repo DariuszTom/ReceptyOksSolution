@@ -50,7 +50,7 @@ internal static class HttpClientServiceExtensions
         .AddServiceDiscovery();
 
         // ShoppingListService
-        services.AddHttpClient<ShoppingListService>(client =>
+        services.AddHttpClient<IShoppingListService, ShoppingListService>(client =>
         {
             client.BaseAddress = new Uri(baseUrl);
             client.Timeout = defaultTimeout;
