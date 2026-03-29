@@ -7,7 +7,7 @@ namespace ReceptyOks.Shared.AI;
 /// <summary>
 /// Implementation of IAiAgent using Microsoft Agent Framework (Microsoft.Agents.AI).
 /// Wraps ChatClientAgent to provide chat interactions with function calling support.
-/// Supports conversation persistence through AgentThread serialization.
+/// Supports conversation persistence through AgentSession serialization.
 /// Note: This implementation does not support fluent chaining for AddTool methods.
 /// Use separate statements for adding tools.
 /// </summary>
@@ -16,7 +16,7 @@ public sealed class AiAgent : IAiAgent
     private readonly IChatClient _chatClient;
     private readonly List<AITool> _tools = [];
     private string? _systemPrompt;
-    private AgentThread? _thread;
+    private AgentSession? _session;
     private string? _conversationId;
 
     /// <summary>
@@ -122,9 +122,9 @@ public sealed class AiAgent : IAiAgent
         ArgumentException.ThrowIfNullOrWhiteSpace(userMessage);
 
         var agent = CreateAgent();
-        _thread ??= await agent.GetNewThreadAsync(cancellationToken).ConfigureAwait(false);
+        _session ??= await agent.CreateSessionAsync(cancellationToken).ConfigureAwait(false);
 
-        var response = await agent.RunAsync(userMessage, _thread, cancellationToken: cancellationToken)
+        var response = await agent.RunAsync(userMessage, _session, cancellationToken: cancellationToken)
             .ConfigureAwait(false);
 
         return ExtractTextFromResponse(response);
@@ -144,11 +144,11 @@ public sealed class AiAgent : IAiAgent
         ArgumentNullException.ThrowIfNull(onTextReceived);
 
         var agent = CreateAgent();
-        _thread ??= await agent.GetNewThreadAsync(cancellationToken).ConfigureAwait(false);
+        _session ??= await agent.CreateSessionAsync(cancellationToken).ConfigureAwait(false);
 
         var fullResponse = new StringBuilder();
 
-        await foreach (var update in agent.RunStreamingAsync(userMessage, _thread, cancellationToken: cancellationToken)
+        await foreach (var update in agent.RunStreamingAsync(userMessage, _session, cancellationToken: cancellationToken)
                .ConfigureAwait(false))
         {
             if (update.AsChatResponseUpdate() is { } chatUpdate)
@@ -172,31 +172,33 @@ public sealed class AiAgent : IAiAgent
     /// </summary>
     public void ClearHistory()
     {
-        _thread = null;
+        _session = null;
         _conversationId = null;
     }
 
     /// <summary>
-    /// Serializes the current conversation thread to JSON format.
+    /// Serializes the current conversation session to JSON format.
     /// </summary>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>JSON string representing the serialized conversation, or null if no active conversation.</returns>
     /// <exception cref="InvalidOperationException">Thrown if there is no active conversation to save.</exception>
-    public Task<string> SaveConversationAsync(CancellationToken cancellationToken = default)
+    public async Task<string> SaveConversationAsync(CancellationToken cancellationToken = default)
     {
-        if (_thread is null)
+        if (_session is null)
         {
             throw new InvalidOperationException("No active conversation to save. Start a conversation first by calling ChatAsync or ChatStreamAsync.");
         }
 
-        // Serialize the thread to JsonElement
-        var serializedThread = _thread.Serialize(JsonSerializerOptions.Web);
+        // Serialize the session to JsonElement
+        var agent = CreateAgent();
+        var serializedSession = await agent.SerializeSessionAsync(_session, JsonSerializerOptions.Web, cancellationToken)
+            .ConfigureAwait(false);
 
         // Generate conversation ID if not already set
         _conversationId ??= Guid.NewGuid().ToString();
 
         // Return as JSON string
-        return Task.FromResult(serializedThread.GetRawText());
+        return serializedSession.GetRawText();
     }
 
     /// <summary>
@@ -212,9 +214,9 @@ public sealed class AiAgent : IAiAgent
 
         var agent = CreateAgent();
 
-        // Deserialize the thread from JSON
+        // Deserialize the session from JSON
         var jsonElement = JsonSerializer.Deserialize<JsonElement>(serializedThread, JsonSerializerOptions.Web);
-        _thread = await agent.DeserializeThreadAsync(jsonElement, JsonSerializerOptions.Web, cancellationToken)
+        _session = await agent.DeserializeSessionAsync(jsonElement, JsonSerializerOptions.Web, cancellationToken)
              .ConfigureAwait(false);
 
         _conversationId = conversationId;
