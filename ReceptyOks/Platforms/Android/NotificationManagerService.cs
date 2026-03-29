@@ -1,8 +1,8 @@
 using Android.App;
 using Android.Content;
-using Android.Graphics;
 using Android.OS;
 using AndroidX.Core.App;
+using AsyncAwaitBestPractices;
 using ReceptyOks.Services;
 
 namespace ReceptyOks.Platforms.Android;
@@ -26,7 +26,13 @@ public class NotificationManagerService : INotificationManagerService
 
     private NotificationManagerCompat _compatManager = null!;
 
-    public event EventHandler? NotificationReceived;
+    private readonly WeakEventManager<NotificationEventArgs> _notificationEventManager = new();
+
+    public event EventHandler<NotificationEventArgs>? NotificationReceived
+    {
+        add => _notificationEventManager.AddEventHandler(value);
+        remove => _notificationEventManager.RemoveEventHandler(value);
+    }
 
     public static NotificationManagerService? Instance { get; private set; }
 
@@ -70,11 +76,11 @@ public class NotificationManagerService : INotificationManagerService
 
     public void ReceiveNotification(string title, string message)
     {
-        NotificationReceived?.Invoke(null, new NotificationEventArgs
+        _notificationEventManager.RaiseEvent(this, new NotificationEventArgs
         {
             Title = title,
             Message = message
-        });
+        }, nameof(NotificationReceived));
     }
 
     /// <summary>
@@ -123,8 +129,7 @@ public class NotificationManagerService : INotificationManagerService
     private static long GetNotifyTime(DateTime notifyTime)
     {
         DateTime utcTime = TimeZoneInfo.ConvertTimeToUtc(notifyTime);
-        double epochDiff = (new DateTime(1970, 1, 1) - DateTime.MinValue).TotalSeconds;
-        long utcAlarmTime = utcTime.AddSeconds(-epochDiff).Ticks / 10000;
+        long utcAlarmTime = new DateTimeOffset(utcTime).ToUnixTimeMilliseconds();
         return utcAlarmTime;
     }
 }

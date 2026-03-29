@@ -52,6 +52,8 @@ internal static class ApplicationServiceExtensions
         // Notifications
 #if ANDROID
         services.AddSingleton<INotificationManagerService, ReceptyOks.Platforms.Android.NotificationManagerService>();
+#elif WINDOWS
+        services.AddSingleton<INotificationManagerService, ReceptyOks.Platforms.Windows.SnackbarNotificationService>();
 #endif
         services.AddSingleton<AppNotification>();
         services.AddHostedService<ShopingListNotification>();

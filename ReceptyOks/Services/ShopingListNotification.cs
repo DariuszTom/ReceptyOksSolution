@@ -1,7 +1,6 @@
 ﻿using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using ReceptyOks.Configuration;
-using System.Globalization;
 
 namespace ReceptyOks.Services;
 
@@ -13,15 +12,17 @@ internal sealed class ShopingListNotification(
     ShoppingListService service,
     AppNotification notification,
     ILogger<ShopingListNotification> logger,
-    AppSettings appSettings) : BackgroundService
+    AppSettings appSettings,
+    IPreferences preferences) : BackgroundService
 {
     private readonly NotificationSettings _settings = appSettings.Notifications;
+    private readonly IPreferences _preferences = preferences;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         await Task.Delay(_settings.StartupDelay, stoppingToken).ConfigureAwait(false);
 
-        await CheckForNewItemsAsync().ConfigureAwait(false);
+        await CheckForNewItemsAsync(stoppingToken).ConfigureAwait(false);
 
         using PeriodicTimer timer = new(TimeSpan.FromMinutes(_settings.ShoppingListCheckIntervalMinutes));
 
@@ -29,7 +30,7 @@ internal sealed class ShopingListNotification(
         {
             while (await timer.WaitForNextTickAsync(stoppingToken))
             {
-                await CheckForNewItemsAsync().ConfigureAwait(false);
+                await CheckForNewItemsAsync(stoppingToken).ConfigureAwait(false);
             }
         }
         catch (OperationCanceledException)
@@ -40,22 +41,22 @@ internal sealed class ShopingListNotification(
 
     private DateTime GetLastTimeCheck()
     {
-        var ticks = Preferences.Default.Get(_settings.PreferenceKey, DateTime.UtcNow.Ticks);
+        var ticks = _preferences.Get(_settings.PreferenceKey, DateTime.UtcNow.Ticks);
         return new DateTime(ticks, DateTimeKind.Utc);
     }
 
     private void SetLastTimeCheck(DateTime value)
     {
-        Preferences.Default.Set(_settings.PreferenceKey, value.Ticks);
+        _preferences?.Set(_settings.PreferenceKey, value.Ticks);
     }
 
-    private async Task CheckForNewItemsAsync()
+    private async Task CheckForNewItemsAsync(CancellationToken cancellationToken)
     {
         var checkTime = DateTime.UtcNow;
 
         try
         {
-            var result = await service.GetAllAsync(includeBought: false).ConfigureAwait(false);
+            var result = await service.GetAllAsync(includeBought: false, cancellationToken).ConfigureAwait(false);
 
             if (!result.IsSuccess || result.Data is null)
             {

@@ -9,7 +9,7 @@ public interface INotificationManagerService
     /// <summary>
     /// Raised when a notification is received while the app is in the foreground.
     /// </summary>
-    event EventHandler? NotificationReceived;
+    event EventHandler<NotificationEventArgs>? NotificationReceived;
 
     /// <summary>
     /// Sends a local notification immediately or at a scheduled time.
@@ -20,4 +20,5 @@ public interface INotificationManagerService
     /// Processes a notification received by the underlying platform.
     /// </summary>
     void ReceiveNotification(string title, string message);
+    
 }
