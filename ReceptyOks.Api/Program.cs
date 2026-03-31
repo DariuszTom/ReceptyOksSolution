@@ -40,8 +40,10 @@ builder.Services.ConfigureHttpJsonOptions(opts =>
 });
 
 
-// SQLite - baza w folderze Data aplikacji
-var dataFolder = Path.Combine(builder.Environment.ContentRootPath, "Data");
+// SQLite - baza w dedykowanym folderze danych (poza folderem aplikacji dla persystencji przy deploymencie)
+// W produkcji (Docker) u¿ywamy /data jako wolumenu; lokalnie u¿ywamy folderu Data w aplikacji
+var dataFolder = builder.Configuration["Database:DataFolder"]
+    ?? (builder.Environment.IsProduction() ? "/data" : Path.Combine(builder.Environment.ContentRootPath, "Data"));
 Directory.CreateDirectory(dataFolder);
 var dbName = builder.Configuration["Database:Name"] ?? "recipes.db";
 var dbPath = Path.Combine(dataFolder, dbName);
