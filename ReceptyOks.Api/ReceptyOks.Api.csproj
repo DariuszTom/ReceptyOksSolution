@@ -7,6 +7,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Include=".azure\containerapp-template.yaml" />
+    <None Include=".azure\main.bicep" />
+    <None Include=".azure\main.bicepparam" />
+    <None Include=".azure\README.md" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Anthropic" Version="12.9.0" />
     <PackageReference Include="Azure.Extensions.AspNetCore.Configuration.Secrets" Version="1.5.0" />
     <PackageReference Include="Azure.Identity" Version="1.19.0" />

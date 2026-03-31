@@ -48,8 +48,17 @@ Directory.CreateDirectory(dataFolder);
 var dbName = builder.Configuration["Database:Name"] ?? "recipes.db";
 var dbPath = Path.Combine(dataFolder, dbName);
 
+// SQLite connection string z opcjami dla Azure File Share (SMB):
+// - Mode=ReadWriteCreate: automatyczne tworzenie bazy
+// - Cache=Shared: wspó³dzielony cache dla lepszej wydajnoœci
+// - Pooling=True: connection pooling
+// - Journal Mode=WAL wy³¹czony przez brak wsparcia SMB dla blokad - u¿ywamy DELETE mode
+var sqliteConnectionString = builder.Environment.IsProduction()
+    ? $"Data Source={dbPath};Mode=ReadWriteCreate;Cache=Shared"
+    : $"Data Source={dbPath}";
+
 builder.Services.AddDbContext<RecipeDbContext>(options =>
-    options.UseSqlite($"Data Source={dbPath}"));
+    options.UseSqlite(sqliteConnectionString));
 
 // OpenAPI
 builder.Services.AddOpenApi();
@@ -106,6 +115,16 @@ app.UseApiKeyAuth();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<RecipeDbContext>();
+
+    // Dla Azure File Share (SMB) wy³¹cz WAL mode - nie dzia³a z sieciowym FS
+    if (app.Environment.IsProduction())
+    {
+        db.Database.OpenConnection();
+        db.Database.ExecuteSqlRaw("PRAGMA journal_mode=DELETE;");
+        db.Database.ExecuteSqlRaw("PRAGMA synchronous=NORMAL;");
+        db.Database.ExecuteSqlRaw("PRAGMA busy_timeout=30000;");
+    }
+
     db.Database.EnsureCreated();
 }
 

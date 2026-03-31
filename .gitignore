@@ -3,6 +3,11 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
+# Azure exported configs (zawierają sekrety i dynamiczne ID)
+containerapp.yaml
+containerapp-backup.json
+*.azure-export.yaml
+
 # SQLite database files
 *.db
 *.db-shm
