@@ -18,7 +18,8 @@ public class RecipeDbContext(DbContextOptions<RecipeDbContext> options) : DbCont
         {
             entity.HasKey(r => r.Id);
             entity.Property(r => r.Title).IsRequired().HasMaxLength(200);
-            entity.Property(r => r.Image).HasColumnType("BLOB");
+            // SQL Server używa VARBINARY(MAX) zamiast BLOB
+            entity.Property(r => r.Image).HasColumnType("VARBINARY(MAX)");
             entity.Property(r => r.ImageContentType).HasMaxLength(50);
 
             entity.HasOne(r => r.Category)
