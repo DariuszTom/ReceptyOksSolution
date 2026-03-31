@@ -40,25 +40,15 @@ builder.Services.ConfigureHttpJsonOptions(opts =>
 });
 
 
-// SQLite - baza w dedykowanym folderze danych (poza folderem aplikacji dla persystencji przy deploymencie)
-// W produkcji (Docker) u¿ywamy /data jako wolumenu; lokalnie u¿ywamy folderu Data w aplikacji
-var dataFolder = builder.Configuration["Database:DataFolder"]
-    ?? (builder.Environment.IsProduction() ? "/data" : Path.Combine(builder.Environment.ContentRootPath, "Data"));
+// SQLite - baza w folderze Data aplikacji (ephemeral storage w kontenerze)
+// UWAGA: Dane znikaj¹ przy deployu, ale przepisy synchronizuj¹ siê z klienta MAUI
+var dataFolder = Path.Combine(builder.Environment.ContentRootPath, "Data");
 Directory.CreateDirectory(dataFolder);
 var dbName = builder.Configuration["Database:Name"] ?? "recipes.db";
 var dbPath = Path.Combine(dataFolder, dbName);
 
-// SQLite connection string z opcjami dla Azure File Share (SMB):
-// - Mode=ReadWriteCreate: automatyczne tworzenie bazy
-// - Cache=Shared: wspó³dzielony cache dla lepszej wydajnoœci
-// - Pooling=True: connection pooling
-// - Journal Mode=WAL wy³¹czony przez brak wsparcia SMB dla blokad - u¿ywamy DELETE mode
-var sqliteConnectionString = builder.Environment.IsProduction()
-    ? $"Data Source={dbPath};Mode=ReadWriteCreate;Cache=Shared"
-    : $"Data Source={dbPath}";
-
 builder.Services.AddDbContext<RecipeDbContext>(options =>
-    options.UseSqlite(sqliteConnectionString));
+    options.UseSqlite($"Data Source={dbPath}"));
 
 // OpenAPI
 builder.Services.AddOpenApi();
@@ -115,16 +105,6 @@ app.UseApiKeyAuth();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<RecipeDbContext>();
-
-    // Dla Azure File Share (SMB) wy³¹cz WAL mode - nie dzia³a z sieciowym FS
-    if (app.Environment.IsProduction())
-    {
-        db.Database.OpenConnection();
-        db.Database.ExecuteSqlRaw("PRAGMA journal_mode=DELETE;");
-        db.Database.ExecuteSqlRaw("PRAGMA synchronous=NORMAL;");
-        db.Database.ExecuteSqlRaw("PRAGMA busy_timeout=30000;");
-    }
-
     db.Database.EnsureCreated();
 }
 
