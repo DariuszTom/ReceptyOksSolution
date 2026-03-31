@@ -40,15 +40,12 @@ builder.Services.ConfigureHttpJsonOptions(opts =>
 });
 
 
-// SQLite - baza w folderze Data aplikacji (ephemeral storage w kontenerze)
-// UWAGA: Dane znikaj¹ przy deployu, ale przepisy synchronizuj¹ siê z klienta MAUI
-var dataFolder = Path.Combine(builder.Environment.ContentRootPath, "Data");
-Directory.CreateDirectory(dataFolder);
-var dbName = builder.Configuration["Database:Name"] ?? "recipes.db";
-var dbPath = Path.Combine(dataFolder, dbName);
+// Azure SQL Database - persystentna baza w chmurze
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? throw new InvalidOperationException("Connection string 'DefaultConnection' is not configured.");
 
 builder.Services.AddDbContext<RecipeDbContext>(options =>
-    options.UseSqlite($"Data Source={dbPath}"));
+    options.UseSqlServer(connectionString));
 
 // OpenAPI
 builder.Services.AddOpenApi();
