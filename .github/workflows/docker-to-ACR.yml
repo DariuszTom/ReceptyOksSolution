@@ -62,3 +62,19 @@ jobs:
             --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
             --image $ACR_NAME.azurecr.io/$OWNER/receptyoks-api:$SHA
 
+      - name: Restart Container App to use new image
+        run: |
+          # Pobierz nazwę najnowszej rewizji
+          REVISION=$(az containerapp revision list \
+            --name ${{ secrets.CONTAINER_APP_NAME }} \
+            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+            --query "[0].name" -o tsv)
+
+          # Restart rewizji żeby pobrać nowy obraz
+          az containerapp revision restart \
+            --name ${{ secrets.CONTAINER_APP_NAME }} \
+            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+            --revision $REVISION
+
+          echo "✅ Restarted revision: $REVISION"
+
