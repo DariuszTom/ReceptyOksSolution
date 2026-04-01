@@ -1,7 +1,6 @@
 # ReceptyOks Solution
 
 [![.NET](https://github.com/DariuszTom/ReceptyOksSolution/actions/workflows/dotnet.yml/badge.svg)](https://github.com/DariuszTom/ReceptyOksSolution/actions/workflows/dotnet.yml)
-[![Code Coverage](https://github.com/DariuszTom/ReceptyOksSolution/actions/workflows/coverage.yml/badge.svg)](https://github.com/DariuszTom/ReceptyOksSolution/actions/workflows/coverage.yml)
 [![CodeQL](https://github.com/DariuszTom/ReceptyOksSolution/actions/workflows/codeql.yml/badge.svg)](https://github.com/DariuszTom/ReceptyOksSolution/actions/workflows/codeql.yml)
 
 A cross-platform recipe management application built with **.NET 10**, **.NET MAUI**, and **.NET Aspire 9.5**.
