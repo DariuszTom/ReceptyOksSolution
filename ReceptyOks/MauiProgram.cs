@@ -61,9 +61,16 @@ public static class MauiProgram
         var assembly = Assembly.GetExecutingAssembly();
         using var stream = assembly.GetManifestResourceStream("ReceptyOks.appsettings.json") ?? throw new InvalidOperationException(
                 "appsettings.json not found. Make sure it's marked as EmbeddedResource in .csproj");
-        var config = new ConfigurationBuilder()
-            .AddJsonStream(stream)
-            .Build();
+
+        var configBuilder = new ConfigurationBuilder()
+            .AddJsonStream(stream);
+
+        // Layer debug-specific overrides when available
+        var debugStream = assembly.GetManifestResourceStream("ReceptyOks.appsettings.Debug.json");
+        if (debugStream is not null)
+            configBuilder.AddJsonStream(debugStream);
+
+        var config = configBuilder.Build();
 
         builder.Configuration.AddConfiguration(config);
 
