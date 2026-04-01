@@ -61,8 +61,6 @@ public class SyncService : ISyncService
                     Content = JsonContent.Create(request)
                 };
 
-                httpRequest.Headers.Add(GlobalConstants.ApiKeyHeaderName, "your-api-key");
-
                 return _httpClient.SendAsync(httpRequest);
             }).ConfigureAwait(false);
 
@@ -216,8 +214,6 @@ public class SyncService : ISyncService
                     {
                         Content = JsonContent.Create(request),
                     };
-
-                    httpRequest.Headers.Add(GlobalConstants.ApiKeyHeaderName, "your-api-key");
 
                     return _httpClient.SendAsync(httpRequest, ct);
                 }, timeoutCts.Token).ConfigureAwait(false);
