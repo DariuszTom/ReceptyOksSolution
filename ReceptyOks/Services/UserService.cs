@@ -22,7 +22,7 @@ internal class UserService
             return _cachedUser;
         }
 
-        var json = await SecureStorage.Default.GetAsync(UserStorageKey);
+        var json = await SecureStorage.Default.GetAsync(UserStorageKey).ConfigureAwait(false);
         if (string.IsNullOrWhiteSpace(json))
         {
             return null;
@@ -40,7 +40,7 @@ internal class UserService
         ArgumentNullException.ThrowIfNull(user);
 
         var json = JsonSerializer.Serialize(user);
-        await SecureStorage.Default.SetAsync(UserStorageKey, json);
+        await SecureStorage.Default.SetAsync(UserStorageKey, json).ConfigureAwait(false);
         _cachedUser = user;
     }
 
@@ -63,7 +63,7 @@ internal class UserService
             return true;
         }
 
-        var json = await SecureStorage.Default.GetAsync(UserStorageKey);
+        var json = await SecureStorage.Default.GetAsync(UserStorageKey).ConfigureAwait(false);
         return !string.IsNullOrWhiteSpace(json);
     }
 }

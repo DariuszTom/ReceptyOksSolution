@@ -30,10 +30,10 @@ namespace ReceptyOks.Services
             var authResponse = new AuthResponse { IsValid = false, Message = "Nieprawidłowy sekret" };
             try
             {
-                using var response = await _httpClient.PostAsJsonAsync("/api/auth/validate", new { SecretHash = apiKey });
+                using var response = await _httpClient.PostAsJsonAsync("/api/auth/validate", new { SecretHash = apiKey }).ConfigureAwait(false);
                 if (response.IsSuccessStatusCode)
                 {
-                    return await response.Content.ReadFromJsonAsync<AuthResponse>()
+                    return await response.Content.ReadFromJsonAsync<AuthResponse>().ConfigureAwait(false)
                         ?? new AuthResponse { IsValid = false, Message = "Nieznany bład" };
                 }
             }
