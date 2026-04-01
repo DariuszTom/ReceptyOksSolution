@@ -2,7 +2,7 @@
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
 using ReceptyOks.Data;
-using ReceptyOks.Services;
+using ReceptyOks.Interfaces;
 using System.Collections.ObjectModel;
 
 namespace ReceptyOks.ViewModels;
@@ -10,7 +10,7 @@ namespace ReceptyOks.ViewModels;
 public partial class RecipesViewModel : ObservableObject
 {
     private readonly LocalDatabase _database;
-    private readonly SyncService _syncService;
+    private readonly ISyncService _syncService;
     private readonly ILogger<RecipesViewModel> _logger;
 
     [ObservableProperty]
@@ -25,7 +25,7 @@ public partial class RecipesViewModel : ObservableObject
     [ObservableProperty]
     private string searchQuery = string.Empty;
 
-    public RecipesViewModel(LocalDatabase database, SyncService syncService, ILogger<RecipesViewModel> logger)
+    public RecipesViewModel(LocalDatabase database, ISyncService syncService, ILogger<RecipesViewModel> logger)
     {
         _database = database;
         _syncService = syncService;

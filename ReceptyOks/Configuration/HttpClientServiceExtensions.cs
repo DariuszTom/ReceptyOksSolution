@@ -1,5 +1,6 @@
 namespace ReceptyOks.Configuration;
 
+using ReceptyOks.Interfaces;
 using ReceptyOks.Services;
 
 /// <summary>
@@ -30,6 +31,9 @@ internal static class HttpClientServiceExtensions
       })
       .AddHttpMessageHandler<ApiKeyHandler>()
       .AddServiceDiscovery();
+
+        // Register ISyncService interface mapping
+        services.AddTransient<ISyncService>(sp => sp.GetRequiredService<SyncService>());
 
         // BackendAuthService
         services.AddHttpClient<BackendAuthService>(client =>

@@ -59,7 +59,6 @@ public static class DatabaseExtensions
         using var scope = app.ApplicationServices.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<RecipeDbContext>();
         db.Database.EnsureCreated();
-
         return app;
   }
 }

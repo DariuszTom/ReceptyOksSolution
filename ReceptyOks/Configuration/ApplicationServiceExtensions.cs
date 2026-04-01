@@ -49,6 +49,16 @@ internal static class ApplicationServiceExtensions
         });
         services.AddHostedService<LogCleanupService>();
 
+        // Periodic sync
+        services.AddSingleton(new PeriodicSyncOptions
+        {
+            Interval = TimeSpan.FromMinutes(30),
+            StartupDelay = TimeSpan.FromSeconds(15),
+            SyncType = SyncType.Normal,
+            ShowNotifications = false
+        });
+        services.AddHostedService<PeriodicSyncService>();
+
         // Notifications
 #if ANDROID
         services.AddSingleton<INotificationManagerService, ReceptyOks.Platforms.Android.NotificationManagerService>();
@@ -71,10 +81,8 @@ internal static class ApplicationServiceExtensions
         builder.Services.AddMauiBlazorWebView();
 
 #if DEBUG
-   builder.Services.AddBlazorWebViewDeveloperTools();
-      builder.Logging.AddFilter("Microsoft.AspNetCore.Components.WebView", LogLevel.Trace);
+        builder.Services.AddBlazorWebViewDeveloperTools();
 #endif
-
         return builder;
     }
 }

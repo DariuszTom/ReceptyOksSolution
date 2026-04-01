@@ -1,5 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using ReceptyOks.Interfaces;
 using ReceptyOks.Services;
 
 namespace ReceptyOks.ViewModels;
@@ -7,7 +8,7 @@ namespace ReceptyOks.ViewModels;
 public partial class SettingsViewModel : ObservableObject
 {
     private readonly UpdateCheckerService _updateChecker;
-    private readonly SyncService _syncService;
+    private readonly ISyncService _syncService;
 
     [ObservableProperty]
     private string updateStatus;
@@ -15,7 +16,7 @@ public partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     private bool isChecking;
 
-    public SettingsViewModel(UpdateCheckerService updateChecker, SyncService syncService)
+    public SettingsViewModel(UpdateCheckerService updateChecker, ISyncService syncService)
     {
         _updateChecker = updateChecker;
         _syncService = syncService;

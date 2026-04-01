@@ -1,6 +1,7 @@
 using AsyncAwaitBestPractices;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using ReceptyOks.Interfaces;
 using ReceptyOks.Services;
 using ReceptyOks.Shared;
 using System.Security.Cryptography;
@@ -24,9 +25,9 @@ namespace ReceptyOks.ViewModels
 
         [ObservableProperty]
         private bool _hasError;
-        private SyncService _sync;
+        private ISyncService _sync;
 
-        public LoginViewModel(BackendAuthService backendAuth, SyncService sync)
+        public LoginViewModel(BackendAuthService backendAuth, ISyncService sync)
         {
             _backendAuth = backendAuth;
             _sync = sync;
