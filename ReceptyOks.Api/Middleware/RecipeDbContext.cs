@@ -10,6 +10,7 @@ public class RecipeDbContext(DbContextOptions<RecipeDbContext> options) : DbCont
     public DbSet<Ingredient> Ingredients => Set<Ingredient>();
     public DbSet<RecipeIngredient> RecipeIngredients => Set<RecipeIngredient>();
     public DbSet<ShoppingListItem> ShoppingListItems => Set<ShoppingListItem>();
+    public DbSet<MealPlan> MealPlans => Set<MealPlan>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -100,6 +101,22 @@ public class RecipeDbContext(DbContextOptions<RecipeDbContext> options) : DbCont
             entity.HasIndex(s => s.IsBought);
             entity.HasIndex(s => s.UpdatedAt);
             entity.HasIndex(s => s.IsDeleted);
+        });
+
+        // MealPlan
+        modelBuilder.Entity<MealPlan>(entity =>
+        {
+            entity.HasKey(mp => mp.Id);
+            entity.Property(mp => mp.Notes).HasMaxLength(500);
+
+            entity.HasOne(mp => mp.Recipe)
+                .WithMany()
+                .HasForeignKey(mp => mp.RecipeId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(mp => mp.Date);
+            entity.HasIndex(mp => mp.UpdatedAt);
+            entity.HasIndex(mp => mp.IsDeleted);
         });
     }
 }

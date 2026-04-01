@@ -40,15 +40,16 @@ public class SyncService
                 return result;
             }
 
-            var lastSync = await _localDb.GetLastSyncTimeAsync();
+            var lastSync = await _localDb.GetLastSyncTimeAsync().ConfigureAwait(false);
 
             // Pobierz lokalne zmiany do wysłania
             var request = new SyncRequest
             {
                 LastSyncedAt = lastSync,
-                ChangedRecipes = await GetChangedRecipesAsync(),
-                ChangedCategories = await GetChangedCategoriesAsync(),
-                ChangedIngredients = await GetChangedIngredientsAsync()
+                ChangedRecipes = await GetChangedRecipesAsync().ConfigureAwait(false),
+                ChangedCategories = await GetChangedCategoriesAsync().ConfigureAwait(false),
+                ChangedIngredients = await GetChangedIngredientsAsync().ConfigureAwait(false),
+                ChangedMealPlans = await GetChangedMealPlansAsync().ConfigureAwait(false)
             };
 
             var response = await _retryPolicy.ExecuteAsync(() =>
@@ -71,7 +72,7 @@ public class SyncService
                 return result;
             }
 
-            var syncResponse = await response.Content.ReadFromJsonAsync<SyncResponse>();
+            var syncResponse = await response.Content.ReadFromJsonAsync<SyncResponse>().ConfigureAwait(false);
 
             if (syncResponse is null)
             {
@@ -95,6 +96,7 @@ public class SyncService
             result.RecipesSynced = syncResponse.Recipes.Count;
             result.CategoriesSynced = syncResponse.Categories.Count;
             result.IngredientsSynced = syncResponse.Ingredients.Count;
+            result.MealPlansSynced = syncResponse.MealPlans.Count;
 
         }
         catch (Exception ex)
@@ -142,6 +144,7 @@ public class SyncService
             result.RecipesSynced = syncResponse.Recipes.Count;
             result.CategoriesSynced = syncResponse.Categories.Count;
             result.IngredientsSynced = syncResponse.Ingredients.Count;
+            result.MealPlansSynced = syncResponse.MealPlans.Count;
 
         }
         catch (Exception ex)
@@ -176,6 +179,7 @@ public class SyncService
             var allRecipes = await GetAllRecipesForUploadAsync();
             var allCategories = await GetAllCategoriesForUploadAsync();
             var allIngredients = await GetAllIngredientsForUploadAsync();
+            var allMealPlans = await GetAllMealPlansForUploadAsync();
 
             // Batch recipes to avoid 413 (images make the payload large)
             const int batchSize = 10;
@@ -198,9 +202,10 @@ public class SyncService
                 {
                     LastSyncedAt = null,
                     ChangedRecipes = recipeBatches[i],
-                    // Send categories/ingredients only in the first batch
+                    // Send categories/ingredients/mealplans only in the first batch
                     ChangedCategories = i == 0 ? allCategories : [],
-                    ChangedIngredients = i == 0 ? allIngredients : []
+                    ChangedIngredients = i == 0 ? allIngredients : [],
+                    ChangedMealPlans = i == 0 ? allMealPlans : []
                 };
 
                 var response = await _retryPolicy.ExecuteAsync(ct =>
@@ -244,6 +249,7 @@ public class SyncService
             result.RecipesSynced = allRecipes.Count;
             result.CategoriesSynced = allCategories.Count;
             result.IngredientsSynced = allIngredients.Count;
+            result.MealPlansSynced = allMealPlans.Count;
 
         }
         catch (Exception ex)
@@ -290,6 +296,18 @@ public class SyncService
     {
         var dirtyIngredients = await _localDb.GetDirtyIngredientsAsync();
         return MapIngredientsToSyncDtos(dirtyIngredients);
+    }
+
+    private async Task<List<MealPlanSyncDto>> GetChangedMealPlansAsync()
+    {
+        var dirtyMealPlans = await _localDb.GetDirtyMealPlansAsync();
+        return MapMealPlansToSyncDtos(dirtyMealPlans);
+    }
+
+    private async Task<List<MealPlanSyncDto>> GetAllMealPlansForUploadAsync()
+    {
+        var mealPlans = await _localDb.GetAllMealPlansAsync();
+        return MapMealPlansToSyncDtos(mealPlans);
     }
 
     private async Task<List<RecipeSyncDto>> MapRecipesToSyncDtosAsync(List<RecipeLocal> recipes)
@@ -351,6 +369,22 @@ public class SyncService
             CreatedAt = i.CreatedAt,
             UpdatedAt = i.UpdatedAt,
             IsDeleted = i.IsDeleted
+        }).ToList();
+    }
+
+    private static List<MealPlanSyncDto> MapMealPlansToSyncDtos(List<MealPlanLocal> mealPlans)
+    {
+        return mealPlans.Select(mp => new MealPlanSyncDto
+        {
+            Id = mp.Id,
+            Date = mp.Date,
+            StartHour = mp.StartHour,
+            DurationMinutes = mp.DurationMinutes,
+            RecipeId = mp.RecipeId,
+            Notes = mp.Notes,
+            CreatedAt = mp.CreatedAt,
+            UpdatedAt = mp.UpdatedAt,
+            IsDeleted = mp.IsDeleted
         }).ToList();
     }
 
@@ -418,6 +452,23 @@ public class SyncService
             }).ToList();
 
             await _localDb.SaveRecipeIngredientsAsync(recipeDto.Id, recipeIngredients);
+        }
+
+        // Plany posiłków
+        foreach (var mealPlanDto in response.MealPlans)
+        {
+            await _localDb.ApplyServerMealPlanAsync(new MealPlanLocal
+            {
+                Id = mealPlanDto.Id,
+                Date = mealPlanDto.Date,
+                StartHour = mealPlanDto.StartHour,
+                DurationMinutes = mealPlanDto.DurationMinutes,
+                RecipeId = mealPlanDto.RecipeId,
+                Notes = mealPlanDto.Notes,
+                CreatedAt = mealPlanDto.CreatedAt,
+                UpdatedAt = mealPlanDto.UpdatedAt,
+                IsDeleted = mealPlanDto.IsDeleted
+            });
         }
     }
 }

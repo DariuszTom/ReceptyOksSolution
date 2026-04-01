@@ -19,8 +19,8 @@ public static class SyncEndpoints
         {
             var lastSync = request.LastSyncedAt ?? DateTime.MinValue;
 
-            logger.LogInformation("Sync started. LastSyncedAt: {LastSync}, ChangedCategories: {CatCount}, ChangedIngredients: {IngCount}, ChangedRecipes: {RecCount}",
-                lastSync, request.ChangedCategories.Count, request.ChangedIngredients.Count, request.ChangedRecipes.Count);
+            logger.LogInformation("Sync started. LastSyncedAt: {LastSync}, ChangedCategories: {CatCount}, ChangedIngredients: {IngCount}, ChangedRecipes: {RecCount}, ChangedMealPlans: {MpCount}",
+                lastSync, request.ChangedCategories.Count, request.ChangedIngredients.Count, request.ChangedRecipes.Count, request.ChangedMealPlans.Count);
 
             // 1. Zastosuj zmiany z klienta
             await ApplyClientChanges(request, db, logger);
@@ -34,15 +34,17 @@ public static class SyncEndpoints
                 SyncedAt = syncTime,
                 Categories = await GetServerCategories(lastSync, db),
                 Ingredients = await GetServerIngredients(lastSync, db),
-                Recipes = await GetServerRecipes(lastSync, db)
+                Recipes = await GetServerRecipes(lastSync, db),
+                MealPlans = await GetServerMealPlans(lastSync, db)
             };
 
             logger.LogInformation(
-                "Sync completed. SyncedAt: {SyncTime}, ReturnedCategories: {CatCount}, ReturnedIngredients: {IngCount}, ReturnedRecipes: {RecCount}",
+                "Sync completed. SyncedAt: {SyncTime}, ReturnedCategories: {CatCount}, ReturnedIngredients: {IngCount}, ReturnedRecipes: {RecCount}, ReturnedMealPlans: {MpCount}",
                 syncTime,
                 response.Categories.Count,
                 response.Ingredients.Count,
-                response.Recipes.Count);
+                response.Recipes.Count,
+                response.MealPlans.Count);
 
             return Results.Ok(response);
         })
@@ -107,11 +109,25 @@ public static class SyncEndpoints
                             Order = ri.Order
                         }).ToList()
                     })
-                .ToListAsync()
+                .ToListAsync(),
+                MealPlans = await db.MealPlans
+                    .Select(mp => new MealPlanSyncDto
+                    {
+                        Id = mp.Id,
+                        Date = mp.Date,
+                        StartHour = mp.StartHour,
+                        DurationMinutes = mp.DurationMinutes,
+                        RecipeId = mp.RecipeId,
+                        Notes = mp.Notes,
+                        CreatedAt = mp.CreatedAt,
+                        UpdatedAt = mp.UpdatedAt,
+                        IsDeleted = mp.IsDeleted
+                    })
+                    .ToListAsync()
             };
 
-            logger.LogInformation("Full sync completed. Categories: {CatCount}, Ingredients: {IngCount}, Recipes: {RecCount}",
-                response.Categories.Count, response.Ingredients.Count, response.Recipes.Count);
+            logger.LogInformation("Full sync completed. Categories: {CatCount}, Ingredients: {IngCount}, Recipes: {RecCount}, MealPlans: {MpCount}",
+                response.Categories.Count, response.Ingredients.Count, response.Recipes.Count, response.MealPlans.Count);
 
             return Results.Ok(response);
         })
@@ -120,8 +136,8 @@ public static class SyncEndpoints
         // POST - upload wszystkich danych z klienta (nadpisuje serwer)
         group.MapPost("/upload-all", async (SyncRequest request, RecipeDbContext db, ILogger<RecipeDbContext> logger) =>
         {
-            logger.LogInformation("Upload-all started. Categories: {CatCount}, Ingredients: {IngCount}, Recipes: {RecCount}",
-                request.ChangedCategories.Count, request.ChangedIngredients.Count, request.ChangedRecipes.Count);
+            logger.LogInformation("Upload-all started. Categories: {CatCount}, Ingredients: {IngCount}, Recipes: {RecCount}, MealPlans: {MpCount}",
+                request.ChangedCategories.Count, request.ChangedIngredients.Count, request.ChangedRecipes.Count, request.ChangedMealPlans.Count);
             // Zastosuj wszystkie dane z klienta (upsert)
             await ApplyClientChanges(request, db, logger);
 
@@ -132,7 +148,8 @@ public static class SyncEndpoints
                 SyncedAt = syncTime,
                 Categories = [],
                 Ingredients = [],
-                Recipes = []
+                Recipes = [],
+                MealPlans = []
             };
 
             logger.LogInformation("Upload-all completed. SyncedAt: {SyncTime}", syncTime);
@@ -370,6 +387,71 @@ public static class SyncEndpoints
             addedRecipes, updatedRecipes, skippedRecipes, skippedInvalidCategory, skippedIngredientRefs);
 
         await db.SaveChangesAsync();
+
+        // Plany posi³ków
+        var validRecipeIds = await db.Recipes.Select(r => r.Id).ToHashSetAsync();
+        var addedMealPlans = 0;
+        var updatedMealPlans = 0;
+        var skippedMealPlans = 0;
+        var skippedInvalidRecipe = 0;
+
+        foreach (var mealPlanDto in request.ChangedMealPlans)
+        {
+            if (!validRecipeIds.Contains(mealPlanDto.RecipeId))
+            {
+                logger.LogWarning(
+                    "Skipping meal plan with invalid recipe reference: {MealPlanId}, RecipeId: {RecipeId}",
+                    mealPlanDto.Id, mealPlanDto.RecipeId);
+                skippedInvalidRecipe++;
+                continue;
+            }
+
+            var existing = await db.MealPlans.FindAsync(mealPlanDto.Id);
+            if (existing is null)
+            {
+                logger.LogDebug("Adding new meal plan: {MealPlanId} for {Date}", mealPlanDto.Id, mealPlanDto.Date);
+                db.MealPlans.Add(new MealPlan
+                {
+                    Id = mealPlanDto.Id,
+                    Date = mealPlanDto.Date,
+                    StartHour = mealPlanDto.StartHour,
+                    DurationMinutes = mealPlanDto.DurationMinutes,
+                    RecipeId = mealPlanDto.RecipeId,
+                    Notes = mealPlanDto.Notes,
+                    CreatedAt = mealPlanDto.CreatedAt,
+                    UpdatedAt = DateTime.UtcNow,
+                    IsDeleted = mealPlanDto.IsDeleted
+                });
+                addedMealPlans++;
+            }
+            else if (mealPlanDto.UpdatedAt > existing.UpdatedAt)
+            {
+                logger.LogDebug(
+                    "Updating meal plan: {MealPlanId} (client: {ClientUpdated}, server: {ServerUpdated})",
+                    mealPlanDto.Id, mealPlanDto.UpdatedAt, existing.UpdatedAt);
+                existing.Date = mealPlanDto.Date;
+                existing.StartHour = mealPlanDto.StartHour;
+                existing.DurationMinutes = mealPlanDto.DurationMinutes;
+                existing.RecipeId = mealPlanDto.RecipeId;
+                existing.Notes = mealPlanDto.Notes;
+                existing.UpdatedAt = DateTime.UtcNow;
+                existing.IsDeleted = mealPlanDto.IsDeleted;
+                updatedMealPlans++;
+            }
+            else
+            {
+                logger.LogDebug(
+                    "Skipping meal plan (server newer): {MealPlanId} (client: {ClientUpdated}, server: {ServerUpdated})",
+                    mealPlanDto.Id, mealPlanDto.UpdatedAt, existing.UpdatedAt);
+                skippedMealPlans++;
+            }
+        }
+
+        logger.LogInformation(
+            "MealPlans processed - Added: {Added}, Updated: {Updated}, Skipped: {Skipped}, SkippedInvalidRecipe: {InvalidRecipe}",
+            addedMealPlans, updatedMealPlans, skippedMealPlans, skippedInvalidRecipe);
+
+        await db.SaveChangesAsync();
     }
 
     private static async Task<List<CategorySyncDto>> GetServerCategories(DateTime since, RecipeDbContext db)
@@ -434,6 +516,25 @@ public static class SyncEndpoints
                     Notes = ri.Notes,
                     Order = ri.Order
                 }).ToList()
+            })
+            .ToListAsync();
+    }
+
+    private static async Task<List<MealPlanSyncDto>> GetServerMealPlans(DateTime since, RecipeDbContext db)
+    {
+        return await db.MealPlans
+            .Where(mp => mp.UpdatedAt > since)
+            .Select(mp => new MealPlanSyncDto
+            {
+                Id = mp.Id,
+                Date = mp.Date,
+                StartHour = mp.StartHour,
+                DurationMinutes = mp.DurationMinutes,
+                RecipeId = mp.RecipeId,
+                Notes = mp.Notes,
+                CreatedAt = mp.CreatedAt,
+                UpdatedAt = mp.UpdatedAt,
+                IsDeleted = mp.IsDeleted
             })
             .ToListAsync();
     }

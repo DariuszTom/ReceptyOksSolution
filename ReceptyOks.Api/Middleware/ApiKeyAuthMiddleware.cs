@@ -58,7 +58,7 @@ public sealed class ApiKeyAuthMiddleware
                 context.Response.Headers["Retry-After"] = ((int)Math.Ceiling(retryAfter.TotalSeconds)).ToString();
             }
 
-            await context.Response.WriteAsJsonAsync(new { error = "Too many requests. Please try again later." });
+            await context.Response.WriteAsJsonAsync(new { error = "Too many requests. Please try again later." }).ConfigureAwait(false);
             return;
         }
 

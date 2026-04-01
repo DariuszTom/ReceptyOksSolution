@@ -7,4 +7,5 @@ public class SyncResult
     public int RecipesSynced { get; set; }
     public int CategoriesSynced { get; set; }
     public int IngredientsSynced { get; set; }
+    public int MealPlansSynced { get; set; }
 }

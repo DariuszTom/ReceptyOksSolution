@@ -24,6 +24,11 @@ public class SyncRequest
     /// Sk³adniki zmienione lokalnie
     /// </summary>
     public List<IngredientSyncDto> ChangedIngredients { get; set; } = new List<IngredientSyncDto>();
+
+    /// <summary>
+    /// Plany posi³ków zmienione lokalnie
+    /// </summary>
+    public List<MealPlanSyncDto> ChangedMealPlans { get; set; } = new List<MealPlanSyncDto>();
 }
 
 /// <summary>
@@ -50,6 +55,11 @@ public class SyncResponse
     /// Sk³adniki do zaktualizowania/dodania
     /// </summary>
     public List<IngredientSyncDto> Ingredients { get; set; } = new List<IngredientSyncDto>();
+
+    /// <summary>
+    /// Plany posi³ków do zaktualizowania/dodania
+    /// </summary>
+    public List<MealPlanSyncDto> MealPlans { get; set; } = new List<MealPlanSyncDto>();
 }
 
 public class RecipeSyncDto
@@ -99,4 +109,17 @@ public class RecipeIngredientSyncDto
     public string? Unit { get; set; }
     public string? Notes { get; set; }
     public int Order { get; set; }
+}
+
+public class MealPlanSyncDto
+{
+    public Guid Id { get; set; }
+    public DateTime Date { get; set; }
+    public int StartHour { get; set; }
+    public int DurationMinutes { get; set; }
+    public Guid RecipeId { get; set; }
+    public string? Notes { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
+    public bool IsDeleted { get; set; }
 }

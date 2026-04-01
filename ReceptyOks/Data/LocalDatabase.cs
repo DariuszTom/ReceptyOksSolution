@@ -312,6 +312,7 @@ public class LocalDatabase
         await db.ExecuteAsync("UPDATE Recipes SET IsDirty = 0");
         await db.ExecuteAsync("UPDATE Categories SET IsDirty = 0");
         await db.ExecuteAsync("UPDATE Ingredients SET IsDirty = 0");
+        await db.ExecuteAsync("UPDATE MealPlans SET IsDirty = 0");
     }
 
     public async Task ApplyServerRecipeAsync(RecipeLocal recipe)
@@ -584,6 +585,48 @@ public class LocalDatabase
         }
 
         return result;
+    }
+
+    /// <summary>
+    /// Pobiera plany posi³ków oznaczone jako wymagaj¹ce synchronizacji.
+    /// </summary>
+    public async Task<List<MealPlanLocal>> GetDirtyMealPlansAsync()
+    {
+        var db = await GetConnectionAsync();
+        return await db.Table<MealPlanLocal>()
+            .Where(mp => mp.IsDirty)
+            .ToListAsync();
+    }
+
+    /// <summary>
+    /// Pobiera wszystkie plany posi³ków (do pe³nego uploadu).
+    /// </summary>
+    public async Task<List<MealPlanLocal>> GetAllMealPlansAsync()
+    {
+        var db = await GetConnectionAsync();
+        return await db.Table<MealPlanLocal>()
+            .ToListAsync();
+    }
+
+    /// <summary>
+    /// Stosuje plan posi³ku z serwera (upsert bez ustawiania IsDirty).
+    /// </summary>
+    public async Task ApplyServerMealPlanAsync(MealPlanLocal mealPlan)
+    {
+        var db = await GetConnectionAsync();
+        var existing = await db.Table<MealPlanLocal>()
+            .FirstOrDefaultAsync(mp => mp.Id == mealPlan.Id);
+
+        mealPlan.IsDirty = false;
+
+        if (existing is null)
+        {
+            await db.InsertAsync(mealPlan);
+        }
+        else
+        {
+            await db.UpdateAsync(mealPlan);
+        }
     }
 
     #endregion
