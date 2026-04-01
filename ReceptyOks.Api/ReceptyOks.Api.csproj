@@ -8,10 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include=".azure\containerapp-template.yaml" />
     <None Include=".azure\main.bicep" />
-    <None Include=".azure\main.bicepparam" />
-    <None Include=".azure\README.md" />
   </ItemGroup>
 
   <ItemGroup>
