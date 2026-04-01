@@ -1,14 +1,6 @@
 name: Build and Push Docker Image
 
 on:
-  push:
-    branches:
-      - master
-    paths:
-      - 'ReceptyOks.Api/**'
-      - 'ReceptyOks.Shared/**'
-      - 'ReceptyOksSolution.ServiceDefaults/**'
-      - '.github/workflows/docker-build.yml'
   pull_request:
     branches:
       - master
