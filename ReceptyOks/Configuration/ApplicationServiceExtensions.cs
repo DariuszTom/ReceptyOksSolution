@@ -23,6 +23,7 @@ internal static class ApplicationServiceExtensions
     {
         // Database
         services.AddSingleton<LocalDatabase>();
+        services.AddSingleton<ILocalDatabase>(sp => sp.GetRequiredService<LocalDatabase>());
 
         // Blazor component services
         services.AddSingleton<InstructionsEditorState>();

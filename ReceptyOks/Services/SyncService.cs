@@ -8,7 +8,7 @@ namespace ReceptyOks.Services;
 
 public class SyncService : ISyncService
 {
-    private readonly LocalDatabase _localDb;
+    private readonly ILocalDatabase _localDb;
     private readonly HttpClient _httpClient;
     private readonly ILogger<SyncService> _logger;
     private readonly AsyncRetryPolicy<HttpResponseMessage> _retryPolicy = Policy
@@ -17,7 +17,7 @@ public class SyncService : ISyncService
         .WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
             onRetry: (outcome, _, _, _) => outcome.Result?.Dispose());
 
-    public SyncService(LocalDatabase localDb, HttpClient httpClient, ILogger<SyncService> logger)
+    public SyncService(ILocalDatabase localDb, HttpClient httpClient, ILogger<SyncService> logger)
     {
         _localDb = localDb;
         _httpClient = httpClient;
