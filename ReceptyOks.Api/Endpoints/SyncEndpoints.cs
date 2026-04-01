@@ -77,7 +77,7 @@ public static class SyncEndpoints
                         UpdatedAt = i.UpdatedAt,
                         IsDeleted = i.IsDeleted
                     })
-                    .ToListAsync(),
+                    .ToListAsync().ConfigureAwait(false),
                 Recipes = await db.Recipes
                     .Include(r => r.Ingredients)
                     .Select(r => new RecipeSyncDto
@@ -105,7 +105,7 @@ public static class SyncEndpoints
                             Order = ri.Order
                         }).ToList()
                     })
-                .ToListAsync(),
+                .ToListAsync().ConfigureAwait(false),
                 MealPlans = await db.MealPlans
                     .Select(mp => new MealPlanSyncDto
                     {
@@ -119,7 +119,7 @@ public static class SyncEndpoints
                         UpdatedAt = mp.UpdatedAt,
                         IsDeleted = mp.IsDeleted
                     })
-                    .ToListAsync()
+                    .ToListAsync().ConfigureAwait(false)
             };
 
             logger.LogInformation("Full sync completed. Categories: {CatCount}, Ingredients: {IngCount}, Recipes: {RecCount}, MealPlans: {MpCount}",
@@ -180,7 +180,7 @@ public static class SyncEndpoints
         // Batch load: 1 query instead of N FindAsync calls
         var categoryIds = changedCategories.Select(c => c.Id).ToList();
         var existingCategories = categoryIds.Count > 0
-            ? await db.Categories.Where(c => categoryIds.Contains(c.Id)).ToDictionaryAsync(c => c.Id)
+            ? await db.Categories.Where(c => categoryIds.Contains(c.Id)).ToDictionaryAsync(c => c.Id).ConfigureAwait(false)
             : new Dictionary<Guid, Category>();
 
         foreach (var categoryDto in changedCategories)
@@ -224,7 +224,7 @@ public static class SyncEndpoints
             addedCategories, updatedCategories, skippedCategories);
 
         // Save categories first so they exist for FK references
-        await db.SaveChangesAsync();
+        await db.SaveChangesAsync().ConfigureAwait(false);
 
         var addedIngredients = 0;
         var updatedIngredients = 0;
@@ -233,7 +233,7 @@ public static class SyncEndpoints
         // Batch load: 1 query instead of N FindAsync calls
         var ingredientIds = changedIngredients.Select(i => i.Id).ToList();
         var existingIngredients = ingredientIds.Count > 0
-            ? await db.Ingredients.Where(i => ingredientIds.Contains(i.Id)).ToDictionaryAsync(i => i.Id)
+            ? await db.Ingredients.Where(i => ingredientIds.Contains(i.Id)).ToDictionaryAsync(i => i.Id).ConfigureAwait(false)
             : new Dictionary<Guid, Ingredient>();
 
         foreach (var ingredientDto in changedIngredients)
@@ -276,11 +276,11 @@ public static class SyncEndpoints
             addedIngredients, updatedIngredients, skippedIngredients);
 
         // Save ingredients so they exist for RecipeIngredient FK references
-        await db.SaveChangesAsync();
+        await db.SaveChangesAsync().ConfigureAwait(false);
 
         // Load valid FK IDs to validate recipe references
-        var validCategoryIds = await db.Categories.Select(c => c.Id).ToHashSetAsync();
-        var validIngredientIds = await db.Ingredients.Select(i => i.Id).ToHashSetAsync();
+        var validCategoryIds = await db.Categories.Select(c => c.Id).ToHashSetAsync().ConfigureAwait(false);
+        var validIngredientIds = await db.Ingredients.Select(i => i.Id).ToHashSetAsync().ConfigureAwait(false);
 
         var addedRecipes = 0;
         var updatedRecipes = 0;
@@ -293,7 +293,7 @@ public static class SyncEndpoints
         var existingRecipes = recipeIds.Count > 0
             ? await db.Recipes.Include(r => r.Ingredients)
                 .Where(r => recipeIds.Contains(r.Id))
-                .ToDictionaryAsync(r => r.Id)
+                .ToDictionaryAsync(r => r.Id).ConfigureAwait(false)
             : new Dictionary<Guid, Recipe>();
 
         foreach (var recipeDto in changedRecipes)
@@ -410,10 +410,10 @@ public static class SyncEndpoints
             "Recipes processed - Added: {Added}, Updated: {Updated}, Skipped: {Skipped}, SkippedInvalidCategory: {InvalidCategory}, SkippedIngredientRefs: {SkippedRefs}",
             addedRecipes, updatedRecipes, skippedRecipes, skippedInvalidCategory, skippedIngredientRefs);
 
-        await db.SaveChangesAsync();
+        await db.SaveChangesAsync().ConfigureAwait(false);
 
         // Plany posi³ków
-        var validRecipeIds = await db.Recipes.Select(r => r.Id).ToHashSetAsync();
+        var validRecipeIds = await db.Recipes.Select(r => r.Id).ToHashSetAsync().ConfigureAwait(false);
         var addedMealPlans = 0;
         var updatedMealPlans = 0;
         var skippedMealPlans = 0;
@@ -422,7 +422,7 @@ public static class SyncEndpoints
         // Batch load: 1 query instead of N FindAsync calls
         var mealPlanIds = changedMealPlans.Select(mp => mp.Id).ToList();
         var existingMealPlans = mealPlanIds.Count > 0
-            ? await db.MealPlans.Where(mp => mealPlanIds.Contains(mp.Id)).ToDictionaryAsync(mp => mp.Id)
+            ? await db.MealPlans.Where(mp => mealPlanIds.Contains(mp.Id)).ToDictionaryAsync(mp => mp.Id).ConfigureAwait(false)
             : new Dictionary<Guid, MealPlan>();
 
         foreach (var mealPlanDto in changedMealPlans)
@@ -480,7 +480,7 @@ public static class SyncEndpoints
             "MealPlans processed - Added: {Added}, Updated: {Updated}, Skipped: {Skipped}, SkippedInvalidRecipe: {InvalidRecipe}",
             addedMealPlans, updatedMealPlans, skippedMealPlans, skippedInvalidRecipe);
 
-        await db.SaveChangesAsync();
+        await db.SaveChangesAsync().ConfigureAwait(false);
     }
 
     private static async Task<List<CategorySyncDto>> GetServerCategories(DateTime since, RecipeDbContext db)
@@ -497,7 +497,7 @@ public static class SyncEndpoints
                 UpdatedAt = c.UpdatedAt,
                 IsDeleted = c.IsDeleted
             })
-            .ToListAsync();
+            .ToListAsync().ConfigureAwait(false);
     }
 
     private static async Task<List<IngredientSyncDto>> GetServerIngredients(DateTime since, RecipeDbContext db)
@@ -513,7 +513,7 @@ public static class SyncEndpoints
                 UpdatedAt = i.UpdatedAt,
                 IsDeleted = i.IsDeleted
             })
-            .ToListAsync();
+            .ToListAsync().ConfigureAwait(false);
     }
 
     private static async Task<List<RecipeSyncDto>> GetServerRecipes(DateTime since, RecipeDbContext db)
@@ -546,7 +546,7 @@ public static class SyncEndpoints
                     Order = ri.Order
                 }).ToList()
             })
-            .ToListAsync();
+            .ToListAsync().ConfigureAwait(false);
     }
 
     private static async Task<List<MealPlanSyncDto>> GetServerMealPlans(DateTime since, RecipeDbContext db)
@@ -565,6 +565,6 @@ public static class SyncEndpoints
                 UpdatedAt = mp.UpdatedAt,
                 IsDeleted = mp.IsDeleted
             })
-            .ToListAsync();
+            .ToListAsync().ConfigureAwait(false);
     }
 }
