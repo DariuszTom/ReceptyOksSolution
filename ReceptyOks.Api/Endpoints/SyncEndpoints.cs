@@ -19,7 +19,7 @@ public static class SyncEndpoints
                 lastSync, request.ChangedCategories.Count, request.ChangedIngredients.Count, request.ChangedRecipes.Count, request.ChangedMealPlans.Count);
 
             // 1. Zastosuj zmiany z klienta
-            await ApplyClientChanges(request, db, logger);
+            await ApplyClientChanges(request, db, logger).ConfigureAwait(false);
 
             // Capture syncTime after applying client changes so SyncedAt >= any UpdatedAt set above
             var syncTime = DateTime.UtcNow;
@@ -28,10 +28,10 @@ public static class SyncEndpoints
             var response = new SyncResponse
             {
                 SyncedAt = syncTime,
-                Categories = await GetServerCategories(lastSync, db),
-                Ingredients = await GetServerIngredients(lastSync, db),
-                Recipes = await GetServerRecipes(lastSync, db),
-                MealPlans = await GetServerMealPlans(lastSync, db)
+                Categories = await GetServerCategories(lastSync, db).ConfigureAwait(false),
+                Ingredients = await GetServerIngredients(lastSync, db).ConfigureAwait(false),
+                Recipes = await GetServerRecipes(lastSync, db).ConfigureAwait(false),
+                MealPlans = await GetServerMealPlans(lastSync, db).ConfigureAwait(false)
             };
 
             logger.LogInformation(
@@ -135,7 +135,7 @@ public static class SyncEndpoints
             logger.LogInformation("Upload-all started. Categories: {CatCount}, Ingredients: {IngCount}, Recipes: {RecCount}, MealPlans: {MpCount}",
                 request.ChangedCategories.Count, request.ChangedIngredients.Count, request.ChangedRecipes.Count, request.ChangedMealPlans.Count);
             // Zastosuj wszystkie dane z klienta (upsert)
-            await ApplyClientChanges(request, db, logger);
+            await ApplyClientChanges(request, db, logger).ConfigureAwait(false);
 
             var syncTime = DateTime.UtcNow;
 
