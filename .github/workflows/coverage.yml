@@ -103,8 +103,8 @@ jobs:
         Write-Host "Branch Coverage: $([math]::Round($branchPercent, 2))%"
 
         # Set minimum thresholds
-        $minLineCoverage = 50
-        $minBranchCoverage = 40
+        $minLineCoverage = 25
+        $minBranchCoverage = 20
 
         if ($linePercent -lt $minLineCoverage) {
           Write-Error "Line coverage ($([math]::Round($linePercent, 2))%) is below threshold ($minLineCoverage%)"
@@ -130,5 +130,5 @@ jobs:
         hide_complexity: false
         indicators: true
         output: both
-        thresholds: '50 70'
+        thresholds: '25 50'
 

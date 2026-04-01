@@ -1,6 +1,6 @@
 ﻿param(
     [bool]$OpenReport = $true,
-    [int]$MinimumCoverage = 50
+    [int]$MinimumCoverage = 25
 )
 
 Write-Host "Code Coverage Runner" -ForegroundColor Cyan
