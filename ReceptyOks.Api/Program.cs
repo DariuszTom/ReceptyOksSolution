@@ -3,7 +3,6 @@ using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.EntityFrameworkCore;
 using ReceptyOks.Api.Endpoints;
 using ReceptyOks.Api.Extensions;
 using ReceptyOks.Api.Middleware;
