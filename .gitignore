@@ -160,7 +160,10 @@ coverage*.json
 coverage*.xml
 coverage*.info
 
-# Visual Studio code coverage results
+# Code coverage reports and artifacts
+coverage/
+coverage-report/
+TestResults/
 *.coverage
 *.coveragexml
 
