@@ -32,10 +32,10 @@ jobs:
       run: dotnet workload install maui
 
     - name: Restore dependencies
-      run: dotnet restore ReceptyOks_UnitTests/ReceptyOks_UnitTests.csproj
+      run: dotnet restore ReceptyOks_UnitTests/ReceptyOks_UnitTests.csproj -p:RuntimeIdentifiers=win-x64
 
     - name: Build solution
-      run: dotnet build ReceptyOks_UnitTests/ReceptyOks_UnitTests.csproj --no-restore --configuration Release
+      run: dotnet build ReceptyOks_UnitTests/ReceptyOks_UnitTests.csproj --no-restore --configuration Release -p:RuntimeIdentifier=win-x64
 
     - name: Run tests with coverage
       run: |
@@ -46,7 +46,8 @@ jobs:
           --collect:"XPlat Code Coverage" `
           --results-directory ./coverage `
           --logger "trx;LogFileName=test-results.trx" `
-          --settings .github/coverlet.runsettings
+          --settings .github/coverlet.runsettings `
+          -p:RuntimeIdentifier=win-x64
 
     - name: Install ReportGenerator
       run: dotnet tool install --global dotnet-reportgenerator-globaltool
