@@ -14,7 +14,7 @@ public partial class App : Application
     private readonly IServiceProvider _serviceProvider;
     private readonly IEnumerable<IHostedService> _hostedServices;
     private readonly ILogger<App> _logger;
-    private bool _initialized;
+    private int _initialized;
 
     public App(IBadge badge, IEnumerable<IHostedService> hostedServices, IServiceProvider serviceProvider, ILogger<App> logger)
     {
@@ -54,7 +54,7 @@ public partial class App : Application
 
     private async void OnWindowActivated(object? sender, EventArgs e)
     {
-        if (_initialized)
+        if (Interlocked.CompareExchange(ref _initialized, 1, 0) != 0)
             return;
 
         try
@@ -71,11 +71,11 @@ public partial class App : Application
             {
                 await service.StartAsync(CancellationToken.None).ConfigureAwait(false);
             }
-
-            _initialized = true;
         }
         catch (Exception ex)
         {
+            // Reset so next Activated event retries initialization.
+            Interlocked.Exchange(ref _initialized, 0);
             _logger.LogError(ex, "Failed to initialize notification permission or hosted services");
         }
     }

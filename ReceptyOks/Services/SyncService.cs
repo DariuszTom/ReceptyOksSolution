@@ -148,15 +148,25 @@ public class SyncService : ISyncService
                 return result;
             }
 
-            await ApplyServerChangesAsync(syncResponse).ConfigureAwait(false);
-            await _localDb.SetLastSyncTimeAsync(syncResponse.SyncedAt).ConfigureAwait(false);
+            var applyResult = await ApplyServerChangesAsync(syncResponse).ConfigureAwait(false);
 
-            result.Success = true;
-            result.Message = "Pełna synchronizacja zakończona";
-            result.RecipesSynced = syncResponse.Recipes.Count;
-            result.CategoriesSynced = syncResponse.Categories.Count;
-            result.IngredientsSynced = syncResponse.Ingredients.Count;
-            result.MealPlansSynced = syncResponse.MealPlans.Count;
+            result.CategoriesSynced = syncResponse.Categories.Count - applyResult.FailedCategories;
+            result.IngredientsSynced = syncResponse.Ingredients.Count - applyResult.FailedIngredients;
+            result.RecipesSynced = syncResponse.Recipes.Count - applyResult.FailedRecipes;
+            result.MealPlansSynced = syncResponse.MealPlans.Count - applyResult.FailedMealPlans;
+
+            if (applyResult.TotalFailed > 0)
+            {
+                _logger.LogWarning("Full sync partial: {FailedItems} items failed to apply locally", applyResult.TotalFailed);
+                result.Success = true;
+                result.Message = $"Pełna synchronizacja częściowa: {applyResult.TotalFailed} elementów nie zostało zastosowanych";
+            }
+            else
+            {
+                await _localDb.SetLastSyncTimeAsync(syncResponse.SyncedAt).ConfigureAwait(false);
+                result.Success = true;
+                result.Message = "Pełna synchronizacja zakończona";
+            }
 
         }
         catch (Exception ex)
