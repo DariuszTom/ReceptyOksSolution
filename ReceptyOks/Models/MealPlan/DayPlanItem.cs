@@ -28,5 +28,4 @@ public partial class DayPlanItem : ObservableObject
     };
 
     public ObservableCollection<MealItem> Meals { get; set; } = [];
-    public ObservableCollection<HourSlot> HourSlots { get; set; } = [];
 }

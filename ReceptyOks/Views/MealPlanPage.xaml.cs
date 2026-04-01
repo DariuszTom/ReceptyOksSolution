@@ -19,52 +19,55 @@ public partial class MealPlanPage : ContentPage
         await _viewModel.LoadDataCommand.ExecuteAsync(null);
     }
 
-    private void OnTimeSlotTapped(object? sender, TappedEventArgs e)
+    private void OnDateSlotTapped(object? sender, TappedEventArgs e)
     {
         if (sender is not View view) return;
 
-        var hourSlot = view.BindingContext as HourSlot;
-        if (hourSlot is null) return;
-
-        var parent = view.Parent;
-        while (parent is not null)
+        if (view.BindingContext is DateSlot dateSlot)
         {
-            if (parent.BindingContext is DayPlanItem dayPlan)
+            _viewModel.OnDateSlotTapped(dateSlot);
+        }
+    }
+
+    private void OnAddToDateSlotTapped(object? sender, TappedEventArgs e)
+    {
+        if (sender is not View view) return;
+
+        // Walk up to find the DateSlot context
+        var current = view as Element;
+        while (current is not null)
+        {
+            if (current.BindingContext is DateSlot dateSlot)
             {
-                _viewModel.OnTimeSlotTapped(dayPlan, hourSlot.Hour);
+                _viewModel.OnDateSlotTapped(dateSlot);
                 return;
             }
-            parent = parent.Parent;
+            current = current.Parent;
         }
     }
 
-    private void OnRemoveMealClicked(object? sender, EventArgs e)
+    private void OnRemoveChipClicked(object? sender, EventArgs e)
     {
         if (sender is not View view) return;
 
-        var hourSlot = view.BindingContext as HourSlot;
-        if (hourSlot?.MealRef is null) return;
-
-        _viewModel.RemoveMealCommand.Execute(hourSlot.MealRef);
-    }
-
-    private void OnMealBlockTapped(object? sender, TappedEventArgs e)
-    {
-        if (sender is not View view) return;
-
-        var hourSlot = view.BindingContext as HourSlot;
-        if (hourSlot?.MealRef is null) return;
-
-        _viewModel.GoToRecipeDetailCommand.Execute(hourSlot.MealRef);
-    }
-
-    private void OnToggleTimelineClicked(object? sender, EventArgs e)
-    {
-        if (sender is not View view) return;
-
-        if (view.BindingContext is DayPlanItem dayPlan)
+        if (view.BindingContext is MealItem meal)
         {
-            dayPlan.IsExpanded = !dayPlan.IsExpanded;
+            _viewModel.RemoveMealCommand.Execute(meal);
         }
+    }
+
+    private void OnMealChipTapped(object? sender, TappedEventArgs e)
+    {
+        if (sender is not View view) return;
+
+        if (view.BindingContext is MealItem meal)
+        {
+            _viewModel.GoToRecipeDetailCommand.Execute(meal);
+        }
+    }
+
+    private void OnToggleWeekTimelineClicked(object? sender, EventArgs e)
+    {
+        _viewModel.IsWeekExpanded = !_viewModel.IsWeekExpanded;
     }
 }

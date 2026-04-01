@@ -14,6 +14,11 @@ public class MealItem
     public int DurationMinutes { get; set; }
 
     /// <summary>
+    /// Nazwa kategorii przepisu.
+    /// </summary>
+    public string? CategoryName { get; set; }
+
+    /// <summary>
     /// Offset od góry timeline w pikselach (do pozycjonowania).
     /// </summary>
     public double TopOffset { get; set; }

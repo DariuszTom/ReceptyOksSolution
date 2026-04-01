@@ -163,189 +163,227 @@
                            HorizontalOptions="Center"
                            VerticalOptions="Center" />
 
-        <!-- Week Days with Timelines -->
+        <!-- Week Timeline -->
         <ScrollView Grid.Row="2"
                     IsVisible="{Binding IsLoading, Converter={StaticResource InvertedBoolConverter}}">
-            <VerticalStackLayout Spacing="12"
-                                 Padding="16,0,16,16"
-                                 BindableLayout.ItemsSource="{Binding WeekDays}">
-                <BindableLayout.ItemTemplate>
-                    <DataTemplate x:DataType="vm:DayPlanItem">
-                        <Border Margin="0,6"
-                                Padding="16"
-                                StrokeThickness="0"
-                                StrokeShape="RoundRectangle 16"
-                                BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}">
-                            <Border.Triggers>
-                                <DataTrigger TargetType="Border"
-                                             Binding="{Binding IsToday}"
-                                             Value="True">
-                                    <Setter Property="Stroke" Value="{StaticResource Primary}" />
-                                    <Setter Property="StrokeThickness" Value="2" />
-                                </DataTrigger>
-                            </Border.Triggers>
+            <VerticalStackLayout Padding="16,0,16,16">
 
-                            <VerticalStackLayout Spacing="8">
+                <Border Margin="0,6"
+                        Padding="16"
+                        StrokeThickness="0"
+                        StrokeShape="RoundRectangle 16"
+                        BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}">
 
-                                <!-- Day Header -->
-                                <Grid ColumnDefinitions="Auto,*,Auto"
-                                      ColumnSpacing="8">
-                                    <Image Source="dayall.png"
-                                           WidthRequest="28"
-                                           HeightRequest="28"
-                                           VerticalOptions="Center" />
-                                    <Label Grid.Column="1"
-                                           VerticalOptions="Center">
-                                        <Label.FormattedText>
-                                            <FormattedString>
-                                                <Span Text="{Binding DayName}"
-                                                      FontSize="18"
-                                                      FontAttributes="Bold"
-                                                      TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}" />
-                                                <Span Text="  " />
-                                                <Span Text="{Binding DateText}"
-                                                      FontSize="14"
-                                                      TextColor="{StaticResource Gray500}" />
-                                            </FormattedString>
-                                        </Label.FormattedText>
-                                    </Label>
-                                    <Border Grid.Column="2"
-                                            IsVisible="{Binding IsToday}"
-                                            Padding="10,4"
-                                            StrokeThickness="0"
-                                            StrokeShape="RoundRectangle 12"
-                                            BackgroundColor="{StaticResource Primary}">
-                                        <Label Text="DZIŚ"
-                                               FontSize="11"
-                                               FontAttributes="Bold"
-                                               VerticalOptions="Center"
-                                               HorizontalOptions="Center"
-                                               TextColor="White" />
-                                    </Border>
-                                </Grid>
+                    <VerticalStackLayout Spacing="8">
 
-                                <!-- Meal summary + expand toggle -->
-                                <Grid ColumnDefinitions="*,Auto"
-                                      Padding="0,4">
-                                    <Label Text="{Binding MealCountText}"
-                                           FontSize="13"
-                                           TextColor="{StaticResource Gray500}"
-                                           VerticalOptions="Center" />
-                                    <ImageButton Grid.Column="1"
-                                                 HeightRequest="32"
-                                                 WidthRequest="32"
-                                                 Padding="4"
-                                                 BackgroundColor="Transparent"
-                                                 VerticalOptions="Center"
-                                                 Clicked="OnToggleTimelineClicked">
-                                        <ImageButton.Triggers>
-                                            <DataTrigger TargetType="ImageButton"
-                                                         Binding="{Binding IsExpanded}"
-                                                         Value="False">
-                                                <Setter Property="Source">
-                                                    <Setter.Value>
-                                                        <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Expand_more}"
-                                                                         FontFamily="MaterialSymbolsOutlined"
-                                                                         Color="{StaticResource Gray400}"
-                                                                         Size="24" />
-                                                    </Setter.Value>
-                                                </Setter>
-                                            </DataTrigger>
-                                            <DataTrigger TargetType="ImageButton"
-                                                         Binding="{Binding IsExpanded}"
-                                                         Value="True">
-                                                <Setter Property="Source">
-                                                    <Setter.Value>
-                                                        <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Expand_less}"
-                                                                         FontFamily="MaterialSymbolsOutlined"
-                                                                         Color="{StaticResource Gray400}"
-                                                                         Size="24" />
-                                                    </Setter.Value>
-                                                </Setter>
-                                            </DataTrigger>
-                                        </ImageButton.Triggers>
-                                    </ImageButton>
-                                </Grid>
+                        <!-- Week Header -->
+                        <Grid ColumnDefinitions="Auto,*,Auto"
+                              ColumnSpacing="8">
+                            <Image HeightRequest="28"
+                                   WidthRequest="28"
+                                   VerticalOptions="Center">
+                                <Image.Source>
+                                    <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Date_range}"
+                                                     FontFamily="MaterialSymbolsOutlined"
+                                                     Color="{StaticResource Primary}"
+                                                     Size="28" />
+                                </Image.Source>
+                            </Image>
+                            <Label Grid.Column="1"
+                                   Text="{Binding WeekRangeText}"
+                                   FontSize="18"
+                                   FontAttributes="Bold"
+                                   VerticalOptions="Center"
+                                   TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}" />
+                        </Grid>
 
-                                <!-- Timeline: Hour Slots -->
-                                <VerticalStackLayout BindableLayout.ItemsSource="{Binding HourSlots}"
-                                                     IsVisible="{Binding IsExpanded}"
-                                                     Spacing="0">
-                                    <BindableLayout.ItemTemplate>
-                                        <DataTemplate x:DataType="vm:HourSlot">
-                                            <Grid ColumnDefinitions="50,*"
-                                                  HeightRequest="48"
-                                                  Padding="0">
+                        <!-- Meal count + expand toggle -->
+                        <Grid ColumnDefinitions="*,Auto"
+                              Padding="0,4">
+                            <Label Text="{Binding WeekMealCountText}"
+                                   FontSize="13"
+                                   TextColor="{StaticResource Gray500}"
+                                   VerticalOptions="Center" />
+                            <ImageButton Grid.Column="1"
+                                         HeightRequest="32"
+                                         WidthRequest="32"
+                                         Padding="4"
+                                         BackgroundColor="Transparent"
+                                         VerticalOptions="Center"
+                                         Clicked="OnToggleWeekTimelineClicked">
+                                <ImageButton.Triggers>
+                                    <DataTrigger TargetType="ImageButton"
+                                                 Binding="{Binding IsWeekExpanded}"
+                                                 Value="False">
+                                        <Setter Property="Source">
+                                            <Setter.Value>
+                                                <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Expand_more}"
+                                                                 FontFamily="MaterialSymbolsOutlined"
+                                                                 Color="{StaticResource Gray400}"
+                                                                 Size="24" />
+                                            </Setter.Value>
+                                        </Setter>
+                                    </DataTrigger>
+                                    <DataTrigger TargetType="ImageButton"
+                                                 Binding="{Binding IsWeekExpanded}"
+                                                 Value="True">
+                                        <Setter Property="Source">
+                                            <Setter.Value>
+                                                <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Expand_less}"
+                                                                 FontFamily="MaterialSymbolsOutlined"
+                                                                 Color="{StaticResource Gray400}"
+                                                                 Size="24" />
+                                            </Setter.Value>
+                                        </Setter>
+                                    </DataTrigger>
+                                </ImageButton.Triggers>
+                            </ImageButton>
+                        </Grid>
 
-                                                <!-- Hour label -->
-                                                <Label Text="{Binding Label}"
-                                                       FontSize="11"
-                                                       TextColor="{StaticResource Gray400}"
-                                                       VerticalOptions="Start"
-                                                       HorizontalOptions="End"
-                                                       Margin="0,0,8,0" />
+                        <!-- Date Slots Timeline -->
+                        <VerticalStackLayout BindableLayout.ItemsSource="{Binding DateSlots}"
+                                             IsVisible="{Binding IsWeekExpanded}"
+                                             Spacing="0">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate x:DataType="vm:DateSlot">
+                                    <Grid ColumnDefinitions="90,*"
+                                          MinimumHeightRequest="56"
+                                          Padding="0,2">
 
-                                                <!-- Empty slot (tappable) -->
-                                                <Border Grid.Column="1"
-                                                        StrokeThickness="0.5"
-                                                        Stroke="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray600}}"
-                                                        StrokeShape="RoundRectangle 4"
+                                        <!-- Date label -->
+                                        <VerticalStackLayout VerticalOptions="Center"
+                                                             HorizontalOptions="End"
+                                                             Margin="0,0,10,0">
+                                            <Label Text="{Binding Label}"
+                                                   FontSize="11"
+                                                   TextColor="{StaticResource Gray400}"
+                                                   HorizontalTextAlignment="End" />
+                                            <Border IsVisible="{Binding IsToday}"
+                                                    Padding="6,2"
+                                                    StrokeThickness="0"
+                                                    StrokeShape="RoundRectangle 8"
+                                                    BackgroundColor="{StaticResource Primary}"
+                                                    HorizontalOptions="End">
+                                                <Label Text="DZIŚ"
+                                                       FontSize="9"
+                                                       FontAttributes="Bold"
+                                                       TextColor="White"
+                                                       HorizontalOptions="Center" />
+                                            </Border>
+                                        </VerticalStackLayout>
+
+                                        <!-- Empty slot (tappable) -->
+                                        <Border Grid.Column="1"
+                                                StrokeThickness="0.5"
+                                                Stroke="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray600}}"
+                                                StrokeShape="RoundRectangle 4"
+                                                BackgroundColor="Transparent"
+                                                Padding="0"
+                                                IsVisible="{Binding IsOccupied, Converter={StaticResource InvertedBoolConverter}}">
+                                            <Border.GestureRecognizers>
+                                                <TapGestureRecognizer Tapped="OnDateSlotTapped" />
+                                            </Border.GestureRecognizers>
+                                        </Border>
+
+                                        <!-- Occupied slot (meal chips) -->
+                                        <Border Grid.Column="1"
+                                                StrokeThickness="0.5"
+                                                Stroke="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray600}}"
+                                                StrokeShape="RoundRectangle 8"
+                                                BackgroundColor="Transparent"
+                                                Padding="4"
+                                                IsVisible="{Binding IsOccupied}">
+                                            <VerticalStackLayout Spacing="4">
+
+                                                <!-- Meal chips (wrapping) -->
+                                                <FlexLayout BindableLayout.ItemsSource="{Binding Meals}"
+                                                            Wrap="Wrap"
+                                                            Direction="Row"
+                                                            AlignItems="Center">
+                                                    <BindableLayout.ItemTemplate>
+                                                        <DataTemplate x:DataType="vm:MealItem">
+                                                            <Border Margin="2"
+                                                                    Padding="10,6"
+                                                                    StrokeThickness="0"
+                                                                    StrokeShape="RoundRectangle 14"
+                                                                    BackgroundColor="{StaticResource Primary}">
+                                                                <HorizontalStackLayout Spacing="6"
+                                                                                   VerticalOptions="Center">
+                                                                    <VerticalStackLayout VerticalOptions="Center"
+                                                                                         MaximumWidthRequest="180">
+                                                                        <VerticalStackLayout.GestureRecognizers>
+                                                                            <TapGestureRecognizer Tapped="OnMealChipTapped" />
+                                                                        </VerticalStackLayout.GestureRecognizers>
+                                                                        <Label Text="{Binding Recipe.Title}"
+                                                                               FontSize="12"
+                                                                               FontAttributes="Bold"
+                                                                               TextColor="White"
+                                                                               LineBreakMode="TailTruncation" />
+                                                                        <Label Text="{Binding CategoryName}"
+                                                                               FontSize="9"
+                                                                               TextColor="#AAFFFFFF"
+                                                                               LineBreakMode="TailTruncation"
+                                                                               IsVisible="{Binding CategoryName, Converter={StaticResource IsNotNullConverter}}" />
+                                                                    </VerticalStackLayout>
+                                                                    <ImageButton HeightRequest="18"
+                                                                                 WidthRequest="18"
+                                                                                 Padding="2"
+                                                                                 BackgroundColor="Transparent"
+                                                                                 VerticalOptions="Center"
+                                                                                 Clicked="OnRemoveChipClicked">
+                                                                        <ImageButton.Source>
+                                                                            <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Close}"
+                                                                                             FontFamily="MaterialSymbolsOutlined"
+                                                                                             Color="#BBFFFFFF"
+                                                                                             Size="12" />
+                                                                        </ImageButton.Source>
+                                                                    </ImageButton>
+                                                                </HorizontalStackLayout>
+                                                            </Border>
+                                                        </DataTemplate>
+                                                    </BindableLayout.ItemTemplate>
+                                                </FlexLayout>
+
+                                                <!-- Add meal chip -->
+                                                <Border Padding="8,5"
+                                                        StrokeThickness="1"
+                                                        Stroke="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}"
+                                                        StrokeShape="RoundRectangle 14"
                                                         BackgroundColor="Transparent"
-                                                        Padding="0"
-                                                        IsVisible="{Binding IsOccupied, Converter={StaticResource InvertedBoolConverter}}">
+                                                        HorizontalOptions="Start"
+                                                        Margin="2,0">
                                                     <Border.GestureRecognizers>
-                                                        <TapGestureRecognizer Tapped="OnTimeSlotTapped" />
+                                                        <TapGestureRecognizer Tapped="OnAddToDateSlotTapped" />
                                                     </Border.GestureRecognizers>
-                                                </Border>
-
-                                                <!-- Occupied slot (meal block) -->
-                                                <Border Grid.Column="1"
-                                                        StrokeThickness="0"
-                                                        StrokeShape="RoundRectangle 8"
-                                                        BackgroundColor="{StaticResource Primary}"
-                                                        Padding="10,4"
-                                                        IsVisible="{Binding IsOccupied}">
-                                                    <Border.GestureRecognizers>
-                                                        <TapGestureRecognizer Tapped="OnMealBlockTapped" />
-                                                    </Border.GestureRecognizers>
-                                                    <Grid ColumnDefinitions="*,Auto"
-                                                          ColumnSpacing="4"
-                                                          IsVisible="{Binding IsStartHour}">
-                                                        <VerticalStackLayout VerticalOptions="Center">
-                                                            <Label Text="{Binding MealTitle}"
-                                                                   FontSize="12"
-                                                                   FontAttributes="Bold"
-                                                                   LineBreakMode="TailTruncation"
-                                                                   TextColor="White" />
-                                                            <Label Text="{Binding MealTimeRange}"
-                                                                   FontSize="10"
-                                                                   TextColor="#CCFFFFFF" />
-                                                        </VerticalStackLayout>
-                                                        <ImageButton Grid.Column="1"
-                                                                     HeightRequest="22"
-                                                                     WidthRequest="22"
-                                                                     Padding="2"
-                                                                     BackgroundColor="Transparent"
-                                                                     VerticalOptions="Center"
-                                                                     Clicked="OnRemoveMealClicked">
-                                                            <ImageButton.Source>
-                                                                <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Close}"
+                                                    <HorizontalStackLayout Spacing="4"
+                                                                           VerticalOptions="Center">
+                                                        <Image HeightRequest="14"
+                                                               WidthRequest="14"
+                                                               VerticalOptions="Center">
+                                                            <Image.Source>
+                                                                <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Add}"
                                                                                  FontFamily="MaterialSymbolsOutlined"
-                                                                                 Color="#99FFFFFF"
+                                                                                 Color="{StaticResource Primary}"
                                                                                  Size="14" />
-                                                            </ImageButton.Source>
-                                                        </ImageButton>
-                                                    </Grid>
+                                                            </Image.Source>
+                                                        </Image>
+                                                        <Label Text="Dodaj"
+                                                               FontSize="11"
+                                                               TextColor="{StaticResource Primary}"
+                                                               VerticalOptions="Center" />
+                                                    </HorizontalStackLayout>
                                                 </Border>
-                                            </Grid>
-                                        </DataTemplate>
-                                    </BindableLayout.ItemTemplate>
-                                </VerticalStackLayout>
 
-                            </VerticalStackLayout>
-                        </Border>
-                    </DataTemplate>
-                </BindableLayout.ItemTemplate>
+                                            </VerticalStackLayout>
+                                        </Border>
+                                    </Grid>
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </VerticalStackLayout>
+
+                    </VerticalStackLayout>
+                </Border>
+
             </VerticalStackLayout>
         </ScrollView>
 
