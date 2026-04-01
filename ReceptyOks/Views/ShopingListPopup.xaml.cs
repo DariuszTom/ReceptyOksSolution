@@ -104,4 +104,12 @@ public partial class ShopingListPopup : ContentView
         var page = Shell.Current.CurrentPage;
         await page.ClosePopupAsync(CancellationToken.None);
     }
+
+    private void OnSwipeItemInvoked(object? sender, EventArgs e)
+    {
+        if (sender is SwipeItem swipeItem && swipeItem.CommandParameter is ShoppingListItemDto item)
+        {
+            ShoppingListItems.Remove(item);
+        }
+    }
 }

@@ -303,42 +303,45 @@
                                                     <BindableLayout.ItemTemplate>
                                                         <DataTemplate x:DataType="vm:MealItem">
                                                             <Border Margin="2"
-                                                                    Padding="10,6"
-                                                                    StrokeThickness="0"
-                                                                    StrokeShape="RoundRectangle 14"
-                                                                    BackgroundColor="{StaticResource Primary}">
-                                                                <HorizontalStackLayout Spacing="6"
-                                                                                   VerticalOptions="Center">
-                                                                    <VerticalStackLayout VerticalOptions="Center"
-                                                                                         MaximumWidthRequest="180">
-                                                                        <VerticalStackLayout.GestureRecognizers>
-                                                                            <TapGestureRecognizer Tapped="OnMealChipTapped" />
-                                                                        </VerticalStackLayout.GestureRecognizers>
-                                                                        <Label Text="{Binding Recipe.Title}"
-                                                                               FontSize="12"
-                                                                               FontAttributes="Bold"
-                                                                               TextColor="White"
-                                                                               LineBreakMode="TailTruncation" />
-                                                                        <Label Text="{Binding CategoryName}"
-                                                                               FontSize="9"
-                                                                               TextColor="#AAFFFFFF"
-                                                                               LineBreakMode="TailTruncation"
-                                                                               IsVisible="{Binding CategoryName, Converter={StaticResource IsNotNullConverter}}" />
-                                                                    </VerticalStackLayout>
-                                                                    <ImageButton HeightRequest="18"
-                                                                                 WidthRequest="18"
-                                                                                 Padding="2"
-                                                                                 BackgroundColor="Transparent"
-                                                                                 VerticalOptions="Center"
-                                                                                 Clicked="OnRemoveChipClicked">
+                                                                   Padding="10,6,4,6"
+                                                                   StrokeThickness="0"
+                                                                   StrokeShape="RoundRectangle 14"
+                                                                   BackgroundColor="{StaticResource Primary}">
+                                                               <Grid ColumnDefinitions="*,Auto"
+                                                                     ColumnSpacing="4">
+                                                                   <VerticalStackLayout VerticalOptions="Center">
+                                                                       <VerticalStackLayout.GestureRecognizers>
+                                                                           <TapGestureRecognizer Tapped="OnMealChipTapped" />
+                                                                       </VerticalStackLayout.GestureRecognizers>
+                                                                       <Label Text="{Binding Recipe.Title}"
+                                                                              FontSize="12"
+                                                                              FontAttributes="Bold"
+                                                                              TextColor="White"
+                                                                              MaximumWidthRequest="190"
+                                                                              LineBreakMode="TailTruncation" />
+                                                                       <Label Text="{Binding CategoryName}"
+                                                                              FontSize="9"
+                                                                              TextColor="#AAFFFFFF"
+                                                                              LineBreakMode="TailTruncation"
+                                                                              IsVisible="{Binding CategoryName, Converter={StaticResource IsNotNullConverter}}" />
+                                                                   </VerticalStackLayout>
+                                                                   <ImageButton Grid.Column="1"
+                                                                                HeightRequest="22"
+                                                                                WidthRequest="22"
+                                                                                MinimumHeightRequest="0"
+                                                                                MinimumWidthRequest="0"
+                                                                                Padding="0"
+                                                                                BackgroundColor="Transparent"
+                                                                                VerticalOptions="Center"
+                                                                                Clicked="OnRemoveChipClicked">
                                                                         <ImageButton.Source>
                                                                             <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Close}"
                                                                                              FontFamily="MaterialSymbolsOutlined"
-                                                                                             Color="#BBFFFFFF"
-                                                                                             Size="12" />
+                                                                                             Color="#CCFFFFFF"
+                                                                                             Size="14" />
                                                                         </ImageButton.Source>
                                                                     </ImageButton>
-                                                                </HorizontalStackLayout>
+                                                                </Grid>
                                                             </Border>
                                                         </DataTemplate>
                                                     </BindableLayout.ItemTemplate>

@@ -83,20 +83,29 @@ public class SyncService : ISyncService
             }
 
             // Zastosuj zmiany z serwera lokalnie
-            await ApplyServerChangesAsync(syncResponse).ConfigureAwait(false);
+            var failedItems = await ApplyServerChangesAsync(syncResponse).ConfigureAwait(false);
 
-            // Wyczyść flagi dirty
+            // Zawsze wyczyść flagi dirty i zapisz czas synchronizacji,
+            // nawet jeśli część elementów nie została zastosowana.
+            // Zapobiega to pętli retry z tym samym LastSyncedAt.
             await _localDb.ClearDirtyFlagsAsync().ConfigureAwait(false);
-
-            // Zapisz czas synchronizacji
             await _localDb.SetLastSyncTimeAsync(syncResponse.SyncedAt).ConfigureAwait(false);
 
-            result.Success = true;
-            result.Message = "Synchronizacja zakończona pomyślnie";
             result.RecipesSynced = syncResponse.Recipes.Count;
             result.CategoriesSynced = syncResponse.Categories.Count;
             result.IngredientsSynced = syncResponse.Ingredients.Count;
             result.MealPlansSynced = syncResponse.MealPlans.Count;
+
+            if (failedItems > 0)
+            {
+                result.Success = true;
+                result.Message = $"Synchronizacja częściowa: {failedItems} elementów nie zostało zastosowanych";
+            }
+            else
+            {
+                result.Success = true;
+                result.Message = "Synchronizacja zakończona pomyślnie";
+            }
 
         }
         catch (Exception ex)
@@ -386,87 +395,133 @@ public class SyncService : ISyncService
         }).ToList();
     }
 
-    private async Task ApplyServerChangesAsync(SyncResponse response)
+    /// <summary>
+    /// Stosuje zmiany z serwera lokalnie. Błąd pojedynczego elementu
+    /// nie blokuje pozostałych — zapobiega pętli retry.
+    /// Zwraca liczbę elementów, których nie udało się zastosować.
+    /// </summary>
+    private async Task<int> ApplyServerChangesAsync(SyncResponse response)
     {
+        var failedItems = 0;
+
         // Kategorie
         foreach (var categoryDto in response.Categories)
         {
-            await _localDb.ApplyServerCategoryAsync(new CategoryLocal
+            try
             {
-                Id = categoryDto.Id,
-                Name = categoryDto.Name,
-                Description = categoryDto.Description,
-                IconName = categoryDto.IconName,
-                CreatedAt = categoryDto.CreatedAt,
-                UpdatedAt = categoryDto.UpdatedAt,
-                IsDeleted = categoryDto.IsDeleted
-            }).ConfigureAwait(false);
+                await _localDb.ApplyServerCategoryAsync(new CategoryLocal
+                {
+                    Id = categoryDto.Id,
+                    Name = categoryDto.Name,
+                    Description = categoryDto.Description,
+                    IconName = categoryDto.IconName,
+                    CreatedAt = categoryDto.CreatedAt,
+                    UpdatedAt = categoryDto.UpdatedAt,
+                    IsDeleted = categoryDto.IsDeleted
+                }).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to apply server category {CategoryId}", categoryDto.Id);
+                failedItems++;
+            }
         }
 
         // Składniki
         foreach (var ingredientDto in response.Ingredients)
         {
-            await _localDb.ApplyServerIngredientAsync(new IngredientLocal
+            try
             {
-                Id = ingredientDto.Id,
-                Name = ingredientDto.Name,
-                Unit = ingredientDto.Unit,
-                CreatedAt = ingredientDto.CreatedAt,
-                UpdatedAt = ingredientDto.UpdatedAt,
-                IsDeleted = ingredientDto.IsDeleted
-            }).ConfigureAwait(false);
+                await _localDb.ApplyServerIngredientAsync(new IngredientLocal
+                {
+                    Id = ingredientDto.Id,
+                    Name = ingredientDto.Name,
+                    Unit = ingredientDto.Unit,
+                    CreatedAt = ingredientDto.CreatedAt,
+                    UpdatedAt = ingredientDto.UpdatedAt,
+                    IsDeleted = ingredientDto.IsDeleted
+                }).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to apply server ingredient {IngredientId}", ingredientDto.Id);
+                failedItems++;
+            }
         }
 
         // Przepisy
         foreach (var recipeDto in response.Recipes)
         {
-            await _localDb.ApplyServerRecipeAsync(new RecipeLocal
+            try
             {
-                Id = recipeDto.Id,
-                Title = recipeDto.Title,
-                Description = recipeDto.Description,
-                Instructions = recipeDto.Instructions,
-                PreparationTimeMinutes = recipeDto.PreparationTimeMinutes,
-                CookingTimeMinutes = recipeDto.CookingTimeMinutes,
-                Servings = recipeDto.Servings,
-                Image = recipeDto.Image,
-                ImageContentType = recipeDto.ImageContentType,
-                CategoryId = recipeDto.CategoryId,
-                CreatedAt = recipeDto.CreatedAt,
-                UpdatedAt = recipeDto.UpdatedAt,
-                IsDeleted = recipeDto.IsDeleted
-            }).ConfigureAwait(false);
+                await _localDb.ApplyServerRecipeAsync(new RecipeLocal
+                {
+                    Id = recipeDto.Id,
+                    Title = recipeDto.Title,
+                    Description = recipeDto.Description,
+                    Instructions = recipeDto.Instructions,
+                    PreparationTimeMinutes = recipeDto.PreparationTimeMinutes,
+                    CookingTimeMinutes = recipeDto.CookingTimeMinutes,
+                    Servings = recipeDto.Servings,
+                    Image = recipeDto.Image,
+                    ImageContentType = recipeDto.ImageContentType,
+                    CategoryId = recipeDto.CategoryId,
+                    CreatedAt = recipeDto.CreatedAt,
+                    UpdatedAt = recipeDto.UpdatedAt,
+                    IsDeleted = recipeDto.IsDeleted
+                }).ConfigureAwait(false);
 
-            // Składniki przepisu
-            var recipeIngredients = recipeDto.Ingredients.Select(i => new RecipeIngredientLocal
+                // Składniki przepisu
+                var recipeIngredients = recipeDto.Ingredients.Select(i => new RecipeIngredientLocal
+                {
+                    Id = i.Id,
+                    RecipeId = recipeDto.Id,
+                    IngredientId = i.IngredientId,
+                    Quantity = i.Quantity,
+                    Unit = i.Unit,
+                    Notes = i.Notes,
+                    Order = i.Order
+                }).ToList();
+
+                await _localDb.SaveRecipeIngredientsAsync(recipeDto.Id, recipeIngredients).ConfigureAwait(false);
+            }
+            catch (Exception ex)
             {
-                Id = i.Id,
-                RecipeId = recipeDto.Id,
-                IngredientId = i.IngredientId,
-                Quantity = i.Quantity,
-                Unit = i.Unit,
-                Notes = i.Notes,
-                Order = i.Order
-            }).ToList();
-
-            await _localDb.SaveRecipeIngredientsAsync(recipeDto.Id, recipeIngredients).ConfigureAwait(false);
+                _logger.LogWarning(ex, "Failed to apply server recipe {RecipeId}", recipeDto.Id);
+                failedItems++;
+            }
         }
 
         // Plany posiłków
         foreach (var mealPlanDto in response.MealPlans)
         {
-            await _localDb.ApplyServerMealPlanAsync(new MealPlanLocal
+            try
             {
-                Id = mealPlanDto.Id,
-                Date = mealPlanDto.Date,
-                StartHour = mealPlanDto.StartHour,
-                DurationMinutes = mealPlanDto.DurationMinutes,
-                RecipeId = mealPlanDto.RecipeId,
-                Notes = mealPlanDto.Notes,
-                CreatedAt = mealPlanDto.CreatedAt,
-                UpdatedAt = mealPlanDto.UpdatedAt,
-                IsDeleted = mealPlanDto.IsDeleted
-            }).ConfigureAwait(false);
+                await _localDb.ApplyServerMealPlanAsync(new MealPlanLocal
+                {
+                    Id = mealPlanDto.Id,
+                    Date = mealPlanDto.Date,
+                    StartHour = mealPlanDto.StartHour,
+                    DurationMinutes = mealPlanDto.DurationMinutes,
+                    RecipeId = mealPlanDto.RecipeId,
+                    Notes = mealPlanDto.Notes,
+                    CreatedAt = mealPlanDto.CreatedAt,
+                    UpdatedAt = mealPlanDto.UpdatedAt,
+                    IsDeleted = mealPlanDto.IsDeleted
+                }).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to apply server meal plan {MealPlanId}", mealPlanDto.Id);
+                failedItems++;
+            }
         }
+
+        if (failedItems > 0)
+        {
+            _logger.LogWarning("ApplyServerChanges completed with {FailedItems} failed items", failedItems);
+        }
+
+        return failedItems;
     }
 }

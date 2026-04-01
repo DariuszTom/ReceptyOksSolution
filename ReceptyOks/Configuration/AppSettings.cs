@@ -45,7 +45,7 @@ public class HttpSettings
     /// <summary>
     /// Default timeout in seconds for HTTP requests
     /// </summary>
-    public int DefaultTimeoutSeconds { get; set; } = 30;
+    public int DefaultTimeoutSeconds { get; set; } = 60;
 
     /// <summary>
     /// Maximum number of retries for HTTP requests

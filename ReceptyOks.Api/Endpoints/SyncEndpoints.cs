@@ -160,17 +160,25 @@ public static class SyncEndpoints
             .WithMetadata(new RequestSizeLimitAttribute(200_000_000));
     }
 
+    /// <summary>
+    /// Applies client changes using batch queries to minimize Azure SQL round trips.
+    /// Loads all needed entities upfront (1 query per type) instead of N FindAsync calls.
+    /// </summary>
     private static async Task ApplyClientChanges(SyncRequest request, RecipeDbContext db, ILogger logger)
     {
         var addedCategories = 0;
         var updatedCategories = 0;
         var skippedCategories = 0;
 
-        // Kategorie
+        // Batch load: 1 query instead of N FindAsync calls
+        var categoryIds = request.ChangedCategories.Select(c => c.Id).ToList();
+        var existingCategories = categoryIds.Count > 0
+            ? await db.Categories.Where(c => categoryIds.Contains(c.Id)).ToDictionaryAsync(c => c.Id)
+            : new Dictionary<Guid, Category>();
+
         foreach (var categoryDto in request.ChangedCategories)
         {
-            var existing = await db.Categories.FindAsync(categoryDto.Id);
-            if (existing is null)
+            if (!existingCategories.TryGetValue(categoryDto.Id, out var existing))
             {
                 logger.LogDebug("Adding new category: {CategoryId} - {CategoryName}", categoryDto.Id, categoryDto.Name);
                 db.Categories.Add(new Category
@@ -215,11 +223,15 @@ public static class SyncEndpoints
         var updatedIngredients = 0;
         var skippedIngredients = 0;
 
-        // Sk³adniki
+        // Batch load: 1 query instead of N FindAsync calls
+        var ingredientIds = request.ChangedIngredients.Select(i => i.Id).ToList();
+        var existingIngredients = ingredientIds.Count > 0
+            ? await db.Ingredients.Where(i => ingredientIds.Contains(i.Id)).ToDictionaryAsync(i => i.Id)
+            : new Dictionary<Guid, Ingredient>();
+
         foreach (var ingredientDto in request.ChangedIngredients)
         {
-            var existing = await db.Ingredients.FindAsync(ingredientDto.Id);
-            if (existing is null)
+            if (!existingIngredients.TryGetValue(ingredientDto.Id, out var existing))
             {
                 logger.LogDebug("Adding new ingredient: {IngredientId} - {IngredientName}", ingredientDto.Id, ingredientDto.Name);
                 db.Ingredients.Add(new Ingredient
@@ -269,7 +281,14 @@ public static class SyncEndpoints
         var skippedInvalidCategory = 0;
         var skippedIngredientRefs = 0;
 
-        // Przepisy
+        // Batch load: 1 query instead of N FindAsync + Include calls
+        var recipeIds = request.ChangedRecipes.Select(r => r.Id).ToList();
+        var existingRecipes = recipeIds.Count > 0
+            ? await db.Recipes.Include(r => r.Ingredients)
+                .Where(r => recipeIds.Contains(r.Id))
+                .ToDictionaryAsync(r => r.Id)
+            : new Dictionary<Guid, Recipe>();
+
         foreach (var recipeDto in request.ChangedRecipes)
         {
             // Validate CategoryId FK reference exists
@@ -297,9 +316,7 @@ public static class SyncEndpoints
                 skippedIngredientRefs += invalidIngredientRefs.Count;
             }
 
-            var existing = await db.Recipes.Include(r => r.Ingredients).FirstOrDefaultAsync(r => r.Id == recipeDto.Id);
-
-            if (existing is null)
+            if (!existingRecipes.TryGetValue(recipeDto.Id, out var existing))
             {
                 logger.LogDebug("Adding new recipe: {RecipeId} - {RecipeTitle} with {IngredientCount} ingredients (valid: {ValidCount})",
                     recipeDto.Id, recipeDto.Title, recipeDto.Ingredients.Count, validIngredients.Count);
@@ -395,6 +412,12 @@ public static class SyncEndpoints
         var skippedMealPlans = 0;
         var skippedInvalidRecipe = 0;
 
+        // Batch load: 1 query instead of N FindAsync calls
+        var mealPlanIds = request.ChangedMealPlans.Select(mp => mp.Id).ToList();
+        var existingMealPlans = mealPlanIds.Count > 0
+            ? await db.MealPlans.Where(mp => mealPlanIds.Contains(mp.Id)).ToDictionaryAsync(mp => mp.Id)
+            : new Dictionary<Guid, MealPlan>();
+
         foreach (var mealPlanDto in request.ChangedMealPlans)
         {
             if (!validRecipeIds.Contains(mealPlanDto.RecipeId))
@@ -406,8 +429,7 @@ public static class SyncEndpoints
                 continue;
             }
 
-            var existing = await db.MealPlans.FindAsync(mealPlanDto.Id);
-            if (existing is null)
+            if (!existingMealPlans.TryGetValue(mealPlanDto.Id, out var existing))
             {
                 logger.LogDebug("Adding new meal plan: {MealPlanId} for {Date}", mealPlanDto.Id, mealPlanDto.Date);
                 db.MealPlans.Add(new MealPlan
