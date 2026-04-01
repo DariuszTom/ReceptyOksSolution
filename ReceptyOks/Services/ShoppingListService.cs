@@ -16,7 +16,8 @@ public class ShoppingListService(HttpClient httpClient) : IShoppingListService
     private readonly AsyncRetryPolicy<HttpResponseMessage> _retryPolicy = Policy
             .HandleResult<HttpResponseMessage>(r => !r.IsSuccessStatusCode && r.StatusCode != System.Net.HttpStatusCode.NotFound)
             .Or<HttpRequestException>()
-            .WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)));
+            .WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
+                onRetry: (outcome, _, _, _) => outcome.Result?.Dispose());
 
     /// <summary>
     /// Gets all shopping list items.
@@ -34,7 +35,7 @@ public class ShoppingListService(HttpClient httpClient) : IShoppingListService
             }
 
             var url = includeBought ? "/api/shopping-list?includeBought=true" : "/api/shopping-list";
-            var response = await _retryPolicy.ExecuteAsync(ct =>
+            using var response = await _retryPolicy.ExecuteAsync(ct =>
                 _httpClient.GetAsync(url, ct), cancellationToken).ConfigureAwait(false);
 
             if (!response.IsSuccessStatusCode)
@@ -67,7 +68,7 @@ public class ShoppingListService(HttpClient httpClient) : IShoppingListService
                 return ShoppingListResult<ShoppingListItem>.Failure("Brak połączenia z internetem");
             }
 
-            var response = await _retryPolicy.ExecuteAsync(ct =>
+            using var response = await _retryPolicy.ExecuteAsync(ct =>
                 _httpClient.GetAsync($"/api/shopping-list/{id}", ct), cancellationToken).ConfigureAwait(false);
 
             if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
@@ -107,7 +108,7 @@ public class ShoppingListService(HttpClient httpClient) : IShoppingListService
                 return ShoppingListResult<ShoppingListItem>.Failure("Brak połączenia z internetem");
             }
 
-            var response = await _retryPolicy.ExecuteAsync(ct =>
+            using var response = await _retryPolicy.ExecuteAsync(ct =>
                 _httpClient.PostAsJsonAsync("/api/shopping-list", item, ct), cancellationToken).ConfigureAwait(false);
 
             if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
@@ -148,7 +149,7 @@ public class ShoppingListService(HttpClient httpClient) : IShoppingListService
                 return ShoppingListResult<List<ShoppingListItem>>.Failure("Brak połączenia z internetem");
             }
 
-            var response = await _retryPolicy.ExecuteAsync(ct =>
+            using var response = await _retryPolicy.ExecuteAsync(ct =>
                 _httpClient.PostAsJsonAsync("/api/shopping-list/bulk", items, ct), cancellationToken).ConfigureAwait(false);
 
             if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
@@ -187,7 +188,7 @@ public class ShoppingListService(HttpClient httpClient) : IShoppingListService
                 return ShoppingListResult<ShoppingListItem>.Failure("Brak połączenia z internetem");
             }
 
-            var response = await _retryPolicy.ExecuteAsync(ct =>
+            using var response = await _retryPolicy.ExecuteAsync(ct =>
                 _httpClient.PutAsJsonAsync($"/api/shopping-list/{id}", item, ct), cancellationToken).ConfigureAwait(false);
 
             if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
@@ -234,7 +235,7 @@ public class ShoppingListService(HttpClient httpClient) : IShoppingListService
             }
 
             var request = new BoughtRequest(boughtBy);
-            var response = await _retryPolicy.ExecuteAsync(ct =>
+            using var response = await _retryPolicy.ExecuteAsync(ct =>
                 _httpClient.PatchAsJsonAsync($"/api/shopping-list/{id}/bought", request, ct), cancellationToken).ConfigureAwait(false);
 
             if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
@@ -274,7 +275,7 @@ public class ShoppingListService(HttpClient httpClient) : IShoppingListService
                 return ShoppingListResult<ShoppingListItem>.Failure("Brak połączenia z internetem");
             }
 
-            var response = await _retryPolicy.ExecuteAsync(ct =>
+            using var response = await _retryPolicy.ExecuteAsync(ct =>
                 _httpClient.PatchAsync($"/api/shopping-list/{id}/unbought", null, ct), cancellationToken).ConfigureAwait(false);
 
             if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
@@ -315,7 +316,7 @@ public class ShoppingListService(HttpClient httpClient) : IShoppingListService
             }
 
             var request = new BulkBoughtRequest(ids, boughtBy);
-            var response = await _retryPolicy.ExecuteAsync(ct =>
+            using var response = await _retryPolicy.ExecuteAsync(ct =>
                 _httpClient.PatchAsJsonAsync("/api/shopping-list/bulk/bought", request, ct), cancellationToken).ConfigureAwait(false);
 
             if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
@@ -356,7 +357,7 @@ public class ShoppingListService(HttpClient httpClient) : IShoppingListService
                 return ShoppingListResult<bool>.Failure("Brak połączenia z internetem");
             }
 
-            var response = await _retryPolicy.ExecuteAsync(ct =>
+            using var response = await _retryPolicy.ExecuteAsync(ct =>
                 _httpClient.DeleteAsync($"/api/shopping-list/{id}", ct), cancellationToken).ConfigureAwait(false);
 
             if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
@@ -393,7 +394,7 @@ public class ShoppingListService(HttpClient httpClient) : IShoppingListService
                 return ShoppingListResult<BulkOperationResponse>.Failure("Brak połączenia z internetem");
             }
 
-            var response = await _retryPolicy.ExecuteAsync(ct =>
+            using var response = await _retryPolicy.ExecuteAsync(ct =>
                 _httpClient.DeleteAsync("/api/shopping-list/clear-bought", ct), cancellationToken).ConfigureAwait(false);
 
             if (!response.IsSuccessStatusCode)
@@ -428,7 +429,7 @@ public class ShoppingListService(HttpClient httpClient) : IShoppingListService
                 return ShoppingListResult<BulkOperationResponse>.Failure("Brak połączenia z internetem");
             }
 
-            var response = await _retryPolicy.ExecuteAsync(ct =>
+            using var response = await _retryPolicy.ExecuteAsync(ct =>
                 _httpClient.DeleteAsync("/api/shopping-list/clear-all", ct), cancellationToken).ConfigureAwait(false);
 
             if (!response.IsSuccessStatusCode)
@@ -463,7 +464,7 @@ public class ShoppingListService(HttpClient httpClient) : IShoppingListService
                 return ShoppingListResult<ShoppingListStats>.Failure("Brak połączenia z internetem");
             }
 
-            var response = await _retryPolicy.ExecuteAsync(ct =>
+            using var response = await _retryPolicy.ExecuteAsync(ct =>
                 _httpClient.GetAsync("/api/shopping-list/stats", ct), cancellationToken).ConfigureAwait(false);
 
             if (!response.IsSuccessStatusCode)
@@ -498,7 +499,7 @@ public class ShoppingListService(HttpClient httpClient) : IShoppingListService
                 return ShoppingListResult<bool>.Failure("Brak połączenia z internetem");
             }
 
-            var response = await _retryPolicy.ExecuteAsync(ct =>
+            using var response = await _retryPolicy.ExecuteAsync(ct =>
                 _httpClient.DeleteAsync($"/api/shopping-list/{id}/permanent", ct), cancellationToken).ConfigureAwait(false);
 
             if (response.StatusCode == System.Net.HttpStatusCode.NotFound)

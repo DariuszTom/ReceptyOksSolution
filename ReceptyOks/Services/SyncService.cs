@@ -17,7 +17,8 @@ public class SyncService : ISyncService
     private readonly AsyncRetryPolicy<HttpResponseMessage> _retryPolicy = Policy
         .HandleResult<HttpResponseMessage>(r => (int)r.StatusCode >= 500)
         .Or<HttpRequestException>()
-        .WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)));
+        .WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
+            onRetry: (outcome, _, _, _) => outcome.Result?.Dispose());
 
     public SyncService(LocalDatabase localDb, HttpClient httpClient, ILogger<SyncService> logger)
     {
@@ -53,7 +54,7 @@ public class SyncService : ISyncService
                 ChangedMealPlans = await GetChangedMealPlansAsync().ConfigureAwait(false)
             };
 
-            var response = await _retryPolicy.ExecuteAsync(() =>
+            using var response = await _retryPolicy.ExecuteAsync(() =>
             {
                 var httpRequest = new HttpRequestMessage(HttpMethod.Post, "/api/sync")
                 {
@@ -117,7 +118,7 @@ public class SyncService : ISyncService
         try
         {
 
-            var response = await _httpClient.GetAsync("/api/sync/full").ConfigureAwait(false);
+            using var response = await _httpClient.GetAsync("/api/sync/full").ConfigureAwait(false);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -209,7 +210,7 @@ public class SyncService : ISyncService
                     ChangedMealPlans = i == 0 ? allMealPlans : []
                 };
 
-                var response = await _retryPolicy.ExecuteAsync(ct =>
+                using var response = await _retryPolicy.ExecuteAsync(ct =>
                 {
                     var httpRequest = new HttpRequestMessage(HttpMethod.Post, "/api/sync/upload-all")
                     {

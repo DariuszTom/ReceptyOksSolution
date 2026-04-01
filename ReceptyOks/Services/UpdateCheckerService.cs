@@ -32,11 +32,12 @@ public class UpdateCheckerService
         AsyncRetryPolicy<HttpResponseMessage> retryPolicy = Policy
             .HandleResult<HttpResponseMessage>(r => !r.IsSuccessStatusCode)
             .Or<HttpRequestException>()
-            .WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)));
+            .WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
+                onRetry: (outcome, _, _, _) => outcome.Result?.Dispose());
 
         try
         {
-            var response = await retryPolicy.ExecuteAsync(() =>
+            using var response = await retryPolicy.ExecuteAsync(() =>
                 _httpClient.GetAsync(_settings.Http.Github.ReleaseEndpoint)
             ).ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
