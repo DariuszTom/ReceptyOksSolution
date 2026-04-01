@@ -47,8 +47,8 @@ internal static class HttpClientServiceExtensions
         // TokenProviderService
         services.AddHttpClient<TokenProviderService>(client =>
             {
-               client.BaseAddress = new Uri(baseUrl);
-               client.Timeout = defaultTimeout;
+                client.BaseAddress = new Uri(baseUrl);
+                client.Timeout = defaultTimeout;
             })
         .AddHttpMessageHandler<ApiKeyHandler>()
         .AddServiceDiscovery();

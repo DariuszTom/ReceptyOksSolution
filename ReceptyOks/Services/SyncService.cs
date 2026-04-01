@@ -1,9 +1,6 @@
-using Microsoft.Extensions.Logging;
 using Polly;
 using Polly.Retry;
-using ReceptyOks.Data;
 using ReceptyOks.Interfaces;
-using ReceptyOks.Shared;
 using ReceptyOks.Shared.DTOs;
 using System.Net.Http.Json;
 

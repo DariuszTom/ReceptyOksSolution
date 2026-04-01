@@ -1,14 +1,8 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
-using CommunityToolkit.Mvvm.Messaging;
-using Microsoft.Extensions.Logging;
-using ReceptyOks.Data;
+﻿using CommunityToolkit.Mvvm.Messaging;
 using ReceptyOks.Misc;
 using ReceptyOks.Models;
 using ReceptyOks.Services;
 using ReceptyOks.Shared;
-using ReceptyOks.Shared.Models;
-using System.Collections.ObjectModel;
 using UraniumUI.Extensions;
 
 namespace ReceptyOks.ViewModels;

@@ -1,6 +1,6 @@
 ﻿namespace ReceptyOks.Shared.Configuration
 {
-    public sealed record PeriodicSyncOptions 
+    public sealed record PeriodicSyncOptions
     {
         public TimeSpan Interval { get; init; } = TimeSpan.FromMinutes(30);
         public TimeSpan StartupDelay { get; init; } = TimeSpan.FromSeconds(30);

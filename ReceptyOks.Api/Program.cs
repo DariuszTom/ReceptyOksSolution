@@ -1,13 +1,12 @@
-using System.Text.Json.Serialization;
-using System.Threading.RateLimiting;
-using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
 using ReceptyOks.Api.Endpoints;
 using ReceptyOks.Api.Extensions;
-using ReceptyOks.Api.Middleware;
 using ReceptyOks.Shared.Configuration;
 using Scalar.AspNetCore;
+using System.Text.Json.Serialization;
+using System.Threading.RateLimiting;
 
 
 var builder = WebApplication.CreateBuilder(args);

@@ -1,9 +1,8 @@
-﻿using ReceptyOks.Configuration;
+﻿using Polly;
+using Polly.Retry;
+using ReceptyOks.Configuration;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
-using Polly;
-using Polly.Retry;
-using Microsoft.Extensions.Logging;
 
 namespace ReceptyOks.Services;
 

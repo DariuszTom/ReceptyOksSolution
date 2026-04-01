@@ -1,9 +1,4 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
-using ReceptyOks.Data;
-using System.Collections.ObjectModel;
-
-namespace ReceptyOks.ViewModels;
+﻿namespace ReceptyOks.ViewModels;
 
 public partial class CategoryEditViewModel : ObservableObject, IQueryAttributable
 {

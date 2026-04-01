@@ -1,10 +1,4 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
-using Microsoft.Extensions.Logging;
-using ReceptyOks.Data;
-using System.Collections.ObjectModel;
-
-namespace ReceptyOks.ViewModels;
+﻿namespace ReceptyOks.ViewModels;
 
 public partial class CategoriesViewModel(LocalDatabase database, ILogger<CategoriesViewModel> logger) : ObservableObject
 {

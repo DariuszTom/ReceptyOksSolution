@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace ReceptyOks.Models
+﻿namespace ReceptyOks.Models
 {
     public class BadgeCountMessage
     {

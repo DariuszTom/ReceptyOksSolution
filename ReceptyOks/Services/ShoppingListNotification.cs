@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using ReceptyOks.Configuration;
 
 namespace ReceptyOks.Services;
@@ -67,7 +66,7 @@ public sealed class ShoppingListNotification(
 
             var previousCheck = GetLastTimeCheck();
             var newItems = result.Data
-                .Where(item => item.CreatedAt > previousCheck )
+                .Where(item => item.CreatedAt > previousCheck)
                 .ToList();
 
             if (newItems.Count > 0)

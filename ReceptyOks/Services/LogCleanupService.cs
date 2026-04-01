@@ -1,6 +1,4 @@
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using ReceptyOks.Data;
 using ReceptyOks.Shared.Configuration;
 
 namespace ReceptyOks.Services;

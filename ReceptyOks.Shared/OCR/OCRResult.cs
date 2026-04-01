@@ -1,7 +1,4 @@
-﻿using ReceptyOks.Shared.Models;
-
-
-namespace ReceptyOks.Shared.OCR
+﻿namespace ReceptyOks.Shared.OCR
 {
     public class OCRResult
     {

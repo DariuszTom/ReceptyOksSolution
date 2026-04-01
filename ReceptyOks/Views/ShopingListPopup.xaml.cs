@@ -1,10 +1,7 @@
-using CommunityToolkit.Maui.Alerts;
 using CommunityToolkit.Maui.Extensions;
 using CommunityToolkit.Mvvm.Messaging;
 using ReceptyOks.Services;
-using ReceptyOks.Shared.Models;
 using ReceptyOks.ViewModels;
-using System.Collections.ObjectModel;
 
 namespace ReceptyOks.Views;
 

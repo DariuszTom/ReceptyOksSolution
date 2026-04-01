@@ -1,7 +1,3 @@
-using Microsoft.EntityFrameworkCore;
-using ReceptyOks.Api.Middleware;
-using ReceptyOks.Shared.Models;
-
 namespace ReceptyOks.Api.Endpoints;
 
 public static class CategoryEndpoints

@@ -3,7 +3,7 @@ using SQLite;
 
 namespace ReceptyOks.Data;
 
-public class LocalDatabase
+public class LocalDatabase : ILocalDatabase
 {
     private SQLiteAsyncConnection? _database;
     private readonly string _dbPath;

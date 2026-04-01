@@ -1,6 +1,3 @@
-using Microsoft.EntityFrameworkCore;
-using ReceptyOks.Shared.Models;
-
 namespace ReceptyOks.Api.Middleware;
 
 public class RecipeDbContext(DbContextOptions<RecipeDbContext> options) : DbContext(options)

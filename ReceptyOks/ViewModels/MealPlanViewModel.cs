@@ -1,17 +1,11 @@
 using AsyncAwaitBestPractices;
 using CommunityToolkit.Maui;
 using CommunityToolkit.Maui.Extensions;
-using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
-using Microsoft.Extensions.Logging;
 using Microsoft.Maui.Controls.Shapes;
-using ReceptyOks.Data;
 using ReceptyOks.Services;
 using ReceptyOks.Shared.AI;
 using ReceptyOks.Shared.Misc;
-using ReceptyOks.Shared.Models;
 using ReceptyOks.Views;
-using System.Collections.ObjectModel;
 
 namespace ReceptyOks.ViewModels;
 

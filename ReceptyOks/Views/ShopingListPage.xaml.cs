@@ -1,5 +1,3 @@
-
-using ReceptyOks.Shared.Models;
 using ReceptyOks.ViewModels;
 using InputKitCheckBox = InputKit.Shared.Controls.CheckBox;
 

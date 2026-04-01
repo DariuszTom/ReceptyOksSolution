@@ -1,8 +1,6 @@
 ﻿using CommunityToolkit.Maui.ApplicationModel;
 using CommunityToolkit.Mvvm.Messaging;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using ReceptyOks.Models;
 using ReceptyOks.Services;
 

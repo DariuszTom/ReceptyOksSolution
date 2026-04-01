@@ -1,6 +1,5 @@
 ﻿using ReceptyOks.Shared.Misc;
 using System.Security.Cryptography;
-using System.Text;
 
 namespace ReceptyOks.Services
 {

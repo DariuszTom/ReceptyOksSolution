@@ -1,5 +1,3 @@
-using ReceptyOks.Data;
-
 namespace ReceptyOks.ViewModels;
 
 /// <summary>

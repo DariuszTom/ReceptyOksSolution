@@ -1,11 +1,7 @@
 using CommunityToolkit.Maui.Media;
-using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
-using ReceptyOks.Data;
 using ReceptyOks.Services;
 using ReceptyOks.Shared;
 using ReceptyOks.Shared.OCR;
-using System.Collections.ObjectModel;
 using System.Windows.Input;
 
 namespace ReceptyOks.ViewModels;

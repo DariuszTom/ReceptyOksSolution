@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using ReceptyOks.Interfaces;
 using ReceptyOks.Shared.Configuration;
 
@@ -63,7 +62,7 @@ namespace ReceptyOks.Services
 
         private async Task ShowNotificationAsync(SyncResult syncResult)
         {
-            if(syncResult == null) return;
+            if (syncResult == null) return;
             // Przełącz na main thread dla operacji UI
             await MainThread.InvokeOnMainThreadAsync(async () =>
             {

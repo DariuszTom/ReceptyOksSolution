@@ -1,4 +1,3 @@
-using ReceptyOks.Data;
 using ReceptyOks.Shared.AI;
 using System.Text.Json;
 using ILogger = Serilog.ILogger;

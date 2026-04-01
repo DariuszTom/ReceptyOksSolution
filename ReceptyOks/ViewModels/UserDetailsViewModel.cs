@@ -1,8 +1,4 @@
-﻿using CommunityToolkit.Maui.Alerts;
-using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
-using ReceptyOks.Services;
-using ReceptyOks.Shared.Models;
+﻿using ReceptyOks.Services;
 
 namespace ReceptyOks.ViewModels;
 

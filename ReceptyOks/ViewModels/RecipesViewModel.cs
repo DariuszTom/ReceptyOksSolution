@@ -1,9 +1,4 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
-using Microsoft.Extensions.Logging;
-using ReceptyOks.Data;
-using ReceptyOks.Interfaces;
-using System.Collections.ObjectModel;
+﻿using ReceptyOks.Interfaces;
 
 namespace ReceptyOks.ViewModels;
 

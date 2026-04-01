@@ -8,18 +8,18 @@ namespace ReceptyOks.Converters;
 /// </summary>
 public sealed class ColorMatchToBorderConverter : IValueConverter
 {
-	public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
-	{
-		if (value is Color selectedColor
-			&& parameter is string paramColorName
-			&& Color.TryParse(paramColorName, out var paramColor))
-		{
-			return selectedColor.ToArgbHex() == paramColor.ToArgbHex() ? 3d : 0d;
-		}
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (value is Color selectedColor
+            && parameter is string paramColorName
+            && Color.TryParse(paramColorName, out var paramColor))
+        {
+            return selectedColor.ToArgbHex() == paramColor.ToArgbHex() ? 3d : 0d;
+        }
 
-		return 0d;
-	}
+        return 0d;
+    }
 
-	public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
-		=> throw new NotSupportedException();
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => throw new NotSupportedException();
 }

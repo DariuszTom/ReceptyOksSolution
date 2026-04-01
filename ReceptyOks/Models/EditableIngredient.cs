@@ -1,6 +1,4 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
-using ReceptyOks.Data;
-using ReceptyOks.Shared;
+﻿using ReceptyOks.Shared;
 
 namespace ReceptyOks.ViewModels;
 

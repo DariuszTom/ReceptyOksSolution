@@ -2,7 +2,6 @@ using Polly;
 using Polly.Retry;
 using ReceptyOks.Misc;
 using ReceptyOks.Shared.DTOs;
-using ReceptyOks.Shared.Models;
 using System.Net.Http.Json;
 
 namespace ReceptyOks.Services;

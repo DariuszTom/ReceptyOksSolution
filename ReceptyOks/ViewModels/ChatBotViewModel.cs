@@ -1,10 +1,6 @@
-using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
-using ReceptyOks.Data;
 using ReceptyOks.Services;
 using ReceptyOks.Shared;
 using ReceptyOks.Shared.AI;
-using System.Collections.ObjectModel;
 using ILogger = Serilog.ILogger;
 
 namespace ReceptyOks.ViewModels;

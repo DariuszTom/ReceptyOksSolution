@@ -1,6 +1,5 @@
 using CommunityToolkit.Maui.Core;
 using CommunityToolkit.Maui.Views;
-using System.Collections.ObjectModel;
 using System.Windows.Input;
 
 namespace ReceptyOks.Controls;

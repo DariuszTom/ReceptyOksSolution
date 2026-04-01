@@ -1,5 +1,5 @@
-﻿using ReceptyOks.Shared.OCR;
-using Plugin.Maui.OCR;
+﻿using Plugin.Maui.OCR;
+using ReceptyOks.Shared.OCR;
 
 namespace ReceptyOks.Services
 {

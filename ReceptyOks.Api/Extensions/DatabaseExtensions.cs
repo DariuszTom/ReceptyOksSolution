@@ -1,6 +1,3 @@
-using Microsoft.EntityFrameworkCore;
-using ReceptyOks.Api.Middleware;
-
 namespace ReceptyOks.Api.Extensions;
 
 public static class DatabaseExtensions
@@ -60,5 +57,5 @@ public static class DatabaseExtensions
         var db = scope.ServiceProvider.GetRequiredService<RecipeDbContext>();
         db.Database.EnsureCreated();
         return app;
-  }
+    }
 }
