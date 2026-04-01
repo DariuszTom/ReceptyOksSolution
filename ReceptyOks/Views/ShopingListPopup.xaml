@@ -67,26 +67,47 @@
                         Margin="8,0">
             <CollectionView.ItemTemplate>
                 <DataTemplate x:DataType="models:ShoppingListItemDto">
-                    <Grid ColumnDefinitions="*,Auto"
-                          Padding="8,6"
-                          ColumnSpacing="8">
-                        <Label Grid.Column="0"
-                               Text="{Binding Name}"
-                               FontSize="14"
-                               VerticalOptions="Center"
-                               TextColor="{AppThemeBinding Light={StaticResource Gray800}, Dark={StaticResource Gray200}}" />
-                        <HorizontalStackLayout Grid.Column="1"
-                                               Spacing="4"
-                                               VerticalOptions="Center">
-                            <Label Text="{Binding Quantity}"
+                    <SwipeView>
+                        <SwipeView.LeftItems>
+                            <SwipeItems Mode="Execute">
+                                <SwipeItem Text="Usuń"
+                                           BackgroundColor="#E53935"
+                                           IconImageSource="{FontImageSource Glyph={x:Static icons:MaterialOutlined.Delete}, FontFamily=MaterialSymbolsOutlined, Color=White, Size=20}"
+                                           Invoked="OnSwipeItemInvoked"
+                                           CommandParameter="{Binding}" />
+                            </SwipeItems>
+                        </SwipeView.LeftItems>
+                        <SwipeView.RightItems>
+                            <SwipeItems Mode="Execute">
+                                <SwipeItem Text="Usuń"
+                                           BackgroundColor="#E53935"
+                                           IconImageSource="{FontImageSource Glyph={x:Static icons:MaterialOutlined.Delete}, FontFamily=MaterialSymbolsOutlined, Color=White, Size=20}"
+                                           Invoked="OnSwipeItemInvoked"
+                                           CommandParameter="{Binding}" />
+                            </SwipeItems>
+                        </SwipeView.RightItems>
+                        <Grid ColumnDefinitions="*,Auto"
+                              Padding="8,6"
+                              ColumnSpacing="8"
+                              BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}">
+                            <Label Grid.Column="0"
+                                   Text="{Binding Name}"
                                    FontSize="14"
-                                   FontAttributes="Bold"
-                                   TextColor="{StaticResource Primary}" />
-                            <Label Text="{Binding Unit}"
-                                   FontSize="14"
-                                   TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray400}}" />
-                        </HorizontalStackLayout>
-                    </Grid>
+                                   VerticalOptions="Center"
+                                   TextColor="{AppThemeBinding Light={StaticResource Gray800}, Dark={StaticResource Gray200}}" />
+                            <HorizontalStackLayout Grid.Column="1"
+                                                   Spacing="4"
+                                                   VerticalOptions="Center">
+                                <Label Text="{Binding Quantity}"
+                                       FontSize="14"
+                                       FontAttributes="Bold"
+                                       TextColor="{StaticResource Primary}" />
+                                <Label Text="{Binding Unit}"
+                                       FontSize="14"
+                                       TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray400}}" />
+                            </HorizontalStackLayout>
+                        </Grid>
+                    </SwipeView>
                 </DataTemplate>
             </CollectionView.ItemTemplate>
         </CollectionView>

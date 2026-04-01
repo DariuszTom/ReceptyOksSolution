@@ -148,4 +148,8 @@
 	  <EmbeddedResource Include="appsettings.json" />
 	</ItemGroup>
 
+	<ItemGroup Condition="'$(Configuration)' == 'Debug'">
+	  <EmbeddedResource Include="appsettings.Debug.json" />
+	</ItemGroup>
+
 </Project>
