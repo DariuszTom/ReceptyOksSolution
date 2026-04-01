@@ -58,7 +58,7 @@ public static class RecipeEndpoints
             recipe.UpdatedAt = DateTime.UtcNow;
 
             db.Recipes.Add(recipe);
-            await db.SaveChangesAsync();
+            await db.SaveChangesAsync().ConfigureAwait(false);
 
             return Results.Created($"/api/recipes/{recipe.Id}", recipe);
         })
@@ -93,7 +93,7 @@ public static class RecipeEndpoints
                 db.RecipeIngredients.Add(ingredient);
             }
 
-            await db.SaveChangesAsync();
+            await db.SaveChangesAsync().ConfigureAwait(false);
             return Results.Ok(recipe);
         })
         .WithName("UpdateRecipe");
@@ -107,7 +107,7 @@ public static class RecipeEndpoints
 
             recipe.IsDeleted = true;
             recipe.UpdatedAt = DateTime.UtcNow;
-            await db.SaveChangesAsync();
+            await db.SaveChangesAsync().ConfigureAwait(false);
 
             return Results.NoContent();
         })
@@ -127,3 +127,4 @@ public static class RecipeEndpoints
         .WithName("SearchRecipes");
     }
 }
+
