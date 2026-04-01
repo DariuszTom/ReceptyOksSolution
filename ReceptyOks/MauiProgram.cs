@@ -70,17 +70,16 @@ public static class MauiProgram
         {
             if (debugStream is not null)
                 configBuilder.AddJsonStream(debugStream);
+            var config = configBuilder.Build();
+
+            builder.Configuration.AddConfiguration(config);
+
+            // Bind to strongly-typed settings
+            var appSettings = new AppSettings();
+            config.Bind(appSettings);
+            builder.Services.AddSingleton(appSettings);
+            builder.Services.AddSingleton<IPreferences>(Preferences.Default);
+            return appSettings;
         }
-
-        var config = configBuilder.Build();
-
-        builder.Configuration.AddConfiguration(config);
-
-        // Bind to strongly-typed settings
-        var appSettings = new AppSettings();
-        config.Bind(appSettings);
-        builder.Services.AddSingleton(appSettings);
-        builder.Services.AddSingleton<IPreferences>(Preferences.Default);
-        return appSettings;
     }
 }
