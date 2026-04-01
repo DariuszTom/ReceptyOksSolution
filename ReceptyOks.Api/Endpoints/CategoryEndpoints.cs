@@ -46,7 +46,7 @@ public static class CategoryEndpoints
             category.UpdatedAt = DateTime.UtcNow;
 
             db.Categories.Add(category);
-            await db.SaveChangesAsync();
+            await db.SaveChangesAsync().ConfigureAwait(false);
 
             return Results.Created($"/api/categories/{category.Id}", category);
         })
@@ -64,7 +64,7 @@ public static class CategoryEndpoints
             category.IconName = updatedCategory.IconName;
             category.UpdatedAt = DateTime.UtcNow;
 
-            await db.SaveChangesAsync();
+            await db.SaveChangesAsync().ConfigureAwait(false);
             return Results.Ok(category);
         })
         .WithName("UpdateCategory");
@@ -78,7 +78,7 @@ public static class CategoryEndpoints
 
             category.IsDeleted = true;
             category.UpdatedAt = DateTime.UtcNow;
-            await db.SaveChangesAsync();
+            await db.SaveChangesAsync().ConfigureAwait(false);
 
             return Results.NoContent();
         })
