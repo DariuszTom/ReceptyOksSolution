@@ -35,7 +35,7 @@ public static class IngredientEndpoints
             ingredient.UpdatedAt = DateTime.UtcNow;
 
             db.Ingredients.Add(ingredient);
-            await db.SaveChangesAsync();
+            await db.SaveChangesAsync().ConfigureAwait(false);
 
             return Results.Created($"/api/ingredients/{ingredient.Id}", ingredient);
         })
@@ -52,7 +52,7 @@ public static class IngredientEndpoints
             ingredient.Unit = updatedIngredient.Unit;
             ingredient.UpdatedAt = DateTime.UtcNow;
 
-            await db.SaveChangesAsync();
+            await db.SaveChangesAsync().ConfigureAwait(false);
             return Results.Ok(ingredient);
         })
         .WithName("UpdateIngredient");
@@ -66,7 +66,7 @@ public static class IngredientEndpoints
 
             ingredient.IsDeleted = true;
             ingredient.UpdatedAt = DateTime.UtcNow;
-            await db.SaveChangesAsync();
+            await db.SaveChangesAsync().ConfigureAwait(false);
 
             return Results.NoContent();
         })
@@ -85,3 +85,4 @@ public static class IngredientEndpoints
         .WithName("SearchIngredients");
     }
 }
+

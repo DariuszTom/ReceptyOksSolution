@@ -38,6 +38,23 @@ builder.Services.ConfigureHttpJsonOptions(opts =>
     opts.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
 });
 
+// Response compression (Brotli + Gzip) - significantly reduces sync payload size
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+    options.Providers.Add<Microsoft.AspNetCore.ResponseCompression.BrotliCompressionProvider>();
+    options.Providers.Add<Microsoft.AspNetCore.ResponseCompression.GzipCompressionProvider>();
+});
+
+builder.Services.Configure<Microsoft.AspNetCore.ResponseCompression.BrotliCompressionProviderOptions>(options =>
+{
+    options.Level = System.IO.Compression.CompressionLevel.Fastest; // Balance speed vs compression
+});
+
+builder.Services.Configure<Microsoft.AspNetCore.ResponseCompression.GzipCompressionProviderOptions>(options =>
+{
+    options.Level = System.IO.Compression.CompressionLevel.Fastest;
+});
 
 // Konfiguracja bazy danych
 builder.Services.AddRecipeDatabase(builder.Environment, builder.Configuration);
@@ -89,6 +106,7 @@ builder.Services.AddSingleton(new CleanupOptions
 builder.Services.AddHostedService<ShopingListCleaner>();
 
 var app = builder.Build();
+app.UseResponseCompression(); // Must be early in pipeline, before other middleware
 app.UseRateLimiter();
 app.UseAuthentication();
 // Use API key auth middleware for all endpoints

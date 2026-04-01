@@ -62,7 +62,7 @@ public static class ShoppingListEndpoints
             item.IsDeleted = false;
 
             db.ShoppingListItems.Add(item);
-            await db.SaveChangesAsync();
+            await db.SaveChangesAsync().ConfigureAwait(false);
 
             return Results.Created($"/api/shopping-list/{item.Id}", item);
         })
@@ -95,7 +95,7 @@ public static class ShoppingListEndpoints
             }
 
             db.ShoppingListItems.AddRange(items);
-            await db.SaveChangesAsync();
+            await db.SaveChangesAsync().ConfigureAwait(false);
 
             return Results.Created("/api/shopping-list", items);
         })
@@ -125,7 +125,7 @@ public static class ShoppingListEndpoints
             item.RecipeId = updatedItem.RecipeId;
             item.UpdatedAt = DateTime.UtcNow;
 
-            await db.SaveChangesAsync();
+            await db.SaveChangesAsync().ConfigureAwait(false);
             return Results.Ok(item);
         })
         .Produces<ShoppingListItem>()
@@ -147,7 +147,7 @@ public static class ShoppingListEndpoints
             item.BoughtAt = DateTime.UtcNow;
             item.UpdatedAt = DateTime.UtcNow;
 
-            await db.SaveChangesAsync();
+            await db.SaveChangesAsync().ConfigureAwait(false);
             return Results.Ok(item);
         })
         .Produces<ShoppingListItem>()
@@ -168,7 +168,7 @@ public static class ShoppingListEndpoints
             item.BoughtAt = null;
             item.UpdatedAt = DateTime.UtcNow;
 
-            await db.SaveChangesAsync();
+            await db.SaveChangesAsync().ConfigureAwait(false);
             return Results.Ok(item);
         })
         .Produces<ShoppingListItem>()
@@ -209,7 +209,7 @@ public static class ShoppingListEndpoints
 
             item.IsDeleted = true;
             item.UpdatedAt = DateTime.UtcNow;
-            await db.SaveChangesAsync();
+            await db.SaveChangesAsync().ConfigureAwait(false);
 
             return Results.NoContent();
         })
@@ -227,7 +227,7 @@ public static class ShoppingListEndpoints
             }
 
             db.ShoppingListItems.Remove(item);
-            await db.SaveChangesAsync();
+            await db.SaveChangesAsync().ConfigureAwait(false);
 
             return Results.NoContent();
         })
@@ -284,5 +284,6 @@ public static class ShoppingListEndpoints
         .WithName("GetShoppingListStats");
     }
 }
+
 
 

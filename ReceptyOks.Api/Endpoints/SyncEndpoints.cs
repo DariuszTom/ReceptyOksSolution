@@ -66,7 +66,7 @@ public static class SyncEndpoints
                         UpdatedAt = c.UpdatedAt,
                         IsDeleted = c.IsDeleted
                     })
-                    .ToListAsync(),
+                    .ToListAsync().ConfigureAwait(false),
                 Ingredients = await db.Ingredients
                     .Select(i => new IngredientSyncDto
                     {
