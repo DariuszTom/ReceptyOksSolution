@@ -57,19 +57,26 @@ public partial class App : Application
         if (_initialized)
             return;
 
-        _initialized = true;
-
-        var appNotification = _serviceProvider.GetRequiredService<AppNotification>();
-        var granted = await appNotification.RequestPermissionAsync().ConfigureAwait(false);
-        if (!granted)
+        try
         {
-            _logger.LogWarning("Notification permission was denied — shopping list alerts will not be shown");
+            var appNotification = _serviceProvider.GetRequiredService<AppNotification>();
+            var granted = await appNotification.RequestPermissionAsync().ConfigureAwait(false);
+            if (!granted)
+            {
+                _logger.LogWarning("Notification permission was denied — shopping list alerts will not be shown");
+            }
+
+            // MAUI does not auto-start hosted services; start them manually.
+            foreach (var service in _hostedServices)
+            {
+                await service.StartAsync(CancellationToken.None).ConfigureAwait(false);
+            }
+
+            _initialized = true;
         }
-
-        // MAUI does not auto-start hosted services; start them manually.
-        foreach (var service in _hostedServices)
+        catch (Exception ex)
         {
-            await service.StartAsync(CancellationToken.None).ConfigureAwait(false);
+            _logger.LogError(ex, "Failed to initialize notification permission or hosted services");
         }
     }
 }

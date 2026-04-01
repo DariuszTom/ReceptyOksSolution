@@ -9,3 +9,15 @@ public class SyncResult
     public int IngredientsSynced { get; set; }
     public int MealPlansSynced { get; set; }
 }
+
+/// <summary>
+/// Per-type failure counts returned by ApplyServerChangesAsync.
+/// </summary>
+public record ApplyResult(
+    int FailedCategories,
+    int FailedIngredients,
+    int FailedRecipes,
+    int FailedMealPlans)
+{
+    public int TotalFailed => FailedCategories + FailedIngredients + FailedRecipes + FailedMealPlans;
+}

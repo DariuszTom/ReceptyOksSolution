@@ -83,24 +83,25 @@ public class SyncService : ISyncService
             }
 
             // Zastosuj zmiany z serwera lokalnie
-            var failedItems = await ApplyServerChangesAsync(syncResponse).ConfigureAwait(false);
+            var applyResult = await ApplyServerChangesAsync(syncResponse).ConfigureAwait(false);
 
             // Zawsze czyść dirty flags — serwer już przyjął zmiany klienta,
             // więc ponowne wysłanie spowodowałoby duplikaty/konflikty.
             await _localDb.ClearDirtyFlagsAsync().ConfigureAwait(false);
 
-            result.RecipesSynced = syncResponse.Recipes.Count;
-            result.CategoriesSynced = syncResponse.Categories.Count;
-            result.IngredientsSynced = syncResponse.Ingredients.Count;
-            result.MealPlansSynced = syncResponse.MealPlans.Count;
+            // Raportuj liczbę faktycznie zastosowanych elementów (otrzymane - nieudane).
+            result.CategoriesSynced = syncResponse.Categories.Count - applyResult.FailedCategories;
+            result.IngredientsSynced = syncResponse.Ingredients.Count - applyResult.FailedIngredients;
+            result.RecipesSynced = syncResponse.Recipes.Count - applyResult.FailedRecipes;
+            result.MealPlansSynced = syncResponse.MealPlans.Count - applyResult.FailedMealPlans;
 
-            if (failedItems > 0)
+            if (applyResult.TotalFailed > 0)
             {
                 // Nie przesuwaj LastSyncedAt — nieudane elementy muszą zostać
                 // ponownie pobrane przy następnej synchronizacji.
-                _logger.LogWarning("Sync partial: {FailedItems} items failed to apply locally, keeping LastSyncedAt at {LastSync}", failedItems, lastSync);
+                _logger.LogWarning("Sync partial: {FailedItems} items failed to apply locally, keeping LastSyncedAt at {LastSync}", applyResult.TotalFailed, lastSync);
                 result.Success = true;
-                result.Message = $"Synchronizacja częściowa: {failedItems} elementów nie zostało zastosowanych";
+                result.Message = $"Synchronizacja częściowa: {applyResult.TotalFailed} elementów nie zostało zastosowanych";
             }
             else
             {
@@ -402,9 +403,12 @@ public class SyncService : ISyncService
     /// nie blokuje pozostałych — zapobiega pętli retry.
     /// Zwraca liczbę elementów, których nie udało się zastosować.
     /// </summary>
-    private async Task<int> ApplyServerChangesAsync(SyncResponse response)
+    private async Task<ApplyResult> ApplyServerChangesAsync(SyncResponse response)
     {
-        var failedItems = 0;
+        var failedCategories = 0;
+        var failedIngredients = 0;
+        var failedRecipes = 0;
+        var failedMealPlans = 0;
 
         // Kategorie
         foreach (var categoryDto in response.Categories)
@@ -425,7 +429,7 @@ public class SyncService : ISyncService
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Failed to apply server category {CategoryId}", categoryDto.Id);
-                failedItems++;
+                failedCategories++;
             }
         }
 
@@ -447,7 +451,7 @@ public class SyncService : ISyncService
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Failed to apply server ingredient {IngredientId}", ingredientDto.Id);
-                failedItems++;
+                failedIngredients++;
             }
         }
 
@@ -490,7 +494,7 @@ public class SyncService : ISyncService
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Failed to apply server recipe {RecipeId}", recipeDto.Id);
-                failedItems++;
+                failedRecipes++;
             }
         }
 
@@ -515,15 +519,19 @@ public class SyncService : ISyncService
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Failed to apply server meal plan {MealPlanId}", mealPlanDto.Id);
-                failedItems++;
+                failedMealPlans++;
             }
         }
 
-        if (failedItems > 0)
+        var result = new ApplyResult(failedCategories, failedIngredients, failedRecipes, failedMealPlans);
+
+        if (result.TotalFailed > 0)
         {
-            _logger.LogWarning("ApplyServerChanges completed with {FailedItems} failed items", failedItems);
+            _logger.LogWarning(
+                "ApplyServerChanges completed with {TotalFailed} failed items (categories: {C}, ingredients: {I}, recipes: {R}, mealPlans: {M})",
+                result.TotalFailed, failedCategories, failedIngredients, failedRecipes, failedMealPlans);
         }
 
-        return failedItems;
+        return result;
     }
 }

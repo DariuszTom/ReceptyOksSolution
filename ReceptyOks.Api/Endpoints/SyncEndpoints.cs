@@ -167,15 +167,15 @@ public static class SyncEndpoints
     private static async Task ApplyClientChanges(SyncRequest request, RecipeDbContext db, ILogger logger)
     {
         // De-duplicate request lists by Id to prevent duplicate key tracking errors.
-        // If duplicates exist, keep the last occurrence (most recently updated).
+        // If duplicates exist, keep the occurrence with the greatest UpdatedAt.
         var changedCategories = request.ChangedCategories
-            .GroupBy(c => c.Id).Select(g => g.Last()).ToList();
+            .GroupBy(c => c.Id).Select(g => g.OrderByDescending(c => c.UpdatedAt).First()).ToList();
         var changedIngredients = request.ChangedIngredients
-            .GroupBy(i => i.Id).Select(g => g.Last()).ToList();
+            .GroupBy(i => i.Id).Select(g => g.OrderByDescending(i => i.UpdatedAt).First()).ToList();
         var changedRecipes = request.ChangedRecipes
-            .GroupBy(r => r.Id).Select(g => g.Last()).ToList();
+            .GroupBy(r => r.Id).Select(g => g.OrderByDescending(r => r.UpdatedAt).First()).ToList();
         var changedMealPlans = request.ChangedMealPlans
-            .GroupBy(mp => mp.Id).Select(g => g.Last()).ToList();
+            .GroupBy(mp => mp.Id).Select(g => g.OrderByDescending(mp => mp.UpdatedAt).First()).ToList();
 
         var addedCategories = 0;
         var updatedCategories = 0;
