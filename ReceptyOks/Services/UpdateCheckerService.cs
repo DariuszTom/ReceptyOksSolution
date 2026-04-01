@@ -38,11 +38,11 @@ public class UpdateCheckerService
         {
             var response = await retryPolicy.ExecuteAsync(() =>
                 _httpClient.GetAsync(_settings.Http.Github.ReleaseEndpoint)
-            );
+            ).ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
                 return null;
 
-            var release = await response.Content.ReadFromJsonAsync<GitHubRelease>();
+            var release = await response.Content.ReadFromJsonAsync<GitHubRelease>().ConfigureAwait(false);
             return release;
         }
         catch
@@ -53,7 +53,7 @@ public class UpdateCheckerService
 
     public async Task<bool> IsUpdateAvailableAsync(string apptVersion)
     {
-        var latest = await GetLatestReleaseAsync();
+        var latest = await GetLatestReleaseAsync().ConfigureAwait(false);
         if (latest == null)
             return false;
 

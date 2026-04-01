@@ -20,14 +20,14 @@ public class LocalDatabase
 
         _database = new SQLiteAsyncConnection(_dbPath, SQLiteOpenFlags.ReadWrite | SQLiteOpenFlags.Create | SQLiteOpenFlags.SharedCache);
 
-        await _database.CreateTableAsync<RecipeLocal>();
-        await _database.CreateTableAsync<CategoryLocal>();
-        await _database.CreateTableAsync<IngredientLocal>();
-        await _database.CreateTableAsync<RecipeIngredientLocal>();
-        await _database.CreateTableAsync<SyncInfo>();
-        await _database.CreateTableAsync<LogEntry>();
-        await _database.CreateTableAsync<ConversationLocal>();
-        await _database.CreateTableAsync<MealPlanLocal>();
+        await _database.CreateTableAsync<RecipeLocal>().ConfigureAwait(false);
+        await _database.CreateTableAsync<CategoryLocal>().ConfigureAwait(false);
+        await _database.CreateTableAsync<IngredientLocal>().ConfigureAwait(false);
+        await _database.CreateTableAsync<RecipeIngredientLocal>().ConfigureAwait(false);
+        await _database.CreateTableAsync<SyncInfo>().ConfigureAwait(false);
+        await _database.CreateTableAsync<LogEntry>().ConfigureAwait(false);
+        await _database.CreateTableAsync<ConversationLocal>().ConfigureAwait(false);
+        await _database.CreateTableAsync<MealPlanLocal>().ConfigureAwait(false);
 
         return _database;
     }
@@ -36,27 +36,27 @@ public class LocalDatabase
 
     public async Task<List<RecipeLocal>> GetRecipesAsync()
     {
-        var db = await GetConnectionAsync();
+        var db = await GetConnectionAsync().ConfigureAwait(false);
         return await db.Table<RecipeLocal>()
             .Where(r => !r.IsDeleted)
             .OrderByDescending(r => r.CreatedAt)
-            .ToListAsync();
+            .ToListAsync().ConfigureAwait(false);
     }
 
     public async Task<RecipeLocal?> GetRecipeAsync(Guid id)
     {
-        var db = await GetConnectionAsync();
+        var db = await GetConnectionAsync().ConfigureAwait(false);
         return await db.Table<RecipeLocal>()
-            .FirstOrDefaultAsync(r => r.Id == id);
+            .FirstOrDefaultAsync(r => r.Id == id).ConfigureAwait(false);
     }
 
     public async Task<List<RecipeLocal>> GetRecipesByCategoryAsync(Guid categoryId)
     {
-        var db = await GetConnectionAsync();
+        var db = await GetConnectionAsync().ConfigureAwait(false);
         return await db.Table<RecipeLocal>()
             .Where(r => r.CategoryId == categoryId && !r.IsDeleted)
             .OrderByDescending(r => r.CreatedAt)
-            .ToListAsync();
+            .ToListAsync().ConfigureAwait(false);
     }
     public async Task<List<RecipeLocal>> GetRecipesByCategoryAndIngriendentsAsync(Guid categoryId, IEnumerable<Guid>? ingredientsId)
     {
@@ -73,14 +73,14 @@ public class LocalDatabase
         if (ingredientsList.Count == 0)
             return recipes;
 
-        var db = await GetConnectionAsync();
+        var db = await GetConnectionAsync().ConfigureAwait(false);
         var filteredRecipes = new List<RecipeLocal>();
 
         foreach (var recipe in recipes)
         {
             var recipeIngredients = await db.Table<RecipeIngredientLocal>()
                 .Where(ri => ri.RecipeId == recipe.Id)
-                .ToListAsync();
+                .ToListAsync().ConfigureAwait(false);
 
             var recipeIngredientIds = recipeIngredients.Select(ri => ri.IngredientId).ToHashSet();
 
@@ -95,45 +95,45 @@ public class LocalDatabase
     }
     public async Task<int> SaveRecipeAsync(RecipeLocal recipe)
     {
-        var db = await GetConnectionAsync();
+        var db = await GetConnectionAsync().ConfigureAwait(false);
         recipe.UpdatedAt = DateTime.UtcNow;
         recipe.IsDirty = true;
 
         var existing = await db.Table<RecipeLocal>()
-            .FirstOrDefaultAsync(r => r.Id == recipe.Id);
+            .FirstOrDefaultAsync(r => r.Id == recipe.Id).ConfigureAwait(false);
 
         if (existing is null)
         {
             recipe.CreatedAt = DateTime.UtcNow;
-            return await db.InsertAsync(recipe);
+            return await db.InsertAsync(recipe).ConfigureAwait(false);
         }
         else
         {
-            return await db.UpdateAsync(recipe);
+            return await db.UpdateAsync(recipe).ConfigureAwait(false);
         }
     }
 
     public async Task<int> DeleteRecipeAsync(Guid id)
     {
-        var db = await GetConnectionAsync();
-        var recipe = await GetRecipeAsync(id);
+        var db = await GetConnectionAsync().ConfigureAwait(false);
+        var recipe = await GetRecipeAsync(id).ConfigureAwait(false);
         if (recipe is null) return 0;
 
         recipe.IsDeleted = true;
         recipe.UpdatedAt = DateTime.UtcNow;
         recipe.IsDirty = true;
-        return await db.UpdateAsync(recipe);
+        return await db.UpdateAsync(recipe).ConfigureAwait(false);
     }
 
     public async Task<List<RecipeLocal>> SearchRecipesAsync(string query)
     {
-        var db = await GetConnectionAsync();
+        var db = await GetConnectionAsync().ConfigureAwait(false);
         var lowerQuery = query.ToLower();
         return await db.Table<RecipeLocal>()
             .Where(r => !r.IsDeleted &&
                 (r.Title.ToLower().Contains(lowerQuery) || r.Description.ToLower().Contains(lowerQuery)))
             .OrderByDescending(r => r.CreatedAt)
-            .ToListAsync();
+            .ToListAsync().ConfigureAwait(false);
     }
 
     #endregion
@@ -142,50 +142,50 @@ public class LocalDatabase
 
     public async Task<List<CategoryLocal>> GetCategoriesAsync()
     {
-        var db = await GetConnectionAsync();
+        var db = await GetConnectionAsync().ConfigureAwait(false);
         return await db.Table<CategoryLocal>()
             .Where(c => !c.IsDeleted)
             .OrderBy(c => c.Name)
-            .ToListAsync();
+            .ToListAsync().ConfigureAwait(false);
     }
 
     public async Task<CategoryLocal?> GetCategoryAsync(Guid id)
     {
-        var db = await GetConnectionAsync();
+        var db = await GetConnectionAsync().ConfigureAwait(false);
         return await db.Table<CategoryLocal>()
-            .FirstOrDefaultAsync(c => c.Id == id);
+            .FirstOrDefaultAsync(c => c.Id == id).ConfigureAwait(false);
     }
 
     public async Task<int> SaveCategoryAsync(CategoryLocal category)
     {
-        var db = await GetConnectionAsync();
+        var db = await GetConnectionAsync().ConfigureAwait(false);
         category.UpdatedAt = DateTime.UtcNow;
         category.IsDirty = true;
 
         var existing = await db.Table<CategoryLocal>()
-            .FirstOrDefaultAsync(c => c.Id == category.Id);
+            .FirstOrDefaultAsync(c => c.Id == category.Id).ConfigureAwait(false);
 
         if (existing is null)
         {
             category.CreatedAt = DateTime.UtcNow;
-            return await db.InsertAsync(category);
+            return await db.InsertAsync(category).ConfigureAwait(false);
         }
         else
         {
-            return await db.UpdateAsync(category);
+            return await db.UpdateAsync(category).ConfigureAwait(false);
         }
     }
 
     public async Task<int> DeleteCategoryAsync(Guid id)
     {
-        var db = await GetConnectionAsync();
-        var category = await GetCategoryAsync(id);
+        var db = await GetConnectionAsync().ConfigureAwait(false);
+        var category = await GetCategoryAsync(id).ConfigureAwait(false);
         if (category is null) return 0;
 
         category.IsDeleted = true;
         category.UpdatedAt = DateTime.UtcNow;
         category.IsDirty = true;
-        return await db.UpdateAsync(category);
+        return await db.UpdateAsync(category).ConfigureAwait(false);
     }
 
     #endregion
@@ -194,30 +194,30 @@ public class LocalDatabase
 
     public async Task<List<IngredientLocal>> GetIngredientsAsync()
     {
-        var db = await GetConnectionAsync();
+        var db = await GetConnectionAsync().ConfigureAwait(false);
         return await db.Table<IngredientLocal>()
             .Where(i => !i.IsDeleted)
             .OrderBy(i => i.Name)
-            .ToListAsync();
+            .ToListAsync().ConfigureAwait(false);
     }
 
     public async Task<int> SaveIngredientAsync(IngredientLocal ingredient)
     {
-        var db = await GetConnectionAsync();
+        var db = await GetConnectionAsync().ConfigureAwait(false);
         ingredient.UpdatedAt = DateTime.UtcNow;
         ingredient.IsDirty = true;
 
         var existing = await db.Table<IngredientLocal>()
-            .FirstOrDefaultAsync(i => i.Id == ingredient.Id);
+            .FirstOrDefaultAsync(i => i.Id == ingredient.Id).ConfigureAwait(false);
 
         if (existing is null)
         {
             ingredient.CreatedAt = DateTime.UtcNow;
-            return await db.InsertAsync(ingredient);
+            return await db.InsertAsync(ingredient).ConfigureAwait(false);
         }
         else
         {
-            return await db.UpdateAsync(ingredient);
+            return await db.UpdateAsync(ingredient).ConfigureAwait(false);
         }
     }
 
@@ -227,31 +227,31 @@ public class LocalDatabase
 
     public async Task<List<RecipeIngredientLocal>> GetRecipeIngredientsAsync(Guid recipeId)
     {
-        var db = await GetConnectionAsync();
+        var db = await GetConnectionAsync().ConfigureAwait(false);
         return await db.Table<RecipeIngredientLocal>()
             .Where(ri => ri.RecipeId == recipeId)
             .OrderBy(ri => ri.Order)
-            .ToListAsync();
+            .ToListAsync().ConfigureAwait(false);
     }
 
     public async Task SaveRecipeIngredientsAsync(Guid recipeId, List<RecipeIngredientLocal> ingredients)
     {
-        var db = await GetConnectionAsync();
+        var db = await GetConnectionAsync().ConfigureAwait(false);
 
         // Usuñ stare
         var existing = await db.Table<RecipeIngredientLocal>()
             .Where(ri => ri.RecipeId == recipeId)
-            .ToListAsync();
+            .ToListAsync().ConfigureAwait(false);
         foreach (var item in existing)
         {
-            await db.DeleteAsync(item);
+            await db.DeleteAsync(item).ConfigureAwait(false);
         }
 
         // Dodaj nowe
         foreach (var ingredient in ingredients)
         {
             ingredient.RecipeId = recipeId;
-            await db.InsertAsync(ingredient);
+            await db.InsertAsync(ingredient).ConfigureAwait(false);
         }
     }
 
@@ -268,104 +268,104 @@ public class LocalDatabase
 
     public async Task SetLastSyncTimeAsync(DateTime syncTime)
     {
-        var db = await GetConnectionAsync();
-        var info = await db.Table<SyncInfo>().FirstOrDefaultAsync();
+        var db = await GetConnectionAsync().ConfigureAwait(false);
+        var info = await db.Table<SyncInfo>().FirstOrDefaultAsync().ConfigureAwait(false);
 
         if (info is null)
         {
-            await db.InsertAsync(new SyncInfo { Id = 1, LastSyncedAt = syncTime });
+            await db.InsertAsync(new SyncInfo { Id = 1, LastSyncedAt = syncTime }).ConfigureAwait(false);
         }
         else
         {
             info.LastSyncedAt = syncTime;
-            await db.UpdateAsync(info);
+            await db.UpdateAsync(info).ConfigureAwait(false);
         }
     }
 
     public async Task<List<RecipeLocal>> GetDirtyRecipesAsync()
     {
-        var db = await GetConnectionAsync();
+        var db = await GetConnectionAsync().ConfigureAwait(false);
         return await db.Table<RecipeLocal>()
             .Where(r => r.IsDirty)
-            .ToListAsync();
+            .ToListAsync().ConfigureAwait(false);
     }
 
     public async Task<List<CategoryLocal>> GetDirtyCategoriesAsync()
     {
-        var db = await GetConnectionAsync();
+        var db = await GetConnectionAsync().ConfigureAwait(false);
         return await db.Table<CategoryLocal>()
             .Where(c => c.IsDirty)
-            .ToListAsync();
+            .ToListAsync().ConfigureAwait(false);
     }
 
     public async Task<List<IngredientLocal>> GetDirtyIngredientsAsync()
     {
-        var db = await GetConnectionAsync();
+        var db = await GetConnectionAsync().ConfigureAwait(false);
         return await db.Table<IngredientLocal>()
             .Where(i => i.IsDirty)
-            .ToListAsync();
+            .ToListAsync().ConfigureAwait(false);
     }
 
     public async Task ClearDirtyFlagsAsync()
     {
-        var db = await GetConnectionAsync();
-        await db.ExecuteAsync("UPDATE Recipes SET IsDirty = 0");
-        await db.ExecuteAsync("UPDATE Categories SET IsDirty = 0");
-        await db.ExecuteAsync("UPDATE Ingredients SET IsDirty = 0");
-        await db.ExecuteAsync("UPDATE MealPlans SET IsDirty = 0");
+        var db = await GetConnectionAsync().ConfigureAwait(false);
+        await db.ExecuteAsync("UPDATE Recipes SET IsDirty = 0").ConfigureAwait(false);
+        await db.ExecuteAsync("UPDATE Categories SET IsDirty = 0").ConfigureAwait(false);
+        await db.ExecuteAsync("UPDATE Ingredients SET IsDirty = 0").ConfigureAwait(false);
+        await db.ExecuteAsync("UPDATE MealPlans SET IsDirty = 0").ConfigureAwait(false);
     }
 
     public async Task ApplyServerRecipeAsync(RecipeLocal recipe)
     {
-        var db = await GetConnectionAsync();
+        var db = await GetConnectionAsync().ConfigureAwait(false);
         var existing = await db.Table<RecipeLocal>()
-            .FirstOrDefaultAsync(r => r.Id == recipe.Id);
+            .FirstOrDefaultAsync(r => r.Id == recipe.Id).ConfigureAwait(false);
 
         recipe.IsDirty = false;
 
         if (existing is null)
         {
-            await db.InsertAsync(recipe);
+            await db.InsertAsync(recipe).ConfigureAwait(false);
         }
         else
         {
-            await db.UpdateAsync(recipe);
+            await db.UpdateAsync(recipe).ConfigureAwait(false);
         }
     }
 
     public async Task ApplyServerCategoryAsync(CategoryLocal category)
     {
-        var db = await GetConnectionAsync();
+        var db = await GetConnectionAsync().ConfigureAwait(false);
         var existing = await db.Table<CategoryLocal>()
-            .FirstOrDefaultAsync(c => c.Id == category.Id);
+            .FirstOrDefaultAsync(c => c.Id == category.Id).ConfigureAwait(false);
 
         category.IsDirty = false;
 
         if (existing is null)
         {
-            await db.InsertAsync(category);
+            await db.InsertAsync(category).ConfigureAwait(false);
         }
         else
         {
-            await db.UpdateAsync(category);
+            await db.UpdateAsync(category).ConfigureAwait(false);
         }
     }
 
     public async Task ApplyServerIngredientAsync(IngredientLocal ingredient)
     {
-        var db = await GetConnectionAsync();
+        var db = await GetConnectionAsync().ConfigureAwait(false);
         var existing = await db.Table<IngredientLocal>()
-            .FirstOrDefaultAsync(i => i.Id == ingredient.Id);
+            .FirstOrDefaultAsync(i => i.Id == ingredient.Id).ConfigureAwait(false);
 
         ingredient.IsDirty = false;
 
         if (existing is null)
         {
-            await db.InsertAsync(ingredient);
+            await db.InsertAsync(ingredient).ConfigureAwait(false);
         }
         else
         {
-            await db.UpdateAsync(ingredient);
+            await db.UpdateAsync(ingredient).ConfigureAwait(false);
         }
     }
 
@@ -375,34 +375,34 @@ public class LocalDatabase
 
     public async Task<List<LogEntry>> GetLogsAsync(int limit = 100)
     {
-        var db = await GetConnectionAsync();
+        var db = await GetConnectionAsync().ConfigureAwait(false);
         return await db.Table<LogEntry>()
             .OrderByDescending(l => l.Timestamp)
             .Take(limit)
-            .ToListAsync();
+            .ToListAsync().ConfigureAwait(false);
     }
 
     public async Task<List<LogEntry>> GetLogsByLevelAsync(string level, int limit = 100)
     {
-        var db = await GetConnectionAsync();
+        var db = await GetConnectionAsync().ConfigureAwait(false);
         return await db.Table<LogEntry>()
             .Where(l => l.Level == level)
             .OrderByDescending(l => l.Timestamp)
             .Take(limit)
-            .ToListAsync();
+            .ToListAsync().ConfigureAwait(false);
     }
 
     public async Task<int> ClearOldLogsAsync(int keepLastDays = 7)
     {
-        var db = await GetConnectionAsync();
+        var db = await GetConnectionAsync().ConfigureAwait(false);
         var cutoffDate = DateTime.UtcNow.AddDays(-keepLastDays);
-        return await db.ExecuteAsync("DELETE FROM Logs WHERE Timestamp < ?", cutoffDate);
+        return await db.ExecuteAsync("DELETE FROM Logs WHERE Timestamp < ?", cutoffDate).ConfigureAwait(false);
     }
 
     public async Task<int> ClearAllLogsAsync()
     {
-        var db = await GetConnectionAsync();
-        return await db.ExecuteAsync("DELETE FROM Logs");
+        var db = await GetConnectionAsync().ConfigureAwait(false);
+        return await db.ExecuteAsync("DELETE FROM Logs").ConfigureAwait(false);
     }
 
     #endregion
@@ -416,20 +416,20 @@ public class LocalDatabase
     {
         ArgumentNullException.ThrowIfNull(conversation);
 
-        var db = await GetConnectionAsync();
+        var db = await GetConnectionAsync().ConfigureAwait(false);
         var existing = await db.Table<ConversationLocal>()
-            .FirstOrDefaultAsync(c => c.Id == conversation.Id);
+            .FirstOrDefaultAsync(c => c.Id == conversation.Id).ConfigureAwait(false);
 
         conversation.UpdatedAt = DateTimeOffset.UtcNow;
 
         if (existing is null)
         {
             conversation.CreatedAt = conversation.UpdatedAt;
-            await db.InsertAsync(conversation);
+            await db.InsertAsync(conversation).ConfigureAwait(false);
         }
         else
         {
-            await db.UpdateAsync(conversation);
+            await db.UpdateAsync(conversation).ConfigureAwait(false);
         }
     }
 
@@ -440,10 +440,10 @@ public class LocalDatabase
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(id);
 
-        var db = await GetConnectionAsync();
+        var db = await GetConnectionAsync().ConfigureAwait(false);
         return await db.Table<ConversationLocal>()
               .Where(c => c.Id == id && !c.IsDeleted)
-              .FirstOrDefaultAsync();
+              .FirstOrDefaultAsync().ConfigureAwait(false);
     }
 
     /// <summary>
@@ -451,11 +451,11 @@ public class LocalDatabase
     /// </summary>
     public async Task<List<ConversationLocal>> GetConversationsAsync()
     {
-        var db = await GetConnectionAsync();
+        var db = await GetConnectionAsync().ConfigureAwait(false);
         return await db.Table<ConversationLocal>()
         .Where(c => !c.IsDeleted)
         .OrderByDescending(c => c.UpdatedAt)
-        .ToListAsync();
+        .ToListAsync().ConfigureAwait(false);
     }
 
     /// <summary>
@@ -465,14 +465,14 @@ public class LocalDatabase
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(id);
 
-        var db = await GetConnectionAsync();
-        var conversation = await GetConversationAsync(id);
+        var db = await GetConnectionAsync().ConfigureAwait(false);
+        var conversation = await GetConversationAsync(id).ConfigureAwait(false);
 
         if (conversation is not null)
         {
             conversation.IsDeleted = true;
             conversation.UpdatedAt = DateTimeOffset.UtcNow;
-            await db.UpdateAsync(conversation);
+            await db.UpdateAsync(conversation).ConfigureAwait(false);
         }
     }
 
@@ -481,8 +481,8 @@ public class LocalDatabase
     /// </summary>
     public async Task<int> PurgeDeletedConversationsAsync()
     {
-        var db = await GetConnectionAsync();
-        return await db.ExecuteAsync("DELETE FROM Conversations WHERE IsDeleted = 1");
+        var db = await GetConnectionAsync().ConfigureAwait(false);
+        return await db.ExecuteAsync("DELETE FROM Conversations WHERE IsDeleted = 1").ConfigureAwait(false);
     }
 
     #endregion
@@ -494,14 +494,14 @@ public class LocalDatabase
     /// </summary>
     public async Task<List<MealPlanLocal>> GetMealPlansForDateRangeAsync(DateTime startDate, DateTime endDate)
     {
-        var db = await GetConnectionAsync();
+        var db = await GetConnectionAsync().ConfigureAwait(false);
         var start = startDate.Date;
         var end = endDate.Date.AddDays(1);
 
         return await db.Table<MealPlanLocal>()
                  .Where(mp => !mp.IsDeleted && mp.Date >= start && mp.Date < end)
               .OrderBy(mp => mp.Date)
-         .ToListAsync();
+         .ToListAsync().ConfigureAwait(false);
     }
 
     /// <summary>
@@ -509,7 +509,7 @@ public class LocalDatabase
     /// </summary>
     public async Task<List<MealPlanLocal>> GetMealPlansForDateAsync(DateTime date)
     {
-        return await GetMealPlansForDateRangeAsync(date, date);
+        return await GetMealPlansForDateRangeAsync(date, date).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -517,8 +517,8 @@ public class LocalDatabase
     /// </summary>
     public async Task<MealPlanLocal?> GetMealPlanAsync(Guid id)
     {
-        var db = await GetConnectionAsync();
-        return await db.Table<MealPlanLocal>().FirstOrDefaultAsync(mp => mp.Id == id && !mp.IsDeleted);
+        var db = await GetConnectionAsync().ConfigureAwait(false);
+        return await db.Table<MealPlanLocal>().FirstOrDefaultAsync(mp => mp.Id == id && !mp.IsDeleted).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -528,21 +528,21 @@ public class LocalDatabase
     {
         ArgumentNullException.ThrowIfNull(mealPlan);
 
-        var db = await GetConnectionAsync();
+        var db = await GetConnectionAsync().ConfigureAwait(false);
         mealPlan.UpdatedAt = DateTime.UtcNow;
         mealPlan.IsDirty = true;
 
         var existing = await db.Table<MealPlanLocal>()
-            .FirstOrDefaultAsync(mp => mp.Id == mealPlan.Id);
+            .FirstOrDefaultAsync(mp => mp.Id == mealPlan.Id).ConfigureAwait(false);
 
         if (existing is null)
         {
             mealPlan.CreatedAt = DateTime.UtcNow;
-            return await db.InsertAsync(mealPlan);
+            return await db.InsertAsync(mealPlan).ConfigureAwait(false);
         }
         else
         {
-            return await db.UpdateAsync(mealPlan);
+            return await db.UpdateAsync(mealPlan).ConfigureAwait(false);
         }
     }
 
@@ -551,14 +551,14 @@ public class LocalDatabase
     /// </summary>
     public async Task<int> DeleteMealPlanAsync(Guid id)
     {
-        var db = await GetConnectionAsync();
-        var mealPlan = await GetMealPlanAsync(id);
+        var db = await GetConnectionAsync().ConfigureAwait(false);
+        var mealPlan = await GetMealPlanAsync(id).ConfigureAwait(false);
         if (mealPlan is null) return 0;
 
         mealPlan.IsDeleted = true;
         mealPlan.UpdatedAt = DateTime.UtcNow;
         mealPlan.IsDirty = true;
-        return await db.UpdateAsync(mealPlan);
+        return await db.UpdateAsync(mealPlan).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -567,14 +567,14 @@ public class LocalDatabase
     /// </summary>
     public async Task<List<(MealPlanLocal MealPlan, RecipeLocal? Recipe)>> GetMealPlansWithRecipesAsync(DateTime startDate, DateTime endDate)
     {
-        var mealPlans = await GetMealPlansForDateRangeAsync(startDate, endDate);
+        var mealPlans = await GetMealPlansForDateRangeAsync(startDate, endDate).ConfigureAwait(false);
         if (mealPlans.Count == 0)
             return [];
 
-        var db = await GetConnectionAsync();
+        var db = await GetConnectionAsync().ConfigureAwait(false);
         var recipes = await db.Table<RecipeLocal>()
             .Where(r => !r.IsDeleted)
-            .ToListAsync();
+            .ToListAsync().ConfigureAwait(false);
         var recipeLookup = recipes.ToDictionary(r => r.Id);
 
         var result = new List<(MealPlanLocal, RecipeLocal?)>(mealPlans.Count);
@@ -592,10 +592,10 @@ public class LocalDatabase
     /// </summary>
     public async Task<List<MealPlanLocal>> GetDirtyMealPlansAsync()
     {
-        var db = await GetConnectionAsync();
+        var db = await GetConnectionAsync().ConfigureAwait(false);
         return await db.Table<MealPlanLocal>()
             .Where(mp => mp.IsDirty)
-            .ToListAsync();
+            .ToListAsync().ConfigureAwait(false);
     }
 
     /// <summary>
@@ -603,9 +603,9 @@ public class LocalDatabase
     /// </summary>
     public async Task<List<MealPlanLocal>> GetAllMealPlansAsync()
     {
-        var db = await GetConnectionAsync();
+        var db = await GetConnectionAsync().ConfigureAwait(false);
         return await db.Table<MealPlanLocal>()
-            .ToListAsync();
+            .ToListAsync().ConfigureAwait(false);
     }
 
     /// <summary>
@@ -613,19 +613,19 @@ public class LocalDatabase
     /// </summary>
     public async Task ApplyServerMealPlanAsync(MealPlanLocal mealPlan)
     {
-        var db = await GetConnectionAsync();
+        var db = await GetConnectionAsync().ConfigureAwait(false);
         var existing = await db.Table<MealPlanLocal>()
-            .FirstOrDefaultAsync(mp => mp.Id == mealPlan.Id);
+            .FirstOrDefaultAsync(mp => mp.Id == mealPlan.Id).ConfigureAwait(false);
 
         mealPlan.IsDirty = false;
 
         if (existing is null)
         {
-            await db.InsertAsync(mealPlan);
+            await db.InsertAsync(mealPlan).ConfigureAwait(false);
         }
         else
         {
-            await db.UpdateAsync(mealPlan);
+            await db.UpdateAsync(mealPlan).ConfigureAwait(false);
         }
     }
 

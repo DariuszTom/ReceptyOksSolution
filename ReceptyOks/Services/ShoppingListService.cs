@@ -35,14 +35,14 @@ public class ShoppingListService(HttpClient httpClient) : IShoppingListService
 
             var url = includeBought ? "/api/shopping-list?includeBought=true" : "/api/shopping-list";
             var response = await _retryPolicy.ExecuteAsync(ct =>
-                _httpClient.GetAsync(url, ct), cancellationToken);
+                _httpClient.GetAsync(url, ct), cancellationToken).ConfigureAwait(false);
 
             if (!response.IsSuccessStatusCode)
             {
                 return ShoppingListResult<List<ShoppingListItem>>.Failure($"Błąd serwera: {response.StatusCode}");
             }
 
-            var items = await response.Content.ReadFromJsonAsync<List<ShoppingListItem>>(cancellationToken: cancellationToken);
+            var items = await response.Content.ReadFromJsonAsync<List<ShoppingListItem>>(cancellationToken: cancellationToken).ConfigureAwait(false);
             return ShoppingListResult<List<ShoppingListItem>>.Success(items ?? []);
         }
         catch (OperationCanceledException)
@@ -68,7 +68,7 @@ public class ShoppingListService(HttpClient httpClient) : IShoppingListService
             }
 
             var response = await _retryPolicy.ExecuteAsync(ct =>
-                _httpClient.GetAsync($"/api/shopping-list/{id}", ct), cancellationToken);
+                _httpClient.GetAsync($"/api/shopping-list/{id}", ct), cancellationToken).ConfigureAwait(false);
 
             if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
@@ -80,7 +80,7 @@ public class ShoppingListService(HttpClient httpClient) : IShoppingListService
                 return ShoppingListResult<ShoppingListItem>.Failure($"Błąd serwera: {response.StatusCode}");
             }
 
-            var item = await response.Content.ReadFromJsonAsync<ShoppingListItem>(cancellationToken: cancellationToken);
+            var item = await response.Content.ReadFromJsonAsync<ShoppingListItem>(cancellationToken: cancellationToken).ConfigureAwait(false);
             return item is not null
                 ? ShoppingListResult<ShoppingListItem>.Success(item)
                 : ShoppingListResult<ShoppingListItem>.Failure("Pusta odpowiedź serwera");
@@ -108,11 +108,11 @@ public class ShoppingListService(HttpClient httpClient) : IShoppingListService
             }
 
             var response = await _retryPolicy.ExecuteAsync(ct =>
-                _httpClient.PostAsJsonAsync("/api/shopping-list", item, ct), cancellationToken);
+                _httpClient.PostAsJsonAsync("/api/shopping-list", item, ct), cancellationToken).ConfigureAwait(false);
 
             if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
             {
-                var error = await response.Content.ReadFromJsonAsync<ErrorResponse>(cancellationToken: cancellationToken);
+                var error = await response.Content.ReadFromJsonAsync<ErrorResponse>(cancellationToken: cancellationToken).ConfigureAwait(false);
                 return ShoppingListResult<ShoppingListItem>.Failure(error?.Error ?? "Nieprawidłowe dane");
             }
 
@@ -121,7 +121,7 @@ public class ShoppingListService(HttpClient httpClient) : IShoppingListService
                 return ShoppingListResult<ShoppingListItem>.Failure($"Błąd serwera: {response.StatusCode}");
             }
 
-            var createdItem = await response.Content.ReadFromJsonAsync<ShoppingListItem>(cancellationToken: cancellationToken);
+            var createdItem = await response.Content.ReadFromJsonAsync<ShoppingListItem>(cancellationToken: cancellationToken).ConfigureAwait(false);
             return createdItem is not null
                 ? ShoppingListResult<ShoppingListItem>.Success(createdItem)
                 : ShoppingListResult<ShoppingListItem>.Failure("Pusta odpowiedź serwera");
@@ -149,11 +149,11 @@ public class ShoppingListService(HttpClient httpClient) : IShoppingListService
             }
 
             var response = await _retryPolicy.ExecuteAsync(ct =>
-                _httpClient.PostAsJsonAsync("/api/shopping-list/bulk", items, ct), cancellationToken);
+                _httpClient.PostAsJsonAsync("/api/shopping-list/bulk", items, ct), cancellationToken).ConfigureAwait(false);
 
             if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
             {
-                var error = await response.Content.ReadFromJsonAsync<ErrorResponse>(cancellationToken: cancellationToken);
+                var error = await response.Content.ReadFromJsonAsync<ErrorResponse>(cancellationToken: cancellationToken).ConfigureAwait(false);
                 return ShoppingListResult<List<ShoppingListItem>>.Failure(error?.Error ?? "Nieprawidłowe dane");
             }
 
@@ -162,7 +162,7 @@ public class ShoppingListService(HttpClient httpClient) : IShoppingListService
                 return ShoppingListResult<List<ShoppingListItem>>.Failure($"Błąd serwera: {response.StatusCode}");
             }
 
-            var createdItems = await response.Content.ReadFromJsonAsync<List<ShoppingListItem>>(cancellationToken: cancellationToken);
+            var createdItems = await response.Content.ReadFromJsonAsync<List<ShoppingListItem>>(cancellationToken: cancellationToken).ConfigureAwait(false);
             return ShoppingListResult<List<ShoppingListItem>>.Success(createdItems ?? []);
         }
         catch (OperationCanceledException)
@@ -188,7 +188,7 @@ public class ShoppingListService(HttpClient httpClient) : IShoppingListService
             }
 
             var response = await _retryPolicy.ExecuteAsync(ct =>
-                _httpClient.PutAsJsonAsync($"/api/shopping-list/{id}", item, ct), cancellationToken);
+                _httpClient.PutAsJsonAsync($"/api/shopping-list/{id}", item, ct), cancellationToken).ConfigureAwait(false);
 
             if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
@@ -197,7 +197,7 @@ public class ShoppingListService(HttpClient httpClient) : IShoppingListService
 
             if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
             {
-                var error = await response.Content.ReadFromJsonAsync<ErrorResponse>(cancellationToken: cancellationToken);
+                var error = await response.Content.ReadFromJsonAsync<ErrorResponse>(cancellationToken: cancellationToken).ConfigureAwait(false);
                 return ShoppingListResult<ShoppingListItem>.Failure(error?.Error ?? "Nieprawidłowe dane");
             }
 
@@ -206,7 +206,7 @@ public class ShoppingListService(HttpClient httpClient) : IShoppingListService
                 return ShoppingListResult<ShoppingListItem>.Failure($"Błąd serwera: {response.StatusCode}");
             }
 
-            var updatedItem = await response.Content.ReadFromJsonAsync<ShoppingListItem>(cancellationToken: cancellationToken);
+            var updatedItem = await response.Content.ReadFromJsonAsync<ShoppingListItem>(cancellationToken: cancellationToken).ConfigureAwait(false);
             return updatedItem is not null
                 ? ShoppingListResult<ShoppingListItem>.Success(updatedItem)
                 : ShoppingListResult<ShoppingListItem>.Failure("Pusta odpowiedź serwera");
@@ -235,7 +235,7 @@ public class ShoppingListService(HttpClient httpClient) : IShoppingListService
 
             var request = new BoughtRequest(boughtBy);
             var response = await _retryPolicy.ExecuteAsync(ct =>
-                _httpClient.PatchAsJsonAsync($"/api/shopping-list/{id}/bought", request, ct), cancellationToken);
+                _httpClient.PatchAsJsonAsync($"/api/shopping-list/{id}/bought", request, ct), cancellationToken).ConfigureAwait(false);
 
             if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
@@ -247,7 +247,7 @@ public class ShoppingListService(HttpClient httpClient) : IShoppingListService
                 return ShoppingListResult<ShoppingListItem>.Failure($"Błąd serwera: {response.StatusCode}");
             }
 
-            var item = await response.Content.ReadFromJsonAsync<ShoppingListItem>(cancellationToken: cancellationToken);
+            var item = await response.Content.ReadFromJsonAsync<ShoppingListItem>(cancellationToken: cancellationToken).ConfigureAwait(false);
             return item is not null
                 ? ShoppingListResult<ShoppingListItem>.Success(item)
                 : ShoppingListResult<ShoppingListItem>.Failure("Pusta odpowiedź serwera");
@@ -275,7 +275,7 @@ public class ShoppingListService(HttpClient httpClient) : IShoppingListService
             }
 
             var response = await _retryPolicy.ExecuteAsync(ct =>
-                _httpClient.PatchAsync($"/api/shopping-list/{id}/unbought", null, ct), cancellationToken);
+                _httpClient.PatchAsync($"/api/shopping-list/{id}/unbought", null, ct), cancellationToken).ConfigureAwait(false);
 
             if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
@@ -287,7 +287,7 @@ public class ShoppingListService(HttpClient httpClient) : IShoppingListService
                 return ShoppingListResult<ShoppingListItem>.Failure($"Błąd serwera: {response.StatusCode}");
             }
 
-            var item = await response.Content.ReadFromJsonAsync<ShoppingListItem>(cancellationToken: cancellationToken);
+            var item = await response.Content.ReadFromJsonAsync<ShoppingListItem>(cancellationToken: cancellationToken).ConfigureAwait(false);
             return item is not null
                 ? ShoppingListResult<ShoppingListItem>.Success(item)
                 : ShoppingListResult<ShoppingListItem>.Failure("Pusta odpowiedź serwera");
@@ -316,11 +316,11 @@ public class ShoppingListService(HttpClient httpClient) : IShoppingListService
 
             var request = new BulkBoughtRequest(ids, boughtBy);
             var response = await _retryPolicy.ExecuteAsync(ct =>
-                _httpClient.PatchAsJsonAsync("/api/shopping-list/bulk/bought", request, ct), cancellationToken);
+                _httpClient.PatchAsJsonAsync("/api/shopping-list/bulk/bought", request, ct), cancellationToken).ConfigureAwait(false);
 
             if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
             {
-                var error = await response.Content.ReadFromJsonAsync<ErrorResponse>(cancellationToken: cancellationToken);
+                var error = await response.Content.ReadFromJsonAsync<ErrorResponse>(cancellationToken: cancellationToken).ConfigureAwait(false);
                 return ShoppingListResult<BulkOperationResponse>.Failure(error?.Error ?? "Nieprawidłowe dane");
             }
 
@@ -329,7 +329,7 @@ public class ShoppingListService(HttpClient httpClient) : IShoppingListService
                 return ShoppingListResult<BulkOperationResponse>.Failure($"Błąd serwera: {response.StatusCode}");
             }
 
-            var result = await response.Content.ReadFromJsonAsync<BulkOperationResponse>(cancellationToken: cancellationToken);
+            var result = await response.Content.ReadFromJsonAsync<BulkOperationResponse>(cancellationToken: cancellationToken).ConfigureAwait(false);
             return result is not null
                 ? ShoppingListResult<BulkOperationResponse>.Success(result)
                 : ShoppingListResult<BulkOperationResponse>.Failure("Pusta odpowiedź serwera");
@@ -357,7 +357,7 @@ public class ShoppingListService(HttpClient httpClient) : IShoppingListService
             }
 
             var response = await _retryPolicy.ExecuteAsync(ct =>
-                _httpClient.DeleteAsync($"/api/shopping-list/{id}", ct), cancellationToken);
+                _httpClient.DeleteAsync($"/api/shopping-list/{id}", ct), cancellationToken).ConfigureAwait(false);
 
             if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
@@ -394,14 +394,14 @@ public class ShoppingListService(HttpClient httpClient) : IShoppingListService
             }
 
             var response = await _retryPolicy.ExecuteAsync(ct =>
-                _httpClient.DeleteAsync("/api/shopping-list/clear-bought", ct), cancellationToken);
+                _httpClient.DeleteAsync("/api/shopping-list/clear-bought", ct), cancellationToken).ConfigureAwait(false);
 
             if (!response.IsSuccessStatusCode)
             {
                 return ShoppingListResult<BulkOperationResponse>.Failure($"Błąd serwera: {response.StatusCode}");
             }
 
-            var result = await response.Content.ReadFromJsonAsync<BulkOperationResponse>(cancellationToken: cancellationToken);
+            var result = await response.Content.ReadFromJsonAsync<BulkOperationResponse>(cancellationToken: cancellationToken).ConfigureAwait(false);
             return result is not null
                 ? ShoppingListResult<BulkOperationResponse>.Success(result)
                 : ShoppingListResult<BulkOperationResponse>.Failure("Pusta odpowiedź serwera");
@@ -429,14 +429,14 @@ public class ShoppingListService(HttpClient httpClient) : IShoppingListService
             }
 
             var response = await _retryPolicy.ExecuteAsync(ct =>
-                _httpClient.DeleteAsync("/api/shopping-list/clear-all", ct), cancellationToken);
+                _httpClient.DeleteAsync("/api/shopping-list/clear-all", ct), cancellationToken).ConfigureAwait(false);
 
             if (!response.IsSuccessStatusCode)
             {
                 return ShoppingListResult<BulkOperationResponse>.Failure($"Błąd serwera: {response.StatusCode}");
             }
 
-            var result = await response.Content.ReadFromJsonAsync<BulkOperationResponse>(cancellationToken: cancellationToken);
+            var result = await response.Content.ReadFromJsonAsync<BulkOperationResponse>(cancellationToken: cancellationToken).ConfigureAwait(false);
             return result is not null
                 ? ShoppingListResult<BulkOperationResponse>.Success(result)
                 : ShoppingListResult<BulkOperationResponse>.Failure("Pusta odpowiedź serwera");
@@ -464,14 +464,14 @@ public class ShoppingListService(HttpClient httpClient) : IShoppingListService
             }
 
             var response = await _retryPolicy.ExecuteAsync(ct =>
-                _httpClient.GetAsync("/api/shopping-list/stats", ct), cancellationToken);
+                _httpClient.GetAsync("/api/shopping-list/stats", ct), cancellationToken).ConfigureAwait(false);
 
             if (!response.IsSuccessStatusCode)
             {
                 return ShoppingListResult<ShoppingListStats>.Failure($"Błąd serwera: {response.StatusCode}");
             }
 
-            var stats = await response.Content.ReadFromJsonAsync<ShoppingListStats>(cancellationToken: cancellationToken);
+            var stats = await response.Content.ReadFromJsonAsync<ShoppingListStats>(cancellationToken: cancellationToken).ConfigureAwait(false);
             return stats is not null
                 ? ShoppingListResult<ShoppingListStats>.Success(stats)
                 : ShoppingListResult<ShoppingListStats>.Failure("Pusta odpowiedź serwera");
@@ -499,7 +499,7 @@ public class ShoppingListService(HttpClient httpClient) : IShoppingListService
             }
 
             var response = await _retryPolicy.ExecuteAsync(ct =>
-                _httpClient.DeleteAsync($"/api/shopping-list/{id}/permanent", ct), cancellationToken);
+                _httpClient.DeleteAsync($"/api/shopping-list/{id}/permanent", ct), cancellationToken).ConfigureAwait(false);
 
             if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
