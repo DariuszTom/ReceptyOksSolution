@@ -23,14 +23,16 @@ internal static class HttpClientServiceExtensions
 
         services.AddTransient<ApiKeyHandler>();
 
-        // SyncService with extended timeout
+        // SyncService with extended timeout for Azure SQL sync + large JSON deserialization
+        // Azure SQL sync: ~150s + JSON deserialization on weak devices: ~30-40s = ~200s total
         services.AddHttpClient<SyncService>(client =>
       {
           client.BaseAddress = new Uri(baseUrl);
-          client.Timeout = TimeSpan.FromSeconds(appSettings.Http.DefaultTimeoutSeconds * 3);
+          client.Timeout = TimeSpan.FromMinutes(5); // 300s - enough for full sync + deserialization
       })
       .AddHttpMessageHandler<ApiKeyHandler>()
-      .AddServiceDiscovery();
+      .AddServiceDiscovery()
+      .SetHandlerLifetime(TimeSpan.FromMinutes(10)); // Prevent handler recycling killing active requests
 
         // Register ISyncService interface mapping
         services.AddTransient<ISyncService>(sp => sp.GetRequiredService<SyncService>());
