@@ -53,7 +53,7 @@ internal static class ApplicationServiceExtensions
         services.AddSingleton(new PeriodicSyncOptions
         {
             Interval = TimeSpan.FromMinutes(30),
-            StartupDelay = TimeSpan.FromSeconds(15),
+            StartupDelay = TimeSpan.FromMinutes(5),
             SyncType = SyncType.Normal,
             ShowNotifications = false
         });
