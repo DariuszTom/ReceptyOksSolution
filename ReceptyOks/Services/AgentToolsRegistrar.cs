@@ -275,7 +275,7 @@ public class AgentToolsRegistrar
 
             await _database.SaveRecipeAsync(recipe).ConfigureAwait(false);
 
-            if (recipeData.Ingredients is not null && recipeData.Ingredients.Any())
+            if (recipeData.Ingredients is not null && recipeData.Ingredients.Count > 0)
             {
                 var allIngredients = await _database.GetIngredientsAsync().ConfigureAwait(false);
                 var recipeIngredients = new List<RecipeIngredientLocal>();

@@ -100,7 +100,7 @@ public partial class CategoryEditViewModel : ObservableObject, IQueryAttributabl
     }
 
     [RelayCommand]
-    private async Task CancelAsync()
+    private static async Task CancelAsync()
     {
         await Shell.Current.GoToAsync("..");
     }
