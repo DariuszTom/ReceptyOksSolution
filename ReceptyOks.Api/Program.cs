@@ -45,7 +45,9 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
     ?? throw new InvalidOperationException("Connection string 'DefaultConnection' is not configured.");
 
 builder.Services.AddDbContext<RecipeDbContext>(options =>
-    options.UseSqlServer(connectionString));
+    options.UseSqlServer(connectionString, opts => 
+    opts.CommandTimeout(120))
+);
 
 // OpenAPI
 builder.Services.AddOpenApi();
