@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.EntityFrameworkCore;
 using ReceptyOks.Api.Endpoints;
+using ReceptyOks.Api.Extensions;
 using ReceptyOks.Api.Middleware;
 using ReceptyOks.Shared.Configuration;
 using Scalar.AspNetCore;
@@ -40,14 +41,8 @@ builder.Services.ConfigureHttpJsonOptions(opts =>
 });
 
 
-// Azure SQL Database - persystentna baza w chmurze
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? throw new InvalidOperationException("Connection string 'DefaultConnection' is not configured.");
-
-builder.Services.AddDbContext<RecipeDbContext>(options =>
-    options.UseSqlServer(connectionString, opts => 
-    opts.CommandTimeout(120))
-);
+// Konfiguracja bazy danych
+builder.Services.AddRecipeDatabase(builder.Environment, builder.Configuration);
 
 // OpenAPI
 builder.Services.AddOpenApi();
@@ -100,12 +95,9 @@ app.UseRateLimiter();
 app.UseAuthentication();
 // Use API key auth middleware for all endpoints
 app.UseApiKeyAuth();
+
 // Automatyczne tworzenie/migracja bazy danych
-using (var scope = app.Services.CreateScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<RecipeDbContext>();
-    db.Database.EnsureCreated();
-}
+app.EnsureDatabaseCreated();
 
 // Aspire health checks etc.
 app.MapDefaultEndpoints();
