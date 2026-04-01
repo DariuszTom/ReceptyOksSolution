@@ -7,27 +7,41 @@ public static class DatabaseExtensions
 {
     /// <summary>
     /// Konfiguruje bazę danych w zależności od środowiska.
-    /// Development: SQLite
-    /// Production: Azure SQL Server
+    /// Development: SQLite (z appsettings.json)
+    /// Production: Azure SQL Server (z Key Vault/zmiennych środowiskowych)
     /// </summary>
     public static IServiceCollection AddRecipeDatabase(
         this IServiceCollection services,
         IWebHostEnvironment environment,
         IConfiguration configuration)
     {
-        var connectionString = configuration.GetConnectionString("DefaultConnection")
-            ?? throw new InvalidOperationException("Connection string 'DefaultConnection' is not configured.");
+        string connectionString;
 
         if (environment.IsDevelopment())
         {
-            // SQLite - lokalna baza danych dla development
+            // SQLite - baza w folderze Data aplikacji
+            var dataFolder = Path.Combine(environment.ContentRootPath, "Data");
+            Directory.CreateDirectory(dataFolder);
+            var dbName = configuration["Database:Name"] ?? "recipes.db";
+            var dbPath = Path.Combine(dataFolder, dbName);
+            connectionString = $"Data Source={dbPath}";
+
             services.AddDbContext<RecipeDbContext>(options =>
                 options.UseSqlite(connectionString)
             );
         }
         else
         {
-            // Azure SQL Database - persystentna baza w chmurze dla production
+            // Production: użyj SQL Server z Key Vault (załadowane przez SecretsResolver)
+            connectionString = configuration.GetConnectionString("DefaultConnection");
+
+            if (string.IsNullOrWhiteSpace(connectionString))
+            {
+                throw new InvalidOperationException(
+                    "SQL Server connection string 'DefaultConnection' is not configured for Production. " +
+                    "Ensure Key Vault is properly configured and contains 'ConnectionStrings--DefaultConnection' secret.");
+            }
+
             services.AddDbContext<RecipeDbContext>(options =>
                 options.UseSqlServer(connectionString, opts =>
                     opts.CommandTimeout(120))
@@ -47,5 +61,5 @@ public static class DatabaseExtensions
         db.Database.EnsureCreated();
 
         return app;
-    }
+  }
 }
