@@ -74,8 +74,6 @@ public partial class App : Application
         }
         catch (Exception ex)
         {
-            // Reset so next Activated event retries initialization.
-            Interlocked.Exchange(ref _initialized, 0);
             _logger.LogError(ex, "Failed to initialize notification permission or hosted services");
         }
     }
