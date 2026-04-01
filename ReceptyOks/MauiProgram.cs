@@ -66,9 +66,11 @@ public static class MauiProgram
             .AddJsonStream(stream);
 
         // Layer debug-specific overrides when available
-        var debugStream = assembly.GetManifestResourceStream("ReceptyOks.appsettings.Debug.json");
-        if (debugStream is not null)
-            configBuilder.AddJsonStream(debugStream);
+        using (var debugStream = assembly.GetManifestResourceStream("ReceptyOks.appsettings.Debug.json"))
+        {
+            if (debugStream is not null)
+                configBuilder.AddJsonStream(debugStream);
+        }
 
         var config = configBuilder.Build();
 

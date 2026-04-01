@@ -85,11 +85,9 @@ public class SyncService : ISyncService
             // Zastosuj zmiany z serwera lokalnie
             var failedItems = await ApplyServerChangesAsync(syncResponse).ConfigureAwait(false);
 
-            // Zawsze wyczyść flagi dirty i zapisz czas synchronizacji,
-            // nawet jeśli część elementów nie została zastosowana.
-            // Zapobiega to pętli retry z tym samym LastSyncedAt.
+            // Zawsze czyść dirty flags — serwer już przyjął zmiany klienta,
+            // więc ponowne wysłanie spowodowałoby duplikaty/konflikty.
             await _localDb.ClearDirtyFlagsAsync().ConfigureAwait(false);
-            await _localDb.SetLastSyncTimeAsync(syncResponse.SyncedAt).ConfigureAwait(false);
 
             result.RecipesSynced = syncResponse.Recipes.Count;
             result.CategoriesSynced = syncResponse.Categories.Count;
@@ -98,11 +96,15 @@ public class SyncService : ISyncService
 
             if (failedItems > 0)
             {
+                // Nie przesuwaj LastSyncedAt — nieudane elementy muszą zostać
+                // ponownie pobrane przy następnej synchronizacji.
+                _logger.LogWarning("Sync partial: {FailedItems} items failed to apply locally, keeping LastSyncedAt at {LastSync}", failedItems, lastSync);
                 result.Success = true;
                 result.Message = $"Synchronizacja częściowa: {failedItems} elementów nie zostało zastosowanych";
             }
             else
             {
+                await _localDb.SetLastSyncTimeAsync(syncResponse.SyncedAt).ConfigureAwait(false);
                 result.Success = true;
                 result.Message = "Synchronizacja zakończona pomyślnie";
             }
