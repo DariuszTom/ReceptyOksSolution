@@ -10,6 +10,8 @@ public partial class AppStatusViewModel : ObservableObject
 {
     private readonly IHealthStatusService _healthStatusService;
     private readonly ILogger<AppStatusViewModel> _logger;
+    private const int MaxMemoryHistoryPoints = 20;
+    private const decimal MemoryThresholdMB = 400;
 
     [ObservableProperty]
     private bool isLoading;
@@ -43,6 +45,31 @@ public partial class AppStatusViewModel : ObservableObject
 
     [ObservableProperty]
     private ObservableCollection<HealthCheckItemViewModel> healthChecks = [];
+
+    // Memory chart properties
+    [ObservableProperty]
+    private decimal currentMemoryMB;
+
+    [ObservableProperty]
+    private decimal maxMemoryMB;
+
+    [ObservableProperty]
+    private decimal avgMemoryMB;
+
+    [ObservableProperty]
+    private double memoryUsagePercent;
+
+    [ObservableProperty]
+    private Color memoryBarColor = Colors.Green;
+
+    [ObservableProperty]
+    private string memoryStatusText = "-";
+
+    [ObservableProperty]
+    private ObservableCollection<MemoryDataPoint> memoryHistory = [];
+
+    [ObservableProperty]
+    private bool hasMemoryData;
 
     public AppStatusViewModel(IHealthStatusService healthStatusService, ILogger<AppStatusViewModel> logger)
     {
@@ -169,6 +196,61 @@ public partial class AppStatusViewModel : ObservableObject
                 Description = entry.Value.Description,
                 Tags = string.Join(", ", entry.Value.Tags)
             });
+
+            // Extract memory data from memory health check
+            if (entry.Key.Equals("memory", StringComparison.OrdinalIgnoreCase) && 
+                !string.IsNullOrEmpty(entry.Value.Description))
+            {
+                ParseAndUpdateMemoryData(entry.Value.Description, entry.Value.Status);
+            }
+        }
+    }
+
+    private void ParseAndUpdateMemoryData(string description, string status)
+    {
+        // Parse memory from description like "Memory: 163 MB" or "High memory usage: 450 MB (threshold: 400 MB)"
+        var match = System.Text.RegularExpressions.Regex.Match(description, @"(\d+)\s*MB");
+        if (match.Success && decimal.TryParse(match.Groups[1].Value, out var memoryMB))
+        {
+            CurrentMemoryMB = memoryMB;
+            HasMemoryData = true;
+
+            // Add to history
+            MemoryHistory.Add(new MemoryDataPoint
+            {
+                Timestamp = DateTime.Now,
+                MemoryMB = memoryMB
+            });
+
+            // Keep only last N points
+            while (MemoryHistory.Count > MaxMemoryHistoryPoints)
+            {
+                MemoryHistory.RemoveAt(0);
+            }
+
+            // Calculate statistics
+            MaxMemoryMB = MemoryHistory.Max(m => m.MemoryMB);
+            AvgMemoryMB = Math.Round(MemoryHistory.Average(m => m.MemoryMB), 1);
+
+            // Calculate percentage for progress bar
+            MemoryUsagePercent = Math.Min((double)(memoryMB / MemoryThresholdMB), 1.0);
+
+            // Set color based on status
+            MemoryBarColor = status switch
+            {
+                "Healthy" => Colors.Green,
+                "Degraded" => Colors.Orange,
+                "Unhealthy" => Colors.Red,
+                _ => Colors.Gray
+            };
+
+            MemoryStatusText = status switch
+            {
+                "Healthy" => "Normalne",
+                "Degraded" => "Wysokie",
+                "Unhealthy" => "Krytyczne",
+                _ => "-"
+            };
         }
     }
 
@@ -189,6 +271,7 @@ public partial class AppStatusViewModel : ObservableObject
         "self" => "Aplikacja",
         _ => key
     };
+
     [RelayCommand]
     private static async Task GoBackAsync() => await Shell.Current.GoToAsync("..");
 }

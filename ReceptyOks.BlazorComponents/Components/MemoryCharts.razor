@@ -1,0 +1,383 @@
+﻿@using ApexCharts
+
+<div class="memory-chart-container">
+    @if (IsLoading)
+    {
+        <div class="loading-overlay">
+            <div class="spinner"></div>
+            <span>Ładowanie danych...</span>
+        </div>
+    }
+    else if (MemoryData.Count == 0)
+    {
+        <div class="no-data">
+            <span>Brak danych do wyświetlenia</span>
+        </div>
+    }
+    else
+    {
+        <ApexChart TItem="MemoryDataPoint"
+                   Title="@Title"
+                   Options="ChartOptions"
+                   @ref="Chart"
+                   Height="@Height">
+
+            <ApexPointSeries TItem="MemoryDataPoint"
+                             Items="MemoryData"
+                             Name="Użycie pamięci (MB)"
+                             SeriesType="SeriesType.Area"
+                             XValue="@(e => e.Timestamp.ToString("HH:mm:ss"))"
+                             YValue="@(e => e.MemoryMB)"
+                             OrderBy="e => e.X" />
+
+            @if (ShowThreshold && ThresholdMB > 0)
+            {
+                <ApexPointSeries TItem="MemoryDataPoint"
+                                 Items="ThresholdData"
+                                 Name="Próg alertu (MB)"
+                                 SeriesType="SeriesType.Line"
+                                 XValue="@(e => e.Timestamp.ToString("HH:mm:ss"))"
+                                 YValue="@(e => e.MemoryMB)"
+                                 OrderBy="e => e.X" />
+            }
+        </ApexChart>
+
+        <div class="memory-stats">
+            <div class="stat-item">
+                <span class="stat-label">Aktualne:</span>
+                <span class="stat-value @GetMemoryStatusClass(CurrentMemoryMB)">@CurrentMemoryMB MB</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Max:</span>
+                <span class="stat-value">@MaxMemoryMB MB</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Min:</span>
+                <span class="stat-value">@MinMemoryMB MB</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Średnia:</span>
+                <span class="stat-value">@AvgMemoryMB MB</span>
+            </div>
+            @if (ShowThreshold && ThresholdMB > 0)
+            {
+                <div class="stat-item">
+                    <span class="stat-label">Próg:</span>
+                    <span class="stat-value threshold">@ThresholdMB MB</span>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+<style>
+    .memory-chart-container {
+        padding: 16px;
+        border-radius: 8px;
+        background: var(--chart-bg, #1e1e2f);
+    }
+
+    .loading-overlay, .no-data {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 200px;
+        color: var(--text-muted, #888);
+    }
+
+    .spinner {
+        width: 40px;
+        height: 40px;
+        border: 3px solid var(--border-color, #333);
+        border-top-color: var(--primary-color, #7c4dff);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-bottom: 12px;
+    }
+
+    @@keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    .memory-stats {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        margin-top: 16px;
+        padding-top: 16px;
+        border-top: 1px solid var(--border-color, #333);
+    }
+
+    .stat-item {
+        display: flex;
+        flex-direction: column;
+        min-width: 80px;
+    }
+
+    .stat-label {
+        font-size: 12px;
+        color: var(--text-muted, #888);
+        margin-bottom: 4px;
+    }
+
+    .stat-value {
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--text-primary, #fff);
+    }
+
+    .stat-value.healthy {
+        color: var(--success-color, #4caf50);
+    }
+
+    .stat-value.warning {
+        color: var(--warning-color, #ff9800);
+    }
+
+    .stat-value.critical {
+        color: var(--error-color, #f44336);
+    }
+
+    .stat-value.threshold {
+        color: var(--warning-color, #ff9800);
+    }
+</style>
+
+@code {
+    /// <summary>
+    /// Chart title
+    /// </summary>
+    [Parameter]
+    public string Title { get; set; } = "Użycie pamięci";
+
+    /// <summary>
+    /// Chart height in pixels
+    /// </summary>
+    [Parameter]
+    public int Height { get; set; } = 300;
+
+    /// <summary>
+    /// Memory threshold in MB for alert visualization
+    /// </summary>
+    [Parameter]
+    public decimal ThresholdMB { get; set; } = 400;
+
+    /// <summary>
+    /// Whether to show threshold line on chart
+    /// </summary>
+    [Parameter]
+    public bool ShowThreshold { get; set; } = true;
+
+    /// <summary>
+    /// Memory data points to display
+    /// </summary>
+    [Parameter]
+    public List<MemoryDataPoint> MemoryData { get; set; } = [];
+
+    /// <summary>
+    /// Loading state
+    /// </summary>
+    [Parameter]
+    public bool IsLoading { get; set; }
+
+    /// <summary>
+    /// Event callback when refresh is requested
+    /// </summary>
+    [Parameter]
+    public EventCallback OnRefreshRequested { get; set; }
+
+    private ApexChart<MemoryDataPoint>? Chart;
+
+    private ApexChartOptions<MemoryDataPoint> ChartOptions { get; set; } = new();
+
+    private List<MemoryDataPoint> ThresholdData => MemoryData
+        .Select(d => new MemoryDataPoint { Timestamp = d.Timestamp, MemoryMB = ThresholdMB })
+        .ToList();
+
+    private decimal CurrentMemoryMB => MemoryData.LastOrDefault()?.MemoryMB ?? 0;
+    private decimal MaxMemoryMB => MemoryData.Count > 0 ? MemoryData.Max(d => d.MemoryMB) : 0;
+    private decimal MinMemoryMB => MemoryData.Count > 0 ? MemoryData.Min(d => d.MemoryMB) : 0;
+    private decimal AvgMemoryMB => MemoryData.Count > 0 ? Math.Round(MemoryData.Average(d => d.MemoryMB), 1) : 0;
+
+    protected override void OnInitialized()
+    {
+        ConfigureChartOptions();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && Chart != null && MemoryData.Count > 0)
+        {
+            // Force chart update after first render with data
+            await Task.Delay(200);
+            await Chart.UpdateSeriesAsync(true);
+        }
+    }
+
+    private void ConfigureChartOptions()
+    {
+        ChartOptions = new ApexChartOptions<MemoryDataPoint>
+        {
+            Chart = new Chart
+            {
+                Background = "transparent",
+                Toolbar = new ApexCharts.Toolbar
+                {
+                    Show = true,
+                    Tools = new Tools
+                    {
+                        Download = true,
+                        Zoom = true,
+                        Pan = true,
+                        Reset = true
+                    }
+                },
+                Animations = new Animations
+                {
+                    Enabled = true,
+                    Speed = 500
+                }
+            },
+            Theme = new Theme
+            {
+                Mode = Mode.Dark,
+                Palette = PaletteType.Palette1
+            },
+            Colors = ["#7c4dff", "#ff9800"],
+            Stroke = new Stroke
+            {
+                Curve = Curve.Smooth,
+                Width = 2
+            },
+            Fill = new Fill
+            {
+                Type = FillType.Gradient,
+                Gradient = new FillGradient
+                {
+                    ShadeIntensity = 1,
+                    OpacityFrom = 0.7,
+                    OpacityTo = 0.2,
+                    Stops = [0, 90, 100]
+                }
+            },
+            Xaxis = new XAxis
+            {
+                Labels = new XAxisLabels
+                {
+                    Style = new AxisLabelStyle
+                    {
+                        Colors = "#888"
+                    }
+                },
+                AxisBorder = new AxisBorder
+                {
+                    Color = "#333"
+                }
+            },
+            Yaxis =
+            [
+                new YAxis
+                {
+                    Labels = new YAxisLabels
+                    {
+                        Style = new AxisLabelStyle
+                        {
+                            Colors = "#888"
+                        },
+                        Formatter = "function(val) { return val.toFixed(0) + ' MB'; }"
+                    },
+                    Min = 0,
+                    Max = (double)(Math.Max(ThresholdMB * 1.2m, MaxMemoryMB * 1.1m))
+                }
+            ],
+            Grid = new Grid
+            {
+                BorderColor = "#333",
+                StrokeDashArray = 4
+            },
+            Tooltip = new Tooltip
+            {
+                Theme = Mode.Dark,
+                Y = new TooltipY
+                {
+                    Formatter = "function(val) { return val.toFixed(1) + ' MB'; }"
+                }
+            },
+            Legend = new Legend
+            {
+                Position = LegendPosition.Top,
+                HorizontalAlign = global::ApexCharts.Align.Right,
+                Labels = new LegendLabels
+                {
+                    Colors = "#888"
+                }
+            }
+        };
+    }
+
+    /// <summary>
+    /// Adds a new data point and updates the chart
+    /// </summary>
+    public async Task AddDataPointAsync(MemoryDataPoint point)
+    {
+        MemoryData.Add(point);
+
+        // Keep only last N points to prevent memory issues
+        const int maxPoints = 60;
+        if (MemoryData.Count > maxPoints)
+        {
+            MemoryData.RemoveAt(0);
+        }
+
+        if (Chart != null)
+        {
+            await Chart.UpdateSeriesAsync(true);
+        }
+
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Clears all data points
+    /// </summary>
+    public void ClearData()
+    {
+        MemoryData.Clear();
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Updates chart with new data
+    /// </summary>
+    public async Task RefreshChartAsync()
+    {
+        if (Chart != null)
+        {
+            await Chart.UpdateSeriesAsync(true);
+        }
+    }
+
+    private string GetMemoryStatusClass(decimal memoryMB)
+    {
+        if (ThresholdMB <= 0) return "";
+
+        var percentage = memoryMB / ThresholdMB * 100;
+
+        return percentage switch
+        {
+            < 70 => "healthy",
+            < 90 => "warning",
+            _ => "critical"
+        };
+    }
+
+    /// <summary>
+    /// Data point for memory chart
+    /// </summary>
+    public class MemoryDataPoint
+    {
+        public DateTime Timestamp { get; set; } = DateTime.Now;
+        public decimal MemoryMB { get; set; }
+    }
+}

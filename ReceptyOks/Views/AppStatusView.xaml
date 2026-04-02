@@ -6,6 +6,8 @@
              xmlns:icons="clr-namespace:UraniumUI.Icons.MaterialSymbols;assembly=UraniumUI.Icons.MaterialSymbols"
              xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
              xmlns:material="http://schemas.enisn-projects.io/dotnet/maui/uraniumui/material"
+             xmlns:blazor="clr-namespace:Microsoft.AspNetCore.Components.WebView.Maui;assembly=Microsoft.AspNetCore.Components.WebView.Maui"
+             xmlns:components="clr-namespace:ReceptyOks.BlazorComponents.Components;assembly=ReceptyOks.BlazorComponents"
              x:DataType="vm:AppStatusViewModel"
              Shell.NavBarIsVisible="False"
              Title="Status Backendu"
@@ -119,6 +121,22 @@
                                FontSize="12"
                                IsVisible="{Binding ErrorMessage, Converter={toolkit:IsNotNullConverter}}"/>
                     </Grid>
+                </Border>
+
+                <!-- Memory Usage Section with Blazor ApexChart -->
+                <Border StrokeShape="RoundRectangle 12"
+                        Stroke="{Binding MemoryBarColor}"
+                        StrokeThickness="1"
+                        BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}"
+                        Padding="0"
+                        HeightRequest="380"
+                        IsVisible="{Binding HasMemoryData}">
+                    <blazor:BlazorWebView HostPage="wwwroot/index.html">
+                        <blazor:BlazorWebView.RootComponents>
+                            <blazor:RootComponent Selector="#app"
+                                                  ComponentType="{x:Type components:MemoryChartPage}"/>
+                        </blazor:BlazorWebView.RootComponents>
+                    </blazor:BlazorWebView>
                 </Border>
 
                 <!-- Health Checks List -->
