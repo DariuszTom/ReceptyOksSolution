@@ -27,7 +27,7 @@ public static class ShoppingListEndpoints
 
             var items = await query
                 .OrderByDescending(s => s.CreatedAt)
-                .ToListAsync();
+                .ToListAsync().ConfigureAwait(false);
 
             return Results.Ok(items);
         })
@@ -39,7 +39,7 @@ public static class ShoppingListEndpoints
         {
             var item = await db.ShoppingListItems
                 .AsNoTracking()
-                .FirstOrDefaultAsync(s => s.Id == id && !s.IsDeleted);
+                .FirstOrDefaultAsync(s => s.Id == id && !s.IsDeleted).ConfigureAwait(false);
 
             return item is null ? Results.NotFound() : Results.Ok(item);
         })
@@ -111,7 +111,7 @@ public static class ShoppingListEndpoints
                 return Results.BadRequest(new { Error = "Name is required" });
             }
 
-            var item = await db.ShoppingListItems.FindAsync(id);
+            var item = await db.ShoppingListItems.FindAsync(id).ConfigureAwait(false);
             if (item is null || item.IsDeleted)
             {
                 return Results.NotFound();
@@ -136,7 +136,7 @@ public static class ShoppingListEndpoints
         // PATCH - mark as bought
         group.MapPatch("/{id:guid}/bought", async (Guid id, BoughtRequest request, RecipeDbContext db) =>
         {
-            var item = await db.ShoppingListItems.FindAsync(id);
+            var item = await db.ShoppingListItems.FindAsync(id).ConfigureAwait(false);
             if (item is null || item.IsDeleted)
             {
                 return Results.NotFound();
@@ -157,7 +157,7 @@ public static class ShoppingListEndpoints
         // PATCH - unmark as bought
         group.MapPatch("/{id:guid}/unbought", async (Guid id, RecipeDbContext db) =>
         {
-            var item = await db.ShoppingListItems.FindAsync(id);
+            var item = await db.ShoppingListItems.FindAsync(id).ConfigureAwait(false);
             if (item is null || item.IsDeleted)
             {
                 return Results.NotFound();
@@ -190,7 +190,7 @@ public static class ShoppingListEndpoints
                     .SetProperty(s => s.IsBought, true)
                     .SetProperty(s => s.BoughtBy, request.BoughtBy)
                     .SetProperty(s => s.BoughtAt, now)
-                    .SetProperty(s => s.UpdatedAt, now));
+                    .SetProperty(s => s.UpdatedAt, now)).ConfigureAwait(false);
 
             return Results.Ok(new BulkOperationResponse(updatedCount));
         })
@@ -201,7 +201,7 @@ public static class ShoppingListEndpoints
         // DELETE - remove item (soft delete)
         group.MapDelete("/{id:guid}", async (Guid id, RecipeDbContext db) =>
         {
-            var item = await db.ShoppingListItems.FindAsync(id);
+            var item = await db.ShoppingListItems.FindAsync(id).ConfigureAwait(false);
             if (item is null || item.IsDeleted)
             {
                 return Results.NotFound();
@@ -220,7 +220,7 @@ public static class ShoppingListEndpoints
         // DELETE - permanently remove item from database (hard delete)
         group.MapDelete("/{id:guid}/permanent", async (Guid id, RecipeDbContext db) =>
         {
-            var item = await db.ShoppingListItems.FindAsync(id);
+            var item = await db.ShoppingListItems.FindAsync(id).ConfigureAwait(false);
             if (item is null)
             {
                 return Results.NotFound();
@@ -243,7 +243,7 @@ public static class ShoppingListEndpoints
                 .Where(s => s.IsBought && !s.IsDeleted)
                 .ExecuteUpdateAsync(setters => setters
                     .SetProperty(s => s.IsDeleted, true)
-                    .SetProperty(s => s.UpdatedAt, now));
+                    .SetProperty(s => s.UpdatedAt, now)).ConfigureAwait(false);
 
             return Results.Ok(new BulkOperationResponse(deletedCount));
         })
@@ -258,7 +258,7 @@ public static class ShoppingListEndpoints
                 .Where(s => !s.IsDeleted)
                 .ExecuteUpdateAsync(setters => setters
                     .SetProperty(s => s.IsDeleted, true)
-                    .SetProperty(s => s.UpdatedAt, now));
+                    .SetProperty(s => s.UpdatedAt, now)).ConfigureAwait(false);
 
             return Results.Ok(new BulkOperationResponse(deletedCount));
         })
@@ -276,7 +276,7 @@ public static class ShoppingListEndpoints
                     g.Count(),
                     g.Count(s => s.IsBought),
                     g.Count(s => !s.IsBought)))
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync().ConfigureAwait(false);
 
             return Results.Ok(stats ?? new ShoppingListStats(0, 0, 0));
         })

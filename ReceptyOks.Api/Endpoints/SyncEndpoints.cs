@@ -47,7 +47,7 @@ public static class SyncEndpoints
             .WithName("Sync")
             .WithMetadata(new RequestSizeLimitAttribute(200_000_000));
 
-        // GET - pobierz wszystkie dane (pocz¹tkowa synchronizacja)
+        // GET - pobierz wszystkie dane (poczÂ¹tkowa synchronizacja)
         group.MapGet("/full", async (RecipeDbContext db, ILogger<RecipeDbContext> logger) =>
         {
             logger.LogInformation("Full sync requested");
@@ -79,7 +79,6 @@ public static class SyncEndpoints
                     })
                     .ToListAsync().ConfigureAwait(false),
                 Recipes = await db.Recipes
-                    .Include(r => r.Ingredients)
                     .Select(r => new RecipeSyncDto
                     {
                         Id = r.Id,
@@ -278,9 +277,24 @@ public static class SyncEndpoints
         // Save ingredients so they exist for RecipeIngredient FK references
         await db.SaveChangesAsync().ConfigureAwait(false);
 
-        // Load valid FK IDs to validate recipe references
-        var validCategoryIds = await db.Categories.Select(c => c.Id).ToHashSetAsync().ConfigureAwait(false);
-        var validIngredientIds = await db.Ingredients.Select(i => i.Id).ToHashSetAsync().ConfigureAwait(false);
+        // Load only FK IDs referenced by incoming recipes to validate (not entire tables)
+        var referencedCategoryIds = changedRecipes
+            .Where(r => r.CategoryId.HasValue)
+            .Select(r => r.CategoryId!.Value)
+            .Distinct()
+            .ToList();
+        var validCategoryIds = referencedCategoryIds.Count > 0
+            ? await db.Categories.Where(c => referencedCategoryIds.Contains(c.Id)).Select(c => c.Id).ToHashSetAsync().ConfigureAwait(false)
+            : new HashSet<Guid>();
+
+        var referencedIngredientIds = changedRecipes
+            .SelectMany(r => r.Ingredients ?? Enumerable.Empty<RecipeIngredientSyncDto>())
+            .Select(ri => ri.IngredientId)
+            .Distinct()
+            .ToList();
+        var validIngredientIds = referencedIngredientIds.Count > 0
+            ? await db.Ingredients.Where(i => referencedIngredientIds.Contains(i.Id)).Select(i => i.Id).ToHashSetAsync().ConfigureAwait(false)
+            : new HashSet<Guid>();
 
         var addedRecipes = 0;
         var updatedRecipes = 0;
@@ -380,7 +394,7 @@ public static class SyncEndpoints
                 existing.UpdatedAt = DateTime.UtcNow;
                 existing.IsDeleted = recipeDto.IsDeleted;
 
-                // Aktualizuj sk³adniki (tylko poprawne referencje)
+                // Aktualizuj skÂ³adniki (tylko poprawne referencje)
                 db.RecipeIngredients.RemoveRange(existing.Ingredients);
                 foreach (var ingredientDto in validIngredients)
                 {
@@ -412,8 +426,12 @@ public static class SyncEndpoints
 
         await db.SaveChangesAsync().ConfigureAwait(false);
 
-        // Plany posi³ków
-        var validRecipeIds = await db.Recipes.Select(r => r.Id).ToHashSetAsync().ConfigureAwait(false);
+        // Plany posiÂ³kÃ³w
+        // Load only recipe IDs referenced by incoming meal plans
+        var referencedRecipeIds = changedMealPlans.Select(mp => mp.RecipeId).Distinct().ToList();
+        var validRecipeIds = referencedRecipeIds.Count > 0
+            ? await db.Recipes.Where(r => referencedRecipeIds.Contains(r.Id)).Select(r => r.Id).ToHashSetAsync().ConfigureAwait(false)
+            : new HashSet<Guid>();
         var addedMealPlans = 0;
         var updatedMealPlans = 0;
         var skippedMealPlans = 0;
@@ -519,7 +537,6 @@ public static class SyncEndpoints
     private static async Task<List<RecipeSyncDto>> GetServerRecipes(DateTime since, RecipeDbContext db)
     {
         return await db.Recipes
-            .Include(r => r.Ingredients)
             .Where(r => r.UpdatedAt > since)
             .Select(r => new RecipeSyncDto
             {

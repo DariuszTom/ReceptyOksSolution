@@ -97,12 +97,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 System.Text.Encoding.UTF8.GetBytes(jwtKey))
         };
     });
-builder.Services.AddSingleton(new CleanupOptions
-{
-    Interval = TimeSpan.FromHours(24),
-    StartupDelay = TimeSpan.FromSeconds(30),
-    MaxAge = TimeSpan.FromDays(7)
-});
+builder.Services.AddSingleton(new CleanupOptions());
+
 builder.Services.AddHostedService<ShopingListCleaner>();
 
 var app = builder.Build();

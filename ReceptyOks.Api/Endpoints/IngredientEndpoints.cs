@@ -14,7 +14,7 @@ public static class IngredientEndpoints
             var ingredients = await db.Ingredients
                 .Where(i => !i.IsDeleted)
                 .OrderBy(i => i.Name)
-                .ToListAsync();
+                .ToListAsync().ConfigureAwait(false);
             return Results.Ok(ingredients);
         })
         .WithName("GetAllIngredients");
@@ -22,7 +22,7 @@ public static class IngredientEndpoints
         // GET - pojedynczy sk³adnik
         group.MapGet("/{id:guid}", async (Guid id, RecipeDbContext db) =>
         {
-            var ingredient = await db.Ingredients.FindAsync(id);
+            var ingredient = await db.Ingredients.FindAsync(id).ConfigureAwait(false);
             return ingredient is null ? Results.NotFound() : Results.Ok(ingredient);
         })
         .WithName("GetIngredientById");
@@ -44,7 +44,7 @@ public static class IngredientEndpoints
         // PUT - aktualizacja sk³adnika
         group.MapPut("/{id:guid}", async (Guid id, Ingredient updatedIngredient, RecipeDbContext db) =>
         {
-            var ingredient = await db.Ingredients.FindAsync(id);
+            var ingredient = await db.Ingredients.FindAsync(id).ConfigureAwait(false);
             if (ingredient is null)
                 return Results.NotFound();
 
@@ -60,7 +60,7 @@ public static class IngredientEndpoints
         // DELETE - soft delete
         group.MapDelete("/{id:guid}", async (Guid id, RecipeDbContext db) =>
         {
-            var ingredient = await db.Ingredients.FindAsync(id);
+            var ingredient = await db.Ingredients.FindAsync(id).ConfigureAwait(false);
             if (ingredient is null)
                 return Results.NotFound();
 
@@ -76,10 +76,11 @@ public static class IngredientEndpoints
         group.MapGet("/search", async (string query, RecipeDbContext db) =>
         {
             var ingredients = await db.Ingredients
+                .AsNoTracking()
                 .Where(i => !i.IsDeleted && i.Name.Contains(query))
                 .OrderBy(i => i.Name)
                 .Take(20)
-                .ToListAsync();
+                .ToListAsync().ConfigureAwait(false);
             return Results.Ok(ingredients);
         })
         .WithName("SearchIngredients");

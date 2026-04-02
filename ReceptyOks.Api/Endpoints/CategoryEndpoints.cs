@@ -12,9 +12,10 @@ public static class CategoryEndpoints
         group.MapGet("/", async (RecipeDbContext db) =>
         {
             var categories = await db.Categories
+                .AsNoTracking()
                 .Where(c => !c.IsDeleted)
                 .OrderBy(c => c.Name)
-                .ToListAsync();
+                .ToListAsync().ConfigureAwait(false);
             return Results.Ok(categories);
         })
         .WithName("GetAllCategories");
@@ -22,7 +23,7 @@ public static class CategoryEndpoints
         // GET - pojedyncza kategoria
         group.MapGet("/{id:guid}", async (Guid id, RecipeDbContext db) =>
         {
-            var category = await db.Categories.FindAsync(id);
+            var category = await db.Categories.FindAsync(id).ConfigureAwait(false);
             return category is null ? Results.NotFound() : Results.Ok(category);
         })
         .WithName("GetCategoryById");
@@ -31,9 +32,10 @@ public static class CategoryEndpoints
         group.MapGet("/{id:guid}/recipes", async (Guid id, RecipeDbContext db) =>
         {
             var recipes = await db.Recipes
+                .AsNoTracking()
                 .Where(r => r.CategoryId == id && !r.IsDeleted)
                 .OrderByDescending(r => r.CreatedAt)
-                .ToListAsync();
+                .ToListAsync().ConfigureAwait(false);
             return Results.Ok(recipes);
         })
         .WithName("GetRecipesByCategory");
@@ -55,7 +57,7 @@ public static class CategoryEndpoints
         // PUT - aktualizacja kategorii
         group.MapPut("/{id:guid}", async (Guid id, Category updatedCategory, RecipeDbContext db) =>
         {
-            var category = await db.Categories.FindAsync(id);
+            var category = await db.Categories.FindAsync(id).ConfigureAwait(false);
             if (category is null)
                 return Results.NotFound();
 
@@ -72,7 +74,7 @@ public static class CategoryEndpoints
         // DELETE - soft delete
         group.MapDelete("/{id:guid}", async (Guid id, RecipeDbContext db) =>
         {
-            var category = await db.Categories.FindAsync(id);
+            var category = await db.Categories.FindAsync(id).ConfigureAwait(false);
             if (category is null)
                 return Results.NotFound();
 
