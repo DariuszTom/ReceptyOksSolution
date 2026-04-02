@@ -4,7 +4,7 @@ namespace ReceptyOks.ViewModels;
 
 public partial class RecipesViewModel : ObservableObject
 {
-    private readonly LocalDatabase _database;
+    private readonly ILocalDatabase _database;
     private readonly ISyncService _syncService;
     private readonly ILogger<RecipesViewModel> _logger;
 
@@ -20,7 +20,7 @@ public partial class RecipesViewModel : ObservableObject
     [ObservableProperty]
     private string searchQuery = string.Empty;
 
-    public RecipesViewModel(LocalDatabase database, ISyncService syncService, ILogger<RecipesViewModel> logger)
+    public RecipesViewModel(ILocalDatabase database, ISyncService syncService, ILogger<RecipesViewModel> logger)
     {
         _database = database;
         _syncService = syncService;
