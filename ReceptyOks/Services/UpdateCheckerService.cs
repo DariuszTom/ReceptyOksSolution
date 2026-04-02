@@ -1,6 +1,7 @@
 ﻿using Polly;
 using Polly.Retry;
 using ReceptyOks.Configuration;
+using ReceptyOks.Shared;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 
@@ -31,7 +32,7 @@ public class UpdateCheckerService
         AsyncRetryPolicy<HttpResponseMessage> retryPolicy = Policy
             .HandleResult<HttpResponseMessage>(r => !r.IsSuccessStatusCode)
             .Or<HttpRequestException>()
-            .WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
+            .WaitAndRetryAsync(GlobalConstants.MaxRetryAttempts, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
                 onRetry: (outcome, _, _, _) => outcome.Result?.Dispose());
 
         try

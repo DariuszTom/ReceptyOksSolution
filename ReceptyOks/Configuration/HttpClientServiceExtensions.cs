@@ -2,6 +2,7 @@ namespace ReceptyOks.Configuration;
 
 using ReceptyOks.Interfaces;
 using ReceptyOks.Services;
+using ReceptyOks.Shared;
 
 /// <summary>
 /// Extension methods for registering HTTP clients with the dependency injection container.
@@ -31,7 +32,7 @@ internal static class HttpClientServiceExtensions
       })
       .AddHttpMessageHandler<ApiKeyHandler>()
       .AddServiceDiscovery()
-      .SetHandlerLifetime(TimeSpan.FromMinutes(10)); // Prevent handler recycling killing active requests
+      .SetHandlerLifetime(GlobalConstants.DefaultCancelationTokenTime); // Prevent handler recycling killing active requests
 
         // Register ISyncService interface mapping
         services.AddTransient<ISyncService>(sp => sp.GetRequiredService<SyncService>());

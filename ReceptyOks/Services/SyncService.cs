@@ -1,6 +1,7 @@
 using Polly;
 using Polly.Retry;
 using ReceptyOks.Interfaces;
+using ReceptyOks.Shared;
 using ReceptyOks.Shared.DTOs;
 using System.Net.Http.Json;
 
@@ -14,7 +15,7 @@ public class SyncService : ISyncService
     private readonly AsyncRetryPolicy<HttpResponseMessage> _retryPolicy = Policy
         .HandleResult<HttpResponseMessage>(r => (int)r.StatusCode >= 500)
         .Or<HttpRequestException>()
-        .WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
+        .WaitAndRetryAsync(GlobalConstants.MaxRetryAttempts, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
             onRetry: (outcome, _, _, _) => outcome.Result?.Dispose());
 
     public SyncService(ILocalDatabase localDb, HttpClient httpClient, ILogger<SyncService> logger)

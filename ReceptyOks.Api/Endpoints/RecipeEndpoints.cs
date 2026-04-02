@@ -17,7 +17,7 @@ public static class RecipeEndpoints
                     .ThenInclude(ri => ri.Ingredient)
                 .Where(r => !r.IsDeleted)
                 .OrderByDescending(r => r.CreatedAt)
-                .ToListAsync();
+                .ToListAsync().ConfigureAwait(false);
             return Results.Ok(recipes);
         })
         .WithName("GetAllRecipes");
@@ -26,10 +26,11 @@ public static class RecipeEndpoints
         group.MapGet("/{id:guid}", async (Guid id, RecipeDbContext db) =>
         {
             var recipe = await db.Recipes
+                .AsNoTracking()
                 .Include(r => r.Category)
                 .Include(r => r.Ingredients)
                     .ThenInclude(ri => ri.Ingredient)
-                .FirstOrDefaultAsync(r => r.Id == id);
+                .FirstOrDefaultAsync(r => r.Id == id).ConfigureAwait(false);
 
             return recipe is null ? Results.NotFound() : Results.Ok(recipe);
         })
@@ -41,7 +42,7 @@ public static class RecipeEndpoints
             var recipe = await db.Recipes
                 .Where(r => r.Id == id)
                 .Select(r => new { r.Image, r.ImageContentType })
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync().ConfigureAwait(false);
 
             if (recipe?.Image is null)
                 return Results.NotFound();
@@ -69,7 +70,7 @@ public static class RecipeEndpoints
         {
             var recipe = await db.Recipes
                 .Include(r => r.Ingredients)
-                .FirstOrDefaultAsync(r => r.Id == id);
+                .FirstOrDefaultAsync(r => r.Id == id).ConfigureAwait(false);
 
             if (recipe is null)
                 return Results.NotFound();
@@ -101,7 +102,7 @@ public static class RecipeEndpoints
         // DELETE - soft delete
         group.MapDelete("/{id:guid}", async (Guid id, RecipeDbContext db) =>
         {
-            var recipe = await db.Recipes.FindAsync(id);
+            var recipe = await db.Recipes.FindAsync(id).ConfigureAwait(false);
             if (recipe is null)
                 return Results.NotFound();
 
@@ -117,11 +118,25 @@ public static class RecipeEndpoints
         group.MapGet("/search", async (string query, RecipeDbContext db) =>
         {
             var recipes = await db.Recipes
-                .Include(r => r.Category)
+                .AsNoTracking()
                 .Where(r => !r.IsDeleted &&
                     (r.Title.Contains(query) || r.Description.Contains(query)))
                 .OrderByDescending(r => r.CreatedAt)
-                .ToListAsync();
+                .Select(r => new
+                {
+                    r.Id,
+                    r.Title,
+                    r.Description,
+                    r.PreparationTimeMinutes,
+                    r.CookingTimeMinutes,
+                    r.Servings,
+                    r.ImageContentType,
+                    r.CategoryId,
+                    r.CreatedAt,
+                    r.UpdatedAt,
+                    Category = r.Category == null ? null : new { r.Category.Id, r.Category.Name }
+                })
+                .ToListAsync().ConfigureAwait(false);
             return Results.Ok(recipes);
         })
         .WithName("SearchRecipes");

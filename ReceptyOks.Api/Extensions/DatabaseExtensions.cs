@@ -1,3 +1,5 @@
+using ReceptyOks.Shared;
+
 namespace ReceptyOks.Api.Extensions;
 
 public static class DatabaseExtensions
@@ -41,7 +43,14 @@ public static class DatabaseExtensions
 
             services.AddDbContext<RecipeDbContext>(options =>
                 options.UseSqlServer(connectionString, opts =>
-                    opts.CommandTimeout(120))
+                {
+                    opts.CommandTimeout(120);
+                    opts.EnableRetryOnFailure(
+                        maxRetryCount: GlobalConstants.MaxRetryAttempts,
+                        maxRetryDelay: GlobalConstants.DefaultCancelationTokenTime,
+                        errorNumbersToAdd: null);
+                    opts.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
+                })
             );
         }
 
