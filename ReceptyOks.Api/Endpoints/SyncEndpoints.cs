@@ -47,7 +47,7 @@ public static class SyncEndpoints
             .WithName("Sync")
             .WithMetadata(new RequestSizeLimitAttribute(200_000_000));
 
-        // GET - pobierz wszystkie dane (pocz¹tkowa synchronizacja)
+        // GET - pobierz wszystkie dane (poczÂ¹tkowa synchronizacja)
         group.MapGet("/full", async (RecipeDbContext db, ILogger<RecipeDbContext> logger) =>
         {
             logger.LogInformation("Full sync requested");
@@ -288,7 +288,7 @@ public static class SyncEndpoints
             : new HashSet<Guid>();
 
         var referencedIngredientIds = changedRecipes
-            .SelectMany(r => r.Ingredients)
+            .SelectMany(r => r.Ingredients ?? Enumerable.Empty<RecipeIngredientSyncDto>())
             .Select(ri => ri.IngredientId)
             .Distinct()
             .ToList();
@@ -394,7 +394,7 @@ public static class SyncEndpoints
                 existing.UpdatedAt = DateTime.UtcNow;
                 existing.IsDeleted = recipeDto.IsDeleted;
 
-                // Aktualizuj sk³adniki (tylko poprawne referencje)
+                // Aktualizuj skÂ³adniki (tylko poprawne referencje)
                 db.RecipeIngredients.RemoveRange(existing.Ingredients);
                 foreach (var ingredientDto in validIngredients)
                 {
@@ -426,7 +426,7 @@ public static class SyncEndpoints
 
         await db.SaveChangesAsync().ConfigureAwait(false);
 
-        // Plany posi³ków
+        // Plany posiÂ³kÃ³w
         // Load only recipe IDs referenced by incoming meal plans
         var referencedRecipeIds = changedMealPlans.Select(mp => mp.RecipeId).Distinct().ToList();
         var validRecipeIds = referencedRecipeIds.Count > 0
