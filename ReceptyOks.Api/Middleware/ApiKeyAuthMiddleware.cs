@@ -47,7 +47,7 @@ public sealed class ApiKeyAuthMiddleware
         }
 
         // Rate limiting (per-partition) - przed sprawdzeniem klucza
-        using var lease = await _rateLimiter.AcquireAsync(context, permitCount: 1, context.RequestAborted);
+        using var lease = await _rateLimiter.AcquireAsync(context, permitCount: 1, context.RequestAborted).ConfigureAwait(false);
         if (!lease.IsAcquired)
         {
             _logger.LogWarning("Rate limit exceeded for request to {Path}", path);
@@ -67,7 +67,7 @@ public sealed class ApiKeyAuthMiddleware
         {
             _logger.LogWarning("Request to {Path} rejected - missing {Header} header", path, GlobalConstants.ApiKeyHeaderName);
             context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-            await context.Response.WriteAsJsonAsync(new { error = "API key is required" });
+            await context.Response.WriteAsJsonAsync(new { error = "API key is required" }).ConfigureAwait(false);
             return;
         }
 
@@ -75,7 +75,7 @@ public sealed class ApiKeyAuthMiddleware
         {
             _logger.LogError("ApiAuth:PasswordHash is not configured or could not be decoded");
             context.Response.StatusCode = StatusCodes.Status500InternalServerError;
-            await context.Response.WriteAsJsonAsync(new { error = "Server configuration error" });
+            await context.Response.WriteAsJsonAsync(new { error = "Server configuration error" }).ConfigureAwait(false);
             return;
         }
 
@@ -100,11 +100,11 @@ public sealed class ApiKeyAuthMiddleware
         {
             _logger.LogWarning("Request to {Path} rejected - invalid API key", path);
             context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-            await context.Response.WriteAsJsonAsync(new { error = "Invalid API key" });
+            await context.Response.WriteAsJsonAsync(new { error = "Invalid API key" }).ConfigureAwait(false);
             return;
         }
 
-        await _next(context);
+        await _next(context).ConfigureAwait(false);
     }
 
 
