@@ -12,6 +12,7 @@ public static class RecipeEndpoints
         group.MapGet("/", async (RecipeDbContext db) =>
         {
             var recipes = await db.Recipes
+                .AsNoTracking()
                 .Include(r => r.Category)
                 .Include(r => r.Ingredients)
                     .ThenInclude(ri => ri.Ingredient)
