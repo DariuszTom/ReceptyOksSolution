@@ -109,4 +109,23 @@ public partial class SettingsViewModel : ObservableObject
             });
         }
     }
+
+    [RelayCommand]
+    public async Task AppStatusAsync()
+    {
+        try
+        {
+            await Microsoft.Maui.ApplicationModel.MainThread.InvokeOnMainThreadAsync(async () =>
+            {
+                await Shell.Current.GoToAsync("/AppStatusView");
+            });
+        }
+        catch (Exception ex)
+        {
+            await Microsoft.Maui.ApplicationModel.MainThread.InvokeOnMainThreadAsync(async () =>
+            {
+                await Shell.Current.DisplayAlertAsync("Błąd nawigacji", $"Nie można otworzyć statusu aplikacji: {ex.Message}", "OK");
+            });
+        }
+    }
 }

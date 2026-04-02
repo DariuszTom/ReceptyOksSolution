@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
@@ -101,27 +102,69 @@ public static class Extensions
     {
         builder.Services.AddHealthChecks()
             // Add a default liveness check to ensure app is responsive
-            .AddCheck("self", () => HealthCheckResult.Healthy(), ["live"]);
+            .AddCheck("self", () => HealthCheckResult.Healthy(), ["live"])
+            // Memory health check - alert when RAM > 80% of container limit
+            .AddCheck("memory", () =>
+            {
+                var allocatedBytes = GC.GetTotalMemory(forceFullCollection: false);
+                var allocatedMB = allocatedBytes / 1024 / 1024;
+                const long thresholdMB = 400; // 80% of 512 MB container limit
+
+                return allocatedMB < thresholdMB
+                    ? HealthCheckResult.Healthy($"Memory: {allocatedMB} MB")
+                    : HealthCheckResult.Degraded($"High memory usage: {allocatedMB} MB (threshold: {thresholdMB} MB)");
+            }, ["live"]);
 
         return builder;
     }
 
     public static WebApplication MapDefaultEndpoints(this WebApplication app)
     {
-        // Adding health checks endpoints to applications in non-development environments has security implications.
-        // See https://aka.ms/dotnet/aspire/healthchecks for details before enabling these endpoints in non-development environments.
-        if (app.Environment.IsDevelopment())
-        {
-            // All health checks must pass for app to be considered ready to accept traffic after starting
-            app.MapHealthChecks(HealthEndpointPath);
+        // Health check endpoints for Azure Container Apps probes
+        // /health - readiness probe (all checks must pass) - returns JSON with details
+        // /alive - liveness probe (only "live" tagged checks) - returns plain text
 
-            // Only health checks tagged with the "live" tag must pass for app to be considered alive
-            app.MapHealthChecks(AlivenessEndpointPath, new HealthCheckOptions
-            {
-                Predicate = r => r.Tags.Contains("live")
-            });
-        }
+        // All health checks must pass for app to be considered ready to accept traffic
+        // Returns JSON with detailed health report for monitoring
+        app.MapHealthChecks(HealthEndpointPath, new HealthCheckOptions
+        {
+            ResponseWriter = WriteHealthCheckResponseAsync
+        });
+
+        // Only health checks tagged with the "live" tag must pass for app to be considered alive
+        // Returns plain text for quick Azure Container Apps liveness probe
+        app.MapHealthChecks(AlivenessEndpointPath, new HealthCheckOptions
+        {
+            Predicate = r => r.Tags.Contains("live")
+        });
 
         return app;
+    }
+
+    /// <summary>
+    /// Writes health check response as JSON with detailed information
+    /// </summary>
+    private static async Task WriteHealthCheckResponseAsync(HttpContext context, HealthReport report)
+    {
+        context.Response.ContentType = "application/json";
+
+        var response = new
+        {
+            status = report.Status.ToString(),
+            totalDuration = report.TotalDuration,
+            entries = report.Entries.ToDictionary(
+                e => e.Key,
+                e => new
+                {
+                    status = e.Value.Status.ToString(),
+                    duration = e.Value.Duration,
+                    description = e.Value.Description,
+                    exception = e.Value.Exception?.Message,
+                    data = e.Value.Data,
+                    tags = e.Value.Tags
+                })
+        };
+
+        await context.Response.WriteAsJsonAsync(response);
     }
 }

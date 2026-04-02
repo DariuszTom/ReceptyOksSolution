@@ -1,5 +1,6 @@
 namespace ReceptyOks.Configuration;
 
+//using ApexCharts;
 using CommunityToolkit.Maui.ApplicationModel;
 using CommunityToolkit.Maui.Media;
 using Plugin.Maui.OCR;
@@ -83,6 +84,7 @@ internal static class ApplicationServiceExtensions
 #if DEBUG
         builder.Services.AddBlazorWebViewDeveloperTools();
 #endif
+        //builder.Services.AddApexCharts();
         return builder;
     }
 }

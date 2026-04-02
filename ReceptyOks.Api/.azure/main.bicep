@@ -199,6 +199,30 @@ resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
               secretRef: 'api-key'
             }
           ]
+          probes: [
+            {
+              type: 'Liveness'
+              httpGet: {
+                path: '/alive'
+                port: 8080
+                scheme: 'HTTP'
+              }
+              initialDelaySeconds: 30
+              periodSeconds: 30
+              failureThreshold: 3
+            }
+            {
+              type: 'Readiness'
+              httpGet: {
+                path: '/health'
+                port: 8080
+                scheme: 'HTTP'
+              }
+              initialDelaySeconds: 10
+              periodSeconds: 10
+              failureThreshold: 3
+            }
+          ]
         }
       ]
       scale: {
