@@ -25,7 +25,8 @@ public static class DatabaseExtensions
             var dbPath = Path.Combine(dataFolder, dbName);
             connectionString = $"Data Source={dbPath}";
 
-            services.AddDbContext<RecipeDbContext>(options =>
+            // Use pooling to reduce memory allocations
+            services.AddDbContextPool<RecipeDbContext>(options =>
                 options.UseSqlite(connectionString)
             );
         }
@@ -41,7 +42,8 @@ public static class DatabaseExtensions
                     "Ensure Key Vault is properly configured and contains 'ConnectionStrings--DefaultConnection' secret.");
             }
 
-            services.AddDbContext<RecipeDbContext>(options =>
+            // Use pooling to reduce memory allocations (default pool size 1024)
+            services.AddDbContextPool<RecipeDbContext>(options =>
                 options.UseSqlServer(connectionString, opts =>
                 {
                     opts.CommandTimeout(240);

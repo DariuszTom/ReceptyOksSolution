@@ -56,6 +56,7 @@ public static class SyncEndpoints
             {
                 SyncedAt = DateTime.UtcNow,
                 Categories = await db.Categories
+                    .AsNoTracking()
                     .Select(c => new CategorySyncDto
                     {
                         Id = c.Id,
@@ -68,6 +69,7 @@ public static class SyncEndpoints
                     })
                     .ToListAsync().ConfigureAwait(false),
                 Ingredients = await db.Ingredients
+                    .AsNoTracking()
                     .Select(i => new IngredientSyncDto
                     {
                         Id = i.Id,
@@ -79,6 +81,7 @@ public static class SyncEndpoints
                     })
                     .ToListAsync().ConfigureAwait(false),
                 Recipes = await db.Recipes
+                    .AsNoTracking()
                     .Select(r => new RecipeSyncDto
                     {
                         Id = r.Id,
@@ -106,6 +109,7 @@ public static class SyncEndpoints
                     })
                 .ToListAsync().ConfigureAwait(false),
                 MealPlans = await db.MealPlans
+                    .AsNoTracking()
                     .Select(mp => new MealPlanSyncDto
                     {
                         Id = mp.Id,
@@ -499,11 +503,15 @@ public static class SyncEndpoints
             addedMealPlans, updatedMealPlans, skippedMealPlans, skippedInvalidRecipe);
 
         await db.SaveChangesAsync().ConfigureAwait(false);
+
+        // Clear change tracker to free memory after large sync operations
+        db.ChangeTracker.Clear();
     }
 
     private static async Task<List<CategorySyncDto>> GetServerCategories(DateTime since, RecipeDbContext db)
     {
         return await db.Categories
+            .AsNoTracking()
             .Where(c => c.UpdatedAt > since)
             .Select(c => new CategorySyncDto
             {
@@ -521,6 +529,7 @@ public static class SyncEndpoints
     private static async Task<List<IngredientSyncDto>> GetServerIngredients(DateTime since, RecipeDbContext db)
     {
         return await db.Ingredients
+            .AsNoTracking()
             .Where(i => i.UpdatedAt > since)
             .Select(i => new IngredientSyncDto
             {
@@ -537,6 +546,7 @@ public static class SyncEndpoints
     private static async Task<List<RecipeSyncDto>> GetServerRecipes(DateTime since, RecipeDbContext db)
     {
         return await db.Recipes
+            .AsNoTracking()
             .Where(r => r.UpdatedAt > since)
             .Select(r => new RecipeSyncDto
             {
@@ -569,6 +579,7 @@ public static class SyncEndpoints
     private static async Task<List<MealPlanSyncDto>> GetServerMealPlans(DateTime since, RecipeDbContext db)
     {
         return await db.MealPlans
+            .AsNoTracking()
             .Where(mp => mp.UpdatedAt > since)
             .Select(mp => new MealPlanSyncDto
             {
