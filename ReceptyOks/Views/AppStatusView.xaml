@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="ReceptyOks.Views.AppStatusView"
+             xmlns:vm="clr-namespace:ReceptyOks.ViewModels"
+             xmlns:icons="clr-namespace:UraniumUI.Icons.MaterialSymbols;assembly=UraniumUI.Icons.MaterialSymbols"
+             xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+             xmlns:material="http://schemas.enisn-projects.io/dotnet/maui/uraniumui/material"
+             xmlns:blazor="clr-namespace:Microsoft.AspNetCore.Components.WebView.Maui;assembly=Microsoft.AspNetCore.Components.WebView.Maui"
+             xmlns:components="clr-namespace:ReceptyOks.BlazorComponents.Components;assembly=ReceptyOks.BlazorComponents"
+             x:DataType="vm:AppStatusViewModel"
+             Shell.NavBarIsVisible="False"
+             Title="Status Backendu"
+             Background="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource BlackBrownPurpleGradient}}">
+
+    <Grid RowDefinitions="Auto,*">
+        <!-- Custom Header -->
+        <Grid Grid.Row="0"
+              Padding="20,16"
+              ColumnDefinitions="Auto,*"
+              ColumnSpacing="12"
+              BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}">
+            <Grid.Shadow>
+                <Shadow Brush="{StaticResource Gray400Brush}" Offset="0,2" Radius="4" Opacity="0.1"/>
+            </Grid.Shadow>
+
+            <Button Grid.Column="0"
+                    Padding="8"
+                    CornerRadius="10"
+                    BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray600}}"
+                    VerticalOptions="Center"
+                    Command="{Binding GoBackCommand}">
+                <Button.ImageSource>
+                    <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Arrow_back}"
+                                     FontFamily="MaterialSymbolsOutlined"
+                                     Color="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"
+                                     Size="24"/>
+                </Button.ImageSource>
+            </Button>
+
+            <VerticalStackLayout Grid.Column="1" VerticalOptions="Center">
+                <Label Text="Diagnostyka Backendu" Style="{StaticResource PageTitle}" FontSize="20"/>
+            </VerticalStackLayout>
+        </Grid>
+
+        <!-- Main Content -->
+        <ScrollView Grid.Row="1" Padding="16">
+            <VerticalStackLayout Spacing="16">
+
+                <!-- Status Card -->
+                <Border StrokeShape="RoundRectangle 12"
+                        Stroke="{Binding StatusColor}"
+                        StrokeThickness="2"
+                        BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}"
+                        Padding="20">
+                    <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="Auto,*,Auto" RowSpacing="8" ColumnSpacing="12">
+
+                        <!-- Status Icon -->
+                        <Label Grid.Row="0" Grid.Column="0"
+                               Text="{Binding StatusIcon}"
+                               TextColor="{Binding StatusColor}"
+                               FontSize="48"
+                               VerticalOptions="Center"/>
+
+                        <!-- Status Info -->
+                        <VerticalStackLayout Grid.Row="0" Grid.Column="1" VerticalOptions="Center">
+                            <Label Text="{Binding StatusText}"
+                                   FontSize="24"
+                                   FontAttributes="Bold"
+                                   TextColor="{Binding StatusColor}"/>
+                            <Label Text="{Binding LastChecked, StringFormat='Sprawdzono: {0}'}"
+                                   FontSize="12"
+                                   TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray400}}"/>
+                        </VerticalStackLayout>
+
+                        <!-- Refresh Button - Top Right -->
+                        <Border Grid.Row="0" Grid.Column="2"
+                                StrokeShape="RoundRectangle 20"
+                                BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray800}}"
+                                Padding="10"
+                                VerticalOptions="Start"
+                                HorizontalOptions="End"
+                                IsVisible="{Binding IsLoading, Converter={toolkit:InvertedBoolConverter}}">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding CheckHealthCommand}"/>
+                            </Border.GestureRecognizers>
+                            <Image HeightRequest="22" WidthRequest="22">
+                                <Image.Source>
+                                    <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Sync}"
+                                                     FontFamily="MaterialSymbolsOutlined"
+                                                     Color="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray200}}"
+                                                     Size="22"/>
+                                </Image.Source>
+                            </Image>
+                        </Border>
+
+                        <!-- Loading Indicator - Top Right (when loading) -->
+                        <ActivityIndicator Grid.Row="0" Grid.Column="2"
+                                           IsRunning="{Binding IsLoading}"
+                                           IsVisible="{Binding IsLoading}"
+                                           Color="{StaticResource Primary}"
+                                           HeightRequest="30"
+                                           WidthRequest="30"
+                                           VerticalOptions="Start"
+                                           HorizontalOptions="End"/>
+
+                        <!-- Duration -->
+                        <HorizontalStackLayout Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3" Spacing="8">
+                            <Label Text="Czas odpowiedzi:" 
+                                   FontSize="14"
+                                   TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray400}}"/>
+                            <Label Text="{Binding TotalDuration}" 
+                                   FontSize="14"
+                                   FontAttributes="Bold"/>
+                        </HorizontalStackLayout>
+
+                        <!-- Error Message -->
+                        <Label Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3"
+                               Text="{Binding ErrorMessage}"
+                               TextColor="Red"
+                               FontSize="12"
+                               IsVisible="{Binding ErrorMessage, Converter={toolkit:IsNotNullConverter}}"/>
+                    </Grid>
+                </Border>
+
+                <!-- Memory Usage Section with Blazor ApexChart -->
+                <Border StrokeShape="RoundRectangle 12"
+                        Stroke="{Binding MemoryBarColor}"
+                        StrokeThickness="1"
+                        BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}"
+                        Padding="0"
+                        HeightRequest="380"
+                        IsVisible="{Binding HasMemoryData}">
+                    <blazor:BlazorWebView HostPage="wwwroot/index.html">
+                        <blazor:BlazorWebView.RootComponents>
+                            <blazor:RootComponent Selector="#app"
+                                                  ComponentType="{x:Type components:MemoryChartPage}"/>
+                        </blazor:BlazorWebView.RootComponents>
+                    </blazor:BlazorWebView>
+                </Border>
+
+                <!-- Health Checks List -->
+                <Label Text="Szczegóły health checków"
+                       FontSize="18"
+                       FontAttributes="Bold"
+                       Margin="0,8,0,0"
+                       IsVisible="{Binding HealthChecks.Count, Converter={toolkit:IsNotEqualConverter}, ConverterParameter=0}"/>
+
+                <CollectionView ItemsSource="{Binding HealthChecks}"
+                                IsVisible="{Binding HealthChecks.Count, Converter={toolkit:IsNotEqualConverter}, ConverterParameter=0}">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="vm:HealthCheckItemViewModel">
+                            <Border StrokeShape="RoundRectangle 8"
+                                    Stroke="{Binding StatusColor}"
+                                    StrokeThickness="1"
+                                    BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}"
+                                    Padding="12"
+                                    Margin="0,4">
+                                <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="12" RowSpacing="4">
+
+                                    <!-- Status dot -->
+                                    <Ellipse Grid.Row="0" Grid.Column="0"
+                                             WidthRequest="12"
+                                             HeightRequest="12"
+                                             Fill="{Binding StatusColor}"
+                                             VerticalOptions="Center"/>
+
+                                    <!-- Name -->
+                                    <Label Grid.Row="0" Grid.Column="1"
+                                           Text="{Binding Name}"
+                                           FontSize="16"
+                                           FontAttributes="Bold"
+                                           VerticalOptions="Center"/>
+
+                                    <!-- Duration -->
+                                    <Label Grid.Row="0" Grid.Column="2"
+                                           Text="{Binding Duration}"
+                                           FontSize="14"
+                                           TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray400}}"
+                                           VerticalOptions="Center"/>
+
+                                    <!-- Description & Tags -->
+                                    <HorizontalStackLayout Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Spacing="8">
+                                        <Label Text="{Binding Description}"
+                                               FontSize="12"
+                                               TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray400}}"
+                                               IsVisible="{Binding Description, Converter={toolkit:IsNotNullConverter}}"/>
+                                        <Label Text="{Binding Tags, StringFormat='[{0}]'}"
+                                               FontSize="11"
+                                               TextColor="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray500}}"
+                                               IsVisible="{Binding Tags, Converter={toolkit:IsStringNotNullOrEmptyConverter}}"/>
+                                    </HorizontalStackLayout>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+
+            </VerticalStackLayout>
+        </ScrollView>
+    </Grid>
+</ContentPage>

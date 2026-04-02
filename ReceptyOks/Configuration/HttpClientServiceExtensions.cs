@@ -63,6 +63,14 @@ internal static class HttpClientServiceExtensions
         .AddHttpMessageHandler<ApiKeyHandler>()
         .AddServiceDiscovery();
 
+        // HealthStatusService - no API key needed for health endpoints
+        services.AddHttpClient<IHealthStatusService, HealthStatusService>(client =>
+        {
+            client.BaseAddress = new Uri(baseUrl);
+            client.Timeout = TimeSpan.FromSeconds(10); // Short timeout for health checks
+        })
+        .AddServiceDiscovery();
+
         return services;
     }
 }

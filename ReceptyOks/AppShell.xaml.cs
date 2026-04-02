@@ -17,6 +17,7 @@ public partial class AppShell : Shell
         Routing.RegisterRoute(nameof(SettingsPage), typeof(SettingsPage));
         Routing.RegisterRoute("LoginPage", typeof(LoginPage));
         Routing.RegisterRoute(nameof(UserDetailsPage), typeof(UserDetailsPage));
+        Routing.RegisterRoute(nameof(AppStatusView), typeof(AppStatusView));
     }
     protected override async void OnAppearing()
     {

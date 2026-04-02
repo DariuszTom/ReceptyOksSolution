@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
 using ReceptyOks.Api.Endpoints;
 using ReceptyOks.Api.Extensions;
+using ReceptyOks.Api.Middleware;
 using ReceptyOks.Shared.Configuration;
 using Scalar.AspNetCore;
 using System.Text.Json.Serialization;
@@ -58,6 +60,10 @@ builder.Services.Configure<Microsoft.AspNetCore.ResponseCompression.GzipCompress
 
 // Konfiguracja bazy danych
 builder.Services.AddRecipeDatabase(builder.Environment, builder.Configuration);
+
+// Database health check
+builder.Services.AddHealthChecks()
+    .AddDbContextCheck<RecipeDbContext>("database", tags: ["ready"]);
 
 // OpenAPI
 builder.Services.AddOpenApi();

@@ -1,0 +1,78 @@
+@using ApexCharts
+@using ReceptyOks.BlazorComponents.Services
+@inject MemoryChartState ChartState
+@implements IDisposable
+
+<div class="memory-page-container">
+    <MemoryCharts @ref="MemoryChart"
+                  Title="Użycie pamięci serwera"
+                  Height="280"
+                  ThresholdMB="@ChartState.ThresholdMB"
+                  ShowThreshold="true"
+                  MemoryData="@MemoryData"
+                  IsLoading="@ChartState.IsLoading" />
+</div>
+
+<style>
+    .memory-page-container {
+        padding: 8px;
+        margin: 0;
+        background: transparent;
+        min-height: 100%;
+    }
+
+    :root {
+        --chart-bg: #1e1e2f;
+        --text-muted: #888;
+        --text-primary: #fff;
+        --border-color: #333;
+        --primary-color: #7c4dff;
+        --success-color: #4caf50;
+        --warning-color: #ff9800;
+        --error-color: #f44336;
+    }
+
+    body {
+        background: #1e1e2f;
+        margin: 0;
+        padding: 0;
+    }
+</style>
+
+@code {
+    private MemoryCharts? MemoryChart;
+
+    private List<MemoryCharts.MemoryDataPoint> MemoryData =>
+        ChartState.MemoryData
+            .Select(m => new MemoryCharts.MemoryDataPoint
+            {
+                Timestamp = m.Timestamp,
+                MemoryMB = m.MemoryMB
+            })
+            .ToList();
+
+    protected override void OnInitialized()
+    {
+        ChartState.OnChange += OnStateChanged;
+    }
+
+    private async void OnStateChanged()
+    {
+        await InvokeAsync(async () =>
+        {
+            StateHasChanged();
+
+            // Force chart refresh after state change
+            if (MemoryChart != null)
+            {
+                await Task.Delay(100);
+                await MemoryChart.RefreshChartAsync();
+            }
+        });
+    }
+
+    public void Dispose()
+    {
+        ChartState.OnChange -= OnStateChanged;
+    }
+}

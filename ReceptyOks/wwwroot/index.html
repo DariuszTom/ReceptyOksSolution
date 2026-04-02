@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <base href="/" />
+    <title>ReceptyOks Charts</title>
+    <link href="_content/ReceptyOks.BlazorComponents/css/htmlviewer.css" rel="stylesheet" />
+    <link href="_content/Blazor-ApexCharts/css/apexcharts.css" rel="stylesheet" />
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            background: #1e1e2f;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow-x: hidden;
+        }
+
+        #app {
+            min-height: 100%;
+        }
+
+        #app-loading { 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            height: 300px; 
+            color: #888; 
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div id="app-loading">Ładowanie wykresu...</div>
+    </div>
+
+    <script src="_content/Blazor-ApexCharts/js/apexcharts.min.js"></script>
+    <script src="_content/Blazor-ApexCharts/js/blazor-apexcharts.js"></script>
+    <script src="_framework/blazor.webview.js"></script>
+    <script>
+        // Remove loading indicator after timeout (Blazor WebView auto-starts)
+        setTimeout(function() {
+            var el = document.getElementById('app-loading');
+            if (el) el.style.display = 'none';
+        }, 2000);
+    </script>
+</body>
+</html>

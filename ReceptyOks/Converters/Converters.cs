@@ -363,3 +363,75 @@ public class BoolToGlyphConverter : IValueConverter
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
         => throw new NotImplementedException();
 }
+
+/// <summary>
+/// Converts memory usage in MB to a color based on threshold (400 MB).
+/// Green under 70%, Orange 70-90%, Red above 90%.
+/// </summary>
+public class MemoryToColorConverter : IValueConverter
+{
+    private const decimal ThresholdMB = 400;
+
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (value is not decimal memoryMB)
+            return Colors.Gray;
+
+        var percentage = memoryMB / ThresholdMB * 100;
+
+        return percentage switch
+        {
+            < 70 => Color.FromArgb("#4CAF50"),  // Green
+            < 90 => Color.FromArgb("#FF9800"),  // Orange
+            _ => Color.FromArgb("#F44336")       // Red
+        };
+    }
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => throw new NotImplementedException();
+}
+
+/// <summary>
+/// Converts memory usage in MB to bar height for mini chart (max 40px).
+/// </summary>
+public class MemoryToHeightConverter : IValueConverter
+{
+    private const decimal MaxMemoryMB = 500;
+    private const double MaxHeightPx = 40;
+
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (value is not decimal memoryMB)
+            return 4.0;
+
+        var ratio = Math.Min((double)(memoryMB / MaxMemoryMB), 1.0);
+        return Math.Max(4.0, ratio * MaxHeightPx);
+    }
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => throw new NotImplementedException();
+}
+
+/// <summary>
+/// Converts percentage (0.0-1.0) to width for progress bar.
+/// Uses parent width from parameter or defaults to 300.
+/// </summary>
+public class PercentToWidthConverter : IValueConverter
+{
+    private const double DefaultWidth = 300;
+
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        double maxWidth = DefaultWidth;
+        if (parameter is double paramWidth)
+            maxWidth = paramWidth;
+
+        if (value is double percent)
+            return Math.Max(0, Math.Min(percent * maxWidth, maxWidth));
+
+        return 0.0;
+    }
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => throw new NotImplementedException();
+}
