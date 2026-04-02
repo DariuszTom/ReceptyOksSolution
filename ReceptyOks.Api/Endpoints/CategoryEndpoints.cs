@@ -35,19 +35,6 @@ public static class CategoryEndpoints
                 .AsNoTracking()
                 .Where(r => r.CategoryId == id && !r.IsDeleted)
                 .OrderByDescending(r => r.CreatedAt)
-                .Select(r => new
-                {
-                    r.Id,
-                    r.Title,
-                    r.Description,
-                    r.PreparationTimeMinutes,
-                    r.CookingTimeMinutes,
-                    r.Servings,
-                    r.ImageContentType,
-                    r.CategoryId,
-                    r.CreatedAt,
-                    r.UpdatedAt
-                })
                 .ToListAsync().ConfigureAwait(false);
             return Results.Ok(recipes);
         })

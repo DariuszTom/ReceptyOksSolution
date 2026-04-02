@@ -44,10 +44,10 @@ public static class DatabaseExtensions
             services.AddDbContext<RecipeDbContext>(options =>
                 options.UseSqlServer(connectionString, opts =>
                 {
-                    opts.CommandTimeout(120);
+                    opts.CommandTimeout(240);
                     opts.EnableRetryOnFailure(
                         maxRetryCount: GlobalConstants.MaxRetryAttempts,
-                        maxRetryDelay: GlobalConstants.DefaultCancelationTokenTime,
+                        maxRetryDelay: TimeSpan.FromSeconds(10),
                         errorNumbersToAdd: null);
                     opts.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
                 })

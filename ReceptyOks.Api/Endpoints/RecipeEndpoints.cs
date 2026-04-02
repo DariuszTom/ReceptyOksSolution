@@ -119,23 +119,10 @@ public static class RecipeEndpoints
         {
             var recipes = await db.Recipes
                 .AsNoTracking()
+                .Include(r => r.Category)
                 .Where(r => !r.IsDeleted &&
                     (r.Title.Contains(query) || r.Description.Contains(query)))
                 .OrderByDescending(r => r.CreatedAt)
-                .Select(r => new
-                {
-                    r.Id,
-                    r.Title,
-                    r.Description,
-                    r.PreparationTimeMinutes,
-                    r.CookingTimeMinutes,
-                    r.Servings,
-                    r.ImageContentType,
-                    r.CategoryId,
-                    r.CreatedAt,
-                    r.UpdatedAt,
-                    Category = r.Category == null ? null : new { r.Category.Id, r.Category.Name }
-                })
                 .ToListAsync().ConfigureAwait(false);
             return Results.Ok(recipes);
         })

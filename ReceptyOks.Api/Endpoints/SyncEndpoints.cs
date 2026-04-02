@@ -79,7 +79,6 @@ public static class SyncEndpoints
                     })
                     .ToListAsync().ConfigureAwait(false),
                 Recipes = await db.Recipes
-                    .Where(r => true)
                     .Select(r => new RecipeSyncDto
                     {
                         Id = r.Id,
