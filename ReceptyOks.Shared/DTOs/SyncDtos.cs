@@ -1,4 +1,22 @@
+using ReceptyOks.Shared.Interfaces;
+
 namespace ReceptyOks.Shared.DTOs;
+
+/// <summary>
+/// Helper interface for entities with Id property.
+/// </summary>
+public interface IHasId
+{
+    Guid Id { get; }
+}
+
+/// <summary>
+/// Helper interface for entities with UpdatedAt timestamp.
+/// </summary>
+public interface IHasUpdatedAt
+{
+    DateTime UpdatedAt { get; }
+}
 
 /// <summary>
 /// ¯¹danie synchronizacji - klient wysy³a swoje zmiany
@@ -62,7 +80,7 @@ public class SyncResponse
     public List<MealPlanSyncDto> MealPlans { get; set; } = new List<MealPlanSyncDto>();
 }
 
-public class RecipeSyncDto
+public class RecipeSyncDto : IHasId, IHasUpdatedAt
 {
     public Guid Id { get; set; }
     public string Title { get; set; } = string.Empty;
@@ -80,7 +98,7 @@ public class RecipeSyncDto
     public List<RecipeIngredientSyncDto> Ingredients { get; set; } = new List<RecipeIngredientSyncDto>();
 }
 
-public class CategorySyncDto
+public class CategorySyncDto : IHasId, IHasUpdatedAt, ICategoryData
 {
     public Guid Id { get; set; }
     public string Name { get; set; } = string.Empty;
@@ -91,7 +109,7 @@ public class CategorySyncDto
     public bool IsDeleted { get; set; }
 }
 
-public class IngredientSyncDto
+public class IngredientSyncDto : IHasId, IHasUpdatedAt
 {
     public Guid Id { get; set; }
     public string Name { get; set; } = string.Empty;
@@ -111,7 +129,7 @@ public class RecipeIngredientSyncDto
     public int Order { get; set; }
 }
 
-public class MealPlanSyncDto
+public class MealPlanSyncDto : IHasId, IHasUpdatedAt
 {
     public Guid Id { get; set; }
     public DateTime Date { get; set; }

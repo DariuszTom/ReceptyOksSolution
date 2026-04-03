@@ -1,6 +1,8 @@
+using ReceptyOks.Shared.Interfaces;
+
 namespace ReceptyOks.Shared.Models;
 
-public class Category
+public class Category : ICategoryData
 {
     public Guid Id { get; set; }
     public string Name { get; set; } = string.Empty;

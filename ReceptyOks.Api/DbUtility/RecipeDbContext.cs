@@ -1,6 +1,6 @@
 namespace ReceptyOks.Api.Middleware;
 
-public class RecipeDbContext(DbContextOptions<RecipeDbContext> options) : DbContext(options)
+public class RecipeDbContext(DbContextOptions<RecipeDbContext> options) : DbContext(options), IRecipeDbContext
 {
     public DbSet<Recipe> Recipes => Set<Recipe>();
     public DbSet<Category> Categories => Set<Category>();

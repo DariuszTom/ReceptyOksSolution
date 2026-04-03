@@ -64,7 +64,8 @@ public class SyncService : ISyncService
 
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogError("Sync failed with status code {StatusCode}", response.StatusCode);
+                var errorBody = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                _logger.LogError("Sync failed with status code {StatusCode}. Response body: {ErrorBody}", response.StatusCode, errorBody);
                 result.Success = false;
                 result.Message = $"Błąd serwera: {response.StatusCode}";
                 return result;
@@ -240,7 +241,8 @@ public class SyncService : ISyncService
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    _logger.LogError("Upload-all batch {Batch} failed with status code {StatusCode}", i + 1, response.StatusCode);
+                    var errorBody = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    _logger.LogError("Upload-all batch {Batch} failed with status code {StatusCode}. Response body: {ErrorBody}", i + 1, response.StatusCode, errorBody);
                     result.Success = false;
                     result.Message = $"Błąd serwera (partia {i + 1}): {response.StatusCode}";
                     return result;

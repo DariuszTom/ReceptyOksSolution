@@ -1,3 +1,4 @@
+using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -5,6 +6,7 @@ using Microsoft.IdentityModel.Tokens;
 using ReceptyOks.Api.Endpoints;
 using ReceptyOks.Api.Extensions;
 using ReceptyOks.Api.Middleware;
+using ReceptyOks.Api.Validators;
 using ReceptyOks.Shared.Configuration;
 using Scalar.AspNetCore;
 using System.Text.Json.Serialization;
@@ -106,6 +108,13 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddSingleton(new CleanupOptions());
 
 builder.Services.AddHostedService<ShopingListCleaner>();
+
+// FluentValidation
+builder.Services.AddValidatorsFromAssemblyContaining<SyncRequestValidator>();
+
+// Register sync services
+builder.Services.AddScoped<ISyncRepository, SyncRepository>();
+builder.Services.AddScoped<ISyncService, SyncService>();
 
 var app = builder.Build();
 app.UseResponseCompression(); // Must be early in pipeline, before other middleware

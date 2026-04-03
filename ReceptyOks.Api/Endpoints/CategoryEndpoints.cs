@@ -1,3 +1,6 @@
+using FluentValidation;
+using ReceptyOks.Shared.Interfaces;
+
 namespace ReceptyOks.Api.Endpoints;
 
 public static class CategoryEndpoints
@@ -41,8 +44,14 @@ public static class CategoryEndpoints
         .WithName("GetRecipesByCategory");
 
         // POST - nowa kategoria
-        group.MapPost("/", async (Category category, RecipeDbContext db) =>
+        group.MapPost("/", async (Category category, IValidator<ICategoryData> validator, RecipeDbContext db) =>
         {
+            var validationResult = await validator.ValidateAsync(category).ConfigureAwait(false);
+            if (!validationResult.IsValid)
+            {
+                return Results.ValidationProblem(validationResult.ToDictionary());
+            }
+
             category.Id = category.Id == Guid.Empty ? Guid.NewGuid() : category.Id;
             category.CreatedAt = DateTime.UtcNow;
             category.UpdatedAt = DateTime.UtcNow;
@@ -55,8 +64,14 @@ public static class CategoryEndpoints
         .WithName("CreateCategory");
 
         // PUT - aktualizacja kategorii
-        group.MapPut("/{id:guid}", async (Guid id, Category updatedCategory, RecipeDbContext db) =>
+        group.MapPut("/{id:guid}", async (Guid id, Category updatedCategory, IValidator<ICategoryData> validator, RecipeDbContext db) =>
         {
+            var validationResult = await validator.ValidateAsync(updatedCategory).ConfigureAwait(false);
+            if (!validationResult.IsValid)
+            {
+                return Results.ValidationProblem(validationResult.ToDictionary());
+            }
+
             var category = await db.Categories.FindAsync(id).ConfigureAwait(false);
             if (category is null)
                 return Results.NotFound();
