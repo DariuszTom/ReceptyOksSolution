@@ -54,6 +54,7 @@
     protected override void OnInitialized()
     {
         ChartState.OnChange += OnStateChanged;
+        ChartState.SignalChartReady();
     }
 
     private async void OnStateChanged()
@@ -74,5 +75,6 @@
     public void Dispose()
     {
         ChartState.OnChange -= OnStateChanged;
+        ChartState.PauseChart();
     }
 }
