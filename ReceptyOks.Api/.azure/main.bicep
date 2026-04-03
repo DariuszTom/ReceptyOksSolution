@@ -1,11 +1,11 @@
 // =====================================================
 // ReceptyOks API - Azure Infrastructure (Bicep)
 // =====================================================
-// Ten plik tworzy całą infrastrukturę dla backendu:
+// This file creates the full infrastructure for the backend:
 // - Azure SQL Database (Basic tier)
 // - Container App Environment
 // - Container App (receptyoks-api)
-// - Key Vault (dla sekretów)
+// - Key Vault (for secrets)
 //
 // Deployment:
 //   az deployment group create \
@@ -14,34 +14,34 @@
 //     --parameters main.bicepparam
 // =====================================================
 
-@description('Lokalizacja dla wszystkich zasobów')
+@description('Location for all resources')
 param location string = resourceGroup().location
 
-@description('Nazwa aplikacji (używana jako prefix)')
+@description('Application name (used as a prefix)')
 param appName string = 'receptyoks'
 
-@description('Nazwa obrazu Docker (bez tagu)')
+@description('Docker image name (without tag)')
 param containerImage string
 
-@description('Tag obrazu Docker')
+@description('Docker image tag')
 param containerImageTag string = 'latest'
 
-@description('Nazwa serwera ACR (np. myacr.azurecr.io)')
+@description('ACR server name (e.g., myacr.azurecr.io)')
 param acrServer string
 
-@description('Klucz JWT do autentykacji API')
+@description('JWT key for API authentication')
 @secure()
 param jwtKey string
 
-@description('Klucz API dla dostępu do endpointów')
+@description('API key for endpoint access')
 @secure()
 param apiKey string
 
-@description('Hasło administratora SQL')
+@description('SQL administrator password')
 @secure()
 param sqlAdminPassword string
 
-@description('Login administratora SQL')
+@description('SQL administrator login')
 param sqlAdminLogin string = 'receptyoksadmin'
 
 // =====================================================
@@ -85,9 +85,9 @@ resource sqlFirewallAzure 'Microsoft.Sql/servers/firewallRules@2023-05-01-previe
 }
 
 // =====================================================
-// Log Analytics Workspace (opcjonalny - dla logów)
+// Log Analytics Workspace (optional - for logs)
 // =====================================================
-@description('Czy utworzyć Log Analytics? (false = tańsza opcja)')
+@description('Create Log Analytics workspace? (false = cheaper option)')
 param enableLogAnalytics bool = false
 
 resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2022-10-01' = if (enableLogAnalytics) {
