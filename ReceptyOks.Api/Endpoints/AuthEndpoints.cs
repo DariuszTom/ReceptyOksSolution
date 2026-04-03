@@ -4,7 +4,7 @@ using System.Security.Cryptography;
 namespace ReceptyOks.Api.Endpoints;
 
 /// <summary>
-/// Proste endpointy do uwierzytelniania za pomoc¹ zahashowanego has³a.
+/// Simple endpoints for authentication using a hashed password.
 /// </summary>
 public static class AuthEndpoints
 {
@@ -62,11 +62,11 @@ public static class AuthEndpoints
 }
 
 /// <summary>
-/// Request do walidacji hasła.
+/// Request for password validation.
 /// </summary>
 public sealed record AuthRequest(byte[] SecretHash);
 
 /// <summary>
-/// Odpowiedź z walidacji.
+/// Validation response.
 /// </summary>
 public sealed record AuthResponse(bool IsValid, string Message);

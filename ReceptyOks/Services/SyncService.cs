@@ -31,7 +31,7 @@ public class SyncService : ISyncService
 
         try
         {
-            // Sprawdź połączenie
+            // Check network connection
             var connectivity = Connectivity.Current.NetworkAccess;
             if (connectivity != NetworkAccess.Internet)
             {
@@ -42,7 +42,7 @@ public class SyncService : ISyncService
 
             var lastSync = await _localDb.GetLastSyncTimeAsync().ConfigureAwait(false);
 
-            // Pobierz lokalne zmiany do wysłania
+            // Fetch local changes to send
             var request = new SyncRequest
             {
                 LastSyncedAt = lastSync,
@@ -81,14 +81,14 @@ public class SyncService : ISyncService
                 return result;
             }
 
-            // Zastosuj zmiany z serwera lokalnie
+            // Apply server changes locally
             var applyResult = await ApplyServerChangesAsync(syncResponse).ConfigureAwait(false);
 
-            // Zawsze czyść dirty flags — serwer już przyjął zmiany klienta,
-            // więc ponowne wysłanie spowodowałoby duplikaty/konflikty.
+            // Always clear dirty flags — the server already accepted the client's changes,
+            // so resending would cause duplicates/conflicts.
             await _localDb.ClearDirtyFlagsAsync().ConfigureAwait(false);
 
-            // Raportuj liczbę faktycznie zastosowanych elementów (otrzymane - nieudane).
+            // Report the number of items actually applied (received - failed).
             result.CategoriesSynced = syncResponse.Categories.Count - applyResult.FailedCategories;
             result.IngredientsSynced = syncResponse.Ingredients.Count - applyResult.FailedIngredients;
             result.RecipesSynced = syncResponse.Recipes.Count - applyResult.FailedRecipes;
@@ -96,8 +96,8 @@ public class SyncService : ISyncService
 
             if (applyResult.TotalFailed > 0)
             {
-                // Nie przesuwaj LastSyncedAt — nieudane elementy muszą zostać
-                // ponownie pobrane przy następnej synchronizacji.
+                // Do not advance LastSyncedAt — failed items must be
+                // re-fetched on next synchronization.
                 _logger.LogWarning("Sync partial: {FailedItems} items failed to apply locally, keeping LastSyncedAt at {LastSync}", applyResult.TotalFailed, lastSync);
                 result.Success = true;
                 result.Message = $"Synchronizacja częściowa: {applyResult.TotalFailed} elementów nie zostało zastosowanych";
@@ -179,8 +179,8 @@ public class SyncService : ISyncService
     }
 
     /// <summary>
-    /// Wysyła wszystkie lokalne przepisy i kategorie na backend w partiach,
-    /// aby uniknąć przekroczenia limitu rozmiaru żądania (413 Request Entity Too Large).
+    /// Uploads all local recipes and categories to the backend in batches
+    /// to avoid exceeding request size limits (413 Request Entity Too Large).
     /// </summary>
     public async Task<SyncResult> UploadAllAsync()
     {

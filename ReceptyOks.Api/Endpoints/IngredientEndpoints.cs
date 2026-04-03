@@ -8,7 +8,7 @@ public static class IngredientEndpoints
             .WithTags("Ingredients")
             .RequireRateLimiting("fixed");
 
-        // GET - wszystkie sk³adniki
+        // GET - all ingredients
         group.MapGet("/", async (RecipeDbContext db) =>
         {
             var ingredients = await db.Ingredients
@@ -19,7 +19,7 @@ public static class IngredientEndpoints
         })
         .WithName("GetAllIngredients");
 
-        // GET - pojedynczy sk³adnik
+        // GET - single ingredient
         group.MapGet("/{id:guid}", async (Guid id, RecipeDbContext db) =>
         {
             var ingredient = await db.Ingredients.FindAsync(id).ConfigureAwait(false);
@@ -27,7 +27,7 @@ public static class IngredientEndpoints
         })
         .WithName("GetIngredientById");
 
-        // POST - nowy sk³adnik
+        // POST - create new ingredient
         group.MapPost("/", async (Ingredient ingredient, RecipeDbContext db) =>
         {
             ingredient.Id = ingredient.Id == Guid.Empty ? Guid.NewGuid() : ingredient.Id;
@@ -41,7 +41,7 @@ public static class IngredientEndpoints
         })
         .WithName("CreateIngredient");
 
-        // PUT - aktualizacja sk³adnika
+        // PUT - update ingredient
         group.MapPut("/{id:guid}", async (Guid id, Ingredient updatedIngredient, RecipeDbContext db) =>
         {
             var ingredient = await db.Ingredients.FindAsync(id).ConfigureAwait(false);
@@ -72,7 +72,7 @@ public static class IngredientEndpoints
         })
         .WithName("DeleteIngredient");
 
-        // Wyszukiwanie
+        // Search
         group.MapGet("/search", async (string query, RecipeDbContext db) =>
         {
             var ingredients = await db.Ingredients

@@ -11,7 +11,7 @@ public static class CategoryEndpoints
             .WithTags("Categories")
             .RequireRateLimiting("fixed");
 
-        // GET - wszystkie kategorie
+        // GET - all categories
         group.MapGet("/", async (RecipeDbContext db) =>
         {
             var categories = await db.Categories
@@ -23,7 +23,7 @@ public static class CategoryEndpoints
         })
         .WithName("GetAllCategories");
 
-        // GET - pojedyncza kategoria
+        // GET - single category
         group.MapGet("/{id:guid}", async (Guid id, RecipeDbContext db) =>
         {
             var category = await db.Categories.FindAsync(id).ConfigureAwait(false);
@@ -31,7 +31,7 @@ public static class CategoryEndpoints
         })
         .WithName("GetCategoryById");
 
-        // GET - przepisy w kategorii
+        // GET - recipes in category
         group.MapGet("/{id:guid}/recipes", async (Guid id, RecipeDbContext db) =>
         {
             var recipes = await db.Recipes
@@ -43,7 +43,7 @@ public static class CategoryEndpoints
         })
         .WithName("GetRecipesByCategory");
 
-        // POST - nowa kategoria
+        // POST - create new category
         group.MapPost("/", async (Category category, IValidator<ICategoryData> validator, RecipeDbContext db) =>
         {
             var validationResult = await validator.ValidateAsync(category).ConfigureAwait(false);
@@ -63,7 +63,7 @@ public static class CategoryEndpoints
         })
         .WithName("CreateCategory");
 
-        // PUT - aktualizacja kategorii
+        // PUT - update category
         group.MapPut("/{id:guid}", async (Guid id, Category updatedCategory, IValidator<ICategoryData> validator, RecipeDbContext db) =>
         {
             var validationResult = await validator.ValidateAsync(updatedCategory).ConfigureAwait(false);

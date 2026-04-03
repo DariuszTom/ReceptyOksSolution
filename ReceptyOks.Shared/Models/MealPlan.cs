@@ -1,34 +1,34 @@
 namespace ReceptyOks.Shared.Models;
 
 /// <summary>
-/// Plan posiłku — przypisanie przepisu do daty i godziny.
+/// Meal plan — assignment of a recipe to a date and time.
 /// </summary>
 public class MealPlan
 {
     public Guid Id { get; set; }
 
     /// <summary>
-    /// Data zaplanowanego posiłku (bez czasu).
+    /// Date of the scheduled meal (date only).
     /// </summary>
     public DateTime Date { get; set; }
 
     /// <summary>
-    /// Godzina rozpoczęcia posiłku (0–23).
+    /// Start hour of the meal (0–23).
     /// </summary>
     public int StartHour { get; set; }
 
     /// <summary>
-    /// Czas trwania przygotowania i gotowania w minutach.
+    /// Duration of preparation and cooking in minutes.
     /// </summary>
     public int DurationMinutes { get; set; } = 30;
 
     /// <summary>
-    /// ID przypisanego przepisu.
+    /// ID of the assigned recipe.
     /// </summary>
     public Guid RecipeId { get; set; }
 
     /// <summary>
-    /// Opcjonalna notatka do posiłku.
+    /// Optional note for the meal.
     /// </summary>
     public string? Notes { get; set; }
 

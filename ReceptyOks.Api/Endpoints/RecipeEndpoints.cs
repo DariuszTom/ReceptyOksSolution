@@ -23,7 +23,7 @@ public static class RecipeEndpoints
         })
         .WithName("GetAllRecipes");
 
-        // GET - pojedynczy przepis
+        // GET - single recipe
         group.MapGet("/{id:guid}", async (Guid id, RecipeDbContext db) =>
         {
             var recipe = await db.Recipes
@@ -37,7 +37,7 @@ public static class RecipeEndpoints
         })
         .WithName("GetRecipeById");
 
-        // GET - obraz przepisu
+        // GET - recipe image
         group.MapGet("/{id:guid}/image", async (Guid id, RecipeDbContext db) =>
         {
             var recipe = await db.Recipes
@@ -52,7 +52,7 @@ public static class RecipeEndpoints
         })
         .WithName("GetRecipeImage");
 
-        // POST - nowy przepis
+        // POST - create new recipe
         group.MapPost("/", async (Recipe recipe, RecipeDbContext db) =>
         {
             recipe.Id = recipe.Id == Guid.Empty ? Guid.NewGuid() : recipe.Id;
@@ -66,7 +66,7 @@ public static class RecipeEndpoints
         })
         .WithName("CreateRecipe");
 
-        // PUT - aktualizacja przepisu
+        // PUT - update recipe
         group.MapPut("/{id:guid}", async (Guid id, Recipe updatedRecipe, RecipeDbContext db) =>
         {
             var recipe = await db.Recipes
@@ -115,7 +115,7 @@ public static class RecipeEndpoints
         })
         .WithName("DeleteRecipe");
 
-        // Wyszukiwanie
+        // Search
         group.MapGet("/search", async (string query, RecipeDbContext db) =>
         {
             var recipes = await db.Recipes

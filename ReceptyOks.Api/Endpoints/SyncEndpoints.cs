@@ -11,7 +11,7 @@ public static class SyncEndpoints
             .WithTags("Synchronization")
             .RequireRateLimiting("fixed");
 
-        // POST - synchronizacja dwukierunkowa
+        // POST - two-way synchronization
         group.MapPost("/", async (
             SyncRequest request,
             IValidator<SyncRequest> validator,
@@ -32,7 +32,7 @@ public static class SyncEndpoints
             .WithName("Sync")
             .WithMetadata(new RequestSizeLimitAttribute(200_000_000));
 
-        // GET - pobierz wszystkie dane (początkowa synchronizacja)
+        // GET - retrieve all data (initial synchronization)
         group.MapGet("/full", async (ISyncService syncService) =>
         {
             var response = await syncService.GetFullSyncAsync().ConfigureAwait(false);
@@ -40,7 +40,7 @@ public static class SyncEndpoints
         })
             .WithName("FullSync");
 
-        // POST - upload wszystkich danych z klienta (nadpisuje serwer)
+        // POST - upload all client data (overwrites server)
         group.MapPost("/upload-all", async (
             SyncRequest request,
             IValidator<SyncRequest> validator,
