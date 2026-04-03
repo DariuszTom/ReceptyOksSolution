@@ -1,4 +1,5 @@
 <Solution>
+  <Project Path="ReceptyOks.Api.IntegrationTests/ReceptyOks.Api.IntegrationTests.csproj" />
   <Project Path="ReceptyOks.Api/ReceptyOks.Api.csproj" />
   <Project Path="ReceptyOks.BlazorComponents/ReceptyOks.BlazorComponents.csproj" />
   <Project Path="ReceptyOks.Shared/ReceptyOks.Shared.csproj" />
