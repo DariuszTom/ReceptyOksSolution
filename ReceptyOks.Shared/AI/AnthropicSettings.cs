@@ -39,7 +39,7 @@
                    Zawsze potwierdź zrozumienie przy skomplikowanych żądaniach.
                   """;
 
-        public string SystemPromtShopingList { get; set; } = $@"
+        public string SystemPromtShoppingList { get; set; } = $@"
             Jesteś asystentem do tworzenia list zakupów, z przepisami kulinarnymi jako kontekst.
             Sumuj składniki z podanych przepisów, eliminując duplikaty i standaryzując jednostki miar.
 

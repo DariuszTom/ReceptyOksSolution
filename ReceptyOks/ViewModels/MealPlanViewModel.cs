@@ -128,11 +128,11 @@ public partial class MealPlanViewModel : ObservableObject
 
             using (var anthritopicAgent = new AnthropicAgent(settings, tokenBytes))
             {
-                _agent = new AiAgent(anthritopicAgent.GetAgent(), settings.SystemPromtShopingList);
+                _agent = new AiAgent(anthritopicAgent.GetAgent(), settings.SystemPromtShoppingList);
             }
 
             // Register tools
-            _toolsRegistrar.RegisterToolsForShopingList(_agent);
+            _toolsRegistrar.RegisterToolsForShoppingList(_agent);
             IsAgentReady = true;
         }
         catch

@@ -140,9 +140,9 @@ public class ShopingListCleanerTests
         Assert.Pass();
     }
 
-    private ShopingListCleaner CreateService(CleanupOptions options) =>
+    private ShoppingListCleaner CreateService(CleanupOptions options) =>
         new(
             _serviceProvider.GetRequiredService<IServiceScopeFactory>(),
             options,
-            Mock.Of<ILogger<ShopingListCleaner>>());
+            Mock.Of<ILogger<ShoppingListCleaner>>());
 }

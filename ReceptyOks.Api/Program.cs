@@ -107,7 +107,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 builder.Services.AddSingleton(new CleanupOptions());
 
-builder.Services.AddHostedService<ShopingListCleaner>();
+builder.Services.AddHostedService<ShoppingListCleaner>();
 
 // FluentValidation
 builder.Services.AddValidatorsFromAssemblyContaining<SyncRequestValidator>();

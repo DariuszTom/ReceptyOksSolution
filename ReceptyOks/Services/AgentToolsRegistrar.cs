@@ -52,7 +52,7 @@ public class AgentToolsRegistrar
         agent.AddToolAsync<string, string>(GetMealPlansWithRecipesAsync,
                 "get_meal_plans_with_recipes", "Retrieves meal plans with their associated recipes for a date range. Parameter: dateRangeJson - JSON string with StartDate and EndDate in ISO 8601 format (e.g., {\"StartDate\":\"2024-01-01\",\"EndDate\":\"2024-01-07\"}).");
     }
-    public void RegisterToolsForShopingList(AiAgent agent)
+    public void RegisterToolsForShoppingList(AiAgent agent)
     {
         ArgumentNullException.ThrowIfNull(agent);
         agent.AddToolAsync<List<Guid>, string>(GetAllIngredientsAsyncForRecipes,

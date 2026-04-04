@@ -6,10 +6,10 @@ namespace ReceptyOks.Api.Middleware;
 /// Periodically hard-deletes shopping list items that were bought more than
 /// <see cref="CleanupOptions.MaxAge"/> ago. Runs on a recurring interval after a startup delay.
 /// </summary>
-public sealed class ShopingListCleaner(
+public sealed class ShoppingListCleaner(
     IServiceScopeFactory scopeFactory,
     CleanupOptions options,
-    ILogger<ShopingListCleaner> logger) : BackgroundService
+    ILogger<ShoppingListCleaner> logger) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
