@@ -21,6 +21,7 @@ public abstract class BlazorContentState
         {
             lock (_lock) return _isBlazorReady;
         }
+        set => _isBlazorReady = value;
     }
 
     /// <summary>

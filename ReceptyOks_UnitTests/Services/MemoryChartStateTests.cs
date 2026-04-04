@@ -11,6 +11,7 @@ public class MemoryChartStateTests
     public void SetUp()
     {
         _chartState = new MemoryChartState();
+        _chartState.IsBlazorReady = true;
     }
 
     #region Initial State Tests
