@@ -9,9 +9,6 @@ using ReceptyOks.Views;
 
 namespace ReceptyOks.ViewModels;
 
-/// <summary>
-/// ViewModel dla strony planowania menu na tydzień z timeline datowym.
-/// </summary>
 public partial class MealPlanViewModel : ObservableObject
 {
     private readonly LocalDatabase _database;
@@ -182,10 +179,6 @@ public partial class MealPlanViewModel : ObservableObject
         FilteredRecipes = new ObservableCollection<RecipeLocal>(source);
     }
 
-
-    /// <summary>
-    /// Ładuje dane dla bieżącego tygodnia.
-    /// </summary>
     [RelayCommand]
     private async Task LoadDataAsync()
     {
@@ -387,9 +380,6 @@ public partial class MealPlanViewModel : ObservableObject
         IsCategoryStepVisible = true;
     }
 
-    /// <summary>
-    /// Dodaje wybrany przepis do planu na wybrany dzień.
-    /// </summary>
     [RelayCommand]
     private async Task SelectRecipeAsync(RecipeLocal recipe)
     {

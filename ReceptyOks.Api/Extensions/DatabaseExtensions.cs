@@ -18,7 +18,7 @@ public static class DatabaseExtensions
 
         if (environment.IsDevelopment())
         {
-            // SQLite - baza w folderze Data aplikacji
+  
             var dataFolder = Path.Combine(environment.ContentRootPath, "Data");
             Directory.CreateDirectory(dataFolder);
             var dbName = configuration["Database:Name"] ?? "recipes.db";
@@ -32,8 +32,7 @@ public static class DatabaseExtensions
         }
         else
         {
-            // Production: użyj SQL Server z Key Vault (załadowane przez SecretsResolver)
-            connectionString = configuration.GetConnectionString("DefaultConnection");
+            connectionString = configuration.GetConnectionString("DefaultConnection") ?? string.Empty;
 
             if (string.IsNullOrWhiteSpace(connectionString))
             {
@@ -59,9 +58,6 @@ public static class DatabaseExtensions
         return services;
     }
 
-    /// <summary>
-    /// Automatycznie tworzy/migruje bazę danych przy starcie aplikacji.
-    /// </summary>
     public static IApplicationBuilder EnsureDatabaseCreated(this IApplicationBuilder app)
     {
         using var scope = app.ApplicationServices.CreateScope();

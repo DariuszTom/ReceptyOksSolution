@@ -24,7 +24,7 @@ public class NotificationManagerService : INotificationManagerService
     private int _messageId = System.Environment.TickCount;
     private int _pendingIntentId = System.Environment.TickCount;
 
-    private NotificationManagerCompat _compatManager = null!;
+    private NotificationManagerCompat? _compatManager = null!;
 
     private readonly WeakEventManager<NotificationEventArgs> _notificationEventManager = new();
 
