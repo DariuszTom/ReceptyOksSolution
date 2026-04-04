@@ -25,21 +25,12 @@ public partial class MealPlanViewModel : ObservableObject
     [ObservableProperty]
     private ObservableCollection<DayPlanItem> weekDays = [];
 
-    /// <summary>
-    /// Sloty datowe na timeline tygodnia (7 dni).
-    /// </summary>
     [ObservableProperty]
     private ObservableCollection<DateSlot> dateSlots = [];
 
-    /// <summary>
-    /// Czy timeline tygodnia jest rozwinięty.
-    /// </summary>
     [ObservableProperty]
     private bool isWeekExpanded = true;
 
-    /// <summary>
-    /// Podsumowanie posiłków na cały tydzień.
-    /// </summary>
     [ObservableProperty]
     private string weekMealCountText = "Brak posiłków";
 
@@ -334,9 +325,6 @@ public partial class MealPlanViewModel : ObservableObject
         await LoadDataAsync();
     }
 
-    /// <summary>
-    /// Użytkownik dotknął slot datowy na timeline tygodnia.
-    /// </summary>
     public void OnDateSlotTapped(DateSlot dateSlot)
     {
         if (dateSlot.IsPastDay) return;
