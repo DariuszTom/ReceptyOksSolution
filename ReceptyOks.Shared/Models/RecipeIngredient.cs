@@ -1,9 +1,11 @@
+using ReceptyOks.Shared.Interfaces;
+
 namespace ReceptyOks.Shared.Models;
 
 /// <summary>
 /// Tabela ³¹cz¹ca przepisy ze sk³adnikami (many-to-many)
 /// </summary>
-public class RecipeIngredient
+public class RecipeIngredient: IIngredient
 {
     public Guid Id { get; set; }
     public Guid RecipeId { get; set; }
@@ -32,4 +34,5 @@ public class RecipeIngredient
     // Nawigacja
     public Recipe? Recipe { get; set; }
     public Ingredient? Ingredient { get; set; }
+    public string Name { get => Ingredient?.Name ?? string.Empty; }
 }

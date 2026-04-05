@@ -54,7 +54,7 @@ public partial class RecipeEditViewModel : ObservableObject
     [ObservableProperty]
     private ObservableCollection<IngredientLocal> availableIngredients = [];
 
-    public IReadOnlyList<Jednostki> AvailableUnits { get; } = [.. Enum.GetValues<Jednostki>().Cast<Jednostki>()];
+    public IReadOnlyList<Units> AvailableUnits { get; } = [.. Enum.GetValues<Units>().Cast<Units>()];
 
     [ObservableProperty]
     private string newIngredientName = string.Empty;
@@ -63,7 +63,7 @@ public partial class RecipeEditViewModel : ObservableObject
     private string newIngredientQuantity = string.Empty;
 
     [ObservableProperty]
-    private Jednostki newIngredientUnit = Jednostki.Brak;
+    private Units newIngredientUnit = Units.Brak;
 
     [ObservableProperty]
     private string? ingredientErrorMessage;
@@ -171,8 +171,8 @@ public partial class RecipeEditViewModel : ObservableObject
             var ingredient = AvailableIngredients.FirstOrDefault(i => i.Id == ri.IngredientId);
             if (ingredient is not null)
             {
-                Jednostki selectedUnitLocal = Jednostki.Brak;
-                if (!string.IsNullOrWhiteSpace(ri.Unit) && Enum.TryParse<Jednostki>(ri.Unit, out var parsedUnitLocal))
+                Units selectedUnitLocal = Units.Brak;
+                if (!string.IsNullOrWhiteSpace(ri.Unit) && Enum.TryParse<Units>(ri.Unit, out var parsedUnitLocal))
                     selectedUnitLocal = parsedUnitLocal;
                 Ingredients.Add(new EditableIngredient
                 {
@@ -275,7 +275,7 @@ public partial class RecipeEditViewModel : ObservableObject
 
         NewIngredientName = string.Empty;
         NewIngredientQuantity = string.Empty;
-        NewIngredientUnit = Jednostki.Brak;
+        NewIngredientUnit = Units.Brak;
         IngredientErrorMessage = null;
         RefreshIngredientSuggestions();
     }
@@ -411,7 +411,7 @@ public partial class RecipeEditViewModel : ObservableObject
                 RecipeId = recipe.Id,
                 IngredientId = ingredientId,
                 Quantity = ingredient.Quantity,
-                Unit = ingredient.SelectedUnit != Jednostki.Brak ? ingredient.SelectedUnit.ToString() : null,
+                Unit = ingredient.SelectedUnit != Units.Brak ? ingredient.SelectedUnit.ToString() : null,
                 Notes = ingredient.Notes,
                 Order = order++
             });

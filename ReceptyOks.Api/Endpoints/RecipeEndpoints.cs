@@ -8,9 +8,17 @@ public static class RecipeEndpoints
             .WithTags("Recipes")
             .RequireRateLimiting("fixed");
 
-        // GET - wszystkie przepisy (bez usuniêtych)
-        group.MapGet("/", async (RecipeDbContext db) =>
+        // GET - all recipes without deleted ones (with pagination)
+        group.MapGet("/", async (int pageNumber = 1, int pageSize = 20, RecipeDbContext db = default!) =>
         {
+            if (pageNumber < 1) pageNumber = 1;
+            if (pageSize < 1) pageSize = 20;
+            if (pageSize > 100) pageSize = 100;
+
+            var totalCount = await db.Recipes
+                .Where(r => !r.IsDeleted)
+                .CountAsync().ConfigureAwait(false);
+
             var recipes = await db.Recipes
                 .AsNoTracking()
                 .Include(r => r.Category)
@@ -18,8 +26,18 @@ public static class RecipeEndpoints
                     .ThenInclude(ri => ri.Ingredient)
                 .Where(r => !r.IsDeleted)
                 .OrderByDescending(r => r.CreatedAt)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
                 .ToListAsync().ConfigureAwait(false);
-            return Results.Ok(recipes);
+
+            return Results.Ok(new
+            {
+                TotalCount = totalCount,
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize),
+                Data = recipes
+            });
         })
         .WithName("GetAllRecipes");
 

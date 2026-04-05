@@ -1,6 +1,9 @@
-﻿namespace ReceptyOks.ViewModels;
+﻿using ReceptyOks.Interfaces;
+using ReceptyOks.Shared.Interfaces;
 
-public class RecipeIngredientDisplay
+namespace ReceptyOks.ViewModels;
+
+public class RecipeIngredientDisplay : IIngredient
 {
     public string Name { get; set; } = string.Empty;
     public decimal Quantity { get; set; }

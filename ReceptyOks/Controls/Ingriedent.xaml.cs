@@ -73,26 +73,26 @@ public partial class Ingriedent : ContentView
 
     public static readonly BindableProperty SelectedUnitProperty = BindableProperty.Create(
         nameof(SelectedUnit),
-        typeof(Jednostki),
+        typeof(Units),
         typeof(Ingriedent),
-        Jednostki.Brak,
+        Units.Brak,
         BindingMode.TwoWay);
 
-    public Jednostki SelectedUnit
+    public Units SelectedUnit
     {
-        get => (Jednostki)GetValue(SelectedUnitProperty);
+        get => (Units)GetValue(SelectedUnitProperty);
         set => SetValue(SelectedUnitProperty, value);
     }
 
     public static readonly BindableProperty AvailableUnitsProperty = BindableProperty.Create(
         nameof(AvailableUnits),
-        typeof(IReadOnlyList<Jednostki>),
+        typeof(IReadOnlyList<Units>),
         typeof(Ingriedent),
-        Enum.GetValues(typeof(Jednostki)).Cast<Jednostki>().ToList() as IReadOnlyList<Jednostki>);
+        Enum.GetValues(typeof(Units)).Cast<Units>().ToList() as IReadOnlyList<Units>);
 
-    public IReadOnlyList<Jednostki> AvailableUnits
+    public IReadOnlyList<Units> AvailableUnits
     {
-        get => (IReadOnlyList<Jednostki>)GetValue(AvailableUnitsProperty);
+        get => (IReadOnlyList<Units>)GetValue(AvailableUnitsProperty);
         set => SetValue(AvailableUnitsProperty, value);
     }
 

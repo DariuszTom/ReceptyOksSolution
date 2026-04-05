@@ -16,7 +16,7 @@ public partial class EditableIngredient : ObservableObject
     private decimal quantity;
 
     [ObservableProperty]
-    private Jednostki selectedUnit = Jednostki.Brak;
+    private Units selectedUnit = Units.Brak;
 
     [ObservableProperty]
     private string notes = string.Empty;
@@ -31,7 +31,7 @@ public partial class EditableIngredient : ObservableObject
             var parts = new List<string> { IngredientName };
             if (Quantity > 0)
             {
-                var unitText = SelectedUnit != Jednostki.Brak ? SelectedUnit.ToString() : "";
+                var unitText = SelectedUnit != Units.Brak ? SelectedUnit.ToString() : "";
                 parts.Add($"{Quantity} {unitText}");
             }
             return string.Join(" ", parts);

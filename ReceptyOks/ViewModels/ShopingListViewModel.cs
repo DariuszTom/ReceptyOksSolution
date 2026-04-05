@@ -41,12 +41,12 @@ public partial class ShopingListViewModel : ObservableObject
     private string newItemQuantity = string.Empty;
 
     [ObservableProperty]
-    private Jednostki selectedUnit = Jednostki.Brak;
+    private Units selectedUnit = Units.Brak;
 
     /// <summary>
     /// Available units for the picker.
     /// </summary>
-    public IReadOnlyList<Jednostki> AvailableUnits { get; } = Enum.GetValues(typeof(Jednostki)).Cast<Jednostki>().ToList();
+    public IReadOnlyList<Units> AvailableUnits { get; } = Enum.GetValues(typeof(Units)).Cast<Units>().ToList();
 
     /// <summary>
     /// Ingredient name suggestions from local database for autocomplete.
@@ -209,7 +209,7 @@ public partial class ShopingListViewModel : ObservableObject
                 Name = NewItemName.Trim(),
                 Quantity = parsedQuantity,
                 BoughtBy = user?.Name,
-                Unit = SelectedUnit == Jednostki.Brak ? null : SelectedUnit.ToString(),
+                Unit = SelectedUnit == Units.Brak ? null : SelectedUnit.ToString(),
                 IsBought = false
             };
 
@@ -437,7 +437,7 @@ public partial class ShopingListViewModel : ObservableObject
     {
         NewItemName = string.Empty;
         NewItemQuantity = string.Empty;
-        SelectedUnit = Jednostki.Brak;
+        SelectedUnit = Units.Brak;
     }
 
     /// <summary>

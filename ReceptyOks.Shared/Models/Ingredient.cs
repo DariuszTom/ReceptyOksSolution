@@ -1,3 +1,4 @@
+
 namespace ReceptyOks.Shared.Models;
 
 public class Ingredient

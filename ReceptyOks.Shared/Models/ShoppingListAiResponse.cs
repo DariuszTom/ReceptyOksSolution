@@ -34,9 +34,9 @@ public class ShoppingListItemDto
     public decimal? Quantity { get; set; }
 
     /// <summary>
-    /// Unit of measurement of Jednostki Enum
+    /// Unit of measurement of Units Enum
     /// </summary>
-    public Jednostki? Unit { get; set; }
+    public Units? Unit { get; set; }
 
     /// <summary>
     /// Optional note about the ingredient.

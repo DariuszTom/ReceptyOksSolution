@@ -53,7 +53,7 @@
 
             Zasady:
             - quantity musi być liczbą (decimal) lub null jeśli nieznana
-            - unit to jednostka miary z listy: {string.Join(", ", EnumHelpers.ToList<Jednostki>())} lub null
+            - unit to jednostka miary z listy: {string.Join(", ", EnumHelpers.ToList<Units>())} lub null
             - note jest opcjonalne, używaj gdy składnik wymaga wyjaśnienia
             - Agreguj duplikaty sumując ilości
             - Standaryzuj jednostki (np. 1000 Gram -> 1 Kilogram)
