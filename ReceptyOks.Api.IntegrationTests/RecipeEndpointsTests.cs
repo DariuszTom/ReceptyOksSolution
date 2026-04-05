@@ -32,9 +32,9 @@ public class RecipeEndpointsTests
 
         // Assert
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-        var recipes = await response.Content.ReadFromJsonAsync<List<Recipe>>();
-        Assert.That(recipes, Is.Not.Null);
-        Assert.That(recipes, Is.Empty);
+        var paginatedResponse = await response.Content.ReadFromJsonAsync<PaginatedResponse<Recipe>>();
+        Assert.That(paginatedResponse, Is.Not.Null);
+        Assert.That(paginatedResponse!.Data, Is.Empty);
     }
 
     [Test]
@@ -175,8 +175,8 @@ public class RecipeEndpointsTests
 
         // Verify soft delete - recipe should not appear in list
         var getAllResponse = await _client.GetAsync("/api/recipes");
-        var recipes = await getAllResponse.Content.ReadFromJsonAsync<List<Recipe>>();
-        Assert.That(recipes!.Any(r => r.Id == createdRecipe.Id), Is.False);
+        var paginatedResponse = await getAllResponse.Content.ReadFromJsonAsync<PaginatedResponse<Recipe>>();
+        Assert.That(paginatedResponse!.Data.Any(r => r.Id == createdRecipe.Id), Is.False);
     }
 
     [Test]
