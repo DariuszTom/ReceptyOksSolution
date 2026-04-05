@@ -1,6 +1,6 @@
+using ReceptyOks.Shared.DTOs;
 using System.Net;
 using System.Net.Http.Json;
-using ReceptyOks.Shared.DTOs;
 
 namespace ReceptyOks.Api.IntegrationTests;
 

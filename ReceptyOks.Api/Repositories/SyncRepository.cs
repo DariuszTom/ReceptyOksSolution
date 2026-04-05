@@ -1,8 +1,3 @@
-using Microsoft.EntityFrameworkCore;
-using ReceptyOks.Api.Middleware;
-using ReceptyOks.Shared.DTOs;
-using ReceptyOks.Shared.Models;
-
 namespace ReceptyOks.Api.Repositories;
 
 /// <summary>

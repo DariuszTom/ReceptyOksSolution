@@ -1,5 +1,3 @@
-using System.Security.Cryptography;
-using System.Text;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
@@ -10,6 +8,8 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using ReceptyOks.Api.Middleware;
 using ReceptyOks.Shared;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace ReceptyOks.Api.IntegrationTests;
 
@@ -51,7 +51,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
             // Remove all DbContext-related registrations (including pooling services)
             var descriptorsToRemove = services
                 .Where(d => d.ServiceType.FullName?.Contains("RecipeDbContext") == true ||
-                            d.ServiceType.FullName?.Contains("EntityFramework") == true && 
+                            d.ServiceType.FullName?.Contains("EntityFramework") == true &&
                             d.ServiceType.FullName?.Contains("RecipeDbContext") == true)
                 .ToList();
 

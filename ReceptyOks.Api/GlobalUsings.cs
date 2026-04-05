@@ -5,4 +5,3 @@ global using ReceptyOks.Api.Repositories;
 global using ReceptyOks.Api.Services;
 global using ReceptyOks.Shared.DTOs;
 global using ReceptyOks.Shared.Models;
-global using System.Text.Json;

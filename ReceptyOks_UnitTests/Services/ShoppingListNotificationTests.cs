@@ -2,7 +2,6 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using ReceptyOks.Configuration;
 using ReceptyOks.Misc;
-using ReceptyOks.Models;
 using ReceptyOks.Services;
 using ReceptyOks.Shared.Models;
 

@@ -5,7 +5,7 @@ namespace ReceptyOks.Shared.Models;
 /// <summary>
 /// Tabela ³¹cz¹ca przepisy ze sk³adnikami (many-to-many)
 /// </summary>
-public class RecipeIngredient: IIngredient
+public class RecipeIngredient : IIngredient
 {
     public Guid Id { get; set; }
     public Guid RecipeId { get; set; }

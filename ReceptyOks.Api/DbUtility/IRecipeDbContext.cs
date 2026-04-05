@@ -1,6 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore.Internal;
-
-namespace ReceptyOks.Api.Middleware
+﻿namespace ReceptyOks.Api.Middleware
 {
     public interface IRecipeDbContext
     {

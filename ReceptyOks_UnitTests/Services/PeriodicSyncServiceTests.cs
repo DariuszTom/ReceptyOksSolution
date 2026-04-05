@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Moq;
 using ReceptyOks.Interfaces;
@@ -46,7 +45,7 @@ public class PeriodicSyncServiceTests
         await task;
 
         // Assert
-        _mockSyncService.Verify(x => x.SyncAsync(), Times.Never, 
+        _mockSyncService.Verify(x => x.SyncAsync(), Times.Never,
             "Sync should not run before startup delay");
     }
 
@@ -258,8 +257,8 @@ public class PeriodicSyncServiceTests
     private PeriodicSyncService CreateService(PeriodicSyncOptions? options = null)
     {
         return new PeriodicSyncService(
-            _mockSyncService.Object, 
-            options ?? _options, 
+            _mockSyncService.Object,
+            options ?? _options,
             _mockLogger.Object);
     }
 }

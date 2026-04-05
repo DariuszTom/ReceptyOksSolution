@@ -1,9 +1,4 @@
-﻿using System;
-
-using NUnit.Framework;
-using ReceptyOks.Shared.Misc;
-
-namespace ReceptyOks.Shared.Misc.UnitTests
+﻿namespace ReceptyOks.Shared.Misc.UnitTests
 {
     /// <summary>
     /// Unit tests for the <see cref="ExtensionMethods"/> class.

@@ -1,12 +1,4 @@
-﻿using System;
-using System.Globalization;
-
-using Microsoft.Maui;
-using Microsoft.Maui.ApplicationModel;
-using Microsoft.Maui.Controls;
-using Microsoft.Maui.Graphics;
-using NUnit.Framework;
-using ReceptyOks.Converters;
+﻿using System.Globalization;
 
 namespace ReceptyOks.Converters.UnitTests;
 

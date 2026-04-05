@@ -1,5 +1,3 @@
-using ReceptyOks.Shared.DTOs;
-
 namespace ReceptyOks.Api.Services;
 
 /// <summary>

@@ -149,7 +149,7 @@ public class SyncServiceTests
     [Test]
     public async Task SyncAsync_WhenSomeItemsFail_DoesNotUpdateLastSyncedAt()
     {
-       // Arrange
+        // Arrange
         var lastSync = DateTime.UtcNow.AddDays(-1);
         var newSyncedAt = DateTime.UtcNow;
 

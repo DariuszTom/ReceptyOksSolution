@@ -1,6 +1,4 @@
-﻿using System;
-using NUnit.Framework;
-using ReceptyOks.Services;
+﻿using ReceptyOks.Services;
 
 namespace ReceptyOks_UnitTests.Version
 {

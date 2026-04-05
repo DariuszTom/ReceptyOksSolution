@@ -18,7 +18,7 @@ public static class DatabaseExtensions
 
         if (environment.IsDevelopment())
         {
-  
+
             var dataFolder = Path.Combine(environment.ContentRootPath, "Data");
             Directory.CreateDirectory(dataFolder);
             var dbName = configuration["Database:Name"] ?? "recipes.db";

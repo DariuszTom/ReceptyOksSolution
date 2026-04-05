@@ -1,9 +1,5 @@
 ﻿global using System.Collections.Generic;
-global using System.Collections.ObjectModel;
-global using System.ComponentModel;
 global using System.Linq;
-global using System.Net.Http;
-global using System.Net.Http.Json;
 global using System.Text;
 global using System.Text.Json;
 global using System.Threading;

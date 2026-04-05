@@ -1,8 +1,3 @@
-using ReceptyOks.Api.Middleware;
-using ReceptyOks.Api.Repositories;
-using ReceptyOks.Shared.DTOs;
-using ReceptyOks.Shared.Models;
-
 namespace ReceptyOks.Api.Services;
 
 /// <summary>

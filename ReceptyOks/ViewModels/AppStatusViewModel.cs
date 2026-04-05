@@ -198,7 +198,7 @@ public partial class AppStatusViewModel : ObservableObject
             });
 
             // Extract memory data from memory health check
-            if (entry.Key.Equals("memory", StringComparison.OrdinalIgnoreCase) && 
+            if (entry.Key.Equals("memory", StringComparison.OrdinalIgnoreCase) &&
                 !string.IsNullOrEmpty(entry.Value.Description))
             {
                 ParseAndUpdateMemoryData(entry.Value.Description, entry.Value.Status);

@@ -1,5 +1,4 @@
-﻿using Microsoft.Agents.AI;
-using Microsoft.Extensions.AI;
+﻿using Microsoft.Extensions.AI;
 using Moq;
 using ReceptyOks.Shared.AI;
 using System.Text.Json;

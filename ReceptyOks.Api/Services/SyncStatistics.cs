@@ -1,5 +1,3 @@
-using Microsoft.Extensions.Logging;
-
 namespace ReceptyOks.Api.Services;
 
 /// <summary>

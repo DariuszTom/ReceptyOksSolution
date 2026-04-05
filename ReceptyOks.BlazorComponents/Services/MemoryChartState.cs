@@ -3,7 +3,7 @@ namespace ReceptyOks.BlazorComponents.Services;
 /// <summary>
 /// Shared state service for memory chart data between MAUI and Blazor
 /// </summary>
-public class MemoryChartState: BlazorContentState
+public class MemoryChartState : BlazorContentState
 {
     private readonly object _dataLock = new();
     private readonly List<MemoryDataPoint> _memoryData = [];
