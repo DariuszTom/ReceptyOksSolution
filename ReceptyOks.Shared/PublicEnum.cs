@@ -1,4 +1,6 @@
-﻿namespace ReceptyOks.Shared
+﻿using System.Runtime.CompilerServices;
+
+namespace ReceptyOks.Shared
 {
     public enum Units
     {
@@ -37,5 +39,13 @@
             Units.Zabek => true,
             _ => false
         };
+        public static Units Parse(string value)
+        {
+            if (Enum.TryParse<Units>(value, true, out var result))
+            {
+                return result;
+            }
+            return Units.Brak; // Default value if parsing fails
+        }
     }
 }

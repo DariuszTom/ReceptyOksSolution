@@ -46,15 +46,18 @@ namespace ReceptyOks.Shared.Misc
 
         /// <summary>
         /// Scales a list of ingredients from one form size to another.
+        /// Automatically rounds countable units (Sztuka, Opakowanie, Zabek) up to whole numbers.
         /// </summary>
         /// <param name="ingredients">Collection of ingredients implementing IIngredient.</param>
         /// <param name="originalForm">The original baking form from the recipe.</param>
         /// <param name="newForm">The new baking form to scale to.</param>
+        /// <param name="precision">Decimal precision for measurable ingredients (default: 1).</param>
         /// <returns>List of scaled ingredients with original and new quantities.</returns>
         public static List<ScaledIngredient> ScaleIngredients(
             IEnumerable<IIngredient> ingredients,
             BakingForm originalForm,
-            BakingForm newForm)
+            BakingForm newForm,
+            int precision = 1)
         {
             ArgumentNullException.ThrowIfNull(ingredients);
             ArgumentNullException.ThrowIfNull(originalForm);
@@ -66,6 +69,13 @@ namespace ReceptyOks.Shared.Misc
             foreach (var ingredient in ingredients)
             {
                 decimal scaledQuantity = ScaleIngredient(ingredient.Quantity, multiplier);
+                var unit = UnitsExtensions.Parse(ingredient.Unit);
+
+                // Round based on unit type: countable units round up, measurable units use precision
+                scaledQuantity = unit.IsCountable()
+                    ? Math.Ceiling(scaledQuantity)
+                    : Math.Round(scaledQuantity, precision);
+
                 scaledIngredients.Add(new ScaledIngredient(
                     ingredient.Name,
                     ingredient.Quantity,
@@ -101,39 +111,6 @@ namespace ReceptyOks.Shared.Misc
 
             double radius = diameter / 2;
             return Math.PI * radius * radius;
-        }
-
-        /// <summary>
-        /// Rounds an ingredient quantity appropriately based on the ingredient type.
-        /// For countable items (like eggs), rounds up to the nearest whole number.
-        /// For measurable items, rounds to a practical precision.
-        /// </summary>
-        /// <param name="quantity">The quantity to round.</param>
-        /// <param name="isCountable">Whether the ingredient is countable (e.g., eggs).</param>
-        /// <param name="precision">Decimal precision for measurable ingredients (default: 1).</param>
-        /// <returns>The rounded quantity.</returns>
-        public static decimal RoundIngredient(decimal quantity, bool isCountable, int precision = 1)
-        {
-            if (isCountable)
-            {
-                return Math.Ceiling(quantity);
-            }
-
-            return Math.Round(quantity, precision);
-        }
-
-        /// <summary>
-        /// Rounds an ingredient quantity based on its unit type.
-        /// Countable units (Sztuka, Opakowanie, Zabek) are rounded up.
-        /// Measurable units are rounded to the specified precision.
-        /// </summary>
-        /// <param name="quantity">The quantity to round.</param>
-        /// <param name="unit">The unit of the ingredient.</param>
-        /// <param name="precision">Decimal precision for measurable ingredients (default: 1).</param>
-        /// <returns>The rounded quantity.</returns>
-        public static decimal RoundIngredient(decimal quantity, Units unit, int precision = 1)
-        {
-            return RoundIngredient(quantity, unit.IsCountable(), precision);
         }
     }
 }
