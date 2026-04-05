@@ -1,5 +1,4 @@
-﻿using System.Runtime.CompilerServices;
-
+﻿
 namespace ReceptyOks.Shared
 {
     public enum Units
