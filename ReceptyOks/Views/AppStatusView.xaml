@@ -129,7 +129,7 @@
                         StrokeThickness="1"
                         BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}"
                         Padding="0"
-                        HeightRequest="380"
+                        HeightRequest="410"
                         IsVisible="{Binding HasMemoryData}">
                     <blazor:BlazorWebView HostPage="wwwroot/index.html">
                         <blazor:BlazorWebView.RootComponents>

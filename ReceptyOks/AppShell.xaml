@@ -46,15 +46,16 @@
                 ContentTemplate="{DataTemplate views:RecipesPage}"
                 Route="RecipesPage" />
         </Tab>
-        
-        <Tab Title="Losuj">
-           <Tab.Icon>
-              <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Casino}"
-                FontFamily="MaterialSymbolsOutlined"  Size="24"/>
-           </Tab.Icon>
+
+        <Tab Title="Lista Zakupów">
+            <Tab.Icon>
+                <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Shopping_cart}"
+                         FontFamily="MaterialSymbolsOutlined"
+                         Size="24"/>
+            </Tab.Icon>
             <ShellContent
-                  ContentTemplate="{DataTemplate views:RandomRecipePage}"
-                  Route="RandomRecipePage" />
+            ContentTemplate="{DataTemplate views:ShopingListPage}"
+            Route="CategoriesPage" />
         </Tab>
 
         <Tab Title="Plan">
@@ -78,18 +79,17 @@
                 ContentTemplate="{DataTemplate views:ChatBotPage}"
                 Route="ChatBotPage" />
         </Tab>
-        
-        <Tab Title="Lista Zakupów">
+
+        <Tab Title="Losuj">
             <Tab.Icon>
-                <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Shopping_cart}"
-                         FontFamily="MaterialSymbolsOutlined"
-                         Size="24"/>
+                <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Casino}"
+                FontFamily="MaterialSymbolsOutlined"  Size="24"/>
             </Tab.Icon>
             <ShellContent
-            ContentTemplate="{DataTemplate views:ShopingListPage}"
-            Route="CategoriesPage" />
+                  ContentTemplate="{DataTemplate views:RandomRecipePage}"
+                  Route="RandomRecipePage" />
         </Tab>
-        
+
         <Tab Title="Kategorie">
             <Tab.Icon>
                 <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Folder}"
