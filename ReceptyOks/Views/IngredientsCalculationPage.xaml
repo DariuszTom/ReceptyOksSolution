@@ -56,23 +56,21 @@
                     <Shadow Brush="{StaticResource Gray400Brush}" Offset="0,2" Radius="8" Opacity="0.1"/>
                 </Border.Shadow>
                 <VerticalStackLayout Spacing="12">
-                    <Label Text="Wybierz przepis"
-                           FontSize="16"
-                           FontAttributes="Bold"
-                           TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource Gray100}}"/>
-
                     <!-- Recipe Picker -->
-                    <material:PickerField Title="Wybierz przepis"
-                                          ItemsSource="{Binding Recipes}"
-                                          SelectedItem="{Binding SelectedRecipe}"
-                                          ItemDisplayBinding="{Binding Title}">
-                        <material:PickerField.Behaviors>
+                    <Picker Title="Wybierz przepis"
+                             ItemsSource="{Binding Recipes}"
+                             SelectedItem="{Binding SelectedRecipe}"
+                             ItemDisplayBinding="{Binding Title}"
+                             FontSize="15"
+                             TitleColor="{StaticResource Gray400}"
+                             TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource Gray100}}">
+                        <Picker.Behaviors>
                             <toolkit:EventToCommandBehavior
-                                EventName="SelectedValueChanged"
-                                Command="{Binding RecipeSelectedCommand}"
-                                CommandParameter="{Binding SelectedRecipe}"/>
-                        </material:PickerField.Behaviors>
-                    </material:PickerField>
+                                 EventName="SelectedIndexChanged"
+                                 Command="{Binding RecipeSelectedCommand}"
+                                 CommandParameter="{Binding SelectedRecipe}"/>          
+                        </Picker.Behaviors>
+                    </Picker>
                 </VerticalStackLayout>
             </Border>
 
