@@ -156,23 +156,6 @@ public class LocalDatabase : ILocalDatabase
             .OrderByDescending(r => r.CreatedAt)
             .ToListAsync().ConfigureAwait(false);
     }
-
-    public async IAsyncEnumerable<RecipeLocal> GetRecipesAsyncEnumerable(
-        [EnumeratorCancellation] CancellationToken cancellationToken = default)
-    {
-        var db = await GetConnectionAsync().ConfigureAwait(false);
-        var recipes = await db.Table<RecipeLocal>()
-            .Where(r => !r.IsDeleted)
-            .OrderByDescending(r => r.CreatedAt)
-            .ToListAsync().ConfigureAwait(false);
-
-        foreach (var recipe in recipes)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            yield return recipe;
-        }
-    }
-
     #endregion
 
     #region Categories

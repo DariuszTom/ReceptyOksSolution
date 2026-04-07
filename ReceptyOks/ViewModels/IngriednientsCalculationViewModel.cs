@@ -9,6 +9,8 @@ public partial class IngredientsCalculationViewModel(ILocalDatabase database) : 
     [ObservableProperty]
     private ObservableCollection<RecipeSummary> recipes = [];
 
+    public string[] FormTypes { get; } = Enum.GetNames<FormShape>();
+
     [ObservableProperty]
     private string searchQuery = string.Empty;
 

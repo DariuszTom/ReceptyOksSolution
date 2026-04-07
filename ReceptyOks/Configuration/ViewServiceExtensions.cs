@@ -27,6 +27,7 @@ internal static class ViewServiceExtensions
         services.AddTransient<ShopingListPage>();
         services.AddTransient<UserDetailsPage>();
         services.AddTransient<AppStatusView>();
+        services.AddTransient<IngredientsCalculationPage>();
 
         return services;
     }
