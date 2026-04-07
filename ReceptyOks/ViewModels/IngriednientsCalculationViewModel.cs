@@ -1,6 +1,4 @@
-﻿using ReceptyOks.Interfaces;
-using ReceptyOks.Models;
-using ReceptyOks.Shared.Misc;
+﻿using ReceptyOks.Shared.Misc;
 
 namespace ReceptyOks.ViewModels;
 

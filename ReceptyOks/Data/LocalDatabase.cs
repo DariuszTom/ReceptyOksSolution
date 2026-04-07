@@ -1,5 +1,6 @@
 using ReceptyOks.Configuration;
 using SQLite;
+using System.Runtime.CompilerServices;
 
 namespace ReceptyOks.Data;
 
@@ -134,6 +135,22 @@ public class LocalDatabase : ILocalDatabase
                 (r.Title.ToLower().Contains(lowerQuery) || r.Description.ToLower().Contains(lowerQuery)))
             .OrderByDescending(r => r.CreatedAt)
             .ToListAsync().ConfigureAwait(false);
+    }
+
+    public async IAsyncEnumerable<RecipeLocal> GetRecipesAsyncEnumerable(
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        var db = await GetConnectionAsync().ConfigureAwait(false);
+        var recipes = await db.Table<RecipeLocal>()
+            .Where(r => !r.IsDeleted)
+            .OrderByDescending(r => r.CreatedAt)
+            .ToListAsync().ConfigureAwait(false);
+
+        foreach (var recipe in recipes)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            yield return recipe;
+        }
     }
 
     #endregion

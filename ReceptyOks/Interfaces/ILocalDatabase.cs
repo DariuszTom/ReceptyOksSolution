@@ -1,4 +1,6 @@
-﻿namespace ReceptyOks.Data
+﻿using System.Runtime.CompilerServices;
+
+namespace ReceptyOks.Data
 {
     public interface ILocalDatabase
     {
@@ -44,5 +46,6 @@
         Task SaveRecipeIngredientsAsync(Guid recipeId, List<RecipeIngredientLocal> ingredients);
         Task<List<RecipeLocal>> SearchRecipesAsync(string query);
         Task SetLastSyncTimeAsync(DateTime syncTime);
+        IAsyncEnumerable<RecipeLocal> GetRecipesAsyncEnumerable([EnumeratorCancellation] CancellationToken cancellationToken = default);
     }
 }
