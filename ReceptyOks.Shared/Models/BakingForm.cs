@@ -1,4 +1,7 @@
-﻿namespace ReceptyOks.Shared.Misc
+﻿using System.ComponentModel;
+using System.Runtime.InteropServices;
+
+namespace ReceptyOks.Shared.Misc
 {
     /// <summary>
     /// Represents a baking form with its dimensions.
@@ -23,6 +26,7 @@
         /// <summary>
         /// Diameter in centimeters (for circular forms).
         /// </summary>
+        [DefaultValue(20d)]
         public double Diameter { get; set; }
 
         /// <summary>

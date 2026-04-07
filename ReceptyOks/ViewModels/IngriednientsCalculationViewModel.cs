@@ -1,4 +1,7 @@
-﻿using ReceptyOks.Shared.Misc;
+﻿using AsyncAwaitBestPractices;
+using ReceptyOks.Shared.Misc;
+using ReceptyOks.Services;
+using Microsoft.Maui.ApplicationModel;
 
 namespace ReceptyOks.ViewModels;
 
@@ -45,6 +48,7 @@ public partial class IngredientsCalculationViewModel(ILocalDatabase database) : 
 
     partial void OnOriginalFormShapeChanged(FormShape value) => OriginalForm.Shape = value;
     partial void OnNewFormShapeChanged(FormShape value) => NewForm.Shape = value;
+    partial void OnSelectedRecipeChanged(RecipeSummary? value) => RecipeSelectedCommand.ExecuteAsync(value).SafeFireAndForget();
 
     [RelayCommand]
     private async Task LoadRecipesAsync()
@@ -98,14 +102,25 @@ public partial class IngredientsCalculationViewModel(ILocalDatabase database) : 
     }
 
     [RelayCommand]
-    private void CalculateScaledIngredients()
+    private  void CalculateScaledIngredients()
     {
         if (Ingredients.Count == 0)
             return;
+        try
+        {
+            ScalingMultiplier = FormCalculator.CalculateMultiplier(OriginalForm, NewForm);
+            var scaled = FormCalculator.ScaleIngredients(Ingredients, OriginalForm, NewForm);
+            ScaledIngredients = new ObservableCollection<ScaledIngredient>(scaled);
+        }
+        catch (DivideByZeroException)
+        {
+            // Wymiary formy nie mogą być zerowe - pokaż informację użytkownikowi
+            MainThread.InvokeOnMainThreadAsync(async () =>
+            {
+                await SnackBarHelper.ShowErrorSnackbarAsync("Błąd: wymiar formy nie może być zerowy.");
+            }).SafeFireAndForget();
+        }
 
-        ScalingMultiplier = FormCalculator.CalculateMultiplier(OriginalForm, NewForm);
-        var scaled = FormCalculator.ScaleIngredients(Ingredients, OriginalForm, NewForm);
-        ScaledIngredients = new ObservableCollection<ScaledIngredient>(scaled);
     }
 
     [RelayCommand]
