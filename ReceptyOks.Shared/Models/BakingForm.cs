@@ -8,22 +8,22 @@
         /// <summary>
         /// Shape of the baking form.
         /// </summary>
-        public FormShape Shape { get; init; }
+        public FormShape Shape { get; set; }
 
         /// <summary>
         /// Width in centimeters (for rectangular forms).
         /// </summary>
-        public double Width { get; init; }
+        public double Width { get; set; }
 
         /// <summary>
         /// Length in centimeters (for rectangular forms).
         /// </summary>
-        public double Length { get; init; }
+        public double Length { get; set; }
 
         /// <summary>
         /// Diameter in centimeters (for circular forms).
         /// </summary>
-        public double Diameter { get; init; }
+        public double Diameter { get; set; }
 
         /// <summary>
         /// Creates a rectangular baking form.

@@ -1,9 +1,10 @@
 ﻿using ReceptyOks.Interfaces;
 using ReceptyOks.Models;
+using ReceptyOks.Shared.Misc;
 
 namespace ReceptyOks.ViewModels;
 
-public partial class IngriednientsCalculationViewModel(ILocalDatabase database) : ObservableObject
+public partial class IngredientsCalculationViewModel(ILocalDatabase database) : ObservableObject
 {
     private readonly ILocalDatabase _database = database;
 
@@ -20,7 +21,19 @@ public partial class IngriednientsCalculationViewModel(ILocalDatabase database) 
     private ObservableCollection<RecipeIngredientDisplay> ingredients = [];
 
     [ObservableProperty]
+    private ObservableCollection<ScaledIngredient> scaledIngredients = [];
+
+    [ObservableProperty]
     private bool isLoading;
+
+    [ObservableProperty]
+    private BakingForm originalForm = BakingForm.Circular(24);
+
+    [ObservableProperty]
+    private BakingForm newForm = BakingForm.Circular(26);
+
+    [ObservableProperty]
+    private decimal scalingMultiplier = 1;
 
     [RelayCommand]
     private async Task LoadRecipesAsync()
@@ -65,6 +78,7 @@ public partial class IngriednientsCalculationViewModel(ILocalDatabase database) 
                 .ToList();
 
             Ingredients = new ObservableCollection<RecipeIngredientDisplay>(displayItems);
+            ScaledIngredients.Clear();
         }
         finally
         {
@@ -73,10 +87,23 @@ public partial class IngriednientsCalculationViewModel(ILocalDatabase database) 
     }
 
     [RelayCommand]
+    private void CalculateScaledIngredients()
+    {
+        if (Ingredients.Count == 0)
+            return;
+
+        ScalingMultiplier = FormCalculator.CalculateMultiplier(OriginalForm, NewForm);
+        var scaled = FormCalculator.ScaleIngredients(Ingredients, OriginalForm, NewForm);
+        ScaledIngredients = new ObservableCollection<ScaledIngredient>(scaled);
+    }
+
+    [RelayCommand]
     private void ClearSelection()
     {
         SelectedRecipe = null;
         SearchQuery = string.Empty;
         Ingredients.Clear();
+        ScaledIngredients.Clear();
+        ScalingMultiplier = 1;
     }
 }
