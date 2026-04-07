@@ -44,6 +44,26 @@ public class LocalDatabase : ILocalDatabase
             .ToListAsync().ConfigureAwait(false);
     }
 
+    public async Task<List<RecipeSummary>> GetRecipeSummariesAsync(string? searchQuery = null)
+    {
+        var db = await GetConnectionAsync().ConfigureAwait(false);
+
+        var query = db.Table<RecipeLocal>().Where(r => !r.IsDeleted);
+
+        if (!string.IsNullOrWhiteSpace(searchQuery))
+        {
+            var lowerQuery = searchQuery.ToLower();
+            query = query.Where(r => r.Title.ToLower().Contains(lowerQuery));
+        }
+
+        var recipes = await query
+            .OrderBy(r => r.Title)
+            .ToListAsync()
+            .ConfigureAwait(false);
+
+        return recipes.Select(r => new RecipeSummary(r.Id, r.Title)).ToList();
+    }
+
     public async Task<RecipeLocal?> GetRecipeAsync(Guid id)
     {
         var db = await GetConnectionAsync().ConfigureAwait(false);

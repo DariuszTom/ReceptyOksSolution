@@ -7,13 +7,13 @@ public partial class IngredientsCalculationViewModel(ILocalDatabase database) : 
     private readonly ILocalDatabase _database = database;
 
     [ObservableProperty]
-    private ObservableCollection<RecipeLocal> recipes = [];
+    private ObservableCollection<RecipeSummary> recipes = [];
 
     [ObservableProperty]
     private string searchQuery = string.Empty;
 
     [ObservableProperty]
-    private RecipeLocal? selectedRecipe;
+    private RecipeSummary? selectedRecipe;
 
     [ObservableProperty]
     private ObservableCollection<RecipeIngredientDisplay> ingredients = [];
@@ -39,11 +39,10 @@ public partial class IngredientsCalculationViewModel(ILocalDatabase database) : 
         try
         {
             IsLoading = true;
-            var recipeList = string.IsNullOrWhiteSpace(SearchQuery)
-                ? await _database.GetRecipesAsync()
-                : await _database.SearchRecipesAsync(SearchQuery);
+            var recipeList = await _database.GetRecipeSummariesAsync(
+                string.IsNullOrWhiteSpace(SearchQuery) ? null : SearchQuery);
 
-            Recipes = new ObservableCollection<RecipeLocal>(recipeList);
+            Recipes = new ObservableCollection<RecipeSummary>(recipeList);
         }
         finally
         {
