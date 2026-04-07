@@ -1,3 +1,4 @@
+using ReceptyOks.Shared.Models;
 using SQLite;
 
 namespace ReceptyOks.Data;
@@ -45,34 +46,28 @@ public class CategoryLocal
 }
 
 [Table("Ingredients")]
-public class IngredientLocal
+public class IngredientLocal : IngredientBase
 {
     [PrimaryKey]
-    public Guid Id { get; set; }
-    public string Name { get; set; } = string.Empty;
-    public string? Unit { get; set; }
-    public DateTime CreatedAt { get; set; }
-    public DateTime UpdatedAt { get; set; }
-    public bool IsDeleted { get; set; }
+    public override Guid Id { get; set; }
+
+    /// <summary>
+    /// Whether the record needs synchronization with the server.
+    /// </summary>
     public bool IsDirty { get; set; }
 }
 
 [Table("RecipeIngredients")]
-public class RecipeIngredientLocal
+public class RecipeIngredientLocal : RecipeIngredientBase
 {
     [PrimaryKey]
-    public Guid Id { get; set; }
+    public override Guid Id { get; set; }
 
     [Indexed]
     public Guid RecipeId { get; set; }
 
     [Indexed]
-    public Guid IngredientId { get; set; }
-
-    public decimal Quantity { get; set; }
-    public string? Unit { get; set; }
-    public string? Notes { get; set; }
-    public int Order { get; set; }
+    public override Guid IngredientId { get; set; }
 }
 
 [Table("SyncInfo")]

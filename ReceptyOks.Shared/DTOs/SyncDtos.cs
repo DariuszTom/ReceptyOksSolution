@@ -109,24 +109,18 @@ public class CategorySyncDto : IHasId, IHasUpdatedAt, ICategoryData
     public bool IsDeleted { get; set; }
 }
 
-public class IngredientSyncDto : IHasId, IHasUpdatedAt
+/// <summary>
+/// Sync DTO for ingredient master data.
+/// </summary>
+public class IngredientSyncDto : Models.IngredientBase, IHasId, IHasUpdatedAt
 {
-    public Guid Id { get; set; }
-    public string Name { get; set; } = string.Empty;
-    public string? Unit { get; set; }
-    public DateTime CreatedAt { get; set; }
-    public DateTime UpdatedAt { get; set; }
-    public bool IsDeleted { get; set; }
 }
 
-public class RecipeIngredientSyncDto
+/// <summary>
+/// Sync DTO for recipe-ingredient join data.
+/// </summary>
+public class RecipeIngredientSyncDto : Models.RecipeIngredientBase
 {
-    public Guid Id { get; set; }
-    public Guid IngredientId { get; set; }
-    public decimal Quantity { get; set; }
-    public string? Unit { get; set; }
-    public string? Notes { get; set; }
-    public int Order { get; set; }
 }
 
 public class MealPlanSyncDto : IHasId, IHasUpdatedAt
