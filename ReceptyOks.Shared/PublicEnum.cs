@@ -36,6 +36,9 @@ namespace ReceptyOks.Shared
             Units.Sztuka => true,
             Units.Opakowanie => true,
             Units.Zabek => true,
+            Units.Lyzeczka=> true,
+            Units.Lyzka=>true,
+            Units.Szczypta=>true,
             _ => false
         };
         public static Units Parse(string value)

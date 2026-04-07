@@ -35,6 +35,8 @@
             <converters:MemoryToColorConverter x:Key="MemoryToColorConverter"/>
             <converters:MemoryToHeightConverter x:Key="MemoryToHeightConverter"/>
             <converters:PercentToWidthConverter x:Key="PercentToWidthConverter"/>
+            <converters:EnumToStringConverter x:Key="EnumToStringConverter"/>
+            <converters:EqualConverter x:Key="EqualConverter"/>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

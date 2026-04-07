@@ -89,6 +89,16 @@
                   ContentTemplate="{DataTemplate views:RandomRecipePage}"
                   Route="RandomRecipePage" />
         </Tab>
+        <Tab Title="Przelicznik foremek">
+            <Tab.Icon>
+                <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Bakery_dining}"
+                                 FontFamily="MaterialSymbolsOutlined"
+                                 Size="24"/>
+            </Tab.Icon>
+            <ShellContent
+                ContentTemplate="{DataTemplate views:IngredientsCalculationPage}"
+                Route="CategoriesPage" />
+        </Tab>
 
         <Tab Title="Kategorie">
             <Tab.Icon>

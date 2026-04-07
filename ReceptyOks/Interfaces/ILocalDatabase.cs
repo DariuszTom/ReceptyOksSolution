@@ -1,4 +1,6 @@
-﻿namespace ReceptyOks.Data
+﻿using System.Runtime.CompilerServices;
+
+namespace ReceptyOks.Data
 {
     public interface ILocalDatabase
     {
@@ -33,6 +35,7 @@
         Task<RecipeLocal?> GetRecipeAsync(Guid id);
         Task<List<RecipeIngredientLocal>> GetRecipeIngredientsAsync(Guid recipeId);
         Task<List<RecipeLocal>> GetRecipesAsync();
+        Task<List<RecipeSummary>> GetRecipeSummariesAsync(string? searchQuery = null);
         Task<List<RecipeLocal>> GetRecipesByCategoryAndIngriendentsAsync(Guid categoryId, IEnumerable<Guid>? ingredientsId);
         Task<List<RecipeLocal>> GetRecipesByCategoryAsync(Guid categoryId);
         Task<int> PurgeDeletedConversationsAsync();
