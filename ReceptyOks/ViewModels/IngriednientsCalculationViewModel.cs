@@ -9,10 +9,7 @@ public partial class IngredientsCalculationViewModel(ILocalDatabase database) : 
     [ObservableProperty]
     private ObservableCollection<RecipeSummary> recipes = [];
 
-    public string[] FormTypes { get; } = Enum.GetNames<FormShape>();
-
-    [ObservableProperty]
-    private string searchQuery = string.Empty;
+    public FormShape[] FormTypes { get; } = Enum.GetValues<FormShape>();
 
     [ObservableProperty]
     private RecipeSummary? selectedRecipe;
@@ -35,15 +32,27 @@ public partial class IngredientsCalculationViewModel(ILocalDatabase database) : 
     [ObservableProperty]
     private decimal scalingMultiplier = 1;
 
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsOriginalFormCircular))]
+    private FormShape originalFormShape = FormShape.Circular;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsNewFormCircular))]
+    private FormShape newFormShape = FormShape.Circular;
+
+    public bool IsOriginalFormCircular => OriginalFormShape == FormShape.Circular;
+    public bool IsNewFormCircular => NewFormShape == FormShape.Circular;
+
+    partial void OnOriginalFormShapeChanged(FormShape value) => OriginalForm.Shape = value;
+    partial void OnNewFormShapeChanged(FormShape value) => NewForm.Shape = value;
+
     [RelayCommand]
     private async Task LoadRecipesAsync()
     {
         try
         {
             IsLoading = true;
-            var recipeList = await _database.GetRecipeSummariesAsync(
-                string.IsNullOrWhiteSpace(SearchQuery) ? null : SearchQuery);
-
+            var recipeList = await _database.GetRecipeSummariesAsync();
             Recipes = new ObservableCollection<RecipeSummary>(recipeList);
         }
         finally
@@ -53,12 +62,15 @@ public partial class IngredientsCalculationViewModel(ILocalDatabase database) : 
     }
 
     [RelayCommand]
-    private async Task LoadIngredientsAsync(Guid recipeId)
+    private async Task RecipeSelectedAsync(RecipeSummary? recipe)
     {
+        if (recipe is null)
+            return;
+
         try
         {
             IsLoading = true;
-            var recipeIngredients = await _database.GetRecipeIngredientsAsync(recipeId);
+            var recipeIngredients = await _database.GetRecipeIngredientsAsync(recipe.Id);
             var allIngredients = await _database.GetIngredientsAsync();
 
             var displayItems = recipeIngredients
@@ -100,7 +112,6 @@ public partial class IngredientsCalculationViewModel(ILocalDatabase database) : 
     private void ClearSelection()
     {
         SelectedRecipe = null;
-        SearchQuery = string.Empty;
         Ingredients.Clear();
         ScaledIngredients.Clear();
         ScalingMultiplier = 1;

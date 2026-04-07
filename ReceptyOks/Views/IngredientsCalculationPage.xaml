@@ -2,33 +2,378 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="ReceptyOks.Views.IngredientsCalculationPage"
+             x:Name="PageRoot"
              xmlns:vm="clr-namespace:ReceptyOks.ViewModels"
+             xmlns:data="clr-namespace:ReceptyOks.Data"
+             xmlns:misc="clr-namespace:ReceptyOks.Shared.Misc;assembly=ReceptyOks.Shared"
              xmlns:icons="clr-namespace:UraniumUI.Icons.MaterialSymbols;assembly=UraniumUI.Icons.MaterialSymbols"
              xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
              xmlns:material="http://schemas.enisn-projects.io/dotnet/maui/uraniumui/material"
+             xmlns:validation="clr-namespace:InputKit.Shared.Validations;assembly=InputKit.Maui"
              x:DataType="vm:IngredientsCalculationViewModel"
              Shell.NavBarIsVisible="False"
              Background="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource BlackBrownPurpleGradient}}"
              Title="Przelicznik foremek">
-    <Grid RowDefinitions="Auto,*">
 
-        <!-- Custom Header -->
-        <Grid Grid.Row="0"
-              Padding="20,16"
-              BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}">
-            <Grid.Shadow>
-                <Shadow Brush="{StaticResource Gray400Brush}" Offset="0,2" Radius="4" Opacity="0.1"/>
-            </Grid.Shadow>
-            <VerticalStackLayout>
-                <HorizontalStackLayout VerticalOptions="Center">
-                    <Image Source="bakingtray.png" HorizontalOptions="Center" VerticalOptions="Center" HeightRequest="24" WidthRequest="24" Margin="0,0,5,0"/>
-                    <Label Text="Przelicznik foremek"
-                       Style="{StaticResource PageTitle}"
-                       FontSize="24"/>
-                </HorizontalStackLayout>
-                <Label Text="Wybierz formę i przepis"
-                           Style="{StaticResource CaptionLabel}"/>
-            </VerticalStackLayout>
+    <ScrollView>
+        <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,*" Padding="0,0,0,20">
+
+            <!-- Custom Header -->
+            <Grid Grid.Row="0"
+                  Padding="20,16"
+                  BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}">
+                <Grid.Shadow>
+                    <Shadow Brush="{StaticResource Gray400Brush}" Offset="0,2" Radius="4" Opacity="0.1"/>
+                </Grid.Shadow>
+                <Grid ColumnDefinitions="*,Auto">
+                    <VerticalStackLayout>
+                        <HorizontalStackLayout VerticalOptions="Center">
+                            <Image Source="bakingtray.png" HeightRequest="24" WidthRequest="24" Margin="0,0,8,0"/>
+                            <Label Text="Przelicznik foremek"
+                                   Style="{StaticResource PageTitle}"
+                                   FontSize="24"/>
+                        </HorizontalStackLayout>
+                        <Label Text="Przelicz składniki na inny rozmiar formy"
+                               Style="{StaticResource CaptionLabel}"/>
+                    </VerticalStackLayout>
+                    <ActivityIndicator Grid.Column="1"
+                                       IsRunning="{Binding IsLoading}"
+                                       IsVisible="{Binding IsLoading}"
+                                       HeightRequest="24"
+                                       WidthRequest="24"
+                                       Color="{StaticResource Primary}"/>
+                </Grid>
+            </Grid>
+
+            <!-- Recipe Search Section -->
+            <Border Grid.Row="1"
+                    Margin="16,16,16,8"
+                    Padding="16"
+                    StrokeThickness="0"
+                    StrokeShape="RoundRectangle 16"
+                    BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}">
+                <Border.Shadow>
+                    <Shadow Brush="{StaticResource Gray400Brush}" Offset="0,2" Radius="8" Opacity="0.1"/>
+                </Border.Shadow>
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="Wybierz przepis"
+                           FontSize="16"
+                           FontAttributes="Bold"
+                           TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource Gray100}}"/>
+
+                    <!-- Recipe Picker -->
+                    <material:PickerField Title="Wybierz przepis"
+                                          ItemsSource="{Binding Recipes}"
+                                          SelectedItem="{Binding SelectedRecipe}"
+                                          ItemDisplayBinding="{Binding Title}">
+                        <material:PickerField.Behaviors>
+                            <toolkit:EventToCommandBehavior
+                                EventName="SelectedValueChanged"
+                                Command="{Binding RecipeSelectedCommand}"
+                                CommandParameter="{Binding SelectedRecipe}"/>
+                        </material:PickerField.Behaviors>
+                    </material:PickerField>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Form Settings Section -->
+            <Border Grid.Row="2"
+                    Margin="16,8"
+                    Padding="16"
+                    StrokeThickness="0"
+                    StrokeShape="RoundRectangle 16"
+                    BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}">
+                <Border.Shadow>
+                    <Shadow Brush="{StaticResource Gray400Brush}" Offset="0,2" Radius="8" Opacity="0.1"/>
+                </Border.Shadow>
+                <VerticalStackLayout Spacing="16">
+                    <Label Text="Ustawienia foremek"
+                           FontSize="16"
+                           FontAttributes="Bold"
+                           TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource Gray100}}"/>
+
+                    <!-- Original Form -->
+                    <Frame BorderColor="{StaticResource Gray200}"
+                           BackgroundColor="{AppThemeBinding Light={StaticResource Gray50}, Dark={StaticResource Gray800}}"
+                           Padding="12"
+                           CornerRadius="12">
+                        <VerticalStackLayout Spacing="10">
+                            <HorizontalStackLayout Spacing="8">
+                                <Image HeightRequest="20" WidthRequest="20">
+                                    <Image.Source>
+                                        <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Crop_square}"
+                                                         FontFamily="MaterialSymbolsOutlined"
+                                                         Color="{StaticResource Primary}"
+                                                         Size="20"/>
+                                    </Image.Source>
+                                </Image>
+                                <Label Text="Oryginalna forma (z przepisu)"
+                                       FontSize="14"
+                                       FontAttributes="Bold"
+                                       TextColor="{StaticResource Primary}"/>
+                            </HorizontalStackLayout>
+
+                            <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                                <material:PickerField Title="Kształt"
+                                                      ItemsSource="{Binding FormTypes}"
+                                                      SelectedItem="{Binding OriginalFormShape}"/>
+                                <material:TextField Grid.Column="1"
+                                                    Title="Średnica (cm)"
+                                                    Text="{Binding OriginalForm.Diameter}"
+                                                    Keyboard="Numeric"
+                                                    IsVisible="{Binding IsOriginalFormCircular}">
+                                    <validation:NumericValidation Message="Podaj liczbę"/>
+                                    <validation:MinValueValidation MinValue="1" Message="Minimalna wartość to 1"/>
+                                </material:TextField>
+                            </Grid>
+
+                            <!-- Rectangular dimensions -->
+                            <Grid ColumnDefinitions="*,*" ColumnSpacing="12"
+                                  IsVisible="{Binding IsOriginalFormCircular, Converter={StaticResource InvertedBoolConverter}}">
+                                <material:TextField Title="Szerokość (cm)"
+                                                    Text="{Binding OriginalForm.Width}"
+                                                    Keyboard="Numeric">
+                                    <validation:NumericValidation Message="Podaj liczbę"/>
+                                    <validation:MinValueValidation MinValue="1" Message="Minimalna wartość to 1"/>
+                                </material:TextField>
+                                <material:TextField Grid.Column="1"
+                                                    Title="Długość (cm)"
+                                                    Text="{Binding OriginalForm.Length}"
+                                                    Keyboard="Numeric">
+                                    <validation:NumericValidation Message="Podaj liczbę"/>
+                                    <validation:MinValueValidation MinValue="1" Message="Minimalna wartość to 1"/>
+                                </material:TextField>
+                            </Grid>
+                        </VerticalStackLayout>
+                    </Frame>
+
+                    <!-- New Form -->
+                    <Frame BorderColor="{StaticResource Gray200}"
+                           BackgroundColor="{AppThemeBinding Light={StaticResource Gray50}, Dark={StaticResource Gray800}}"
+                           Padding="12"
+                           CornerRadius="12">
+                        <VerticalStackLayout Spacing="10">
+                            <HorizontalStackLayout Spacing="8">
+                                <Image HeightRequest="20" WidthRequest="20">
+                                    <Image.Source>
+                                        <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Resize}"
+                                                         FontFamily="MaterialSymbolsOutlined"
+                                                         Color="{StaticResource Secondary}"
+                                                         Size="20"/>
+                                    </Image.Source>
+                                </Image>
+                                <Label Text="Nowa forma (twoja)"
+                                       FontSize="14"
+                                       FontAttributes="Bold"
+                                       TextColor="{StaticResource Secondary}"/>
+                            </HorizontalStackLayout>
+
+                            <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                                <material:PickerField Title="Kształt"
+                                                      ItemsSource="{Binding FormTypes}"
+                                                      SelectedItem="{Binding NewFormShape}"/>
+                                <material:TextField Grid.Column="1"
+                                                    Title="Średnica (cm)"
+                                                    Text="{Binding NewForm.Diameter}"
+                                                    Keyboard="Numeric"
+                                                    IsVisible="{Binding IsNewFormCircular}">
+                                    <validation:NumericValidation Message="Podaj liczbę"/>
+                                    <validation:MinValueValidation MinValue="1" Message="Minimalna wartość to 1"/>
+                                    <validation:MaxValueValidation MaxValue="60" Message="Maksymalna wartość to 60"/>
+                                </material:TextField>
+                            </Grid>
+
+                            <!-- Rectangular dimensions -->
+                            <Grid ColumnDefinitions="*,*" ColumnSpacing="12"
+                                  IsVisible="{Binding IsNewFormCircular, Converter={StaticResource InvertedBoolConverter}}">
+                                <material:TextField Title="Szerokość (cm)"
+                                                    Text="{Binding NewForm.Width}"
+                                                    Keyboard="Numeric">
+                                    <validation:NumericValidation Message="Podaj liczbę"/>
+                                    <validation:MinValueValidation MinValue="1" Message="Minimalna wartość to 1"/>
+                                    <validation:MaxValueValidation MaxValue="60" Message="Maksymalna wartość to 60"/>
+                                </material:TextField>
+                                <material:TextField Grid.Column="1"
+                                                    Title="Długość (cm)"
+                                                    Text="{Binding NewForm.Length}"
+                                                    Keyboard="Numeric">
+                                    <validation:NumericValidation Message="Podaj liczbę"/>
+                                    <validation:MinValueValidation MinValue="1" Message="Minimalna wartość to 1"/>
+                                    <validation:MaxValueValidation MaxValue="60" Message="Maksymalna wartość to 60"/>
+                                </material:TextField>
+                            </Grid>
+                        </VerticalStackLayout>
+                    </Frame>
+
+                    <!-- Calculate Button -->
+                    <Button Text="Przelicz składniki"
+                            Command="{Binding CalculateScaledIngredientsCommand}"
+                            StyleClass="FilledButton"
+                            IsEnabled="{Binding Ingredients.Count, Converter={StaticResource IsNotZeroConverter}}">
+                        <Button.ImageSource>
+                            <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Calculate}"
+                                             FontFamily="MaterialSymbolsOutlined"
+                                             Color="White"
+                                             Size="20"/>
+                        </Button.ImageSource>
+                    </Button>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Scaling Result -->
+            <Border Grid.Row="3"
+                    Margin="16,8"
+                    Padding="16"
+                    StrokeThickness="0"
+                    StrokeShape="RoundRectangle 16"
+                    BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}"
+                    IsVisible="{Binding ScaledIngredients.Count, Converter={StaticResource IsNotZeroConverter}}">
+                <Border.Shadow>
+                    <Shadow Brush="{StaticResource Gray400Brush}" Offset="0,2" Radius="8" Opacity="0.1"/>
+                </Border.Shadow>
+                <VerticalStackLayout Spacing="12">
+                    <HorizontalStackLayout Spacing="8">
+                        <Image HeightRequest="20" WidthRequest="20">
+                            <Image.Source>
+                                <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Info}"
+                                                 FontFamily="MaterialSymbolsOutlined"
+                                                 Color="{StaticResource Primary}"
+                                                 Size="20"/>
+                            </Image.Source>
+                        </Image>
+                        <Label Text="Mnożnik:"
+                               FontSize="14"
+                               TextColor="{StaticResource Gray500}"/>
+                        <Label Text="{Binding ScalingMultiplier, StringFormat='{0:F2}x'}"
+                               FontSize="14"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource Primary}"/>
+                    </HorizontalStackLayout>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Original Ingredients Section -->
+            <Border Grid.Row="4"
+                    Margin="16,8"
+                    Padding="16"
+                    StrokeThickness="0"
+                    StrokeShape="RoundRectangle 16"
+                    BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}"
+                    IsVisible="{Binding Ingredients.Count, Converter={StaticResource IsNotZeroConverter}}">
+                <Border.Shadow>
+                    <Shadow Brush="{StaticResource Gray400Brush}" Offset="0,2" Radius="8" Opacity="0.1"/>
+                </Border.Shadow>
+                <VerticalStackLayout Spacing="12">
+                    <HorizontalStackLayout Spacing="8">
+                        <Image HeightRequest="20" WidthRequest="20">
+                            <Image.Source>
+                                <FontImageSource Glyph="{x:Static icons:MaterialOutlined.List}"
+                                                 FontFamily="MaterialSymbolsOutlined"
+                                                 Color="{StaticResource Primary}"
+                                                 Size="20"/>
+                            </Image.Source>
+                        </Image>
+                        <Label Text="Oryginalne składniki"
+                               FontSize="16"
+                               FontAttributes="Bold"
+                               TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource Gray100}}"/>
+                    </HorizontalStackLayout>
+
+                    <CollectionView ItemsSource="{Binding Ingredients}"
+                                    SelectionMode="None">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="vm:RecipeIngredientDisplay">
+                                <Grid ColumnDefinitions="Auto,*" Padding="0,6" ColumnSpacing="12">
+                                    <Label Text="•" FontSize="14" TextColor="{StaticResource Gray400}" VerticalOptions="Center"/>
+                                    <Label Grid.Column="1"
+                                           Text="{Binding DisplayText}"
+                                           FontSize="14"
+                                           TextColor="{AppThemeBinding Light={StaticResource Gray700}, Dark={StaticResource Gray300}}"
+                                           VerticalOptions="Center"/>
+                                </Grid>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Scaled Ingredients Section -->
+            <Border Grid.Row="5"
+                    Margin="16,8"
+                    Padding="16"
+                    StrokeThickness="0"
+                    StrokeShape="RoundRectangle 16"
+                    BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}"
+                    IsVisible="{Binding ScaledIngredients.Count, Converter={StaticResource IsNotZeroConverter}}">
+                <Border.Shadow>
+                    <Shadow Brush="{StaticResource Gray400Brush}" Offset="0,2" Radius="8" Opacity="0.1"/>
+                </Border.Shadow>
+                <VerticalStackLayout Spacing="12">
+                    <HorizontalStackLayout Spacing="8">
+                        <Image HeightRequest="20" WidthRequest="20">
+                            <Image.Source>
+                                <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Done_all}"
+                                                 FontFamily="MaterialSymbolsOutlined"
+                                                 Color="{StaticResource Secondary}"
+                                                 Size="20"/>
+                            </Image.Source>
+                        </Image>
+                        <Label Text="Przeliczone składniki"
+                               FontSize="16"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource Secondary}"/>
+                    </HorizontalStackLayout>
+
+                    <CollectionView ItemsSource="{Binding ScaledIngredients}"
+                                    SelectionMode="None">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="misc:ScaledIngredient">
+                                <Grid ColumnDefinitions="Auto,*,Auto" Padding="0,8" ColumnSpacing="12">
+                                    <Image HeightRequest="16" WidthRequest="16" VerticalOptions="Center">
+                                        <Image.Source>
+                                            <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Check_circle}"
+                                                             FontFamily="MaterialSymbolsOutlined"
+                                                             Color="{StaticResource Secondary}"
+                                                             Size="16"/>
+                                        </Image.Source>
+                                    </Image>
+                                    <VerticalStackLayout Grid.Column="1" VerticalOptions="Center">
+                                        <Label Text="{Binding Name}"
+                                               FontSize="14"
+                                               FontAttributes="Bold"
+                                               TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource Gray100}}"/>
+                                        <Label FontSize="12" TextColor="{StaticResource Gray500}">
+                                            <Label.FormattedText>
+                                                <FormattedString>
+                                                    <Span Text="{Binding OriginalQuantity, StringFormat='{0:G}'}" />
+                                                    <Span Text=" → " />
+                                                    <Span Text="{Binding Quantity, StringFormat='{0:G}'}" FontAttributes="Bold" TextColor="{StaticResource Secondary}"/>
+                                                    <Span Text=" " />
+                                                    <Span Text="{Binding Unit}" />
+                                                </FormattedString>
+                                            </Label.FormattedText>
+                                        </Label>
+                                    </VerticalStackLayout>
+                                    <Label Grid.Column="2"
+                                           VerticalOptions="Center"
+                                           FontSize="16"
+                                           FontAttributes="Bold"
+                                           TextColor="{StaticResource Secondary}">
+                                        <Label.FormattedText>
+                                            <FormattedString>
+                                                <Span Text="{Binding Quantity, StringFormat='{0:G}'}" />
+                                                <Span Text=" " />
+                                                <Span Text="{Binding Unit}" FontSize="12"/>
+                                            </FormattedString>
+                                        </Label.FormattedText>
+                                    </Label>
+                                </Grid>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </VerticalStackLayout>
+            </Border>
+
         </Grid>
-    </Grid>
+    </ScrollView>
 </ContentPage>

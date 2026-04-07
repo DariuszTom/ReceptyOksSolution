@@ -42,26 +42,7 @@ public class IngredientsCalculationViewModelTests
         _mockDatabase.Verify(x => x.GetRecipeSummariesAsync(null), Times.Once);
     }
 
-    [Test]
-    public async Task LoadRecipesAsync_WhenSearchQueryHasValue_PassesQueryToDatabase()
-    {
-        // Arrange
-        _viewModel.SearchQuery = "ciasto";
-        var expectedSummaries = new List<RecipeSummary>
-        {
-            new(Guid.NewGuid(), "Ciasto czekoladowe")
-        };
 
-        _mockDatabase.Setup(x => x.GetRecipeSummariesAsync("ciasto"))
-            .ReturnsAsync(expectedSummaries);
-
-        // Act
-        await _viewModel.LoadRecipesCommand.ExecuteAsync(null);
-
-        // Assert
-        Assert.That(_viewModel.Recipes, Has.Count.EqualTo(1));
-        _mockDatabase.Verify(x => x.GetRecipeSummariesAsync("ciasto"), Times.Once);
-    }
 
     [Test]
     public async Task LoadRecipesAsync_SetsIsLoadingDuringExecution()
@@ -90,10 +71,11 @@ public class IngredientsCalculationViewModelTests
     #region LoadIngredientsAsync Tests
 
     [Test]
-    public async Task LoadIngredientsAsync_LoadsAndMapsIngredientsCorrectly()
+    public async Task RecipeSelectedAsync_LoadsAndMapsIngredientsCorrectly()
     {
         // Arrange
         var recipeId = Guid.NewGuid();
+        var recipe = new RecipeSummary(recipeId, "Test Recipe");
         var ingredientId = Guid.NewGuid();
 
         var recipeIngredients = new List<RecipeIngredientLocal>
@@ -112,7 +94,7 @@ public class IngredientsCalculationViewModelTests
             .ReturnsAsync(ingredients);
 
         // Act
-        await _viewModel.LoadIngredientsCommand.ExecuteAsync(recipeId);
+        await _viewModel.RecipeSelectedCommand.ExecuteAsync(recipe);
 
         // Assert
         Assert.That(_viewModel.Ingredients, Has.Count.EqualTo(1));
@@ -122,10 +104,11 @@ public class IngredientsCalculationViewModelTests
     }
 
     [Test]
-    public async Task LoadIngredientsAsync_WhenIngredientNotFound_UsesDefaultName()
+    public async Task RecipeSelectedAsync_WhenIngredientNotFound_UsesDefaultName()
     {
         // Arrange
         var recipeId = Guid.NewGuid();
+        var recipe = new RecipeSummary(recipeId, "Test Recipe");
         var unknownIngredientId = Guid.NewGuid();
 
         var recipeIngredients = new List<RecipeIngredientLocal>
@@ -139,17 +122,18 @@ public class IngredientsCalculationViewModelTests
             .ReturnsAsync(new List<IngredientLocal>());
 
         // Act
-        await _viewModel.LoadIngredientsCommand.ExecuteAsync(recipeId);
+        await _viewModel.RecipeSelectedCommand.ExecuteAsync(recipe);
 
         // Assert
         Assert.That(_viewModel.Ingredients[0].Name, Is.EqualTo("Nieznany"));
     }
 
     [Test]
-    public async Task LoadIngredientsAsync_ClearsScaledIngredients()
+    public async Task RecipeSelectedAsync_ClearsScaledIngredients()
     {
         // Arrange
         var recipeId = Guid.NewGuid();
+        var recipe = new RecipeSummary(recipeId, "Test Recipe");
         _viewModel.ScaledIngredients.Add(new ScaledIngredient("Test", 100, 150, "g"));
 
         _mockDatabase.Setup(x => x.GetRecipeIngredientsAsync(recipeId))
@@ -158,17 +142,18 @@ public class IngredientsCalculationViewModelTests
             .ReturnsAsync(new List<IngredientLocal>());
 
         // Act
-        await _viewModel.LoadIngredientsCommand.ExecuteAsync(recipeId);
+        await _viewModel.RecipeSelectedCommand.ExecuteAsync(recipe);
 
         // Assert
         Assert.That(_viewModel.ScaledIngredients, Is.Empty);
     }
 
     [Test]
-    public async Task LoadIngredientsAsync_OrdersIngredientsByOrder()
+    public async Task RecipeSelectedAsync_OrdersIngredientsByOrder()
     {
         // Arrange
         var recipeId = Guid.NewGuid();
+        var recipe = new RecipeSummary(recipeId, "Test Recipe");
         var ingredientId1 = Guid.NewGuid();
         var ingredientId2 = Guid.NewGuid();
 
@@ -190,11 +175,22 @@ public class IngredientsCalculationViewModelTests
             .ReturnsAsync(ingredients);
 
         // Act
-        await _viewModel.LoadIngredientsCommand.ExecuteAsync(recipeId);
+        await _viewModel.RecipeSelectedCommand.ExecuteAsync(recipe);
 
         // Assert
         Assert.That(_viewModel.Ingredients[0].Name, Is.EqualTo("First"));
         Assert.That(_viewModel.Ingredients[1].Name, Is.EqualTo("Second"));
+    }
+
+    [Test]
+    public async Task RecipeSelectedAsync_WhenRecipeIsNull_DoesNothing()
+    {
+        // Act
+        await _viewModel.RecipeSelectedCommand.ExecuteAsync(null);
+
+        // Assert
+        Assert.That(_viewModel.Ingredients, Is.Empty);
+        _mockDatabase.Verify(x => x.GetRecipeIngredientsAsync(It.IsAny<Guid>()), Times.Never);
     }
 
     #endregion
@@ -273,7 +269,6 @@ public class IngredientsCalculationViewModelTests
     {
         // Arrange
         _viewModel.SelectedRecipe = new RecipeSummary(Guid.NewGuid(), "Test");
-        _viewModel.SearchQuery = "search";
         _viewModel.Ingredients.Add(new RecipeIngredientDisplay { Name = "Test", Quantity = 100, Unit = "g" });
         _viewModel.ScaledIngredients.Add(new ScaledIngredient("Test", 100, 150, "g"));
         _viewModel.ScalingMultiplier = 1.5m;
@@ -283,7 +278,6 @@ public class IngredientsCalculationViewModelTests
 
         // Assert
         Assert.That(_viewModel.SelectedRecipe, Is.Null);
-        Assert.That(_viewModel.SearchQuery, Is.Empty);
         Assert.That(_viewModel.Ingredients, Is.Empty);
         Assert.That(_viewModel.ScaledIngredients, Is.Empty);
         Assert.That(_viewModel.ScalingMultiplier, Is.EqualTo(1));
