@@ -1,0 +1,25 @@
+name: Dockerfile Lint
+
+on:
+  push:
+    paths:
+      - '**/Dockerfile'
+  pull_request:
+    paths:
+      - '**/Dockerfile'
+
+jobs:
+  docker-lint:
+    name: Dockerfile lint
+    runs-on: ubuntu-latest
+    env:
+      DOCKERFILE: Dockerfile
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Lint Dockerfile with hadolint
+        uses: hadolint/hadolint-action@v2
+        with:
+          dockerfile: ${{ env.DOCKERFILE }}
+        continue-on-error: true
