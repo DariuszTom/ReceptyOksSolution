@@ -1,6 +1,7 @@
-﻿using ReceptyOks.Interfaces;
-using ReceptyOks.Models;
+﻿using AsyncAwaitBestPractices;
 using ReceptyOks.Shared.Misc;
+using ReceptyOks.Services;
+using Microsoft.Maui.ApplicationModel;
 
 namespace ReceptyOks.ViewModels;
 
@@ -9,13 +10,12 @@ public partial class IngredientsCalculationViewModel(ILocalDatabase database) : 
     private readonly ILocalDatabase _database = database;
 
     [ObservableProperty]
-    private ObservableCollection<RecipeLocal> recipes = [];
+    private ObservableCollection<RecipeSummary> recipes = [];
+
+    public FormShape[] FormTypes { get; } = Enum.GetValues<FormShape>();
 
     [ObservableProperty]
-    private string searchQuery = string.Empty;
-
-    [ObservableProperty]
-    private RecipeLocal? selectedRecipe;
+    private RecipeSummary? selectedRecipe;
 
     [ObservableProperty]
     private ObservableCollection<RecipeIngredientDisplay> ingredients = [];
@@ -35,17 +35,29 @@ public partial class IngredientsCalculationViewModel(ILocalDatabase database) : 
     [ObservableProperty]
     private decimal scalingMultiplier = 1;
 
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsOriginalFormCircular))]
+    private FormShape originalFormShape = FormShape.Circular;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsNewFormCircular))]
+    private FormShape newFormShape = FormShape.Circular;
+
+    public bool IsOriginalFormCircular => OriginalFormShape == FormShape.Circular;
+    public bool IsNewFormCircular => NewFormShape == FormShape.Circular;
+
+    partial void OnOriginalFormShapeChanged(FormShape value) => OriginalForm.Shape = value;
+    partial void OnNewFormShapeChanged(FormShape value) => NewForm.Shape = value;
+    partial void OnSelectedRecipeChanged(RecipeSummary? value) => RecipeSelectedCommand.ExecuteAsync(value).SafeFireAndForget();
+
     [RelayCommand]
     private async Task LoadRecipesAsync()
     {
         try
         {
             IsLoading = true;
-            var recipeList = string.IsNullOrWhiteSpace(SearchQuery)
-                ? await _database.GetRecipesAsync()
-                : await _database.SearchRecipesAsync(SearchQuery);
-
-            Recipes = new ObservableCollection<RecipeLocal>(recipeList);
+            var recipeList = await _database.GetRecipeSummariesAsync();
+            Recipes = new ObservableCollection<RecipeSummary>(recipeList);
         }
         finally
         {
@@ -54,12 +66,15 @@ public partial class IngredientsCalculationViewModel(ILocalDatabase database) : 
     }
 
     [RelayCommand]
-    private async Task LoadIngredientsAsync(Guid recipeId)
+    private async Task RecipeSelectedAsync(RecipeSummary? recipe)
     {
+        if (recipe is null)
+            return;
+
         try
         {
             IsLoading = true;
-            var recipeIngredients = await _database.GetRecipeIngredientsAsync(recipeId);
+            var recipeIngredients = await _database.GetRecipeIngredientsAsync(recipe.Id);
             var allIngredients = await _database.GetIngredientsAsync();
 
             var displayItems = recipeIngredients
@@ -87,21 +102,31 @@ public partial class IngredientsCalculationViewModel(ILocalDatabase database) : 
     }
 
     [RelayCommand]
-    private void CalculateScaledIngredients()
+    private  void CalculateScaledIngredients()
     {
         if (Ingredients.Count == 0)
             return;
+        try
+        {
+            ScalingMultiplier = FormCalculator.CalculateMultiplier(OriginalForm, NewForm);
+            var scaled = FormCalculator.ScaleIngredients(Ingredients, OriginalForm, NewForm);
+            ScaledIngredients = new ObservableCollection<ScaledIngredient>(scaled);
+        }
+        catch (DivideByZeroException)
+        {
+            // Wymiary formy nie mogą być zerowe - pokaż informację użytkownikowi
+            MainThread.InvokeOnMainThreadAsync(async () =>
+            {
+                await SnackBarHelper.ShowErrorSnackbarAsync("Błąd: wymiar formy nie może być zerowy.");
+            }).SafeFireAndForget();
+        }
 
-        ScalingMultiplier = FormCalculator.CalculateMultiplier(OriginalForm, NewForm);
-        var scaled = FormCalculator.ScaleIngredients(Ingredients, OriginalForm, NewForm);
-        ScaledIngredients = new ObservableCollection<ScaledIngredient>(scaled);
     }
 
     [RelayCommand]
     private void ClearSelection()
     {
         SelectedRecipe = null;
-        SearchQuery = string.Empty;
         Ingredients.Clear();
         ScaledIngredients.Clear();
         ScalingMultiplier = 1;

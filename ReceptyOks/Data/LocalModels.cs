@@ -136,3 +136,8 @@ public class MealPlanLocal
     public bool IsDeleted { get; set; }
     public bool IsDirty { get; set; }
 }
+
+/// <summary>
+/// Lightweight DTO for recipe dropdowns and pickers.
+/// </summary>
+public record RecipeSummary(Guid Id, string Title);

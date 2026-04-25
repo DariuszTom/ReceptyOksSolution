@@ -435,3 +435,40 @@ public class PercentToWidthConverter : IValueConverter
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
         => throw new NotImplementedException();
 }
+
+/// <summary>
+/// Converts an enum value to its string representation and back.
+/// </summary>
+public class EnumToStringConverter : IValueConverter
+{
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        return value?.ToString();
+    }
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (value is string stringValue && parameter is Type enumType && enumType.IsEnum)
+        {
+            return Enum.Parse(enumType, stringValue);
+        }
+        return value;
+    }
+}
+
+/// <summary>
+/// Returns true when value equals the converter parameter.
+/// </summary>
+public class EqualConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (value is null && parameter is null)
+            return true;
+
+        return value?.Equals(parameter) ?? false;
+    }
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => throw new NotImplementedException();
+}
