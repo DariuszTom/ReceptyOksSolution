@@ -30,7 +30,6 @@ COPY --from=build /app/publish .
 
 # Running the container will serve HTTP on ports 8080 and 8081. TLS should be terminated by a reverse proxy
 # or by mounting a certificate and configuring Kestrel at runtime if container-level HTTPS is required.
-
 # Set environment variables
 ENV ASPNETCORE_URLS=http://+:8080;http://+:8081
 ENV ASPNETCORE_ENVIRONMENT=Production
