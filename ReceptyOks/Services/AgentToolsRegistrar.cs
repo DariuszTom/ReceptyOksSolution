@@ -7,18 +7,43 @@ namespace ReceptyOks.Services;
 /// <summary>
 /// Handles registration and implementation of AI agent tools for database queries.
 /// </summary>
-public class AgentToolsRegistrar
+public class AgentToolsRegistrar : IDisposable
 {
     private readonly LocalDatabase _database;
     private readonly ILogger _logger;
+    private readonly WebBrowsingTool _webBrowsingTool;
+    private bool _disposed;
 
-    public AgentToolsRegistrar(LocalDatabase database, ILogger logger)
+    public AgentToolsRegistrar(LocalDatabase database, ILogger logger, HttpClient? httpClient = null)
     {
         ArgumentNullException.ThrowIfNull(database);
         ArgumentNullException.ThrowIfNull(logger);
 
         _database = database;
         _logger = logger;
+        _webBrowsingTool = new WebBrowsingTool(httpClient);
+    }
+
+    /// <inheritdoc />
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        if (disposing)
+        {
+            _webBrowsingTool.Dispose();
+        }
+
+        _disposed = true;
     }
 
     /// <summary>
@@ -51,6 +76,9 @@ public class AgentToolsRegistrar
 
         agent.AddToolAsync<string, string>(GetMealPlansWithRecipesAsync,
                 "get_meal_plans_with_recipes", "Retrieves meal plans with their associated recipes for a date range. Parameter: dateRangeJson - JSON string with StartDate and EndDate in ISO 8601 format (e.g., {\"StartDate\":\"2024-01-01\",\"EndDate\":\"2024-01-07\"}).");
+
+        // Register web browsing tools (WebBrowsingTool is owned by this class)
+        _webBrowsingTool.RegisterTools(agent);
     }
     public void RegisterToolsForShoppingList(AiAgent agent)
     {

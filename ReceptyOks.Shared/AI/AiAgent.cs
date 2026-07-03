@@ -17,6 +17,7 @@ public sealed class AiAgent : IAiAgent
     private string? _systemPrompt;
     private AgentSession? _session;
     private string? _conversationId;
+    private ChatClientAgent? _agent;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="AiAgent"/> class.
@@ -103,7 +104,11 @@ public sealed class AiAgent : IAiAgent
     /// <summary>
     /// Clears all registered tools.
     /// </summary>
-    public void ClearTools() => _tools.Clear();
+    public void ClearTools()
+    {
+        _tools.Clear();
+        InvalidateAgent();
+    }
 
     /// <summary>
     /// Sends a message and receives a complete response.
@@ -120,7 +125,7 @@ public sealed class AiAgent : IAiAgent
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(userMessage);
 
-        var agent = CreateAgent();
+        var agent = GetOrCreateAgent();
         _session ??= await agent.CreateSessionAsync(cancellationToken).ConfigureAwait(false);
 
         var response = await agent.RunAsync(userMessage, _session, cancellationToken: cancellationToken)
@@ -142,7 +147,7 @@ public sealed class AiAgent : IAiAgent
         ArgumentException.ThrowIfNullOrWhiteSpace(userMessage);
         ArgumentNullException.ThrowIfNull(onTextReceived);
 
-        var agent = CreateAgent();
+        var agent = GetOrCreateAgent();
         _session ??= await agent.CreateSessionAsync(cancellationToken).ConfigureAwait(false);
 
         var fullResponse = new StringBuilder();
@@ -173,6 +178,7 @@ public sealed class AiAgent : IAiAgent
     {
         _session = null;
         _conversationId = null;
+        // Don't invalidate agent - it can be reused with a new session
     }
 
     /// <summary>
@@ -189,7 +195,7 @@ public sealed class AiAgent : IAiAgent
         }
 
         // Serialize the session to JsonElement
-        var agent = CreateAgent();
+        var agent = GetOrCreateAgent();
         var serializedSession = await agent.SerializeSessionAsync(_session, JsonSerializerOptions.Web, cancellationToken)
             .ConfigureAwait(false);
 
@@ -211,7 +217,7 @@ public sealed class AiAgent : IAiAgent
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(serializedThread);
 
-        var agent = CreateAgent();
+        var agent = GetOrCreateAgent();
 
         // Deserialize the session from JSON
         var jsonElement = JsonSerializer.Deserialize<JsonElement>(serializedThread, JsonSerializerOptions.Web);
@@ -221,11 +227,24 @@ public sealed class AiAgent : IAiAgent
         _conversationId = conversationId;
     }
 
-    private ChatClientAgent CreateAgent()
+    private ChatClientAgent GetOrCreateAgent()
     {
-        // Pass instructions and tools directly to constructor
-        return new ChatClientAgent(_chatClient, instructions: _systemPrompt,
-            tools: _tools.Count > 0 ? _tools : null);
+        // Reuse existing agent to maintain conversation state properly
+        // Only create new agent if it doesn't exist or if tools have changed
+        if (_agent is null)
+        {
+            _agent = new ChatClientAgent(_chatClient, instructions: _systemPrompt,
+                tools: _tools.Count > 0 ? _tools : null);
+        }
+        return _agent;
+    }
+
+    /// <summary>
+    /// Forces recreation of the agent (useful after tools are modified).
+    /// </summary>
+    private void InvalidateAgent()
+    {
+        _agent = null;
     }
 
     private static string ExtractTextFromResponse(AgentResponse response)
