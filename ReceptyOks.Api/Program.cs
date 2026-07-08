@@ -61,6 +61,12 @@ builder.Services.Configure<Microsoft.AspNetCore.ResponseCompression.GzipCompress
 // Konfiguracja bazy danych
 builder.Services.AddRecipeDatabase(builder.Environment, builder.Configuration);
 
+// HomeSeeker database (same connection, separate context)
+builder.Services.AddHomeSeekerDatabase(builder.Environment, builder.Configuration);
+
+// HomeSeeker services
+builder.Services.AddHomeSeekerServices(builder.Configuration);
+
 // Database health check
 builder.Services.AddHealthChecks()
     .AddDbContextCheck<RecipeDbContext>("database", tags: ["ready"]);
@@ -124,6 +130,9 @@ app.UseApiKeyAuth();
 // Automatyczne tworzenie/migracja bazy danych
 app.EnsureDatabaseCreated();
 
+// HomeSeeker tables (uses CreateTables() if database exists)
+app.EnsureHomeSeekerTablesCreated();
+
 // Aspire health checks etc.
 app.MapDefaultEndpoints();
 
@@ -147,4 +156,5 @@ app.MapIngredientEndpoints();
 app.MapShoppingListEndpoints();
 app.MapSyncEndpoints();
 app.MapTokenProviderEndpoints();
+app.MapHomeSeekerEndpoints();
 app.Run();
