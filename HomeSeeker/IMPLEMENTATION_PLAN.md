@@ -98,6 +98,32 @@ zawierający wyłącznie nowe encje oraz:
   - Wybór kandydatów: tylko `IsNew || PriceDropped`, ranking po cenie/m², limit `MaxCandidatesPerScan`, ocena **sekwencyjna** (kontener 0.25 CPU, limity API).
   - `WriteReportHtmlAsync(...)`: jedno wywołanie agenta bez narzędzi → samodzielny HTML (style inline, polski, tabela rankingowa, linki). Fallback: tabela budowana w kodzie, żeby mail zawsze wyszedł.
 
+### Faza 3.5 (opcjonalna) — swobodne przeszukiwanie sieci jako źródło ogłoszeń
+
+Agent jako dodatkowe *źródło odkrywania* ogłoszeń, obok deterministycznych scraperów —
+łapie portale bez dedykowanego scrapera (Gratka, Domiporta, Morizon) kosztem dodatkowych tokenów per skan.
+
+- **`HomeSeeker/Scrapers/AgentWebDiscoveryScraper.cs`** — implementuje `IListingScraper`
+  (`PortalName = "WebDiscovery"`), więc wpina się w `MarketScanService` obok Otodom/OLX bez żadnych
+  zmian w dedupach, ocenie i raporcie:
+  - Wewnętrznie tworzy `AiAgent` przez `IAiAgentFactory` z zarejestrowanym `WebBrowsingTool`
+    (`search_web` + `fetch_web_page`).
+  - Prompt (polski, ścisły kontrakt JSON): „Znajdź aktualne ogłoszenia sprzedaży domów w {miasto}
+    spełniające kryteria {cena, metraż}; szukaj na portalach innych niż Otodom i OLX;
+    ZAWSZE zwróć wyłącznie JSON: {"listings": [{"portal", "externalId", "url", "title", "price", "areaSqm", "location"}]}".
+  - `ChatAsync<WebDiscoveryResult>(prompt, maxToolRounds: 8)` → mapowanie na `ScrapedListing[]`;
+    `externalId` = URL znormalizowany (host + ścieżka), gdy portal nie daje ID.
+  - Walidacja wyników w kodzie (nie ufać agentowi): odrzucenie wpisów bez poprawnego URL,
+    z ceną/metrażem poza kryteriami profilu; limit `WebDiscoveryMaxResults`.
+  - `null`/zły JSON → log + pusta lista (fail-soft, jak pozostałe scrapery).
+- **Konfiguracja**: `HomeSeeker:EnableWebDiscovery` (domyślnie **false**) — rejestracja warunkowa w DI;
+  `HomeSeeker:WebDiscoveryMaxResults` (domyślnie 10).
+- **Koszt**: jedno wywołanie agenta z ~8 rundami narzędzi per profil per skan — zauważalnie droższe
+  niż scraper deterministyczny; dlatego wyłączone domyślnie i z osobnym limitem wyników.
+- **Ograniczenie**: wyszukiwarki słabo indeksują świeże ogłoszenia — to uzupełnienie, nie zamiennik scraperów.
+- **Testy**: fake `IAiAgentFactory` zwracający przygotowany JSON → mapowanie, walidacja odrzucająca
+  śmieciowe wpisy, fail-soft przy `null`.
+
 ### Faza 4 — orkiestracja, e-mail, scheduler
 
 - **`HomeSeeker/Services/MarketScanService.cs`** (`IMarketScanService.RunScanAsync(profileId, ct)`): przebieg wg diagramu w sekcji 2; try/catch per portal i per ogłoszenie; błąd całości → ScanRun(Failed, Error).
@@ -134,7 +160,8 @@ GET    /scans/{id}/report           Results.Content(ReportHtml, "text/html")
 
 ```json
 "HomeSeeker": { "Enabled": false, "ScanInterval": "12:00:00", "MaxCandidatesPerScan": 8,
-                "MaxSearchPagesPerPortal": 2, "RequestDelay": "00:00:03", "Model": "claude-sonnet-4-6" },
+                "MaxSearchPagesPerPortal": 2, "RequestDelay": "00:00:03", "Model": "claude-sonnet-4-6",
+                "EnableWebDiscovery": false, "WebDiscoveryMaxResults": 10 },
 "Smtp": { "Host": "", "Port": 587, "Login": "", "FromAddress": "" }
 ```
 
@@ -169,6 +196,8 @@ SearchProfile 1 ──── * HouseListing      (unikalny: SearchProfileId+Port
 - Preselekcja deterministyczna (cena/m²) przed agentem — bez tokenów.
 - Tańszy model do oceny (`HomeSeeker:Model`), pojedyncze wywołanie bez narzędzi dla raportu.
 - Ocena sekwencyjna — szanuje limity API i 0.25 CPU kontenera.
+- Swobodne przeszukiwanie sieci (Faza 3.5) domyślnie wyłączone — najdroższy element, włączany świadomie
+  flagą `EnableWebDiscovery` z własnym limitem `WebDiscoveryMaxResults`.
 
 ## 7. Ryzyka i mitygacje
 
@@ -186,7 +215,9 @@ SearchProfile 1 ──── * HouseListing      (unikalny: SearchProfileId+Port
 | 1. Biblioteka (modele, opcje, scrapery) | ✅ zaimplementowana, build zielony |
 | 2. Persystencja | częściowo — `HomeSeekerDbContext` ✅, `IListingRepository` ✅; brakuje `HomeSeekerExtensions` i `ListingRepository` |
 | 3. Ocena agentem | do zrobienia |
+| 3.5. Swobodne przeszukiwanie sieci (opcjonalna) | do zrobienia |
 | 4. Orkiestracja + e-mail + scheduler | do zrobienia |
 | 5. API | do zrobienia |
 | 6. Konfiguracja + Bicep | do zrobienia |
 | 7. Testy | do zrobienia |
+****
