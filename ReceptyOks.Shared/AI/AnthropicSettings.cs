@@ -10,7 +10,7 @@
         /// <summary>
         /// Model to use (e.g. "claude-opus-4-latest", "claude-opus-4-20250514"). Match to what you have access to.
         /// </summary>
-        public string Model { get; set; } = "claude-opus-4-7";
+        public string Model { get; set; } = "claude-opus-4-8";
 
         /// <summary>
         /// Maximum model tokens to request (model-specific limits apply). Claude Opus 4 supports up to 200k output tokens.
