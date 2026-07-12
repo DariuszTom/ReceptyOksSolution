@@ -313,12 +313,22 @@ public partial class ChatBotViewModel : ObservableObject
             await _agent.LoadConversationAsync(conversation.SerializedThread, conversation.Id).ConfigureAwait(false);
             _currentConversationId = conversation.Id;
 
+            // Extract and display conversation history in UI
+            var history = ConversationHistoryParser.Parse(conversation.SerializedThread);
+
             await MainThread.InvokeOnMainThreadAsync(() =>
                      {
                          Messages.Clear();
-                         // Note: Messages are not persisted separately; after loading, the user can continue the conversation
-                         // A welcome message indicates the conversation was loaded
-                         Messages.Add(new ChatMessageViewModel($"[Załadowano rozmowę: {item.Title}]", isUser: false));
+
+                         foreach (var message in history)
+                         {
+                             Messages.Add(new ChatMessageViewModel(message.Content, message.IsUser));
+                         }
+
+                         if (history.Count == 0)
+                         {
+                             Messages.Add(new ChatMessageViewModel($"[Załadowano rozmowę: {item.Title}]", isUser: false));
+                         }
                      });
 
         }

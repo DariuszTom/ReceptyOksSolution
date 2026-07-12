@@ -182,6 +182,15 @@ public sealed class AiAgent : IAiAgent
     }
 
     /// <summary>
+    /// Extracts conversation messages from a serialized session JSON.
+    /// Parses the JSON structure to retrieve user and assistant messages.
+    /// </summary>
+    /// <param name="serializedThread">The JSON string containing the serialized conversation.</param>
+    /// <returns>List of conversation messages with role and content.</returns>
+    public static IReadOnlyList<ConversationMessage> GetConversationHistory(string serializedThread)
+        => ConversationHistoryParser.Parse(serializedThread);
+
+    /// <summary>
     /// Serializes the current conversation session to JSON format.
     /// </summary>
     /// <param name="cancellationToken">Cancellation token.</param>
@@ -216,6 +225,10 @@ public sealed class AiAgent : IAiAgent
     public async Task LoadConversationAsync(string serializedThread, string? conversationId = null, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(serializedThread);
+
+        // Clear current session and invalidate agent to ensure clean state
+        _session = null;
+        InvalidateAgent();
 
         var agent = GetOrCreateAgent();
 
@@ -350,3 +363,10 @@ public sealed class AiAgent : IAiAgent
         return text;
     }
 }
+
+/// <summary>
+/// Represents a message in conversation history.
+/// </summary>
+/// <param name="Content">The message content.</param>
+/// <param name="IsUser">True if the message is from the user, false if from the assistant.</param>
+public sealed record ConversationMessage(string Content, bool IsUser);
