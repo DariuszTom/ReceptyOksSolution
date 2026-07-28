@@ -29,13 +29,13 @@ param containerImageTag string = 'latest'
 @description('ACR server name (e.g., myacr.azurecr.io)')
 param acrServer string
 
-@description('JWT key for API authentication')
-@secure()
-param jwtKey string
-
-@description('API key for endpoint access')
-@secure()
-param apiKey string
+// =====================================================
+// SECRETS - these are stored in Azure Key Vault
+// =====================================================
+// The application reads secrets from Key Vault at startup via DefaultAzureCredential
+// (see ReceptyOks.Api/Middleware/SecretsResolver.cs).
+// Locally: developer credentials (az login) work.
+// In Azure: Container App's Managed Identity has "Key Vault Secrets User" role.
 
 @description('SQL administrator password')
 @secure()
@@ -43,6 +43,26 @@ param sqlAdminPassword string
 
 @description('SQL administrator login')
 param sqlAdminLogin string = 'receptyoksadmin'
+
+@description('Jwt:Key - JWT signing key (REQUIRED, min 32 chars). Read by Program.cs at startup.')
+@secure()
+@minLength(32)
+param jwtKey string
+
+@description('PasswordHash - Base64/hex-encoded password hash for API auth (REQUIRED by SecretsResolver). Read as Configuration["PasswordHash"].')
+@secure()
+param passwordHash string
+
+@description('SecretKey - Base64/hex-encoded HMAC key for JWT auth. Read as Configuration["SecretKey"].')
+@secure()
+param secretKey string
+
+@description('UserAgent - allowed username for token issuance. Read as Configuration["UserAgent"].')
+param userAgent string = 'ReceptyOksApp'
+
+@description('Token - Anthropic API token exposed via /token endpoint. Read as Configuration["Token"]. Leave empty if not using Anthropic.')
+@secure()
+param anthropicToken string = ''
 
 // =====================================================
 // Azure SQL Database
@@ -102,6 +122,106 @@ resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2022-10-01' = if
 }
 
 // =====================================================
+// Azure Key Vault
+// =====================================================
+// Stores application secrets (JWT key, API key, SQL connection string).
+// Container App accesses secrets via System-Assigned Managed Identity + RBAC.
+// Free tier: ~$0.03 / 10k operations - negligible cost.
+@description('Key Vault name (must be globally unique, 3-24 chars, alphanumeric + hyphens)')
+param keyVaultName string = '${appName}-kv-${uniqueString(resourceGroup().id)}'
+
+resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
+  name: keyVaultName
+  location: location
+  properties: {
+    sku: {
+      family: 'A'
+      name: 'standard'
+    }
+    tenantId: subscription().tenantId
+    enableRbacAuthorization: true
+    enableSoftDelete: true
+    softDeleteRetentionInDays: 7
+    publicNetworkAccess: 'Enabled'
+  }
+}
+
+// =====================================================
+// Key Vault Secrets
+// =====================================================
+// Names MUST match what the application reads via IConfiguration:
+//   Configuration["Jwt:Key"]      -> KV secret "Jwt--Key"     (Program.cs)
+//   Configuration["PasswordHash"] -> KV secret "PasswordHash" (SecretsResolver, AuthEndpoints)
+//   Configuration["SecretKey"]    -> KV secret "SecretKey"    (AuthEndpoints, TokenProviderEndpoints)
+//   Configuration["UserAgent"]    -> KV secret "UserAgent"    (TokenProviderEndpoints)
+//   Configuration["Token"]        -> KV secret "Token"        (TokenProviderEndpoints - Anthropic)
+// Key Vault flattens '--' in secret names to ':' in IConfiguration.
+
+// JWT signing key - REQUIRED by Program.cs (min 32 chars, else app crashes)
+resource kvSecretJwtKey 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+  parent: keyVault
+  name: 'Jwt--Key'
+  properties: {
+    value: jwtKey
+  }
+}
+
+// Password hash - REQUIRED by SecretsResolver if KV is configured (else app crashes)
+resource kvSecretPasswordHash 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+  parent: keyVault
+  name: 'PasswordHash'
+  properties: {
+    value: passwordHash
+  }
+}
+
+// HMAC key for JWT auth
+resource kvSecretSecretKey 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+  parent: keyVault
+  name: 'SecretKey'
+  properties: {
+    value: secretKey
+  }
+}
+
+// Allowed username for token issuance
+resource kvSecretUserAgent 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+  parent: keyVault
+  name: 'UserAgent'
+  properties: {
+    value: userAgent
+  }
+}
+
+// Anthropic API token (optional - conditional creation)
+resource kvSecretToken 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = if (!empty(anthropicToken)) {
+  parent: keyVault
+  name: 'Token'
+  properties: {
+    value: anthropicToken
+  }
+}
+
+// SQL connection string stored in KV for reference/other apps
+// (Container App gets it inline via env var to avoid circular dependency)
+resource kvSecretSqlConnection 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+  parent: keyVault
+  name: 'ConnectionStrings--DefaultConnection'
+  properties: {
+    value: sqlConnectionString
+  }
+}
+
+// SQL admin password (for administrative access to database)
+resource kvSecretSqlPassword 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+  parent: keyVault
+  name: 'sql-admin-password'
+  properties: {
+    value: sqlAdminPassword
+  }
+}
+
+// =====================================================
 // Container App Environment
 // =====================================================
 resource containerAppEnv 'Microsoft.App/managedEnvironments@2024-03-01' = {
@@ -153,15 +273,12 @@ resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
           identity: 'system'
         }
       ]
+      // Only SQL connection string is stored inline as a Container App secret,
+      // because it depends on runtime values (server FQDN) and is not read via Key Vault.
+      // All application secrets (PasswordHash, SecretKey, UserAgent, etc.)
+      // are read directly from Key Vault by the app using DefaultAzureCredential
+      // (see ReceptyOks.Api/Middleware/SecretsResolver.cs).
       secrets: [
-        {
-          name: 'jwt-key'
-          value: jwtKey
-        }
-        {
-          name: 'api-key'
-          value: apiKey
-        }
         {
           name: 'sql-connection-string'
           value: sqlConnectionString
@@ -190,13 +307,11 @@ resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
               name: 'ConnectionStrings__DefaultConnection'
               secretRef: 'sql-connection-string'
             }
+            // App reads all secrets (PasswordHash, SecretKey, UserAgent, etc.)
+            // from Key Vault using DefaultAzureCredential + this URI.
             {
-              name: 'Jwt__Key'
-              secretRef: 'jwt-key'
-            }
-            {
-              name: 'ApiKeys__0'
-              secretRef: 'api-key'
+              name: 'KeyVault__VaultUri'
+              value: keyVault.properties.vaultUri
             }
           ]
           probes: [
@@ -235,9 +350,28 @@ resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
 }
 
 // =====================================================
+// RBAC: Container App -> Key Vault (Secrets User)
+// =====================================================
+// Grants Container App's System-Assigned MI read access to Key Vault secrets.
+// This allows future migration to keyVaultUrl references without redeployment.
+var keyVaultSecretsUserRoleId = '4633458b-17de-408a-b874-0445c86b69e6'
+
+resource kvRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  scope: keyVault
+  name: guid(keyVault.id, containerApp.id, keyVaultSecretsUserRoleId)
+  properties: {
+    principalId: containerApp.identity.principalId
+    principalType: 'ServicePrincipal'
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', keyVaultSecretsUserRoleId)
+  }
+}
+
+// =====================================================
 // Outputs
 // =====================================================
 output containerAppFqdn string = containerApp.properties.configuration.ingress.fqdn
 output containerAppUrl string = 'https://${containerApp.properties.configuration.ingress.fqdn}'
 output sqlServerFqdn string = sqlServer.properties.fullyQualifiedDomainName
 output sqlDatabaseName string = sqlDatabase.name
+output keyVaultName string = keyVault.name
+output keyVaultUri string = keyVault.properties.vaultUri
