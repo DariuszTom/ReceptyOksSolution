@@ -8,6 +8,23 @@ containerapp.yaml
 containerapp-backup.json
 *.azure-export.yaml
 
+# Bicep parameter files (contain secrets - never commit)
+# Example files (*.example.bicepparam) are the templates that CAN be committed
+*.bicepparam
+!*.example.bicepparam
+
+# Files with secrets (SQL, API keys, etc.)
+.env
+.env.*
+!.env.example
+*credentials*.txt
+*credentials*.env
+sql-credentials*
+*.bacpac
+
+# Local backup folder for bacpac exports etc.
+.backup/
+
 # SQLite database files
 *.db
 *.db-shm
@@ -383,3 +400,8 @@ FodyWeavers.xsd
 
 *.keystore
 github-secrets.txt
+/ReceptyOks.Api/.azure/budget-shutdown.module.bicep
+/ReceptyOks.Api/.azure/budget.bicep
+/ReceptyOks.Api/.azure/budget.example.bicepparam
+/ReceptyOks.Api/.azure/main.bicep
+/ReceptyOks.Api/.azure/main.example.bicepparam
