@@ -70,8 +70,6 @@
 		<PackageReference Include="Polly" Version="8.7.0" />
 		<PackageReference Include="sqlite-net-pcl" Version="1.11.285" />
 		<PackageReference Include="SQLitePCLRaw.bundle_green" Version="2.1.11" />
-		<PackageReference Include="SQLitePCLRaw.lib.e_sqlite3" Version="3.53.3" />
-		<PackageReference Include="SQLitePCLRaw.lib.e_sqlite3.android" Version="2.1.12" />
 		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
 		<PackageReference Include="UraniumUI" Version="3.0.0" />
 		<PackageReference Include="UraniumUI.Icons.MaterialIcons" Version="3.0.0" />

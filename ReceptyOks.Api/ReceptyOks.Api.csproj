@@ -18,10 +18,10 @@
     <PackageReference Include="FluentValidation.AspNetCore" Version="11.3.1" />
     <PackageReference Include="Microsoft.Build.Tasks.Core" Version="18.8.2" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.10" />
-    <PackageReference Include="SQLitePCLRaw.lib.e_sqlite3" Version="3.53.3" />
-    <!-- NOTE: Microsoft.OpenApi 2.0.0 (transitive via Microsoft.AspNetCore.OpenApi 10.0.10) has GHSA-v5pm-xwqc-g5wc.
-         Fix requires Microsoft.OpenApi 3.x, but AspNetCore.OpenApi 10.x source generator is incompatible.
-         Await Microsoft.AspNetCore.OpenApi 11.x (currently preview) for a full fix. -->
+    <!-- Pin Microsoft.OpenApi to the last 2.x release to fix GHSA-v5pm-xwqc-g5wc
+         (transitive 2.0.0 via Microsoft.AspNetCore.OpenApi 10.0.10). 2.x stays API-compatible
+         with the AspNetCore.OpenApi 10.x source generator; 3.x is not. -->
+    <PackageReference Include="Microsoft.OpenApi" Version="2.11.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.10">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
