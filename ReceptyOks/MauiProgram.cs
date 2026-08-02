@@ -21,10 +21,7 @@ public static class MauiProgram
         // Configure MAUI app and UI frameworks
         builder
             .UseMauiApp<App>()
-            .UseMauiCommunityToolkit(options =>
-            {
-                options.SetShouldEnableSnackbarOnWindows(true);
-            })
+            .UseMauiCommunityToolkit()
             .UseUraniumUI()
             .UseUraniumUIMaterial()
             .ConfigureFonts(fonts =>
