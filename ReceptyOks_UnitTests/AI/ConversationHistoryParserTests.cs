@@ -222,4 +222,169 @@ public sealed class ConversationHistoryParserTests
         Assert.That(result, Has.Count.EqualTo(1));
         Assert.That(result[0].Content, Is.EqualTo("First part Second part"));
     }
+
+    [Test]
+    public void Parse_NoMessagesFound_ReturnsEmptyList()
+    {
+        var json = """{ "SomeOtherField": "value" }""";
+
+        var result = ConversationHistoryParser.Parse(json);
+
+        Assert.That(result, Is.Empty);
+    }
+
+    [Test]
+    public void Parse_MessageWithoutRole_TreatsAsNonUser()
+    {
+        var json = """
+        {
+            "Messages": [
+                { "Content": "No role message" }
+            ]
+        }
+        """;
+
+        var result = ConversationHistoryParser.Parse(json);
+
+        Assert.That(result, Has.Count.EqualTo(1));
+        Assert.That(result[0].Content, Is.EqualTo("No role message"));
+        Assert.That(result[0].IsUser, Is.False);
+    }
+
+    [Test]
+    public void Parse_WithValuePropertyFallback_ReturnsMessages()
+    {
+        var json = """
+        {
+            "Messages": [
+                { "Role": "user", "Contents": [{ "Value": "Value based text" }] }
+            ]
+        }
+        """;
+
+        var result = ConversationHistoryParser.Parse(json);
+
+        Assert.That(result, Has.Count.EqualTo(1));
+        Assert.That(result[0].Content, Is.EqualTo("Value based text"));
+    }
+
+    [Test]
+    public void Parse_WithRawRepresentationAnthropicFormat_ReturnsMessages()
+    {
+        var json = """
+        {
+            "Messages": [
+                {
+                    "Role": "assistant",
+                    "rawRepresentation": {
+                        "content": [
+                            { "type": "text", "text": "Raw representation text" }
+                        ]
+                    }
+                }
+            ]
+        }
+        """;
+
+        var result = ConversationHistoryParser.Parse(json);
+
+        Assert.That(result, Has.Count.EqualTo(1));
+        Assert.That(result[0].Content, Is.EqualTo("Raw representation text"));
+        Assert.That(result[0].IsUser, Is.False);
+    }
+
+    [Test]
+    public void Parse_WithDataUriAttachment_ReturnsMessageWithAttachment()
+    {
+        var base64 = Convert.ToBase64String([1, 2, 3, 4]);
+        var json = $$"""
+        {
+            "Messages": [
+                {
+                    "Role": "user",
+                    "Contents": [
+                        { "$type": "data", "uri": "data:image/png;base64,{{base64}}", "mediaType": "image/png", "name": "pic.png" }
+                    ]
+                }
+            ]
+        }
+        """;
+
+        var result = ConversationHistoryParser.Parse(json);
+
+        Assert.That(result, Has.Count.EqualTo(1));
+        Assert.That(result[0].Content, Is.Empty);
+        Assert.That(result[0].AttachmentBytes, Is.EqualTo(new byte[] { 1, 2, 3, 4 }));
+        Assert.That(result[0].AttachmentMediaType, Is.EqualTo("image/png"));
+        Assert.That(result[0].AttachmentFileName, Is.EqualTo("pic.png"));
+    }
+
+    [Test]
+    public void Parse_WithAnthropicImageSourceAttachment_ReturnsMessageWithAttachment()
+    {
+        var base64 = Convert.ToBase64String([9, 8, 7]);
+        var json = $$"""
+        {
+            "Messages": [
+                {
+                    "Role": "user",
+                    "Contents": [
+                        {
+                            "type": "image",
+                            "source": {
+                                "type": "base64",
+                                "media_type": "image/jpeg",
+                                "data": "{{base64}}"
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+        """;
+
+        var result = ConversationHistoryParser.Parse(json);
+
+        Assert.That(result, Has.Count.EqualTo(1));
+        Assert.That(result[0].AttachmentBytes, Is.EqualTo(new byte[] { 9, 8, 7 }));
+        Assert.That(result[0].AttachmentMediaType, Is.EqualTo("image/jpeg"));
+    }
+
+    [Test]
+    public void Parse_WithNestedObjectRequiringRecursiveSearch_ReturnsMessages()
+    {
+        var json = """
+        {
+            "Wrapper": {
+                "Inner": {
+                    "Messages": [
+                        { "Role": "user", "Content": "Deep nested" }
+                    ]
+                }
+            }
+        }
+        """;
+
+        var result = ConversationHistoryParser.Parse(json);
+
+        Assert.That(result, Has.Count.EqualTo(1));
+        Assert.That(result[0].Content, Is.EqualTo("Deep nested"));
+    }
+
+    [Test]
+    public void Parse_WithArrayPropertyContainingRoleObjects_DetectsAsMessagesArray()
+    {
+        var json = """
+        {
+            "SomeRandomField": [
+                { "role": "user", "content": "Found via array scan" }
+            ]
+        }
+        """;
+
+        var result = ConversationHistoryParser.Parse(json);
+
+        Assert.That(result, Has.Count.EqualTo(1));
+        Assert.That(result[0].Content, Is.EqualTo("Found via array scan"));
+    }
 }

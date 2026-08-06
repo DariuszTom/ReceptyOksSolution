@@ -135,6 +135,25 @@ public sealed class AiAgent : IAiAgent
     }
 
     /// <summary>
+    /// Sends a multimodal message (text + attachments) and receives a complete response.
+    /// </summary>
+    public async Task<string> ChatAsync(
+        ChatMessage userMessage,
+        int maxToolRounds = 5,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(userMessage);
+
+        var agent = GetOrCreateAgent();
+        _session ??= await agent.CreateSessionAsync(cancellationToken).ConfigureAwait(false);
+
+        var response = await agent.RunAsync(userMessage, _session, cancellationToken: cancellationToken)
+            .ConfigureAwait(false);
+
+        return ExtractTextFromResponse(response);
+    }
+
+    /// <summary>
     /// Sends a message and streams the response with a callback for each text chunk.
     /// </summary>
     /// <param name="userMessage">The user's message.</param>
@@ -145,6 +164,39 @@ public sealed class AiAgent : IAiAgent
         Action<string> onTextReceived, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(userMessage);
+        ArgumentNullException.ThrowIfNull(onTextReceived);
+
+        var agent = GetOrCreateAgent();
+        _session ??= await agent.CreateSessionAsync(cancellationToken).ConfigureAwait(false);
+
+        var fullResponse = new StringBuilder();
+
+        await foreach (var update in agent.RunStreamingAsync(userMessage, _session, cancellationToken: cancellationToken)
+               .ConfigureAwait(false))
+        {
+            if (update.AsChatResponseUpdate() is { } chatUpdate)
+            {
+                foreach (var content in chatUpdate.Contents)
+                {
+                    if (content is TextContent textContent && !string.IsNullOrEmpty(textContent.Text))
+                    {
+                        fullResponse.Append(textContent.Text);
+                        onTextReceived(textContent.Text);
+                    }
+                }
+            }
+        }
+
+        return fullResponse.ToString();
+    }
+
+    /// <summary>
+    /// Sends a multimodal message (text + attachments) and streams the textual response.
+    /// </summary>
+    public async Task<string> ChatStreamAsync(ChatMessage userMessage,
+        Action<string> onTextReceived, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(userMessage);
         ArgumentNullException.ThrowIfNull(onTextReceived);
 
         var agent = GetOrCreateAgent();
@@ -369,4 +421,17 @@ public sealed class AiAgent : IAiAgent
 /// </summary>
 /// <param name="Content">The message content.</param>
 /// <param name="IsUser">True if the message is from the user, false if from the assistant.</param>
-public sealed record ConversationMessage(string Content, bool IsUser);
+/// <summary>
+/// A parsed message from a saved conversation.
+/// </summary>
+/// <param name="Content">Extracted text content of the message.</param>
+/// <param name="IsUser">True when the message was authored by the user, false for assistant.</param>
+/// <param name="AttachmentBytes">Optional raw bytes of an embedded attachment (image/PDF).</param>
+/// <param name="AttachmentMediaType">MIME type of the attachment (e.g. image/jpeg, application/pdf).</param>
+/// <param name="AttachmentFileName">Optional original file name preserved in the serialized session.</param>
+public sealed record ConversationMessage(
+    string Content,
+    bool IsUser,
+    byte[]? AttachmentBytes = null,
+    string? AttachmentMediaType = null,
+    string? AttachmentFileName = null);

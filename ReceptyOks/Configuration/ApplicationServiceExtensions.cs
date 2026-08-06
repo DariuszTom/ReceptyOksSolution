@@ -69,6 +69,9 @@ internal static class ApplicationServiceExtensions
         services.AddSingleton<AppNotification>();
         services.AddHostedService<ShoppingListNotification>();
 
+        // Chat attachments (image / PDF picker + persistence)
+        services.AddSingleton<AttachmentService>();
+
         return services;
     }
 
