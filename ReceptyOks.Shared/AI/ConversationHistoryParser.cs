@@ -1,5 +1,3 @@
-using System.Text;
-using System.Text.Json;
 
 namespace ReceptyOks.Shared.AI;
 
