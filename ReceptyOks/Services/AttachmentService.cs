@@ -201,6 +201,8 @@ public sealed class AttachmentService
     /// <summary>
     /// Rematerializes raw attachment bytes (e.g. reconstructed from a saved conversation) back
     /// onto disk under <see cref="FileSystem.AppDataDirectory"/> so it can be shown as a thumbnail.
+    /// The file name is derived from a SHA-256 content hash so that repeated calls with the same
+    /// bytes reuse the existing file instead of duplicating it.
     /// </summary>
     /// <param name="data">Raw file bytes.</param>
     /// <param name="mediaType">MIME type (e.g. image/jpeg, application/pdf).</param>
@@ -222,15 +224,59 @@ public sealed class AttachmentService
         Directory.CreateDirectory(folder);
 
         var extension = GetExtensionForMediaType(mediaType, originalFileName);
-        var storedFileName = $"{Guid.NewGuid():N}{extension}";
+        var hash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(data)).ToLowerInvariant();
+        var storedFileName = $"{hash}{extension}";
         var storedPath = Path.Combine(folder, storedFileName);
 
-        await File.WriteAllBytesAsync(storedPath, data, cancellationToken).ConfigureAwait(false);
-
-        _logger.Information("Materialized attachment from history: {Path} ({Size} bytes, {MediaType})",
-            storedPath, data.Length, mediaType);
+        if (File.Exists(storedPath) && new FileInfo(storedPath).Length == data.Length)
+        {
+            _logger.Debug("Reusing existing materialized attachment: {Path}", storedPath);
+        }
+        else
+        {
+            await File.WriteAllBytesAsync(storedPath, data, cancellationToken).ConfigureAwait(false);
+            _logger.Information("Materialized attachment from history: {Path} ({Size} bytes, {MediaType})",
+                storedPath, data.Length, mediaType);
+        }
 
         return new ChatAttachment(storedPath, mediaType, originalFileName ?? storedFileName, data);
+    }
+
+    /// <summary>
+    /// Removes files from the attachments folder whose path is not present in <paramref name="keepFilePaths"/>.
+    /// Best-effort — failures for individual files are logged and swallowed.
+    /// </summary>
+    public void CleanupOrphanAttachments(IEnumerable<string> keepFilePaths)
+    {
+        ArgumentNullException.ThrowIfNull(keepFilePaths);
+
+        var folder = Path.Combine(FileSystem.AppDataDirectory, AttachmentsFolderName);
+        if (!Directory.Exists(folder))
+        {
+            return;
+        }
+
+        var keep = new HashSet<string>(
+            keepFilePaths.Where(p => !string.IsNullOrWhiteSpace(p))!,
+            StringComparer.OrdinalIgnoreCase);
+
+        foreach (var file in Directory.EnumerateFiles(folder))
+        {
+            if (keep.Contains(file))
+            {
+                continue;
+            }
+
+            try
+            {
+                File.Delete(file);
+                _logger.Debug("Deleted orphan attachment {Path}", file);
+            }
+            catch (Exception ex)
+            {
+                _logger.Warning(ex, "Failed to delete orphan attachment {Path}", file);
+            }
+        }
     }
 
     /// <summary>

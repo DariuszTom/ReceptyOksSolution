@@ -307,20 +307,43 @@ public partial class ChatBotViewModel : ObservableObject
 
     /// <summary>
     /// Shows an action sheet letting the user choose how to attach a file
-    /// (gallery, camera, or PDF). Replaces any previously pending attachment.
+    /// (gallery, camera, PDF, or document). Replaces any previously pending attachment.
     /// </summary>
     [RelayCommand(CanExecute = nameof(CanPickAttachment))]
     private async Task ShowAttachmentOptionsAsync()
     {
-        var choice = await MainThread.InvokeOnMainThreadAsync(() =>
-            Application.Current?.Windows[0]?.Page?.DisplayActionSheet(
+        _logger.Information("ShowAttachmentOptionsAsync invoked (IsBusy={IsBusy}, IsInitializing={IsInit}, HasPending={HasPending})",
+            IsBusy, IsInitializing, PendingAttachment is not null);
+
+        var page = Application.Current?.Windows?.FirstOrDefault()?.Page;
+        if (page is null)
+        {
+            _logger.Warning("Cannot show attachment options: no active page");
+            return;
+        }
+
+        string? choice;
+        try
+        {
+            // RelayCommand handlers already run on the UI thread in .NET MAUI, so no
+            // MainThread marshalling is required here.
+            choice = await page.DisplayActionSheetAsync(
                 "Dodaj załącznik",
                 "Anuluj",
                 null,
+                FlowDirection.MatchParent,
                 "Zrób zdjęcie",
                 "Wybierz z galerii",
                 "Wybierz plik PDF",
-                "Wybierz dokument (TXT, DOCX, ...)"));
+                "Wybierz dokument (TXT, DOCX, ...)");
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Failed to display attachment action sheet");
+            return;
+        }
+
+        _logger.Information("Attachment action sheet result: {Choice}", choice ?? "<null>");
 
         if (string.IsNullOrEmpty(choice) || choice == "Anuluj")
         {
@@ -413,6 +436,13 @@ public partial class ChatBotViewModel : ObservableObject
         _currentConversationId = null;
         HasError = false;
         ErrorMessage = string.Empty;
+
+        // Preserve a pending (not-yet-sent) attachment so the user does not lose it when
+        // they clear the conversation mid-compose.
+        var keep = PendingAttachment?.FilePath is { Length: > 0 } path
+            ? new[] { path }
+            : Array.Empty<string>();
+        _attachmentService.CleanupOrphanAttachments(keep);
     }
 
     /// <summary>
@@ -554,6 +584,13 @@ public partial class ChatBotViewModel : ObservableObject
                          }
                      });
 
+            // Remove attachment files that no longer belong to the newly loaded conversation.
+            var keepPaths = viewModels
+                .Select(vm => vm.AttachmentPath)
+                .Where(p => !string.IsNullOrEmpty(p))
+                .Cast<string>()
+                .ToArray();
+            _attachmentService.CleanupOrphanAttachments(keepPaths);
         }
         catch (Exception ex)
         {

@@ -386,7 +386,9 @@
                             BackgroundColor="Transparent"
                             WidthRequest="36"
                             HeightRequest="36"
-                            Padding="0">
+                            Padding="0"
+                            AutomationProperties.Name="Usuń załącznik"
+                            AutomationProperties.HelpText="Usuwa wybrany załącznik przed wysłaniem wiadomości">
                         <Button.ImageSource>
                             <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Close}"
                                              FontFamily="MaterialSymbolsOutlined"
@@ -413,14 +415,16 @@
                 <!-- Attachment (paperclip) button -->
                 <ImageButton Grid.Column="0"
                              Command="{Binding ShowAttachmentOptionsCommand}"
-                             BackgroundColor="Transparent"
+                             BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray800}}"
                              WidthRequest="44"
                              HeightRequest="44"
                              VerticalOptions="End"
                              Margin="8,0,0,6"
                              Padding="0"
                              CornerRadius="22"
-                             Aspect="Center">
+                             Aspect="Center"
+                             AutomationProperties.Name="Dodaj załącznik"
+                             AutomationProperties.HelpText="Otwiera menu wyboru zdjęcia, PDF-a lub dokumentu">
                     <ImageButton.Source>
                         <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Attach_file}"
                                          FontFamily="MaterialSymbolsOutlined"
