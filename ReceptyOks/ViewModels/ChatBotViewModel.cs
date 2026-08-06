@@ -1,3 +1,4 @@
+using Microsoft.Extensions.AI;
 using ReceptyOks.Services;
 using ReceptyOks.Shared;
 using ReceptyOks.Shared.AI;
@@ -14,6 +15,7 @@ public partial class ChatBotViewModel : ObservableObject
     private readonly TokenProviderService _tokenProvider;
     private readonly ILogger _logger;
     private readonly AgentToolsRegistrar _toolsRegistrar;
+    private readonly AttachmentService _attachmentService;
     private AiAgent? _agent;
     private CancellationTokenSource? _sendCts;
     private string? _currentConversationId;
@@ -23,8 +25,29 @@ public partial class ChatBotViewModel : ObservableObject
     private string _userInput = string.Empty;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasPendingAttachment))]
+    [NotifyCanExecuteChangedFor(nameof(SendMessageCommand))]
+    [NotifyCanExecuteChangedFor(nameof(RemoveAttachmentCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ShowAttachmentOptionsCommand))]
+    [NotifyCanExecuteChangedFor(nameof(PickImageCommand))]
+    [NotifyCanExecuteChangedFor(nameof(TakePhotoCommand))]
+    [NotifyCanExecuteChangedFor(nameof(PickPdfCommand))]
+    [NotifyCanExecuteChangedFor(nameof(PickDocumentCommand))]
+    private ChatAttachment? _pendingAttachment;
+
+    /// <summary>
+    /// True when the user has picked an attachment but hasn't sent it yet.
+    /// </summary>
+    public bool HasPendingAttachment => PendingAttachment is not null;
+
+    [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(SendMessageCommand))]
     [NotifyCanExecuteChangedFor(nameof(CancelCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ShowAttachmentOptionsCommand))]
+    [NotifyCanExecuteChangedFor(nameof(PickImageCommand))]
+    [NotifyCanExecuteChangedFor(nameof(TakePhotoCommand))]
+    [NotifyCanExecuteChangedFor(nameof(PickPdfCommand))]
+    [NotifyCanExecuteChangedFor(nameof(PickDocumentCommand))]
     private bool _isBusy;
 
     [ObservableProperty]
@@ -35,6 +58,11 @@ public partial class ChatBotViewModel : ObservableObject
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(SendMessageCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ShowAttachmentOptionsCommand))]
+    [NotifyCanExecuteChangedFor(nameof(PickImageCommand))]
+    [NotifyCanExecuteChangedFor(nameof(TakePhotoCommand))]
+    [NotifyCanExecuteChangedFor(nameof(PickPdfCommand))]
+    [NotifyCanExecuteChangedFor(nameof(PickDocumentCommand))]
     private bool _isInitializing;
 
     [ObservableProperty]
@@ -59,16 +87,22 @@ public partial class ChatBotViewModel : ObservableObject
     /// </summary>
     public ObservableCollection<ConversationHistoryItemViewModel> Conversations { get; } = [];
 
-    public ChatBotViewModel(LocalDatabase database, TokenProviderService tokenProvider, ILogger logger)
+    public ChatBotViewModel(
+        LocalDatabase database,
+        TokenProviderService tokenProvider,
+        AttachmentService attachmentService,
+        ILogger logger)
     {
         ArgumentNullException.ThrowIfNull(database);
         ArgumentNullException.ThrowIfNull(tokenProvider);
+        ArgumentNullException.ThrowIfNull(attachmentService);
         ArgumentNullException.ThrowIfNull(logger);
 
         _database = database;
         _logger = logger;
         _toolsRegistrar = new AgentToolsRegistrar(database, logger);
         _tokenProvider = tokenProvider;
+        _attachmentService = attachmentService;
     }
 
     /// <summary>
@@ -128,7 +162,11 @@ public partial class ChatBotViewModel : ObservableObject
         }
     }
 
-    private bool CanSendMessage => !string.IsNullOrWhiteSpace(UserInput) && !IsBusy && !IsInitializing && _agent is not null;
+    private bool CanSendMessage =>
+        (!string.IsNullOrWhiteSpace(UserInput) || PendingAttachment is not null)
+        && !IsBusy
+        && !IsInitializing
+        && _agent is not null;
 
     /// <summary>
     /// Sends the user's message to the AI agent and streams the response.
@@ -136,7 +174,12 @@ public partial class ChatBotViewModel : ObservableObject
     [RelayCommand(CanExecute = nameof(CanSendMessage))]
     private async Task SendMessageAsync()
     {
-        if (string.IsNullOrWhiteSpace(UserInput) || _agent is null)
+        if (_agent is null)
+        {
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(UserInput) && PendingAttachment is null)
         {
             return;
         }
@@ -144,11 +187,20 @@ public partial class ChatBotViewModel : ObservableObject
         HasError = false;
         ErrorMessage = string.Empty;
 
-        var userMessage = UserInput.Trim();
+        var userText = UserInput.Trim();
         UserInput = string.Empty;
 
-        // Add user message to UI
-        Messages.Add(new ChatMessageViewModel(userMessage, isUser: true));
+        // Snapshot and clear the pending attachment so the UI resets immediately.
+        var attachment = PendingAttachment;
+        PendingAttachment = null;
+
+        // Add user message to UI (including attachment metadata for thumbnail display)
+        Messages.Add(new ChatMessageViewModel(userText, isUser: true)
+        {
+            AttachmentPath = attachment?.FilePath,
+            AttachmentMediaType = attachment?.MediaType,
+            AttachmentFileName = attachment?.OriginalFileName,
+        });
 
         // Add placeholder for assistant response
         var assistantMessage = new ChatMessageViewModel(string.Empty, isUser: false);
@@ -159,10 +211,54 @@ public partial class ChatBotViewModel : ObservableObject
 
         try
         {
-            await _agent.ChatStreamAsync(
-                userMessage,
-                chunk => MainThread.BeginInvokeOnMainThread(() => assistantMessage.Content += chunk),
-                _sendCts.Token).ConfigureAwait(false);
+            if (attachment is not null)
+            {
+                if (attachment.IsTextDocument)
+                {
+                    // Text document: inline extracted content into the prompt as fenced context.
+                    var instruction = string.IsNullOrWhiteSpace(userText)
+                        ? "Przeanalizuj załączony dokument."
+                        : userText;
+
+                    var promptText =
+                        $"{instruction}\n\n" +
+                        $"--- Zawartość pliku \"{attachment.OriginalFileName}\" ---\n" +
+                        $"{attachment.TextContent}\n" +
+                        $"--- Koniec pliku ---";
+
+                    await _agent.ChatStreamAsync(
+                        promptText,
+                        chunk => MainThread.BeginInvokeOnMainThread(() => assistantMessage.Content += chunk),
+                        _sendCts.Token).ConfigureAwait(false);
+                }
+                else
+                {
+                    // Multimodal: text + binary attachment (image or PDF).
+                    var promptText = string.IsNullOrWhiteSpace(userText)
+                        ? (attachment.IsPdf
+                            ? "Przeanalizuj załączony dokument PDF."
+                            : "Przeanalizuj załączony obraz.")
+                        : userText;
+
+                    var chatMessage = new ChatMessage(ChatRole.User,
+                    [
+                        new TextContent(promptText),
+                        new DataContent(attachment.Data, attachment.MediaType),
+                    ]);
+
+                    await _agent.ChatStreamAsync(
+                        chatMessage,
+                        chunk => MainThread.BeginInvokeOnMainThread(() => assistantMessage.Content += chunk),
+                        _sendCts.Token).ConfigureAwait(false);
+                }
+            }
+            else
+            {
+                await _agent.ChatStreamAsync(
+                    userText,
+                    chunk => MainThread.BeginInvokeOnMainThread(() => assistantMessage.Content += chunk),
+                    _sendCts.Token).ConfigureAwait(false);
+            }
         }
         catch (OperationCanceledException)
         {
@@ -205,6 +301,105 @@ public partial class ChatBotViewModel : ObservableObject
     private void Cancel()
     {
         _sendCts?.Cancel();
+    }
+
+    private bool CanPickAttachment => !IsBusy && !IsInitializing && PendingAttachment is null;
+
+    /// <summary>
+    /// Shows an action sheet letting the user choose how to attach a file
+    /// (gallery, camera, or PDF). Replaces any previously pending attachment.
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanPickAttachment))]
+    private async Task ShowAttachmentOptionsAsync()
+    {
+        var choice = await MainThread.InvokeOnMainThreadAsync(() =>
+            Application.Current?.Windows[0]?.Page?.DisplayActionSheet(
+                "Dodaj załącznik",
+                "Anuluj",
+                null,
+                "Zrób zdjęcie",
+                "Wybierz z galerii",
+                "Wybierz plik PDF",
+                "Wybierz dokument (TXT, DOCX, ...)"));
+
+        if (string.IsNullOrEmpty(choice) || choice == "Anuluj")
+        {
+            return;
+        }
+
+        switch (choice)
+        {
+            case "Zrób zdjęcie":
+                await TakePhotoAsync().ConfigureAwait(false);
+                break;
+            case "Wybierz z galerii":
+                await PickImageAsync().ConfigureAwait(false);
+                break;
+            case "Wybierz plik PDF":
+                await PickPdfAsync().ConfigureAwait(false);
+                break;
+            case "Wybierz dokument (TXT, DOCX, ...)":
+                await PickDocumentAsync().ConfigureAwait(false);
+                break;
+        }
+    }
+
+    /// <summary>Picks a photo from the device gallery.</summary>
+    [RelayCommand(CanExecute = nameof(CanPickAttachment))]
+    private async Task PickImageAsync()
+    {
+        var attachment = await _attachmentService.PickImageAsync().ConfigureAwait(false);
+        await ApplyPickedAttachmentAsync(attachment).ConfigureAwait(false);
+    }
+
+    /// <summary>Captures a photo with the device camera.</summary>
+    [RelayCommand(CanExecute = nameof(CanPickAttachment))]
+    private async Task TakePhotoAsync()
+    {
+        var attachment = await _attachmentService.CapturePhotoAsync().ConfigureAwait(false);
+        await ApplyPickedAttachmentAsync(attachment).ConfigureAwait(false);
+    }
+
+    /// <summary>Picks a PDF document from the file system.</summary>
+    [RelayCommand(CanExecute = nameof(CanPickAttachment))]
+    private async Task PickPdfAsync()
+    {
+        var attachment = await _attachmentService.PickPdfAsync().ConfigureAwait(false);
+        await ApplyPickedAttachmentAsync(attachment).ConfigureAwait(false);
+    }
+
+    /// <summary>Picks a text-based document (TXT, MD, CSV, JSON, DOCX, ...) from the file system.</summary>
+    [RelayCommand(CanExecute = nameof(CanPickAttachment))]
+    private async Task PickDocumentAsync()
+    {
+        var attachment = await _attachmentService.PickDocumentAsync().ConfigureAwait(false);
+        await ApplyPickedAttachmentAsync(attachment).ConfigureAwait(false);
+    }
+
+    private bool CanRemoveAttachment => PendingAttachment is not null;
+
+    /// <summary>Removes the currently pending attachment before the message is sent.</summary>
+    [RelayCommand(CanExecute = nameof(CanRemoveAttachment))]
+    private void RemoveAttachment()
+    {
+        var attachment = PendingAttachment;
+        PendingAttachment = null;
+
+        // Best-effort cleanup of the on-disk copy (message hasn't been sent yet).
+        if (attachment is not null)
+        {
+            _attachmentService.DeleteAttachment(attachment.FilePath);
+        }
+    }
+
+    private Task ApplyPickedAttachmentAsync(ChatAttachment? attachment)
+    {
+        if (attachment is null)
+        {
+            return Task.CompletedTask;
+        }
+
+        return MainThread.InvokeOnMainThreadAsync(() => PendingAttachment = attachment);
     }
 
     /// <summary>
@@ -313,19 +508,47 @@ public partial class ChatBotViewModel : ObservableObject
             await _agent.LoadConversationAsync(conversation.SerializedThread, conversation.Id).ConfigureAwait(false);
             _currentConversationId = conversation.Id;
 
-            // Extract and display conversation history in UI
+            // Extract and display conversation history in UI. Attachments (image/PDF) embedded in the
+            // saved session are rematerialised onto disk so that thumbnails render correctly.
             var history = ConversationHistoryParser.Parse(conversation.SerializedThread);
+
+            var viewModels = new List<ChatMessageViewModel>(history.Count);
+            foreach (var message in history)
+            {
+                ChatAttachment? restored = null;
+                if (message.AttachmentBytes is { Length: > 0 } bytes &&
+                    !string.IsNullOrEmpty(message.AttachmentMediaType))
+                {
+                    try
+                    {
+                        restored = await _attachmentService
+                            .MaterializeAsync(bytes, message.AttachmentMediaType, message.AttachmentFileName)
+                            .ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.Warning(ex, "Failed to materialize attachment from history");
+                    }
+                }
+
+                viewModels.Add(new ChatMessageViewModel(message.Content, message.IsUser)
+                {
+                    AttachmentPath = restored?.FilePath,
+                    AttachmentMediaType = restored?.MediaType ?? message.AttachmentMediaType,
+                    AttachmentFileName = restored?.OriginalFileName ?? message.AttachmentFileName,
+                });
+            }
 
             await MainThread.InvokeOnMainThreadAsync(() =>
                      {
                          Messages.Clear();
 
-                         foreach (var message in history)
+                         foreach (var vm in viewModels)
                          {
-                             Messages.Add(new ChatMessageViewModel(message.Content, message.IsUser));
+                             Messages.Add(vm);
                          }
 
-                         if (history.Count == 0)
+                         if (viewModels.Count == 0)
                          {
                              Messages.Add(new ChatMessageViewModel($"[Załadowano rozmowę: {item.Title}]", isUser: false));
                          }
@@ -465,6 +688,26 @@ public partial class ChatMessageViewModel(string content, bool isUser) : Observa
     /// Gets a value indicating whether this message is from the assistant.
     /// </summary>
     public bool IsAssistant => !IsUser;
+
+    /// <summary>Absolute path to the persisted attachment file, if any.</summary>
+    public string? AttachmentPath { get; init; }
+
+    /// <summary>MIME type of the attachment (e.g. image/jpeg, application/pdf).</summary>
+    public string? AttachmentMediaType { get; init; }
+
+    /// <summary>Original file name shown to the user.</summary>
+    public string? AttachmentFileName { get; init; }
+
+    public bool HasAttachment => !string.IsNullOrEmpty(AttachmentPath);
+
+    public bool HasImageAttachment =>
+        HasAttachment && (AttachmentMediaType?.StartsWith("image/", StringComparison.OrdinalIgnoreCase) ?? false);
+
+    public bool HasPdfAttachment =>
+        HasAttachment && string.Equals(AttachmentMediaType, "application/pdf", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>True when the attachment is a text-based document (TXT/MD/CSV/DOCX/...)—not an image nor a PDF.</summary>
+    public bool HasDocumentAttachment => HasAttachment && !HasImageAttachment && !HasPdfAttachment;
 }
 
 /// <summary>

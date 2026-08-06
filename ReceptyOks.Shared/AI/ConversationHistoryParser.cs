@@ -36,12 +36,20 @@ public static class ConversationHistoryParser
                 foreach (var message in messagesElement.Value.EnumerateArray())
                 {
                     var role = GetStringProperty(message, "Role", "role") ?? "unknown";
-                    var content = ExtractMessageContent(message);
+                    var (content, attachment) = ExtractMessageContentAndAttachment(message);
 
-                    if (!string.IsNullOrWhiteSpace(content))
+                    var hasText = !string.IsNullOrWhiteSpace(content);
+                    var hasAttachment = attachment is not null;
+
+                    if (hasText || hasAttachment)
                     {
                         var isUser = role.Equals("user", StringComparison.OrdinalIgnoreCase);
-                        messages.Add(new ConversationMessage(content, isUser));
+                        messages.Add(new ConversationMessage(
+                            content ?? string.Empty,
+                            isUser,
+                            attachment?.Bytes,
+                            attachment?.MediaType,
+                            attachment?.FileName));
                     }
                 }
             }
@@ -172,7 +180,7 @@ public static class ConversationHistoryParser
         return null;
     }
 
-    private static string ExtractMessageContent(JsonElement message)
+    private static (string Content, ExtractedAttachment? Attachment) ExtractMessageContentAndAttachment(JsonElement message)
     {
         // Try to get content directly as string
         if (message.TryGetProperty("Content", out var contentElement) ||
@@ -180,12 +188,12 @@ public static class ConversationHistoryParser
         {
             if (contentElement.ValueKind == JsonValueKind.String)
             {
-                return contentElement.GetString() ?? string.Empty;
+                return (contentElement.GetString() ?? string.Empty, null);
             }
 
             if (contentElement.ValueKind == JsonValueKind.Array)
             {
-                return ExtractTextFromContentArray(contentElement);
+                return ExtractTextAndAttachmentFromContentArray(contentElement);
             }
         }
 
@@ -195,7 +203,7 @@ public static class ConversationHistoryParser
         {
             if (contentsElement.ValueKind == JsonValueKind.Array)
             {
-                return ExtractTextFromContentArray(contentsElement);
+                return ExtractTextAndAttachmentFromContentArray(contentsElement);
             }
         }
 
@@ -207,17 +215,18 @@ public static class ConversationHistoryParser
             {
                 if (anthropicContent.ValueKind == JsonValueKind.Array)
                 {
-                    return ExtractTextFromContentArray(anthropicContent);
+                    return ExtractTextAndAttachmentFromContentArray(anthropicContent);
                 }
             }
         }
 
-        return string.Empty;
+        return (string.Empty, null);
     }
 
-    private static string ExtractTextFromContentArray(JsonElement contentArray)
+    private static (string Content, ExtractedAttachment? Attachment) ExtractTextAndAttachmentFromContentArray(JsonElement contentArray)
     {
         var textParts = new StringBuilder();
+        ExtractedAttachment? attachment = null;
 
         foreach (var item in contentArray.EnumerateArray())
         {
@@ -246,6 +255,9 @@ public static class ConversationHistoryParser
                 {
                     text = GetStringProperty(item, "Value", "value");
                 }
+
+                // Attempt to detect an attachment (DataContent / Anthropic image / document blocks).
+                attachment ??= TryExtractAttachment(item);
             }
 
             if (!string.IsNullOrEmpty(text))
@@ -255,6 +267,139 @@ public static class ConversationHistoryParser
             }
         }
 
-        return textParts.ToString();
+        return (textParts.ToString(), attachment);
     }
+
+    /// <summary>
+    /// Attempts to reconstruct an attachment (image/PDF bytes + media type) from a single
+    /// content-array item. Supports:
+    ///   • Microsoft.Extensions.AI <c>DataContent</c> ({ "$type":"data", "uri":"data:...;base64,...", "mediaType":"..." })
+    ///   • Anthropic image block ({ "type":"image", "source": { "type":"base64", "media_type":"...", "data":"..." } })
+    ///   • Anthropic document block ({ "type":"document", "source": { ... } })
+    /// </summary>
+    private static ExtractedAttachment? TryExtractAttachment(JsonElement item)
+    {
+        // Microsoft.Extensions.AI DataContent shapes
+        var mediaType = GetStringProperty(item, "mediaType", "MediaType", "media_type");
+        var uri = GetStringProperty(item, "uri", "Uri", "URI");
+        var fileName = GetStringProperty(item, "name", "Name", "fileName", "FileName");
+
+        if (!string.IsNullOrEmpty(uri))
+        {
+            var bytes = TryDecodeDataUri(uri, out var uriMediaType);
+            if (bytes is not null)
+            {
+                return new ExtractedAttachment(bytes, mediaType ?? uriMediaType ?? "application/octet-stream", fileName);
+            }
+        }
+
+        // Direct data property (byte array or base64 string)
+        if (item.TryGetProperty("data", out var dataElement) ||
+            item.TryGetProperty("Data", out dataElement))
+        {
+            var bytes = TryDecodeDataElement(dataElement);
+            if (bytes is not null && !string.IsNullOrEmpty(mediaType))
+            {
+                return new ExtractedAttachment(bytes, mediaType, fileName);
+            }
+        }
+
+        // Anthropic image/document block with nested source
+        if (item.TryGetProperty("source", out var sourceElement) ||
+            item.TryGetProperty("Source", out sourceElement))
+        {
+            if (sourceElement.ValueKind == JsonValueKind.Object)
+            {
+                var srcMediaType = GetStringProperty(sourceElement, "media_type", "mediaType", "MediaType");
+                if (sourceElement.TryGetProperty("data", out var srcData) ||
+                    sourceElement.TryGetProperty("Data", out srcData))
+                {
+                    var bytes = TryDecodeDataElement(srcData);
+                    if (bytes is not null && !string.IsNullOrEmpty(srcMediaType))
+                    {
+                        return new ExtractedAttachment(bytes, srcMediaType, fileName);
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private static byte[]? TryDecodeDataUri(string uri, out string? mediaType)
+    {
+        mediaType = null;
+        if (!uri.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        var comma = uri.IndexOf(',');
+        if (comma < 0)
+        {
+            return null;
+        }
+
+        var meta = uri[5..comma]; // between "data:" and ","
+        var payload = uri[(comma + 1)..];
+        var isBase64 = meta.Contains(";base64", StringComparison.OrdinalIgnoreCase);
+        mediaType = isBase64
+            ? meta[..meta.IndexOf(";base64", StringComparison.OrdinalIgnoreCase)]
+            : meta;
+
+        if (string.IsNullOrWhiteSpace(mediaType))
+        {
+            mediaType = null;
+        }
+
+        try
+        {
+            return isBase64
+                ? Convert.FromBase64String(payload)
+                : Encoding.UTF8.GetBytes(Uri.UnescapeDataString(payload));
+        }
+        catch (FormatException)
+        {
+            return null;
+        }
+    }
+
+    private static byte[]? TryDecodeDataElement(JsonElement dataElement)
+    {
+        switch (dataElement.ValueKind)
+        {
+            case JsonValueKind.String:
+                try
+                {
+                    return Convert.FromBase64String(dataElement.GetString() ?? string.Empty);
+                }
+                catch (FormatException)
+                {
+                    return null;
+                }
+
+            case JsonValueKind.Array:
+                try
+                {
+                    var list = new List<byte>(dataElement.GetArrayLength());
+                    foreach (var b in dataElement.EnumerateArray())
+                    {
+                        if (b.ValueKind == JsonValueKind.Number && b.TryGetByte(out var value))
+                        {
+                            list.Add(value);
+                        }
+                    }
+                    return list.ToArray();
+                }
+                catch
+                {
+                    return null;
+                }
+
+            default:
+                return null;
+        }
+    }
+
+    private sealed record ExtractedAttachment(byte[] Bytes, string MediaType, string? FileName);
 }
