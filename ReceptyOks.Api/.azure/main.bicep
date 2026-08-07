@@ -20,14 +20,14 @@ param location string = resourceGroup().location
 @description('Application name (used as a prefix)')
 param appName string = 'receptyoks'
 
-@description('Docker image name (without tag)')
+@description('Docker image name (without tag, including owner). Example: dariusztom/receptyoks-api')
 param containerImage string
 
 @description('Docker image tag')
 param containerImageTag string = 'latest'
 
-@description('ACR server name (e.g., myacr.azurecr.io)')
-param acrServer string
+@description('Container registry host (e.g., ghcr.io). For public GHCR images no credentials are required.')
+param containerRegistry string = 'ghcr.io'
 
 // =====================================================
 // SECRETS - these are stored in Azure Key Vault
@@ -267,12 +267,10 @@ resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
           }
         ]
       }
-      registries: [
-        {
-          server: acrServer
-          identity: 'system'
-        }
-      ]
+      // No 'registries' entry: image is pulled anonymously from a public GHCR repository.
+      // If the package is switched to private, add:
+      //   registries: [{ server: containerRegistry, username: '<gh-user>', passwordSecretRef: 'ghcr-pull-token' }]
+      // and store the PAT as a Container App secret named 'ghcr-pull-token'.
       // Only SQL connection string is stored inline as a Container App secret,
       // because it depends on runtime values (server FQDN) and is not read via Key Vault.
       // All application secrets (PasswordHash, SecretKey, UserAgent, etc.)
@@ -289,7 +287,7 @@ resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
       containers: [
         {
           name: '${appName}-api'
-          image: '${acrServer}/${containerImage}:${containerImageTag}'
+          image: '${containerRegistry}/${containerImage}:${containerImageTag}'
           resources: {
             cpu: json('0.25')
             memory: '0.5Gi'
