@@ -267,10 +267,11 @@ resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
           }
         ]
       }
-      // No 'registries' entry: image is pulled anonymously from a public GHCR repository.
-      // If the package is switched to private, add:
-      //   registries: [{ server: containerRegistry, username: '<gh-user>', passwordSecretRef: 'ghcr-pull-token' }]
-      // and store the PAT as a Container App secret named 'ghcr-pull-token'.
+      // No 'registries' entry: image is pulled anonymously from a public container registry
+      // (default: GHCR, but 'containerRegistry' parameter allows any host).
+      // If the image is switched to private (e.g., private GHCR), add:
+      //   registries: [{ server: containerRegistry, username: '<user>', passwordSecretRef: 'registry-pull-token' }]
+      // and store the credential as a Container App secret (e.g., 'registry-pull-token').
       // Only SQL connection string is stored inline as a Container App secret,
       // because it depends on runtime values (server FQDN) and is not read via Key Vault.
       // All application secrets (PasswordHash, SecretKey, UserAgent, etc.)

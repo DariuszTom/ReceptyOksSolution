@@ -69,7 +69,9 @@ jobs:
 
       - name: Export image SHA tag for downstream jobs
         id: image_meta
-        run: echo "sha_tag=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+        # docker/metadata-action publishes 'type=sha' as a short 7-char SHA by default;
+        # export the same short form so the deploy job references a tag that actually exists.
+        run: echo "sha_tag=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
 
   deploy:
     name: Deploy to Azure Container App
