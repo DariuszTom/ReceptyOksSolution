@@ -67,8 +67,11 @@ param anthropicToken string = ''
 // =====================================================
 // Azure SQL Database
 // =====================================================
+@description('SQL Server name (must be globally unique). Defaults include a resource-group suffix to avoid collisions.')
+param sqlServerName string = '${appName}-sql-${take(uniqueString(resourceGroup().id), 6)}'
+
 resource sqlServer 'Microsoft.Sql/servers@2023-05-01-preview' = {
-  name: '${appName}-sql'
+  name: sqlServerName
   location: location
   properties: {
     administratorLogin: sqlAdminLogin
@@ -127,8 +130,8 @@ resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2022-10-01' = if
 // Stores application secrets (JWT key, API key, SQL connection string).
 // Container App accesses secrets via System-Assigned Managed Identity + RBAC.
 // Free tier: ~$0.03 / 10k operations - negligible cost.
-@description('Key Vault name (must be globally unique, 3-24 chars, alphanumeric + hyphens)')
-param keyVaultName string = '${appName}-kv-${uniqueString(resourceGroup().id)}'
+@description('Key Vault name (must be globally unique, 3-24 chars, alphanumeric + hyphens). The default is truncated to fit the 24-char limit.')
+param keyVaultName string = take('${appName}-kv-${uniqueString(resourceGroup().id)}', 24)
 
 resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
   name: keyVaultName
@@ -344,7 +347,11 @@ resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
         maxReplicas: 1
       }
     }
-    workloadProfileName: 'Consumption'
+    // Note: 'workloadProfileName' is intentionally omitted.
+    // The managed environment was created in "Consumption Only" mode (no workload profiles),
+    // which rejects any workloadProfileName value - including 'Consumption'.
+    // If the environment is later recreated with workload profiles enabled,
+    // re-add: workloadProfileName: 'Consumption'
   }
 }
 
