@@ -1,6 +1,13 @@
 name: Build and Push Docker Image
 
 on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'ReceptyOks.Api/**'
+      - 'ReceptyOks.Shared/**'
+      - 'ReceptyOksSolution.ServiceDefaults/**'
   pull_request:
     branches:
       - master
@@ -20,6 +27,8 @@ jobs:
     permissions:
       contents: read
       packages: write
+    outputs:
+      image_sha_tag: ${{ steps.image_meta.outputs.sha_tag }}
 
     steps:
       - name: Checkout repository
@@ -57,3 +66,47 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Export image SHA tag for downstream jobs
+        id: image_meta
+        # docker/metadata-action publishes 'type=sha' as a short 7-char SHA by default;
+        # export the same short form so the deploy job references a tag that actually exists.
+        run: echo "sha_tag=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+  deploy:
+    name: Deploy to Azure Container App
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Update Container App to new GHCR image
+        run: |
+          OWNER="${{ github.repository_owner }}"
+          OWNER="${OWNER,,}"
+          SHA="${{ needs.build.outputs.image_sha_tag }}"
+          IMAGE="ghcr.io/${OWNER}/receptyoks-api:${SHA}"
+          echo "Deploying image: ${IMAGE}"
+          az containerapp update \
+            --name ${{ secrets.CONTAINER_APP_NAME }} \
+            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+            --image "${IMAGE}"
+
+      - name: Restart latest revision
+        run: |
+          REVISION=$(az containerapp revision list \
+            --name ${{ secrets.CONTAINER_APP_NAME }} \
+            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+            --query "[0].name" -o tsv)
+          az containerapp revision restart \
+            --name ${{ secrets.CONTAINER_APP_NAME }} \
+            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+            --revision "$REVISION"
+          echo "Restarted revision: $REVISION"
