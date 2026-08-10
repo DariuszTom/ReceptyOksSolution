@@ -1,0 +1,60 @@
+# =====================================================
+# Docker ignore - excludes Windows-specific build artifacts
+# =====================================================
+# WHY THIS FILE MATTERS:
+# Without .dockerignore, `COPY . .` in Dockerfile copies obj/ and bin/
+# folders which contain Windows-only paths like:
+#   'C:\Program Files (x86)\Microsoft Visual Studio\Shared\NuGetPackages'
+# This crashes `dotnet publish` in the Linux container.
+#
+# Rule of thumb: Docker should only receive SOURCE code, not build artifacts.
+# The container does its own `dotnet restore` and `dotnet publish` cleanly.
+# =====================================================
+
+# Build outputs (Windows-specific paths inside)
+**/bin/
+**/obj/
+
+# Visual Studio
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.opendb
+
+# Rider / VS Code
+.idea/
+.vscode/
+
+# NuGet
+**/packages/
+*.nupkg
+*.snupkg
+
+# Test results
+[Tt]est[Rr]esult*/
+[Cc]overage*/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# GitHub
+.github/
+
+# Docker
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# Docs / infrastructure (don't need in image)
+README.md
+LICENSE
+*.md
+.azure/

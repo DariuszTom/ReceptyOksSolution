@@ -162,7 +162,7 @@
                         <Border IsVisible="{Binding IsUser}"
                                 HorizontalOptions="End"
                                 MaximumWidthRequest="320"
-                                Padding="18,14"
+                                Padding="12"
                                 StrokeThickness="0"
                                 StrokeShape="RoundRectangle 24,24,4,24"
                                 BackgroundColor="{StaticResource Primary}">
@@ -172,11 +172,76 @@
                                         Radius="12"
                                         Opacity="0.3"/>
                             </Border.Shadow>
-                            <Label Text="{Binding Content}"
-                                   TextColor="White"
-                                   FontSize="15"
-                                   LineHeight="1.4"
-                                   LineBreakMode="WordWrap"/>
+                            <VerticalStackLayout Spacing="8">
+                                <!-- Image attachment preview -->
+                                <Border IsVisible="{Binding HasImageAttachment}"
+                                        StrokeThickness="0"
+                                        StrokeShape="RoundRectangle 16"
+                                        HeightRequest="180"
+                                        WidthRequest="240"
+                                        BackgroundColor="Black">
+                                    <Image Source="{Binding AttachmentPath}"
+                                           Aspect="AspectFill"
+                                           HeightRequest="180"
+                                           WidthRequest="240"/>
+                                </Border>
+
+                                <!-- PDF attachment chip -->
+                                <Border IsVisible="{Binding HasPdfAttachment}"
+                                        StrokeThickness="0"
+                                        StrokeShape="RoundRectangle 12"
+                                        Padding="10,8"
+                                        BackgroundColor="#22FFFFFF">
+                                    <HorizontalStackLayout Spacing="8" VerticalOptions="Center">
+                                        <Image HeightRequest="20" WidthRequest="20" VerticalOptions="Center">
+                                            <Image.Source>
+                                                <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Picture_as_pdf}"
+                                                                 FontFamily="MaterialSymbolsOutlined"
+                                                                 Color="White"
+                                                                 Size="20"/>
+                                            </Image.Source>
+                                        </Image>
+                                        <Label Text="{Binding AttachmentFileName}"
+                                               TextColor="White"
+                                               FontSize="13"
+                                               VerticalOptions="Center"
+                                               LineBreakMode="MiddleTruncation"
+                                               MaximumWidthRequest="240"/>
+                                    </HorizontalStackLayout>
+                                </Border>
+
+                                <!-- Text document chip -->
+                                <Border IsVisible="{Binding HasDocumentAttachment}"
+                                        StrokeThickness="0"
+                                        StrokeShape="RoundRectangle 12"
+                                        Padding="10,8"
+                                        BackgroundColor="#22FFFFFF">
+                                    <HorizontalStackLayout Spacing="8" VerticalOptions="Center">
+                                        <Image HeightRequest="20" WidthRequest="20" VerticalOptions="Center">
+                                            <Image.Source>
+                                                <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Description}"
+                                                                 FontFamily="MaterialSymbolsOutlined"
+                                                                 Color="White"
+                                                                 Size="20"/>
+                                            </Image.Source>
+                                        </Image>
+                                        <Label Text="{Binding AttachmentFileName}"
+                                               TextColor="White"
+                                               FontSize="13"
+                                               VerticalOptions="Center"
+                                               LineBreakMode="MiddleTruncation"
+                                               MaximumWidthRequest="240"/>
+                                    </HorizontalStackLayout>
+                                </Border>
+
+                                <Label Text="{Binding Content}"
+                                       IsVisible="{Binding Content, Converter={toolkit:IsStringNotNullOrWhiteSpaceConverter}}"
+                                       TextColor="White"
+                                       FontSize="15"
+                                       LineHeight="1.4"
+                                       Padding="6,2"
+                                       LineBreakMode="WordWrap"/>
+                            </VerticalStackLayout>
                         </Border>
         
                         <!-- Assistant message - left aligned with avatar -->
@@ -255,8 +320,86 @@
         </Border>
 
         <!-- Input Area -->
-        <Border Grid.Row="2"
-                Margin="16,8,16,16"
+        <VerticalStackLayout Grid.Row="2" Spacing="0">
+            <!-- Pending attachment preview bar -->
+            <Border IsVisible="{Binding HasPendingAttachment}"
+                    Margin="16,0,16,8"
+                    Padding="10"
+                    StrokeThickness="1"
+                    Stroke="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray700}}"
+                    StrokeShape="RoundRectangle 16"
+                    BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray800}}">
+                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10" VerticalOptions="Center">
+                    <!-- Thumbnail for image, icon for PDF -->
+                    <Border Grid.Column="0"
+                            StrokeThickness="0"
+                            StrokeShape="RoundRectangle 10"
+                            HeightRequest="48"
+                            WidthRequest="48"
+                            BackgroundColor="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray700}}">
+                        <Grid>
+                            <Image IsVisible="{Binding PendingAttachment.IsImage, FallbackValue=False}"
+                                   Source="{Binding PendingAttachment.FilePath}"
+                                   Aspect="AspectFill"
+                                   HeightRequest="48"
+                                   WidthRequest="48"/>
+                            <Image IsVisible="{Binding PendingAttachment.IsPdf, FallbackValue=False}"
+                                   HeightRequest="24"
+                                   WidthRequest="24"
+                                   HorizontalOptions="Center"
+                                   VerticalOptions="Center">
+                                <Image.Source>
+                                    <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Picture_as_pdf}"
+                                                     FontFamily="MaterialSymbolsOutlined"
+                                                     Color="#EF5350"
+                                                     Size="24"/>
+                                </Image.Source>
+                            </Image>
+                            <Image IsVisible="{Binding PendingAttachment.IsTextDocument, FallbackValue=False}"
+                                   HeightRequest="24"
+                                   WidthRequest="24"
+                                   HorizontalOptions="Center"
+                                   VerticalOptions="Center">
+                                <Image.Source>
+                                    <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Description}"
+                                                     FontFamily="MaterialSymbolsOutlined"
+                                                     Color="#42A5F5"
+                                                     Size="24"/>
+                                </Image.Source>
+                            </Image>
+                        </Grid>
+                    </Border>
+
+                    <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="2">
+                        <Label Text="{Binding PendingAttachment.OriginalFileName}"
+                               FontSize="14"
+                               FontAttributes="Bold"
+                               LineBreakMode="MiddleTruncation"
+                               TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"/>
+                        <Label Text="{Binding PendingAttachment.MediaType}"
+                               FontSize="12"
+                               TextColor="{StaticResource Gray500}"/>
+                    </VerticalStackLayout>
+
+                    <Button Grid.Column="2"
+                            Command="{Binding RemoveAttachmentCommand}"
+                            BackgroundColor="Transparent"
+                            WidthRequest="36"
+                            HeightRequest="36"
+                            Padding="0"
+                            AutomationProperties.Name="Usuń załącznik"
+                            AutomationProperties.HelpText="Usuwa wybrany załącznik przed wysłaniem wiadomości">
+                        <Button.ImageSource>
+                            <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Close}"
+                                             FontFamily="MaterialSymbolsOutlined"
+                                             Color="{StaticResource Gray600}"
+                                             Size="20"/>
+                        </Button.ImageSource>
+                    </Button>
+                </Grid>
+            </Border>
+
+            <Border Margin="16,8,16,16"
                 Padding="2"
                 StrokeThickness="2"
                 Stroke="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray700}}"
@@ -268,21 +411,50 @@
                         Radius="16"
                         Opacity="0.12"/>
             </Border.Shadow>
-            <Grid ColumnDefinitions="*,Auto,Auto">
+            <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+                <!-- Attachment (paperclip) button -->
+                <Border Grid.Column="0"
+                        StrokeThickness="0"
+                        BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray800}}"
+                        StrokeShape="RoundRectangle 20"
+                        WidthRequest="40"
+                        HeightRequest="40"
+                        VerticalOptions="Center"
+                        HorizontalOptions="Center"
+                        Margin="6,4,0,4"
+                        AutomationProperties.Name="Dodaj załącznik"
+                        AutomationProperties.HelpText="Otwiera menu wyboru zdjęcia, PDF-a lub dokumentu">
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Command="{Binding ShowAttachmentOptionsCommand}"/>
+                    </Border.GestureRecognizers>
+                    <Image HeightRequest="22"
+                           WidthRequest="22"
+                           HorizontalOptions="Center"
+                           VerticalOptions="Center"
+                           InputTransparent="True">
+                        <Image.Source>
+                            <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Attach_file}"
+                                             FontFamily="MaterialSymbolsOutlined"
+                                             Color="{AppThemeBinding Light={StaticResource Gray700}, Dark={StaticResource Gray300}}"
+                                             Size="22"/>
+                        </Image.Source>
+                    </Image>
+                </Border>
+
                 <!-- Text input -->
-                <Editor Grid.Column="0"
+                <Editor Grid.Column="1"
                         Text="{Binding UserInput}"
                         Placeholder="Napisz wiadomość..."
                         PlaceholderColor="{StaticResource Gray400}"
                         FontSize="16"
                         AutoSize="TextChanges"
                         MaximumHeightRequest="120"
-                        Margin="16,8,8,8"
+                        Margin="8,8,8,8"
                         BackgroundColor="Transparent"
                         TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"/>
                 
                 <!-- Cancel button (visible when busy) -->
-                <Border Grid.Column="1"
+                <Border Grid.Column="2"
                         IsVisible="{Binding IsBusy}"
                         WidthRequest="48"
                         HeightRequest="48"
@@ -304,9 +476,9 @@
                         </Button.ImageSource>
                     </Button>
                 </Border>
-  
+
                 <!-- Send button / Loading indicator -->
-                <Grid Grid.Column="2" WidthRequest="56" HeightRequest="56" VerticalOptions="End" Margin="4">
+                <Grid Grid.Column="3" WidthRequest="56" HeightRequest="56" VerticalOptions="End" Margin="4">
                     <!-- Loading indicator background -->
                     <Border IsVisible="{Binding IsBusy}"
                             StrokeThickness="0"
@@ -348,6 +520,7 @@
                 </Grid>
             </Grid>
         </Border>
+        </VerticalStackLayout>
 
         <!-- Overlays placed last so they render on top of other content -->
         <Grid RowSpan="3" IsVisible="{Binding IsInitializing}" BackgroundColor="#AA000000" InputTransparent="False">

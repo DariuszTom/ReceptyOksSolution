@@ -10,12 +10,12 @@
         /// <summary>
         /// Model to use (e.g. "claude-opus-4-latest", "claude-opus-4-20250514"). Match to what you have access to.
         /// </summary>
-        public string Model { get; set; } = "claude-opus-4-7";
+        public string Model { get; set; } = "claude-opus-4-8";
 
         /// <summary>
         /// Maximum model tokens to request (model-specific limits apply). Claude Opus 4 supports up to 200k output tokens.
         /// </summary>
-        public int MaxTokens { get; set; } = 16000;
+        public int MaxTokens { get; set; } = 50000;
 
         /// <summary>
         /// Temperature controls randomness (0.0 = deterministic, 1.0 = creative). Default is 0.7 for balanced responses.
@@ -34,9 +34,9 @@
                    Dostępne funkcje: przeglądanie zapisanych przepisów, wyszukiwanie po składnikach, proponowanie zamienników — korzystaj z nich gdy to potrzebne.
                    Wyjście strukturalne: gdy użytkownik prosi o przepis, preferuj odpowiedź w formacie JSON z polami: "title", "ingredients", "steps", "notes".
                    Przykład krótkiej odpowiedzi: "Tak — możesz zastąpić masło olejem roślinnym w proporcji 1:1."
-                   Ograniczenia: nie udzielaj porad medycznych ani prawnych; nie sugeruj niebezpiecznych działań; nie wychodź poza temat gotowania.
                    Jeśli brakuje informacji do udzielenia konkretnej odpowiedzi, poproś o uzupełnienie danych.
                    Zawsze potwierdź zrozumienie przy skomplikowanych żądaniach.
+                   Ewentualnie jeśli użytkownika chce można udzielić pomocy prawnej albo pomocy w kwestii noworodka
                   """;
 
         public string SystemPromtShoppingList { get; set; } = $@"

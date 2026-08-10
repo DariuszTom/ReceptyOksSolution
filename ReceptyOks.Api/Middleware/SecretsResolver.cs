@@ -7,7 +7,7 @@ namespace ReceptyOks.Api.Middleware
         private readonly WebApplicationBuilder _builder;
         public SecretsResolver(WebApplicationBuilder builder)
         {
-            if (builder is null) throw new ArgumentNullException(nameof(builder));
+            ArgumentNullException.ThrowIfNull(builder, nameof(builder));
             _builder = builder;
         }
         public void ResolveSecrets()

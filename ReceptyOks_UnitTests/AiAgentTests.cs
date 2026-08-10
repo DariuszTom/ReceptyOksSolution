@@ -2068,4 +2068,194 @@ public sealed partial class AiAgentTests
         // Assert
         Assert.That(actualPrompt, Is.EqualTo(string.Empty));
     }
+
+    /// <summary>
+    /// Tests that GetConversationHistory returns empty list for null or whitespace input.
+    /// </summary>
+    [TestCase(null)]
+    [TestCase("")]
+    [TestCase("   ")]
+    public void GetConversationHistory_NullOrWhitespace_ReturnsEmptyList(string? input)
+    {
+        // Act
+        var result = AiAgent.GetConversationHistory(input!);
+        // Assert
+        Assert.That(result, Is.Empty);
+    }
+
+    /// <summary>
+    /// Tests that GetConversationHistory returns empty list for invalid JSON.
+    /// </summary>
+    [TestCase("not json")]
+    [TestCase("{invalid}")]
+    public void GetConversationHistory_InvalidJson_ReturnsEmptyList(string input)
+    {
+        // Act
+        var result = AiAgent.GetConversationHistory(input);
+        // Assert
+        Assert.That(result, Is.Empty);
+    }
+
+    /// <summary>
+    /// Tests that GetConversationHistory parses messages with Messages array.
+    /// </summary>
+    [Test]
+    public void GetConversationHistory_WithMessagesArray_ReturnsMessages()
+    {
+        // Arrange
+        var json = """
+        {
+            "Messages": [
+                { "Role": "user", "Content": "Hello" },
+                { "Role": "assistant", "Content": "Hi there!" }
+            ]
+        }
+        """;
+        // Act
+        var result = AiAgent.GetConversationHistory(json);
+        // Assert
+        Assert.That(result, Has.Count.EqualTo(2));
+        Assert.That(result[0].Content, Is.EqualTo("Hello"));
+        Assert.That(result[0].IsUser, Is.True);
+        Assert.That(result[1].Content, Is.EqualTo("Hi there!"));
+        Assert.That(result[1].IsUser, Is.False);
+    }
+
+    /// <summary>
+    /// Tests that GetConversationHistory parses messages with Contents array format.
+    /// </summary>
+    [Test]
+    public void GetConversationHistory_WithContentsArray_ReturnsMessages()
+    {
+        // Arrange
+        var json = """
+        {
+            "Messages": [
+                { "Role": "user", "Contents": [{ "Text": "Hello world" }] },
+                { "Role": "assistant", "Contents": [{ "Text": "Response text" }] }
+            ]
+        }
+        """;
+        // Act
+        var result = AiAgent.GetConversationHistory(json);
+        // Assert
+        Assert.That(result, Has.Count.EqualTo(2));
+        Assert.That(result[0].Content, Is.EqualTo("Hello world"));
+        Assert.That(result[0].IsUser, Is.True);
+        Assert.That(result[1].Content, Is.EqualTo("Response text"));
+        Assert.That(result[1].IsUser, Is.False);
+    }
+
+    /// <summary>
+    /// Tests that GetConversationHistory handles empty Messages array.
+    /// </summary>
+    [Test]
+    public void GetConversationHistory_EmptyMessagesArray_ReturnsEmptyList()
+    {
+        // Arrange
+        var json = """{ "Messages": [] }""";
+        // Act
+        var result = AiAgent.GetConversationHistory(json);
+        // Assert
+        Assert.That(result, Is.Empty);
+    }
+
+    /// <summary>
+    /// Tests that GetConversationHistory skips messages with empty content.
+    /// </summary>
+    [Test]
+    public void GetConversationHistory_MessagesWithEmptyContent_SkipsEmptyMessages()
+    {
+        // Arrange
+        var json = """
+        {
+            "Messages": [
+                { "Role": "user", "Content": "Valid message" },
+                { "Role": "assistant", "Content": "" },
+                { "Role": "user", "Content": "Another valid" }
+            ]
+        }
+        """;
+        // Act
+        var result = AiAgent.GetConversationHistory(json);
+        // Assert
+        Assert.That(result, Has.Count.EqualTo(2));
+        Assert.That(result[0].Content, Is.EqualTo("Valid message"));
+        Assert.That(result[1].Content, Is.EqualTo("Another valid"));
+    }
+
+    /// <summary>
+    /// Tests that GetConversationHistory parses nested ChatHistory structure.
+    /// </summary>
+    [Test]
+    public void GetConversationHistory_WithNestedChatHistory_ReturnsMessages()
+    {
+        // Arrange - simulating Microsoft.Agents.AI session format
+        var json = """
+        {
+            "ChatHistory": [
+                { "Role": "user", "Contents": [{ "Text": "First question" }] },
+                { "Role": "assistant", "Contents": [{ "Text": "First answer" }] }
+            ]
+        }
+        """;
+        // Act
+        var result = AiAgent.GetConversationHistory(json);
+        // Assert
+        Assert.That(result, Has.Count.EqualTo(2));
+        Assert.That(result[0].Content, Is.EqualTo("First question"));
+        Assert.That(result[0].IsUser, Is.True);
+        Assert.That(result[1].Content, Is.EqualTo("First answer"));
+        Assert.That(result[1].IsUser, Is.False);
+    }
+
+    /// <summary>
+    /// Tests that GetConversationHistory finds messages in nested State property.
+    /// </summary>
+    [Test]
+    public void GetConversationHistory_WithNestedStateMessages_ReturnsMessages()
+    {
+        // Arrange
+        var json = """
+        {
+            "State": {
+                "Messages": [
+                    { "Role": "user", "Content": "Nested question" },
+                    { "Role": "assistant", "Content": "Nested answer" }
+                ]
+            }
+        }
+        """;
+        // Act
+        var result = AiAgent.GetConversationHistory(json);
+        // Assert
+        Assert.That(result, Has.Count.EqualTo(2));
+        Assert.That(result[0].Content, Is.EqualTo("Nested question"));
+        Assert.That(result[1].Content, Is.EqualTo("Nested answer"));
+    }
+
+    /// <summary>
+    /// Tests that GetConversationHistory parses Anthropic-style content array.
+    /// </summary>
+    [Test]
+    public void GetConversationHistory_WithAnthropicContentFormat_ReturnsMessages()
+    {
+        // Arrange - Anthropic uses { "type": "text", "text": "..." }
+        var json = """
+        {
+            "Messages": [
+                { "Role": "user", "Contents": [{ "type": "text", "text": "User message" }] },
+                { "Role": "assistant", "Contents": [{ "type": "text", "text": "Assistant response" }] }
+            ]
+        }
+        """;
+        // Act
+        var result = AiAgent.GetConversationHistory(json);
+        // Assert
+        Assert.That(result, Has.Count.EqualTo(2));
+        Assert.That(result[0].Content, Is.EqualTo("User message"));
+        Assert.That(result[0].IsUser, Is.True);
+        Assert.That(result[1].Content, Is.EqualTo("Assistant response"));
+        Assert.That(result[1].IsUser, Is.False);
+    }
 }
