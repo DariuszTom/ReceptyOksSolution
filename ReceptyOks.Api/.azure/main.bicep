@@ -23,8 +23,8 @@ param appName string = 'receptyoks'
 @description('Docker image name (without tag, including owner). Example: dariusztom/receptyoks-api')
 param containerImage string
 
-@description('Docker image tag')
-param containerImageTag string = 'latest'
+@description('Docker image tag. The Container App is pinned to a stable tag (default: release) that is promoted manually via the GitHub Actions workflow_dispatch on docker-build.yml. Untested images tagged :<sha> or :master are never pulled by the app.')
+param containerImageTag string = 'release'
 
 @description('Container registry host (e.g., ghcr.io). For public GHCR images no credentials are required.')
 param containerRegistry string = 'ghcr.io'
