@@ -36,6 +36,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\HomeSeeker\HomeSeeker.csproj" />
     <ProjectReference Include="..\ReceptyOks.Shared\ReceptyOks.Shared.csproj" />
     <ProjectReference Include="..\ReceptyOksSolution.ServiceDefaults\ReceptyOksSolution.ServiceDefaults.csproj" />
   </ItemGroup>
