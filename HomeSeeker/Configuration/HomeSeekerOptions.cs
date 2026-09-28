@@ -48,7 +48,7 @@ public sealed record HomeSeekerOptions
     /// <summary>
     /// AI model to use for evaluation (cheaper model for cost control).
     /// </summary>
-    public string Model { get; init; } = "claude-sonnet-4-20250514";
+    public string Model { get; init; } = "claude-opus-5-5";
 
     /// <summary>
     /// Whether to enable web discovery (AI-based scraping of additional portals).
