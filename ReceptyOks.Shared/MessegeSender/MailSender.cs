@@ -17,9 +17,10 @@ namespace SharedLibrary.Misc.MessegeSender
         #region Properiets
         public bool IsBodyHtml { get => _IsBodyHtml; set => _IsBodyHtml = value; }
         #endregion
-        public async Task<bool> MailConfig(string addres, int port, SecureString pw, string login)
+        public async Task MailConfig(string addres, int port, SecureString pw, string login)
         {
-            if (await IsMailValid(login) == false) return false;
+            if (await IsMailValid(login) == false)
+                throw new ArgumentException("Invalid login email address", nameof(login));
 
             _MyMail = login;
             _smtpClient = new SmtpClient(addres)
@@ -27,9 +28,8 @@ namespace SharedLibrary.Misc.MessegeSender
                 Port = port,
                 Credentials = new NetworkCredential(login, pw),
                 EnableSsl = true,
+                Timeout = 20_000 // 20 seconds
             };
-            await Task.Run(() => _smtpClient.Timeout = 20);
-            return true;
         }
         public void CreateMail(string subject, StringBuilder body)
         {
@@ -42,9 +42,11 @@ namespace SharedLibrary.Misc.MessegeSender
                 IsBodyHtml = _IsBodyHtml,
             };
         }
-        public async Task<IAsyncResult> SendMail(string[] sendTo, [Optional] params string[] sendCC)
+        public async Task SendMail(string[] sendTo, [Optional] params string[] sendCC)
         {
-            if (_mailMessage is null || _smtpClient is null) return Task.CompletedTask;
+            if (_mailMessage is null || _smtpClient is null)
+                throw new InvalidOperationException("Mail sender is not configured or mail not created.");
+
             using (_mailMessage)
             {
                 foreach (string email in sendTo)
@@ -58,20 +60,17 @@ namespace SharedLibrary.Misc.MessegeSender
                         if (await IsMailValid(email) == true) _mailMessage.CC.Add(email);
                     }
                 }
-                return _smtpClient.SendMailAsync(_mailMessage);
+                // Await the send before disposing the message
+                await _smtpClient.SendMailAsync(_mailMessage).ConfigureAwait(false);
             }
         }
 
         private static async Task<bool> IsMailValid(string mail)
         {
             var addr = new EmailAddressAttribute();
-            return await Task.Run(() => addr.IsValid(mail));
+            return await Task.Run(() => addr.IsValid(mail)).ConfigureAwait(false);
         }
 
-        Task IMailSender.MailConfig(string addres, int port, SecureString pw, string login)
-        {
-            throw new NotImplementedException();
-        }
         public void Dispose()
         {
             _mailMessage?.Dispose();

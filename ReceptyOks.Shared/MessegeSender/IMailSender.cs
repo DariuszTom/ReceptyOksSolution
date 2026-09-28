@@ -7,6 +7,6 @@ namespace SharedLibrary.Misc.MessegeSender
     {
         public Task MailConfig(string addres, int port, SecureString pw, string login);
         public void CreateMail(string subject, StringBuilder body);
-        public Task<IAsyncResult> SendMail(string[] sendTo, [Optional] params string[] sendCC);
+        public Task SendMail(string[] sendTo, [Optional] params string[] sendCC);
     }
 }
