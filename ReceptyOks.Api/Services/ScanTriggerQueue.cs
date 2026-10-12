@@ -12,11 +12,11 @@ public sealed class ScanTriggerQueue
 
     public ScanTriggerQueue()
     {
-        // Bounded channel to prevent unbounded memory growth
-        // If the channel is full, TryWrite returns false
+        // Bounded channel to prevent unbounded memory growth.
+        // Wait mode makes TryWrite return false when full so callers can apply backpressure.
         var options = new BoundedChannelOptions(100)
         {
-            FullMode = BoundedChannelFullMode.DropOldest,
+            FullMode = BoundedChannelFullMode.Wait,
             SingleReader = false,
             SingleWriter = false
         };

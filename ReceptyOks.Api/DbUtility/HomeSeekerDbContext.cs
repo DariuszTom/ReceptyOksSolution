@@ -21,6 +21,7 @@ public class HomeSeekerDbContext(DbContextOptions<HomeSeekerDbContext> options) 
         modelBuilder.Entity<SearchProfile>(entity =>
         {
             entity.HasKey(p => p.Id);
+            entity.Property(p => p.OwnerId).HasMaxLength(200);
             entity.Property(p => p.City).IsRequired().HasMaxLength(100);
             entity.Property(p => p.District).HasMaxLength(100);
             entity.Property(p => p.NotificationEmail).IsRequired().HasMaxLength(200);
@@ -32,6 +33,7 @@ public class HomeSeekerDbContext(DbContextOptions<HomeSeekerDbContext> options) 
             entity.Property(p => p.MinAreaSqm).HasPrecision(10, 2);
             entity.Property(p => p.MaxAreaSqm).HasPrecision(10, 2);
 
+            entity.HasIndex(p => p.OwnerId);
             entity.HasIndex(p => p.UpdatedAt);
             entity.HasIndex(p => p.IsDeleted);
             entity.HasIndex(p => p.IsActive);

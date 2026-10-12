@@ -10,5 +10,6 @@ public interface IMarketScanService
     /// </summary>
     /// <param name="profileId">Profile ID to scan.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
-    Task RunScanAsync(Guid profileId, CancellationToken cancellationToken = default);
+    /// <returns>True when the scan completed successfully; false when it was skipped, failed, or cancelled.</returns>
+    Task<bool> RunScanAsync(Guid profileId, CancellationToken cancellationToken = default);
 }

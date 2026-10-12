@@ -22,6 +22,9 @@ public sealed class SearchProfileRequestValidator : AbstractValidator<SearchProf
 
         RuleFor(x => x.MinPrice)
             .GreaterThanOrEqualTo(0).WithMessage("Minimum price cannot be negative")
+            .When(x => x.MinPrice.HasValue);
+
+        RuleFor(x => x.MinPrice)
             .LessThan(x => x.MaxPrice).WithMessage("Minimum price must be less than maximum price")
             .When(x => x.MinPrice.HasValue && x.MaxPrice.HasValue);
 
@@ -31,6 +34,9 @@ public sealed class SearchProfileRequestValidator : AbstractValidator<SearchProf
 
         RuleFor(x => x.MinAreaSqm)
             .GreaterThanOrEqualTo(0).WithMessage("Minimum area cannot be negative")
+            .When(x => x.MinAreaSqm.HasValue);
+
+        RuleFor(x => x.MinAreaSqm)
             .LessThan(x => x.MaxAreaSqm).WithMessage("Minimum area must be less than maximum area")
             .When(x => x.MinAreaSqm.HasValue && x.MaxAreaSqm.HasValue);
 

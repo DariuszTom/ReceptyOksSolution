@@ -45,7 +45,7 @@ public sealed class ListingRepository : IListingRepository
     {
         return await _db.SearchProfiles
             .AsNoTracking()
-            .FirstOrDefaultAsync(p => p.Id == profileId, cancellationToken)
+            .FirstOrDefaultAsync(p => p.Id == profileId && !p.IsDeleted, cancellationToken)
             .ConfigureAwait(false);
     }
 
@@ -89,18 +89,32 @@ public sealed class ListingRepository : IListingRepository
         return updated > 0;
     }
 
-    public async Task ReleaseScanLeaseAsync(Guid profileId, CancellationToken cancellationToken = default)
+    public async Task ReleaseScanLeaseAsync(Guid profileId, bool markScanned, CancellationToken cancellationToken = default)
     {
         var now = DateTime.UtcNow;
+        var query = _db.SearchProfiles.Where(p => p.Id == profileId);
 
-        await _db.SearchProfiles
-            .Where(p => p.Id == profileId)
-            .ExecuteUpdateAsync(s => s
-                .SetProperty(p => (DateTime?)p.LastScannedAt, now)
-                .SetProperty(p => (DateTime?)p.ScanLeaseUntil, (DateTime?)null)
-                .SetProperty(p => p.UpdatedAt, now),
-                cancellationToken)
-            .ConfigureAwait(false);
+        if (markScanned)
+        {
+            await query
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(p => (DateTime?)p.LastScannedAt, now)
+                    .SetProperty(p => (DateTime?)p.ScanLeaseUntil, (DateTime?)null)
+                    .SetProperty(p => p.UpdatedAt, now),
+                    cancellationToken)
+                .ConfigureAwait(false);
+        }
+        else
+        {
+            // Failed or cancelled scan: free the lease but leave LastScannedAt untouched
+            // so the profile is retried on the next cycle instead of after a full interval.
+            await query
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(p => (DateTime?)p.ScanLeaseUntil, (DateTime?)null)
+                    .SetProperty(p => p.UpdatedAt, now),
+                    cancellationToken)
+                .ConfigureAwait(false);
+        }
     }
 
     public async Task<ScanRun> CreateScanRunAsync(Guid profileId, CancellationToken cancellationToken = default)

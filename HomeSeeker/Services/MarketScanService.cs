@@ -35,19 +35,19 @@ public sealed class MarketScanService : IMarketScanService
         _logger = logger;
     }
 
-    public async Task RunScanAsync(Guid profileId, CancellationToken cancellationToken = default)
+    public async Task<bool> RunScanAsync(Guid profileId, CancellationToken cancellationToken = default)
     {
         var profile = await _repository.GetProfileByIdAsync(profileId, cancellationToken).ConfigureAwait(false);
         if (profile is null)
         {
             _logger.LogWarning("Profile {ProfileId} not found", profileId);
-            return;
+            return false;
         }
 
         if (profile.IsDeleted || !profile.IsActive)
         {
             _logger.LogDebug("Profile {ProfileId} is deleted or inactive, skipping scan", profileId);
-            return;
+            return false;
         }
 
         var scanRun = await _repository.CreateScanRunAsync(profileId, cancellationToken).ConfigureAwait(false);
@@ -233,6 +233,8 @@ public sealed class MarketScanService : IMarketScanService
                 "Failed to persist final status for scan {ScanRunId}; run may stay in Running state",
                 scanRun.Id);
         }
+
+        return status == ScanStatus.Completed;
     }
 
     private static string? Truncate(string? value, int maxLength)

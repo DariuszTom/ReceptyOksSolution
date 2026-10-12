@@ -8,6 +8,14 @@ public class SearchProfile
     public Guid Id { get; set; }
 
     /// <summary>
+    /// Identity of the caller who created this profile (JWT <c>sub</c> claim).
+    /// All API access to the profile is scoped to this owner. Null only for
+    /// legacy rows created before ownership was introduced; such rows remain
+    /// scannable by the background service but are not reachable via the API.
+    /// </summary>
+    public string? OwnerId { get; set; }
+
+    /// <summary>
     /// City to search in (e.g., "warszawa", "krakow").
     /// </summary>
     public string City { get; set; } = string.Empty;

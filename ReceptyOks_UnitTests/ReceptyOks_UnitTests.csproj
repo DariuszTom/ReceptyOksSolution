@@ -28,6 +28,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\HomeSeeker\HomeSeeker.csproj" />
     <ProjectReference Include="..\ReceptyOks\ReceptyOks.csproj" />
     <ProjectReference Include="..\ReceptyOks.Api\ReceptyOks.Api.csproj" />
     <ProjectReference Include="..\ReceptyOks.Shared\ReceptyOks.Shared.csproj" />

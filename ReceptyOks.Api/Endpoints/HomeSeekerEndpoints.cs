@@ -79,7 +79,7 @@ public static class HomeSeekerEndpoints
             ScanTriggerQueue triggerQueue) =>
         {
             var profile = await repository.GetProfileByIdAsync(id).ConfigureAwait(false);
-            if (profile is null || profile.IsDeleted)
+            if (profile is null)
             {
                 return Results.NotFound();
             }
@@ -112,7 +112,7 @@ public static class HomeSeekerEndpoints
             if (pageSize > 100) pageSize = 100;
 
             var profile = await repository.GetProfileByIdAsync(id).ConfigureAwait(false);
-            if (profile is null || profile.IsDeleted)
+            if (profile is null)
             {
                 return Results.NotFound();
             }
@@ -141,7 +141,7 @@ public static class HomeSeekerEndpoints
             if (count > 100) count = 100;
 
             var profile = await repository.GetProfileByIdAsync(id).ConfigureAwait(false);
-            if (profile is null || profile.IsDeleted)
+            if (profile is null)
             {
                 return Results.NotFound();
             }

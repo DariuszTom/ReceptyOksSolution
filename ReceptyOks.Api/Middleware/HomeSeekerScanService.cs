@@ -194,6 +194,7 @@ public sealed class HomeSeekerScanService : BackgroundService
             return;
         }
 
+        var succeeded = false;
         try
         {
             var scanService = scope.ServiceProvider.GetRequiredService<IMarketScanService>();
@@ -201,9 +202,10 @@ public sealed class HomeSeekerScanService : BackgroundService
             _logger.LogInformation("Starting scan for profile {ProfileId} (onDemand={OnDemand})",
                 profileId, onDemand);
 
-            await scanService.RunScanAsync(profileId, stoppingToken).ConfigureAwait(false);
+            succeeded = await scanService.RunScanAsync(profileId, stoppingToken).ConfigureAwait(false);
 
-            _logger.LogInformation("Completed scan for profile {ProfileId}", profileId);
+            _logger.LogInformation("Completed scan for profile {ProfileId} (succeeded={Succeeded})",
+                profileId, succeeded);
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
         {
@@ -215,12 +217,13 @@ public sealed class HomeSeekerScanService : BackgroundService
         }
         finally
         {
-            // Always release the lease and stamp LastScannedAt, even on failure,
-            // so retries are not blocked and other instances can pick it up next cycle.
+            // Always release the lease so other instances can pick the profile up, but only
+            // stamp LastScannedAt on success so failed/cancelled scans are retried next cycle.
             // Use CancellationToken.None so a shutdown cannot leave the row leased forever.
             try
             {
-                await repository.ReleaseScanLeaseAsync(profileId, CancellationToken.None).ConfigureAwait(false);
+                await repository.ReleaseScanLeaseAsync(profileId, markScanned: succeeded, CancellationToken.None)
+                    .ConfigureAwait(false);
             }
             catch (Exception ex)
             {

@@ -34,10 +34,12 @@ public interface IListingRepository
     Task<bool> TryAcquireScanLeaseAsync(Guid profileId, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Releases the scan lease and sets <see cref="SearchProfile.LastScannedAt"/>.
+    /// Releases the scan lease. When <paramref name="markScanned"/> is true the scan
+    /// completed successfully and <see cref="SearchProfile.LastScannedAt"/> is stamped;
+    /// otherwise only the lease is cleared so the profile is retried on the next cycle.
     /// Idempotent; safe to call even if the lease has already expired.
     /// </summary>
-    Task ReleaseScanLeaseAsync(Guid profileId, CancellationToken cancellationToken = default);
+    Task ReleaseScanLeaseAsync(Guid profileId, bool markScanned, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Creates a new scan run record.

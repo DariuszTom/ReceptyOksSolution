@@ -121,21 +121,81 @@ public static class HomeSeekerExtensions
 
     private static void EnsureScanLeaseUntilColumn(HomeSeekerDbContext db, ILogger logger)
     {
-        // Both SQLite and SQL Server tolerate "ADD COLUMN" when the column is missing,
-        // and raise an error we can swallow when it already exists.
+        const string table = "SearchProfiles";
+        const string column = "ScanLeaseUntil";
+
+        if (ColumnExists(db, table, column))
+        {
+            logger.LogDebug("{Column} column already present on {Table}", column, table);
+            return;
+        }
+
         var sql = db.Database.IsSqlite()
-            ? "ALTER TABLE SearchProfiles ADD COLUMN ScanLeaseUntil TEXT NULL;"
-            : "ALTER TABLE SearchProfiles ADD ScanLeaseUntil DATETIME2 NULL;";
+            ? $"ALTER TABLE {table} ADD COLUMN {column} TEXT NULL;"
+            : $"ALTER TABLE {table} ADD {column} DATETIME2 NULL;";
 
         try
         {
             db.Database.ExecuteSqlRaw(sql);
-            logger.LogInformation("Added ScanLeaseUntil column to SearchProfiles");
+            logger.LogInformation("Added {Column} column to {Table}", column, table);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ColumnExists(db, table, column))
         {
-            // Column already exists (expected on most startups) or we don't have DDL rights.
-            logger.LogDebug(ex, "ScanLeaseUntil column already present or could not be added");
+            // Lost a race with another instance that added the column concurrently.
+            logger.LogDebug(ex, "{Column} column was added concurrently by another instance", column);
+        }
+        // Any other failure (missing DDL rights, transient DB error) propagates so startup
+        // fails fast instead of every later profile query failing at runtime.
+    }
+
+    private static bool ColumnExists(HomeSeekerDbContext db, string table, string column)
+    {
+        var connection = db.Database.GetDbConnection();
+        var wasClosed = connection.State != System.Data.ConnectionState.Open;
+        if (wasClosed)
+        {
+            connection.Open();
+        }
+
+        try
+        {
+            using var command = connection.CreateCommand();
+
+            if (db.Database.IsSqlite())
+            {
+                command.CommandText = $"PRAGMA table_info({table});";
+                using var reader = command.ExecuteReader();
+                while (reader.Read())
+                {
+                    if (string.Equals(reader.GetString(1), column, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            command.CommandText =
+                "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = @table AND COLUMN_NAME = @column;";
+
+            var tableParam = command.CreateParameter();
+            tableParam.ParameterName = "@table";
+            tableParam.Value = table;
+            command.Parameters.Add(tableParam);
+
+            var columnParam = command.CreateParameter();
+            columnParam.ParameterName = "@column";
+            columnParam.Value = column;
+            command.Parameters.Add(columnParam);
+
+            return Convert.ToInt32(command.ExecuteScalar()) > 0;
+        }
+        finally
+        {
+            if (wasClosed)
+            {
+                connection.Close();
+            }
         }
     }
 

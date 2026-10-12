@@ -17,4 +17,8 @@
     <ProjectReference Include="..\ReceptyOks.Shared\ReceptyOks.Shared.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="ReceptyOks_UnitTests" />
+  </ItemGroup>
+
 </Project>

@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using HtmlAgilityPack;
@@ -179,9 +181,9 @@ public sealed partial class OlxScraper : IListingScraper
                 }
             }
         }
-        catch (JsonException)
+        catch (Exception ex) when (ex is JsonException or ArgumentException)
         {
-            // Malformed JSON - return empty
+            // Malformed JSON or invalid escape sequence - return empty
         }
 
         return results;
@@ -242,7 +244,7 @@ public sealed partial class OlxScraper : IListingScraper
                         valueObj.TryGetProperty("key", out var areaValue))
                     {
                         var areaStr = areaValue.GetString() ?? "0";
-                        decimal.TryParse(areaStr, out area);
+                        area = ParseDecimalInvariant(areaStr);
                         break;
                     }
                 }
@@ -332,9 +334,10 @@ public sealed partial class OlxScraper : IListingScraper
 
             var url = href.StartsWith("http") ? href : $"https://www.olx.pl{href}";
 
-            // Extract ID from URL
+            // Extract ID from URL; fall back to a deterministic digest so the same
+            // listing maps to the same ExternalId across process restarts.
             var idMatch = IdFromUrlRegex().Match(href);
-            var externalId = idMatch.Success ? idMatch.Groups[1].Value : href.GetHashCode().ToString();
+            var externalId = idMatch.Success ? idMatch.Groups[1].Value : ComputeFallbackId(url);
 
             // Extract title
             var titleNode = card.SelectSingleNode(".//h6") ?? card.SelectSingleNode(".//h4");
@@ -355,10 +358,11 @@ public sealed partial class OlxScraper : IListingScraper
                 {
                     var text = param.InnerText.Trim();
                     var areaMatch = AreaRegex().Match(text);
-                    if (areaMatch.Success && decimal.TryParse(areaMatch.Groups[1].Value, out var parsedArea))
+                    if (areaMatch.Success)
                     {
-                        area = parsedArea;
-                        break;
+                        area = ParseDecimalInvariant(areaMatch.Groups[1].Value);
+                        if (area > 0)
+                            break;
                     }
                 }
             }
@@ -386,6 +390,23 @@ public sealed partial class OlxScraper : IListingScraper
         {
             return null;
         }
+    }
+
+    private static decimal ParseDecimalInvariant(string value)
+    {
+        return decimal.TryParse(
+            value.Replace(',', '.'),
+            System.Globalization.NumberStyles.AllowDecimalPoint,
+            System.Globalization.CultureInfo.InvariantCulture,
+            out var parsed)
+            ? parsed
+            : 0;
+    }
+
+    internal static string ComputeFallbackId(string url)
+    {
+        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(url));
+        return "url-" + Convert.ToHexString(hash, 0, 16).ToLowerInvariant();
     }
 
     private static decimal ParsePriceString(string priceStr)
