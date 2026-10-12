@@ -160,15 +160,6 @@ Severity legend:
 
 See section 4 for the recommended test set and reusable patterns.
 
-#### H11. One shared API key, no ownership, paid side effects
-
-- The endpoint group (`HomeSeekerEndpoints.cs:12-14`) relies only on the global API-key middleware (`Program.cs:128`); `SearchProfile` has no owner field.
-- `GET /profiles` returns every profile including `NotificationEmail` (personal data); any key holder can read, modify or delete any profile by GUID.
-- Any key holder can create a profile with an arbitrary email and call `POST /scan`, which spends Anthropic tokens and sends mail to that address.
-- Rate limiters `"fixed"`/`"strict"` (`Program.cs:76-90`) are global, not per client.
-
-This matches the rest of the API, but the blast radius (cost, outbound email) is larger here. **Fix:** add an owner (JWT subject or API-key id) to `SearchProfile`, filter every query by it, partition the rate limiters per client, and consider an allow-list of notification domains.
-
 ### Medium
 
 #### M1. Default resilience handler and header pollution on the scraper client
