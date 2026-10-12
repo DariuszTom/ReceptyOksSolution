@@ -49,6 +49,14 @@ public sealed class ListingRepository : IListingRepository
             .ConfigureAwait(false);
     }
 
+    public async Task<SearchProfile?> GetProfileByIdAsync(Guid profileId, string ownerId, CancellationToken cancellationToken = default)
+    {
+        return await _db.SearchProfiles
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.Id == profileId && p.OwnerId == ownerId && !p.IsDeleted, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
     public async Task<bool> TryMarkProfileScannedAsync(Guid profileId, CancellationToken cancellationToken = default)
     {
         // Periodic lease: requires profile to be due AND lease free.
@@ -341,20 +349,24 @@ public sealed class ListingRepository : IListingRepository
             .ConfigureAwait(false);
     }
 
-    public async Task<ScanRun?> GetScanRunByIdAsync(Guid scanRunId, CancellationToken cancellationToken = default)
+    public async Task<ScanRun?> GetScanRunByIdAsync(Guid scanRunId, string ownerId, CancellationToken cancellationToken = default)
     {
         return await _db.ScanRuns
             .AsNoTracking()
-            .FirstOrDefaultAsync(s => s.Id == scanRunId, cancellationToken)
+            .Where(s => s.Id == scanRunId)
+            .Where(s => _db.SearchProfiles.Any(p =>
+                p.Id == s.SearchProfileId && p.OwnerId == ownerId && !p.IsDeleted))
+            .FirstOrDefaultAsync(cancellationToken)
             .ConfigureAwait(false);
     }
 
-    public async Task<SearchProfile> CreateProfileAsync(SearchProfileRequest request, CancellationToken cancellationToken = default)
+    public async Task<SearchProfile> CreateProfileAsync(SearchProfileRequest request, string ownerId, CancellationToken cancellationToken = default)
     {
         var now = DateTime.UtcNow;
         var profile = new SearchProfile
         {
             Id = Guid.NewGuid(),
+            OwnerId = ownerId,
             City = request.City,
             District = request.District,
             MinPrice = request.MinPrice,
@@ -376,11 +388,12 @@ public sealed class ListingRepository : IListingRepository
 
     public async Task<SearchProfile?> UpdateProfileAsync(
         Guid profileId,
+        string ownerId,
         SearchProfileRequest request,
         CancellationToken cancellationToken = default)
     {
         var profile = await _db.SearchProfiles
-            .FirstOrDefaultAsync(p => p.Id == profileId && !p.IsDeleted, cancellationToken)
+            .FirstOrDefaultAsync(p => p.Id == profileId && p.OwnerId == ownerId && !p.IsDeleted, cancellationToken)
             .ConfigureAwait(false);
 
         if (profile is null)
@@ -402,10 +415,10 @@ public sealed class ListingRepository : IListingRepository
         return profile;
     }
 
-    public async Task<bool> DeleteProfileAsync(Guid profileId, CancellationToken cancellationToken = default)
+    public async Task<bool> DeleteProfileAsync(Guid profileId, string ownerId, CancellationToken cancellationToken = default)
     {
         var updated = await _db.SearchProfiles
-            .Where(p => p.Id == profileId && !p.IsDeleted)
+            .Where(p => p.Id == profileId && p.OwnerId == ownerId && !p.IsDeleted)
             .ExecuteUpdateAsync(s => s
                 .SetProperty(p => p.IsDeleted, true)
                 .SetProperty(p => p.UpdatedAt, DateTime.UtcNow),
@@ -415,11 +428,11 @@ public sealed class ListingRepository : IListingRepository
         return updated > 0;
     }
 
-    public async Task<IReadOnlyList<SearchProfile>> GetAllProfilesAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<SearchProfile>> GetAllProfilesAsync(string ownerId, CancellationToken cancellationToken = default)
     {
         return await _db.SearchProfiles
             .AsNoTracking()
-            .Where(p => !p.IsDeleted)
+            .Where(p => p.OwnerId == ownerId && !p.IsDeleted)
             .OrderByDescending(p => p.CreatedAt)
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);

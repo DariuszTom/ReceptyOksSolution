@@ -126,6 +126,8 @@ app.UseRateLimiter();
 app.UseAuthentication();
 // Use API key auth middleware for all endpoints
 app.UseApiKeyAuth();
+// Endpoint-level authorization (only endpoints that opt in via RequireAuthorization are affected)
+app.UseAuthorization();
 
 // Automatyczne tworzenie/migracja bazy danych
 app.EnsureDatabaseCreated();

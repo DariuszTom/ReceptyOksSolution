@@ -13,9 +13,15 @@ public interface IListingRepository
     Task<IReadOnlyList<SearchProfile>> GetActiveProfilesAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Gets a search profile by ID.
+    /// Gets a search profile by ID regardless of owner. Intended for the background
+    /// scan pipeline only; API endpoints must use the owner-scoped overload.
     /// </summary>
     Task<SearchProfile?> GetProfileByIdAsync(Guid profileId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets a search profile by ID, returning null unless it belongs to <paramref name="ownerId"/>.
+    /// </summary>
+    Task<SearchProfile?> GetProfileByIdAsync(Guid profileId, string ownerId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Tries to acquire a scan lease for a periodic scan: succeeds only when the
@@ -111,27 +117,28 @@ public interface IListingRepository
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Gets a scan run by ID.
+    /// Gets a scan run by ID, returning null unless its profile belongs to <paramref name="ownerId"/>.
     /// </summary>
-    Task<ScanRun?> GetScanRunByIdAsync(Guid scanRunId, CancellationToken cancellationToken = default);
+    Task<ScanRun?> GetScanRunByIdAsync(Guid scanRunId, string ownerId, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Creates a new search profile.
+    /// Creates a new search profile owned by <paramref name="ownerId"/>.
     /// </summary>
-    Task<SearchProfile> CreateProfileAsync(SearchProfileRequest request, CancellationToken cancellationToken = default);
+    Task<SearchProfile> CreateProfileAsync(SearchProfileRequest request, string ownerId, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Updates an existing search profile.
+    /// Updates an existing search profile owned by <paramref name="ownerId"/>.
+    /// Returns null when the profile does not exist or belongs to someone else.
     /// </summary>
-    Task<SearchProfile?> UpdateProfileAsync(Guid profileId, SearchProfileRequest request, CancellationToken cancellationToken = default);
+    Task<SearchProfile?> UpdateProfileAsync(Guid profileId, string ownerId, SearchProfileRequest request, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Soft-deletes a search profile.
+    /// Soft-deletes a search profile owned by <paramref name="ownerId"/>.
     /// </summary>
-    Task<bool> DeleteProfileAsync(Guid profileId, CancellationToken cancellationToken = default);
+    Task<bool> DeleteProfileAsync(Guid profileId, string ownerId, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Gets all search profiles (non-deleted).
+    /// Gets all non-deleted search profiles owned by <paramref name="ownerId"/>.
     /// </summary>
-    Task<IReadOnlyList<SearchProfile>> GetAllProfilesAsync(CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<SearchProfile>> GetAllProfilesAsync(string ownerId, CancellationToken cancellationToken = default);
 }

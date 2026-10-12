@@ -105,10 +105,12 @@ public static class HomeSeekerExtensions
                 logger.LogInformation("HomeSeeker tables created in existing database");
             }
 
-            // Lightweight in-place schema upgrade for ScanLeaseUntil column.
-            // The project does not use EF migrations; this guards existing DBs
-            // that were created before the column was added.
-            EnsureScanLeaseUntilColumn(db, logger);
+            // Lightweight in-place schema upgrades. The project does not use EF
+            // migrations; these guard existing DBs created before a column was added.
+            EnsureColumn(db, logger, "SearchProfiles", "ScanLeaseUntil",
+                sqliteType: "TEXT NULL", sqlServerType: "DATETIME2 NULL");
+            EnsureColumn(db, logger, "SearchProfiles", "OwnerId",
+                sqliteType: "TEXT NULL", sqlServerType: "NVARCHAR(200) NULL");
         }
         catch (Exception ex)
         {
@@ -119,11 +121,14 @@ public static class HomeSeekerExtensions
         return app;
     }
 
-    private static void EnsureScanLeaseUntilColumn(HomeSeekerDbContext db, ILogger logger)
+    private static void EnsureColumn(
+        HomeSeekerDbContext db,
+        ILogger logger,
+        string table,
+        string column,
+        string sqliteType,
+        string sqlServerType)
     {
-        const string table = "SearchProfiles";
-        const string column = "ScanLeaseUntil";
-
         if (ColumnExists(db, table, column))
         {
             logger.LogDebug("{Column} column already present on {Table}", column, table);
@@ -131,8 +136,8 @@ public static class HomeSeekerExtensions
         }
 
         var sql = db.Database.IsSqlite()
-            ? $"ALTER TABLE {table} ADD COLUMN {column} TEXT NULL;"
-            : $"ALTER TABLE {table} ADD {column} DATETIME2 NULL;";
+            ? $"ALTER TABLE {table} ADD COLUMN {column} {sqliteType};"
+            : $"ALTER TABLE {table} ADD {column} {sqlServerType};";
 
         try
         {
