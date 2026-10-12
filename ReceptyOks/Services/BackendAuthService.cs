@@ -42,11 +42,14 @@ namespace ReceptyOks.Services
             var authResponse = new AuthResponse { IsValid = false, Message = "Nieprawidłowy sekret" };
             try
             {
-                using var response = await _httpClient.PostAsJsonAsync("/api/auth/validate", new { SecretHash = apiKey }).ConfigureAwait(false);
+                var clientId = await ClientIdentityService.GetOrCreateAsync().ConfigureAwait(false);
+                using var response = await _httpClient.PostAsJsonAsync("/api/auth/validate", new { SecretHash = apiKey, ClientId = clientId }).ConfigureAwait(false);
                 if (response.IsSuccessStatusCode)
                 {
-                    return await response.Content.ReadFromJsonAsync<AuthResponse>().ConfigureAwait(false)
+                    var parsed = await response.Content.ReadFromJsonAsync<AuthResponse>().ConfigureAwait(false)
                         ?? new AuthResponse { IsValid = false, Message = "Nieznany bład" };
+                    await StoreTokenAsync(parsed).ConfigureAwait(false);
+                    return parsed;
                 }
             }
             catch (Exception)
@@ -71,12 +74,14 @@ namespace ReceptyOks.Services
 
             try
             {
-                using var response = await _httpClient.PostAsJsonAsync("/api/auth/validate", new { SecretHash = apiKey }, cancellationToken).ConfigureAwait(false);
+                var clientId = await ClientIdentityService.GetOrCreateAsync().ConfigureAwait(false);
+                using var response = await _httpClient.PostAsJsonAsync("/api/auth/validate", new { SecretHash = apiKey, ClientId = clientId }, cancellationToken).ConfigureAwait(false);
 
                 if (response.IsSuccessStatusCode)
                 {
                     var parsed = await response.Content.ReadFromJsonAsync<AuthResponse>(cancellationToken).ConfigureAwait(false)
                         ?? new AuthResponse { IsValid = false, Message = "Nieznany bład" };
+                    await StoreTokenAsync(parsed).ConfigureAwait(false);
                     return (parsed.IsValid ? AuthOutcome.Valid : AuthOutcome.Invalid, parsed);
                 }
 
@@ -104,6 +109,25 @@ namespace ReceptyOks.Services
             }
         }
 
+        /// <summary>
+        /// Persists the JWT issued by the server so <see cref="BearerTokenHandler"/> can attach it
+        /// to owner-scoped requests (e.g. HomeSeeker). Storage failures must not break login.
+        /// </summary>
+        private static async Task StoreTokenAsync(AuthResponse response)
+        {
+            if (!response.IsValid || string.IsNullOrEmpty(response.Token) || response.ExpiresAt is null)
+                return;
+
+            try
+            {
+                await AccessTokenStore.SaveAsync(response.Token, response.ExpiresAt.Value).ConfigureAwait(false);
+            }
+            catch
+            {
+                // SecureStorage unavailable - the user is still authenticated via the API key.
+            }
+        }
+
         [JsonSerializable(typeof(AuthResponse))]
         public sealed class AuthResponse
         {
@@ -111,6 +135,10 @@ namespace ReceptyOks.Services
             public bool IsValid { get; set; }
             [JsonPropertyName("message")]
             public string? Message { get; set; }
+            [JsonPropertyName("token")]
+            public string? Token { get; set; }
+            [JsonPropertyName("expiresAt")]
+            public DateTimeOffset? ExpiresAt { get; set; }
         }
     }
 

@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
 using ReceptyOks.Api.Endpoints;
 using ReceptyOks.Api.Extensions;
+using ReceptyOks.Api.Services;
 using ReceptyOks.Api.Validators;
 using ReceptyOks.Shared.Configuration;
 using Scalar.AspNetCore;
@@ -109,6 +110,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 System.Text.Encoding.UTF8.GetBytes(jwtKey))
         };
     });
+builder.Services.AddSingleton<JwtTokenService>();
 builder.Services.AddSingleton(new CleanupOptions());
 
 builder.Services.AddHostedService<ShoppingListCleaner>();

@@ -8,6 +8,9 @@ using ReceptyOks.Services;
 /// </summary>
 internal static class HttpClientServiceExtensions
 {
+    /// <summary>Named <see cref="HttpClient"/> that sends both the API key and the owner JWT.</summary>
+    public const string HomeSeekerHttpClientName = "HomeSeekerApi";
+
     /// <summary>
     /// Registers all HTTP clients used by the application.
     /// </summary>
@@ -22,6 +25,7 @@ internal static class HttpClientServiceExtensions
         var defaultTimeout = TimeSpan.FromSeconds(appSettings.Http.DefaultTimeoutSeconds);
 
         services.AddTransient<ApiKeyHandler>();
+        services.AddTransient<BearerTokenHandler>();
 
         // SyncService with extended timeout for Azure SQL sync + large JSON deserialization
         services.AddHttpClient<SyncService>(client =>
@@ -61,6 +65,17 @@ internal static class HttpClientServiceExtensions
             client.Timeout = defaultTimeout;
         })
         .AddHttpMessageHandler<ApiKeyHandler>()
+        .AddServiceDiscovery();
+
+        // Owner-scoped API (HomeSeeker): API key + JWT issued at login. Future HomeSeeker
+        // client services should use this named client or replicate both handlers.
+        services.AddHttpClient(HomeSeekerHttpClientName, client =>
+        {
+            client.BaseAddress = new Uri(baseUrl);
+            client.Timeout = defaultTimeout;
+        })
+        .AddHttpMessageHandler<ApiKeyHandler>()
+        .AddHttpMessageHandler<BearerTokenHandler>()
         .AddServiceDiscovery();
 
         // HealthStatusService - no API key needed for health endpoints
