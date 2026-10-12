@@ -10,24 +10,44 @@ namespace ReceptyOks.Api.Services;
 /// Factory for creating AI agent instances using Anthropic API.
 /// Creates a fresh agent per evaluation to avoid session state issues.
 /// </summary>
+/// <remarks>
+/// Web browsing has been intentionally disabled for HomeSeeker agents (see
+/// CODE_REVIEW.md C4). The previous WebBrowsingTool fetched arbitrary URLs
+/// from a scoped shared HttpClient and was susceptible to SSRF and prompt
+/// injection via scraped listing content. Evaluations now operate on
+/// pre-scraped metadata only; if a future scenario needs browsing, it must
+/// introduce an allow-listed, DNS-validated fetcher - not the shared tool.
+/// </remarks>
 public sealed class AnthropicAiAgentFactory : IAiAgentFactory
 {
     private readonly IConfiguration _configuration;
-    private readonly IHttpClientFactory _httpClientFactory;
     private readonly HomeSeekerOptions _options;
+    private readonly ILogger<AnthropicAiAgentFactory> _logger;
 
     public AnthropicAiAgentFactory(
         IConfiguration configuration,
-        IHttpClientFactory httpClientFactory,
-        IOptions<HomeSeekerOptions> options)
+        IOptions<HomeSeekerOptions> options,
+        ILogger<AnthropicAiAgentFactory> logger)
     {
+        ArgumentNullException.ThrowIfNull(configuration);
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(logger);
         _configuration = configuration;
-        _httpClientFactory = httpClientFactory;
         _options = options.Value;
+        _logger = logger;
     }
 
     public IAiAgent CreateAgent(string? systemPrompt = null, bool withWebBrowsing = false)
     {
+        if (withWebBrowsing)
+        {
+            // Intentionally refuse rather than silently honour the request:
+            // callers must consciously opt into any replacement that uses an
+            // allow-listed fetcher.
+            _logger.LogWarning(
+                "CreateAgent called with withWebBrowsing=true; ignoring - web browsing is disabled for HomeSeeker agents (C4).");
+        }
+
         // Get API token from configuration (available via SecretsResolver / Key Vault)
         var token = _configuration["Token"]
             ?? throw new InvalidOperationException("Anthropic API token not configured. Ensure 'Token' is set in configuration.");
@@ -44,15 +64,6 @@ public sealed class AnthropicAiAgentFactory : IAiAgentFactory
         var anthropicAgent = new AnthropicAgent(settings, tokenBytes);
         var chatClient = anthropicAgent.GetAgent();
 
-        var agent = new AiAgent(chatClient, systemPrompt);
-
-        if (withWebBrowsing)
-        {
-            var httpClient = _httpClientFactory.CreateClient("homeseeker-scraper");
-            var webBrowsingTool = new WebBrowsingTool(httpClient, maxContentLength: 50000);
-            webBrowsingTool.RegisterTools(agent);
-        }
-
-        return agent;
+        return new AiAgent(chatClient, systemPrompt);
     }
 }

@@ -12,12 +12,17 @@ namespace ReceptyOks.Shared.AI;
 /// </summary>
 public sealed class AiAgent : IAiAgent
 {
+    // Absolute ceiling on function-call iterations per ChatAsync, applied even
+    // when callers forget to set a lower maxToolRounds (CODE_REVIEW.md C5).
+    private const int AbsoluteMaxToolRounds = 10;
+
     private readonly IChatClient _chatClient;
     private readonly List<AITool> _tools = [];
     private string? _systemPrompt;
     private AgentSession? _session;
     private string? _conversationId;
     private ChatClientAgent? _agent;
+    private int _agentMaxToolRounds = AbsoluteMaxToolRounds;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="AiAgent"/> class.
@@ -115,7 +120,9 @@ public sealed class AiAgent : IAiAgent
     /// If tools are registered, automatically handles tool calls.
     /// </summary>
     /// <param name="userMessage">The user's message.</param>
-    /// <param name="maxToolRounds">Maximum number of tool call rounds (not directly supported by ChatClientAgent, but respected in logic).</param>
+    /// <param name="maxToolRounds">Maximum number of tool call rounds. Enforced via
+    /// <c>FunctionInvokingChatClient.MaximumIterationsPerRequest</c> on the underlying
+    /// pipeline; clamped to [1, <see cref="AbsoluteMaxToolRounds"/>].</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The AI's final response text.</returns>
     public async Task<string> ChatAsync(
@@ -125,7 +132,7 @@ public sealed class AiAgent : IAiAgent
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(userMessage);
 
-        var agent = GetOrCreateAgent();
+        var agent = GetOrCreateAgent(maxToolRounds);
         _session ??= await agent.CreateSessionAsync(cancellationToken).ConfigureAwait(false);
 
         var response = await agent.RunAsync(userMessage, _session, cancellationToken: cancellationToken)
@@ -144,7 +151,7 @@ public sealed class AiAgent : IAiAgent
     {
         ArgumentNullException.ThrowIfNull(userMessage);
 
-        var agent = GetOrCreateAgent();
+        var agent = GetOrCreateAgent(maxToolRounds);
         _session ??= await agent.CreateSessionAsync(cancellationToken).ConfigureAwait(false);
 
         var response = await agent.RunAsync(userMessage, _session, cancellationToken: cancellationToken)
@@ -292,17 +299,36 @@ public sealed class AiAgent : IAiAgent
         _conversationId = conversationId;
     }
 
-    private ChatClientAgent GetOrCreateAgent()
+    private ChatClientAgent GetOrCreateAgent(int maxToolRounds)
     {
-        // Reuse existing agent to maintain conversation state properly
-        // Only create new agent if it doesn't exist or if tools have changed
-        if (_agent is null)
+        var clamped = Math.Clamp(maxToolRounds, 1, AbsoluteMaxToolRounds);
+
+        // Rebuild the agent when the requested cap changes so the pipeline is
+        // reconfigured with the correct MaximumIterationsPerRequest.
+        if (_agent is null || _agentMaxToolRounds != clamped)
         {
-            _agent = new ChatClientAgent(_chatClient, instructions: _systemPrompt,
+            IChatClient effectiveClient = _chatClient;
+            if (_tools.Count > 0)
+            {
+                // Wrap the raw chat client so function-calling is bounded.
+                // Without this, maxToolRounds was advertised but never enforced,
+                // allowing uncapped tool loops (CODE_REVIEW.md C5).
+                effectiveClient = _chatClient
+                    .AsBuilder()
+                    .UseFunctionInvocation(configure: c => c.MaximumIterationsPerRequest = clamped)
+                    .Build();
+            }
+
+            _agent = new ChatClientAgent(effectiveClient, instructions: _systemPrompt,
                 tools: _tools.Count > 0 ? _tools : null);
+            _agentMaxToolRounds = clamped;
         }
         return _agent;
     }
+
+    // Overload for streaming paths and other callers that don't carry a cap.
+    // Uses the last applied cap (or the default) so the agent isn't rebuilt per call.
+    private ChatClientAgent GetOrCreateAgent() => GetOrCreateAgent(_agentMaxToolRounds);
 
     /// <summary>
     /// Forces recreation of the agent (useful after tools are modified).

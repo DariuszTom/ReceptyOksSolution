@@ -104,6 +104,11 @@ public static class HomeSeekerExtensions
                 creator.CreateTables();
                 logger.LogInformation("HomeSeeker tables created in existing database");
             }
+
+            // Lightweight in-place schema upgrade for ScanLeaseUntil column.
+            // The project does not use EF migrations; this guards existing DBs
+            // that were created before the column was added.
+            EnsureScanLeaseUntilColumn(db, logger);
         }
         catch (Exception ex)
         {
@@ -114,6 +119,26 @@ public static class HomeSeekerExtensions
         return app;
     }
 
+    private static void EnsureScanLeaseUntilColumn(HomeSeekerDbContext db, ILogger logger)
+    {
+        // Both SQLite and SQL Server tolerate "ADD COLUMN" when the column is missing,
+        // and raise an error we can swallow when it already exists.
+        var sql = db.Database.IsSqlite()
+            ? "ALTER TABLE SearchProfiles ADD COLUMN ScanLeaseUntil TEXT NULL;"
+            : "ALTER TABLE SearchProfiles ADD ScanLeaseUntil DATETIME2 NULL;";
+
+        try
+        {
+            db.Database.ExecuteSqlRaw(sql);
+            logger.LogInformation("Added ScanLeaseUntil column to SearchProfiles");
+        }
+        catch (Exception ex)
+        {
+            // Column already exists (expected on most startups) or we don't have DDL rights.
+            logger.LogDebug(ex, "ScanLeaseUntil column already present or could not be added");
+        }
+    }
+
     /// <summary>
     /// Registers all HomeSeeker services.
     /// </summary>
@@ -121,8 +146,18 @@ public static class HomeSeekerExtensions
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        // Configuration
-        services.Configure<HomeSeekerOptions>(configuration.GetSection(HomeSeekerOptions.SectionName));
+        // Configuration with startup validation (CODE_REVIEW.md H9).
+        // ValidateOnStart ensures the host refuses to start with invalid HomeSeeker
+        // options rather than failing later from a background service (e.g.
+        // PeriodicTimer throwing on a non-positive ScanInterval).
+        services
+            .AddOptions<HomeSeekerOptions>()
+            .Bind(configuration.GetSection(HomeSeekerOptions.SectionName))
+            .ValidateDataAnnotations()
+            .Validate(
+                o => o.ScanInterval > TimeSpan.Zero,
+                "HomeSeeker:ScanInterval must be positive.")
+            .ValidateOnStart();
 
         // Register named HttpClient for scrapers
         services.AddHttpClient("homeseeker-scraper", client =>

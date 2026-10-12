@@ -6,6 +6,7 @@ WORKDIR /src
 COPY ReceptyOks.Api/ReceptyOks.Api.csproj ReceptyOks.Api/
 COPY ReceptyOks.Shared/ReceptyOks.Shared.csproj ReceptyOks.Shared/
 COPY ReceptyOksSolution.ServiceDefaults/ReceptyOksSolution.ServiceDefaults.csproj ReceptyOksSolution.ServiceDefaults/
+COPY HomeSeeker/HomeSeeker.csproj HomeSeeker/
 
 # Restore dependencies
 RUN dotnet restore ReceptyOks.Api/ReceptyOks.Api.csproj
@@ -14,6 +15,7 @@ RUN dotnet restore ReceptyOks.Api/ReceptyOks.Api.csproj
 COPY ReceptyOks.Api/ ReceptyOks.Api/
 COPY ReceptyOks.Shared/ ReceptyOks.Shared/
 COPY ReceptyOksSolution.ServiceDefaults/ ReceptyOksSolution.ServiceDefaults/
+COPY HomeSeeker/ HomeSeeker/
 
 # Build and publish
 WORKDIR /src/ReceptyOks.Api

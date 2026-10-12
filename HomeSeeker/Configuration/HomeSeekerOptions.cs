@@ -1,9 +1,12 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace HomeSeeker.Configuration;
 
 /// <summary>
 /// Configuration options for the HomeSeeker real estate scanner.
+/// Validated at startup via <c>ValidateDataAnnotations().ValidateOnStart()</c>.
 /// </summary>
-public sealed record HomeSeekerOptions
+public sealed class HomeSeekerOptions : IValidatableObject
 {
     /// <summary>
     /// Section name in configuration.
@@ -13,86 +16,123 @@ public sealed record HomeSeekerOptions
     /// <summary>
     /// Whether HomeSeeker background scanning is enabled.
     /// </summary>
-    public bool Enabled { get; init; } = false;
+    public bool Enabled { get; set; } = false;
 
     /// <summary>
-    /// Interval between automatic scans.
+    /// Interval between automatic scans. Must be positive; also drives the
+    /// PeriodicTimer, which throws on non-positive values (CODE_REVIEW.md C2/H9).
     /// </summary>
-    public TimeSpan ScanInterval { get; init; } = TimeSpan.FromHours(24);
+    public TimeSpan ScanInterval { get; set; } = TimeSpan.FromHours(24);
 
     /// <summary>
     /// Delay after startup before the first scan.
     /// </summary>
-    public TimeSpan StartupDelay { get; init; } = TimeSpan.FromMinutes(1);
+    public TimeSpan StartupDelay { get; set; } = TimeSpan.FromMinutes(1);
 
     /// <summary>
     /// Maximum search pages to fetch per portal per scan.
     /// </summary>
-    public int MaxSearchPagesPerPortal { get; init; } = 5;
+    [Range(1, 50)]
+    public int MaxSearchPagesPerPortal { get; set; } = 5;
 
     /// <summary>
     /// Delay between HTTP requests to avoid rate limiting.
     /// </summary>
-    public TimeSpan RequestDelay { get; init; } = TimeSpan.FromSeconds(3);
+    public TimeSpan RequestDelay { get; set; } = TimeSpan.FromSeconds(3);
 
     /// <summary>
     /// Maximum number of candidates to evaluate with AI per scan (cost control).
     /// </summary>
-    public int MaxCandidatesPerScan { get; init; } = 8;
+    [Range(1, 100)]
+    public int MaxCandidatesPerScan { get; set; } = 8;
 
     /// <summary>
     /// Number of top listings to include in the email report.
     /// </summary>
-    public int TopListingsInReport { get; init; } = 5;
+    [Range(1, 50)]
+    public int TopListingsInReport { get; set; } = 5;
 
     /// <summary>
-    /// AI model to use for evaluation (cheaper model for cost control).
+    /// AI model to use for evaluation. Defaults to a cheaper model for cost
+    /// control; override via configuration when more capability is needed.
     /// </summary>
-    public string Model { get; init; } = "claude-opus-5-5";
-
-    /// <summary>
-    /// Whether to enable web discovery (AI-based scraping of additional portals).
-    /// </summary>
-    public bool EnableWebDiscovery { get; init; } = false;
-
-    /// <summary>
-    /// Maximum results from web discovery scraper.
-    /// </summary>
-    public int WebDiscoveryMaxResults { get; init; } = 10;
+    [Required]
+    public string Model { get; set; } = "claude-haiku-4-5";
 
     /// <summary>
     /// SMTP configuration for sending email reports.
     /// </summary>
-    public SmtpOptions Smtp { get; init; } = new();
+    public SmtpOptions Smtp { get; set; } = new();
+
+    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+    {
+        if (ScanInterval <= TimeSpan.Zero)
+        {
+            yield return new ValidationResult(
+                "ScanInterval must be positive.", [nameof(ScanInterval)]);
+        }
+
+        if (StartupDelay < TimeSpan.Zero)
+        {
+            yield return new ValidationResult(
+                "StartupDelay must be non-negative.", [nameof(StartupDelay)]);
+        }
+
+        if (RequestDelay < TimeSpan.Zero)
+        {
+            yield return new ValidationResult(
+                "RequestDelay must be non-negative.", [nameof(RequestDelay)]);
+        }
+
+        // SMTP is only required when scanning is enabled AND a profile may be
+        // configured to send mail. Validate shape only when enabled; the sender
+        // itself returns false for missing fields.
+        if (Enabled && !string.IsNullOrWhiteSpace(Smtp.Host))
+        {
+            if (Smtp.Port is <= 0 or > 65535)
+            {
+                yield return new ValidationResult(
+                    "Smtp.Port must be between 1 and 65535.", [$"{nameof(Smtp)}.{nameof(SmtpOptions.Port)}"]);
+            }
+
+            if (string.IsNullOrWhiteSpace(Smtp.FromAddress))
+            {
+                yield return new ValidationResult(
+                    "Smtp.FromAddress is required when Smtp.Host is set.",
+                    [$"{nameof(Smtp)}.{nameof(SmtpOptions.FromAddress)}"]);
+            }
+        }
+    }
 }
 
 /// <summary>
 /// SMTP configuration for sending email reports.
 /// </summary>
-public sealed record SmtpOptions
+/// <remarks>
+/// This is a class (not a record) so the auto-generated <see cref="ToString"/>
+/// does not leak the password into logs (CODE_REVIEW.md M14). <see cref="ToString"/>
+/// is overridden to mask the password explicitly.
+/// </remarks>
+public sealed class SmtpOptions
 {
-    /// <summary>
-    /// SMTP server host.
-    /// </summary>
-    public string Host { get; init; } = string.Empty;
+    /// <summary>SMTP server host.</summary>
+    public string Host { get; set; } = string.Empty;
 
-    /// <summary>
-    /// SMTP server port.
-    /// </summary>
-    public int Port { get; init; } = 587;
+    /// <summary>SMTP server port.</summary>
+    public int Port { get; set; } = 587;
 
-    /// <summary>
-    /// SMTP login/username.
-    /// </summary>
-    public string Login { get; init; } = string.Empty;
+    /// <summary>SMTP login/username.</summary>
+    public string Login { get; set; } = string.Empty;
 
-    /// <summary>
-    /// SMTP password.
-    /// </summary>
-    public string Password { get; init; } = string.Empty;
+    /// <summary>SMTP password. Not emitted by <see cref="ToString"/>.</summary>
+    public string Password { get; set; } = string.Empty;
 
-    /// <summary>
-    /// From email address.
-    /// </summary>
-    public string FromAddress { get; init; } = string.Empty;
+    /// <summary>From email address.</summary>
+    public string FromAddress { get; set; } = string.Empty;
+
+    public override string ToString()
+    {
+        var passwordState = string.IsNullOrEmpty(Password) ? "<empty>" : "<redacted>";
+        return $"{nameof(SmtpOptions)} {{ Host = {Host}, Port = {Port}, Login = {Login}, Password = {passwordState}, FromAddress = {FromAddress} }}";
+    }
 }

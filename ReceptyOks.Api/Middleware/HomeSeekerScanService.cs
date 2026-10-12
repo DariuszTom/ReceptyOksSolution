@@ -46,38 +46,76 @@ public sealed class HomeSeekerScanService : BackgroundService
         // Run initial scan
         await ScanActiveProfilesAsync(stoppingToken).ConfigureAwait(false);
 
-        // Main loop: wait for either periodic timer tick or on-demand request
+        // Main loop: wait for either periodic timer tick or on-demand request.
+        // PeriodicTimer allows only ONE pending WaitForNextTickAsync; we must keep the
+        // same task across loop iterations and only re-request a new wait after the
+        // previous one has actually completed. Likewise, keep a single pending
+        // WaitToReadAsync for the trigger channel.
         using var timer = new PeriodicTimer(_options.ScanInterval);
 
-        try
+        Task<bool>? timerTask = null;
+        Task<bool>? queueWaitTask = null;
+
+        while (!stoppingToken.IsCancellationRequested)
         {
-            while (!stoppingToken.IsCancellationRequested)
+            try
             {
-                // Wait for either timer tick or queue item
-                var task = await Task.WhenAny(
-                    timer.WaitForNextTickAsync(stoppingToken).AsTask(),
-                    _triggerQueue.Reader.WaitToReadAsync(stoppingToken).AsTask()
-                ).ConfigureAwait(false);
+                timerTask ??= timer.WaitForNextTickAsync(stoppingToken).AsTask();
+                queueWaitTask ??= _triggerQueue.Reader.WaitToReadAsync(stoppingToken).AsTask();
+
+                var completed = await Task.WhenAny(timerTask, queueWaitTask).ConfigureAwait(false);
 
                 if (stoppingToken.IsCancellationRequested)
                     break;
 
-                // Process any queued on-demand requests
-                while (_triggerQueue.Reader.TryRead(out var profileId))
+                if (ReferenceEquals(completed, queueWaitTask))
                 {
-                    await RunSingleScanAsync(profileId, stoppingToken).ConfigureAwait(false);
-                }
+                    // Observe the result; discard whether more items are expected.
+                    await queueWaitTask.ConfigureAwait(false);
+                    queueWaitTask = null;
 
-                // If timer ticked, run periodic scan of all active profiles
-                if (task is Task<bool> timerTask && await timerTask.ConfigureAwait(false))
+                    // Drain all queued on-demand requests before looping.
+                    while (_triggerQueue.Reader.TryRead(out var profileId))
+                    {
+                        await RunSingleScanAsync(profileId, onDemand: true, stoppingToken).ConfigureAwait(false);
+                    }
+                }
+                else if (ReferenceEquals(completed, timerTask))
                 {
-                    await ScanActiveProfilesAsync(stoppingToken).ConfigureAwait(false);
+                    var ticked = await timerTask.ConfigureAwait(false);
+                    timerTask = null;
+
+                    if (ticked)
+                    {
+                        await ScanActiveProfilesAsync(stoppingToken).ConfigureAwait(false);
+                    }
                 }
             }
-        }
-        catch (OperationCanceledException)
-        {
-            _logger.LogInformation("HomeSeeker scan service is stopping");
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+                _logger.LogInformation("HomeSeeker scan service is stopping");
+                break;
+            }
+            catch (Exception ex)
+            {
+                // Never let the background service fault - that would stop the entire host
+                // under the default BackgroundServiceExceptionBehavior.StopHost.
+                _logger.LogError(ex, "Unhandled error in HomeSeeker scan loop; continuing");
+
+                // Reset pending waits so we don't observe the same faulted task again.
+                timerTask = null;
+                queueWaitTask = null;
+
+                // Small backoff to avoid a hot loop if the failure is persistent.
+                try
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    break;
+                }
+            }
         }
     }
 
@@ -87,7 +125,7 @@ public sealed class HomeSeekerScanService : BackgroundService
         {
             await foreach (var profileId in _triggerQueue.Reader.ReadAllAsync(stoppingToken).ConfigureAwait(false))
             {
-                await RunSingleScanAsync(profileId, stoppingToken).ConfigureAwait(false);
+                await RunSingleScanAsync(profileId, onDemand: true, stoppingToken).ConfigureAwait(false);
             }
         }
         catch (OperationCanceledException)
@@ -112,7 +150,7 @@ public sealed class HomeSeekerScanService : BackgroundService
                 if (stoppingToken.IsCancellationRequested)
                     break;
 
-                await RunSingleScanAsync(profile.Id, stoppingToken).ConfigureAwait(false);
+                await RunSingleScanAsync(profile.Id, onDemand: false, stoppingToken).ConfigureAwait(false);
             }
         }
         catch (OperationCanceledException)
@@ -125,38 +163,69 @@ public sealed class HomeSeekerScanService : BackgroundService
         }
     }
 
-    private async Task RunSingleScanAsync(Guid profileId, CancellationToken stoppingToken)
+    private async Task RunSingleScanAsync(Guid profileId, bool onDemand, CancellationToken stoppingToken)
     {
+        await using var scope = _scopeFactory.CreateAsyncScope();
+        var repository = scope.ServiceProvider.GetRequiredService<IListingRepository>();
+
+        bool acquired;
         try
         {
-            await using var scope = _scopeFactory.CreateAsyncScope();
-            var repository = scope.ServiceProvider.GetRequiredService<IListingRepository>();
+            // On-demand scans only need the lease; periodic scans also need the due check.
+            acquired = onDemand
+                ? await repository.TryAcquireScanLeaseAsync(profileId, stoppingToken).ConfigureAwait(false)
+                : await repository.TryMarkProfileScannedAsync(profileId, stoppingToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to acquire scan lease for profile {ProfileId}", profileId);
+            return;
+        }
 
-            // Try to mark profile as scanned (distributed locking)
-            var acquired = await repository.TryMarkProfileScannedAsync(profileId, stoppingToken)
-                .ConfigureAwait(false);
+        if (!acquired)
+        {
+            _logger.LogDebug(
+                "Scan lease for profile {ProfileId} not acquired (another instance is scanning or not yet due)",
+                profileId);
+            return;
+        }
 
-            if (!acquired)
-            {
-                _logger.LogDebug("Profile {ProfileId} is already being scanned by another instance", profileId);
-                return;
-            }
-
+        try
+        {
             var scanService = scope.ServiceProvider.GetRequiredService<IMarketScanService>();
 
-            _logger.LogInformation("Starting scan for profile {ProfileId}", profileId);
+            _logger.LogInformation("Starting scan for profile {ProfileId} (onDemand={OnDemand})",
+                profileId, onDemand);
 
             await scanService.RunScanAsync(profileId, stoppingToken).ConfigureAwait(false);
 
             _logger.LogInformation("Completed scan for profile {ProfileId}", profileId);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
         {
             throw;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error scanning profile {ProfileId}", profileId);
+        }
+        finally
+        {
+            // Always release the lease and stamp LastScannedAt, even on failure,
+            // so retries are not blocked and other instances can pick it up next cycle.
+            // Use CancellationToken.None so a shutdown cannot leave the row leased forever.
+            try
+            {
+                await repository.ReleaseScanLeaseAsync(profileId, CancellationToken.None).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to release scan lease for profile {ProfileId}", profileId);
+            }
         }
     }
 }

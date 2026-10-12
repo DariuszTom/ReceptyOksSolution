@@ -18,10 +18,26 @@ public interface IListingRepository
     Task<SearchProfile?> GetProfileByIdAsync(Guid profileId, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Tries to mark a profile as scanned (for distributed locking).
-    /// Returns false if another instance already started scanning.
+    /// Tries to acquire a scan lease for a periodic scan: succeeds only when the
+    /// profile is due (<see cref="SearchProfile.LastScannedAt"/> older than
+    /// <see cref="Configuration.HomeSeekerOptions.ScanInterval"/>) AND no active
+    /// lease is held by another instance. On success the lease is extended for
+    /// a short, bounded duration. Returns false otherwise.
     /// </summary>
     Task<bool> TryMarkProfileScannedAsync(Guid profileId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Tries to acquire a scan lease for an on-demand scan: succeeds whenever no
+    /// active lease is held, regardless of <see cref="SearchProfile.LastScannedAt"/>.
+    /// This allows manual scans to run even shortly after a previous one.
+    /// </summary>
+    Task<bool> TryAcquireScanLeaseAsync(Guid profileId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Releases the scan lease and sets <see cref="SearchProfile.LastScannedAt"/>.
+    /// Idempotent; safe to call even if the lease has already expired.
+    /// </summary>
+    Task ReleaseScanLeaseAsync(Guid profileId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Creates a new scan run record.
@@ -49,6 +65,13 @@ public interface IListingRepository
         Guid profileId,
         ScrapedListing scraped,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Resets the underlying change tracker. Must be called after an upsert
+    /// failure so a tracked-but-not-saved entity does not poison every subsequent
+    /// SaveChanges call in the same scope.
+    /// </summary>
+    void ResetTracking();
 
     /// <summary>
     /// Saves AI evaluation results for a listing.

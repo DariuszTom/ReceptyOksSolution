@@ -78,6 +78,10 @@ public sealed class MarketScanService : IMarketScanService
 
                     _logger.LogDebug("{Portal} returned {Count} listings", scraper.PortalName, listings.Count);
                 }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    throw;
+                }
                 catch (Exception ex)
                 {
                     _logger.LogWarning(ex, "Scraper {Portal} failed for profile {ProfileId}",
@@ -103,10 +107,18 @@ public sealed class MarketScanService : IMarketScanService
                     if (result.IsNew) newCount++;
                     if (result.PriceDropped) priceDrops++;
                 }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    throw;
+                }
                 catch (Exception ex)
                 {
                     _logger.LogWarning(ex, "Failed to upsert listing {ExternalId} from {Portal}",
                         scraped.ExternalId, scraped.Portal);
+
+                    // Drop any tracked-but-unsaved entity so later SaveChanges calls
+                    // in this scope don't retry (and re-fail on) the same insert.
+                    _repository.ResetTracking();
                 }
             }
 
@@ -141,9 +153,14 @@ public sealed class MarketScanService : IMarketScanService
                             candidate.Listing.Id, evaluation.Score);
                     }
                 }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    throw;
+                }
                 catch (Exception ex)
                 {
                     _logger.LogWarning(ex, "Failed to evaluate listing {ListingId}", candidate.Listing.Id);
+                    _repository.ResetTracking();
                 }
             }
 
@@ -190,14 +207,37 @@ public sealed class MarketScanService : IMarketScanService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Scan {ScanRunId} failed", scanRun.Id);
-            error = ex.Message;
+            error = Truncate(ex.Message, 2000);
         }
 
-        // Complete the scan run
+        // Complete the scan run.
+        // IMPORTANT: never pass the original (possibly cancelled) token here, or the
+        // final status write will throw and the run will stay in `Running` forever (H1).
+        // Use a short bounded timeout off a fresh source so a hang can't block shutdown.
         var status = error is null ? ScanStatus.Completed : ScanStatus.Failed;
 
-        await _repository.CompleteScanRunAsync(
-            scanRun.Id, status, totalFound, newCount, priceDrops, evaluated, reportHtml, error, cancellationToken)
-            .ConfigureAwait(false);
+        try
+        {
+            using var finalWriteCts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            await _repository.CompleteScanRunAsync(
+                scanRun.Id, status, totalFound, newCount, priceDrops, evaluated, reportHtml, error,
+                finalWriteCts.Token)
+                .ConfigureAwait(false);
+        }
+        catch (Exception finalWriteEx)
+        {
+            // Last-resort log: we tried, but the DB is unreachable. A startup
+            // reconciliation job (recommended as a follow-up) should mark stale
+            // `Running` rows as `Failed`.
+            _logger.LogError(finalWriteEx,
+                "Failed to persist final status for scan {ScanRunId}; run may stay in Running state",
+                scanRun.Id);
+        }
+    }
+
+    private static string? Truncate(string? value, int maxLength)
+    {
+        if (string.IsNullOrEmpty(value)) return value;
+        return value.Length <= maxLength ? value : value[..maxLength];
     }
 }

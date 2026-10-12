@@ -36,6 +36,7 @@ public class HomeSeekerDbContext(DbContextOptions<HomeSeekerDbContext> options) 
             entity.HasIndex(p => p.IsDeleted);
             entity.HasIndex(p => p.IsActive);
             entity.HasIndex(p => p.LastScannedAt);
+            entity.HasIndex(p => p.ScanLeaseUntil);
         });
 
         // HouseListing

@@ -22,14 +22,20 @@ public sealed class ListingRepository : IListingRepository
         _options = options.Value;
     }
 
+    // Maximum time a single scan is expected to run. Lease is held for this long;
+    // afterwards it's considered expired and may be re-acquired by another instance.
+    private static readonly TimeSpan ScanLeaseDuration = TimeSpan.FromMinutes(30);
+
     public async Task<IReadOnlyList<SearchProfile>> GetActiveProfilesAsync(CancellationToken cancellationToken = default)
     {
-        var cutoff = DateTime.UtcNow - _options.ScanInterval;
+        var now = DateTime.UtcNow;
+        var cutoff = now - _options.ScanInterval;
 
         return await _db.SearchProfiles
             .AsNoTracking()
             .Where(p => !p.IsDeleted && p.IsActive)
             .Where(p => p.LastScannedAt == null || p.LastScannedAt < cutoff)
+            .Where(p => p.ScanLeaseUntil == null || p.ScanLeaseUntil < now)
             .OrderBy(p => p.LastScannedAt ?? DateTime.MinValue)
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
@@ -45,21 +51,56 @@ public sealed class ListingRepository : IListingRepository
 
     public async Task<bool> TryMarkProfileScannedAsync(Guid profileId, CancellationToken cancellationToken = default)
     {
-        // Update-first approach for distributed locking:
-        // Only update if LastScannedAt is still old (another instance hasn't started)
-        var cutoff = DateTime.UtcNow - _options.ScanInterval;
+        // Periodic lease: requires profile to be due AND lease free.
+        // Lease is set so concurrent instances won't double-scan; LastScannedAt
+        // is updated only on successful completion (see ReleaseScanLeaseAsync).
         var now = DateTime.UtcNow;
+        var cutoff = now - _options.ScanInterval;
+        var leaseUntil = now + ScanLeaseDuration;
 
         var updated = await _db.SearchProfiles
-            .Where(p => p.Id == profileId)
+            .Where(p => p.Id == profileId && !p.IsDeleted && p.IsActive)
             .Where(p => p.LastScannedAt == null || p.LastScannedAt < cutoff)
+            .Where(p => p.ScanLeaseUntil == null || p.ScanLeaseUntil < now)
             .ExecuteUpdateAsync(s => s
-                .SetProperty(p => p.LastScannedAt, now)
+                .SetProperty(p => p.ScanLeaseUntil, leaseUntil)
                 .SetProperty(p => p.UpdatedAt, now),
                 cancellationToken)
             .ConfigureAwait(false);
 
         return updated > 0;
+    }
+
+    public async Task<bool> TryAcquireScanLeaseAsync(Guid profileId, CancellationToken cancellationToken = default)
+    {
+        // On-demand lease: ignores LastScannedAt; only requires the lease to be free.
+        var now = DateTime.UtcNow;
+        var leaseUntil = now + ScanLeaseDuration;
+
+        var updated = await _db.SearchProfiles
+            .Where(p => p.Id == profileId && !p.IsDeleted)
+            .Where(p => p.ScanLeaseUntil == null || p.ScanLeaseUntil < now)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(p => p.ScanLeaseUntil, leaseUntil)
+                .SetProperty(p => p.UpdatedAt, now),
+                cancellationToken)
+            .ConfigureAwait(false);
+
+        return updated > 0;
+    }
+
+    public async Task ReleaseScanLeaseAsync(Guid profileId, CancellationToken cancellationToken = default)
+    {
+        var now = DateTime.UtcNow;
+
+        await _db.SearchProfiles
+            .Where(p => p.Id == profileId)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(p => (DateTime?)p.LastScannedAt, now)
+                .SetProperty(p => (DateTime?)p.ScanLeaseUntil, (DateTime?)null)
+                .SetProperty(p => p.UpdatedAt, now),
+                cancellationToken)
+            .ConfigureAwait(false);
     }
 
     public async Task<ScanRun> CreateScanRunAsync(Guid profileId, CancellationToken cancellationToken = default)
@@ -176,6 +217,8 @@ public sealed class ListingRepository : IListingRepository
             PriceDropped = false
         };
     }
+
+    public void ResetTracking() => _db.ChangeTracker.Clear();
 
     public async Task SaveEvaluationAsync(
         Guid listingId,

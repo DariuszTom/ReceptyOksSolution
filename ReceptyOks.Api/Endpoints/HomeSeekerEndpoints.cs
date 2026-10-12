@@ -152,9 +152,9 @@ public static class HomeSeekerEndpoints
         .WithName("GetProfileScans");
 
         // GET /scans/{id}/report - Get scan report HTML
-        group.MapGet("/scans/{id:guid}/report", async (Guid id, IListingRepository repository) =>
+        group.MapGet("/scans/{id:guid}/report", async (Guid id, IListingRepository repository, HttpContext http) =>
         {
-            var scanRun = await repository.GetScanRunByIdAsync(id).ConfigureAwait(false);
+            var scanRun = await repository.GetScanRunByIdAsync(id, http.RequestAborted).ConfigureAwait(false);
             if (scanRun is null)
             {
                 return Results.NotFound();
@@ -165,7 +165,17 @@ public static class HomeSeekerEndpoints
                 return Results.NotFound(new { Message = "Report not available" });
             }
 
-            return Results.Content(scanRun.ReportHtml, "text/html");
+            // Defense in depth: the report is now produced from a server-controlled
+            // template, but we still serve it with a very restrictive CSP so that
+            // any future regression that lets attacker-controlled HTML through
+            // cannot execute script, pull remote resources, or be framed.
+            http.Response.Headers["Content-Security-Policy"] =
+                "default-src 'none'; style-src 'unsafe-inline'; img-src https: data:; frame-ancestors 'none'; base-uri 'none'; form-action 'none'; sandbox";
+            http.Response.Headers["X-Content-Type-Options"] = "nosniff";
+            http.Response.Headers["X-Frame-Options"] = "DENY";
+            http.Response.Headers["Referrer-Policy"] = "no-referrer";
+
+            return Results.Content(scanRun.ReportHtml, "text/html; charset=utf-8");
         })
         .WithName("GetScanReport");
     }

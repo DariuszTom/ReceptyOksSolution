@@ -54,8 +54,18 @@ public class SearchProfile
 
     /// <summary>
     /// Timestamp of the last scan for this profile.
+    /// Updated only when a scan completes (successfully or with failure),
+    /// so a failed scan does not block retries for a full interval.
     /// </summary>
     public DateTime? LastScannedAt { get; set; }
+
+    /// <summary>
+    /// Short-lived lease held by whichever instance is currently running a scan
+    /// for this profile. Prevents concurrent scans across replicas and lets
+    /// on-demand triggers acquire the lock without being blocked by the
+    /// "already scanned recently" check.
+    /// </summary>
+    public DateTime? ScanLeaseUntil { get; set; }
 
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
