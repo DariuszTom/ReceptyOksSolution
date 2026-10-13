@@ -11,7 +11,8 @@ public sealed record SearchProfileRequest
     public required string City { get; init; }
 
     /// <summary>
-    /// Optional district/neighborhood filter.
+    /// Optional preferred district/neighborhood. Used by the AI evaluator as a soft
+    /// preference when scoring listings; it does not narrow the portal search itself.
     /// </summary>
     public string? District { get; init; }
 

@@ -30,18 +30,20 @@ public interface IListingRepository
     /// Tries to acquire a scan lease for a periodic scan: succeeds only when the
     /// profile is active and due (<see cref="SearchProfile.LastScannedAt"/> older than
     /// <see cref="Configuration.HomeSeekerOptions.ScanInterval"/>) AND no active
-    /// lease is held by another instance. On success the lease is extended for
-    /// a short, bounded duration. Returns false otherwise.
+    /// lease is held by another instance. On success the lease is held for
+    /// a short, bounded duration and the returned token identifies this holder.
+    /// Returns null otherwise.
     /// </summary>
-    Task<bool> TryMarkProfileScannedAsync(Guid profileId, CancellationToken cancellationToken = default);
+    Task<Guid?> TryAcquireScanLeaseAsync(Guid profileId, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Releases the scan lease. When <paramref name="markScanned"/> is true the scan
-    /// completed successfully and <see cref="SearchProfile.LastScannedAt"/> is stamped;
-    /// otherwise only the lease is cleared so the profile is retried on the next cycle.
-    /// Idempotent; safe to call even if the lease has already expired.
+    /// Releases the scan lease identified by <paramref name="leaseToken"/>. When
+    /// <paramref name="markScanned"/> is true the scan completed successfully and
+    /// <see cref="SearchProfile.LastScannedAt"/> is stamped; otherwise only the lease
+    /// is cleared so the profile is retried on the next cycle. If the lease has
+    /// since been taken over by another holder nothing is changed and false is returned.
     /// </summary>
-    Task ReleaseScanLeaseAsync(Guid profileId, bool markScanned, CancellationToken cancellationToken = default);
+    Task<bool> ReleaseScanLeaseAsync(Guid profileId, Guid leaseToken, bool markScanned, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Creates a new scan run record.

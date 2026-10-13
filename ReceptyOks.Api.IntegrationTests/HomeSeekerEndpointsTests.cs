@@ -137,8 +137,27 @@ public class HomeSeekerEndpointsTests
     [TestCase("not-an-email")]
     [TestCase("ok@example.com, broken")]
     [TestCase("a@x.pl,b@x.pl,c@x.pl,d@x.pl,e@x.pl,f@x.pl")]
+    [TestCase(",;")]
+    [TestCase("  ;  ,  ")]
     public async Task PutProfile_WithInvalidRecipients_ReturnsValidationProblem(string emails)
     {
+        var request = NewRequest() with { NotificationEmail = emails };
+
+        var response = await _userA.PutAsJsonAsync("/api/homeseeker/profile", request);
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+    }
+
+    [Test]
+    public async Task PutProfile_WhenNormalizedListExceedsLimit_ReturnsValidationProblem()
+    {
+        // Raw input fits in the column (199 chars, "," separated) but the stored
+        // normalized form (", " separated) would be 203 chars.
+        var emails = string.Join(",", Enumerable.Range(0, 5)
+            .Select(i => $"{(char)('a' + i)}{new string('x', 33)}@x.pl"));
+        Assume.That(emails.Length, Is.LessThanOrEqualTo(NotificationEmails.MaxLength));
+        Assume.That(NotificationEmails.Normalize(emails).Length, Is.GreaterThan(NotificationEmails.MaxLength));
+
         var request = NewRequest() with { NotificationEmail = emails };
 
         var response = await _userA.PutAsJsonAsync("/api/homeseeker/profile", request);

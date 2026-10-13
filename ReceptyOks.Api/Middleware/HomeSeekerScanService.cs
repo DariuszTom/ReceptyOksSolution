@@ -89,7 +89,7 @@ public sealed class HomeSeekerScanService : BackgroundService
         var repository = scope.ServiceProvider.GetRequiredService<IListingRepository>();
 
         Guid profileId;
-        bool acquired;
+        Guid? leaseToken;
         try
         {
             var profile = await repository.GetSharedProfileAsync(stoppingToken).ConfigureAwait(false);
@@ -106,7 +106,7 @@ public sealed class HomeSeekerScanService : BackgroundService
             }
 
             profileId = profile.Id;
-            acquired = await repository.TryMarkProfileScannedAsync(profileId, stoppingToken).ConfigureAwait(false);
+            leaseToken = await repository.TryAcquireScanLeaseAsync(profileId, stoppingToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
         {
@@ -118,7 +118,7 @@ public sealed class HomeSeekerScanService : BackgroundService
             return;
         }
 
-        if (!acquired)
+        if (leaseToken is null)
         {
             _logger.LogDebug(
                 "Scan lease for profile {ProfileId} not acquired (another instance is scanning or not yet due)",
@@ -153,8 +153,17 @@ public sealed class HomeSeekerScanService : BackgroundService
             // Use CancellationToken.None so a shutdown cannot leave the row leased forever.
             try
             {
-                await repository.ReleaseScanLeaseAsync(profileId, markScanned: succeeded, CancellationToken.None)
+                var released = await repository
+                    .ReleaseScanLeaseAsync(profileId, leaseToken.Value, markScanned: succeeded, CancellationToken.None)
                     .ConfigureAwait(false);
+
+                if (!released)
+                {
+                    _logger.LogWarning(
+                        "Scan lease for profile {ProfileId} was taken over by another instance before release; " +
+                        "the scan likely exceeded the lease duration",
+                        profileId);
+                }
             }
             catch (Exception ex)
             {

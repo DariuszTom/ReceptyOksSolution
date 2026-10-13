@@ -9,6 +9,11 @@ namespace ReceptyOks.Api.DbUtility;
 /// </summary>
 public class HomeSeekerDbContext(DbContextOptions<HomeSeekerDbContext> options) : DbContext(options)
 {
+    // Column limits for model-generated text; repository clamps values to these.
+    public const int AiSummaryMaxLength = 2000;
+    public const int AiListJsonMaxLength = 4000;
+    public const int AiPriceAssessmentMaxLength = 100;
+
     public DbSet<SearchProfile> SearchProfiles => Set<SearchProfile>();
     public DbSet<HouseListing> HouseListings => Set<HouseListing>();
     public DbSet<ScanRun> ScanRuns => Set<ScanRun>();
@@ -39,6 +44,7 @@ public class HomeSeekerDbContext(DbContextOptions<HomeSeekerDbContext> options) 
             entity.HasIndex(p => p.IsActive);
             entity.HasIndex(p => p.LastScannedAt);
             entity.HasIndex(p => p.ScanLeaseUntil);
+            entity.HasIndex(p => p.ScanLeaseToken);
         });
 
         // HouseListing
@@ -57,10 +63,10 @@ public class HomeSeekerDbContext(DbContextOptions<HomeSeekerDbContext> options) 
             entity.Property(l => l.AreaSqm).HasPrecision(10, 2);
 
             // AI fields
-            entity.Property(l => l.AiSummary).HasMaxLength(2000);
-            entity.Property(l => l.AiProsJson).HasMaxLength(4000);
-            entity.Property(l => l.AiConsJson).HasMaxLength(4000);
-            entity.Property(l => l.AiPriceAssessment).HasMaxLength(100);
+            entity.Property(l => l.AiSummary).HasMaxLength(AiSummaryMaxLength);
+            entity.Property(l => l.AiProsJson).HasMaxLength(AiListJsonMaxLength);
+            entity.Property(l => l.AiConsJson).HasMaxLength(AiListJsonMaxLength);
+            entity.Property(l => l.AiPriceAssessment).HasMaxLength(AiPriceAssessmentMaxLength);
 
             // Unique index for deduplication: (SearchProfileId, Portal, ExternalId)
             entity.HasIndex(l => new { l.SearchProfileId, l.Portal, l.ExternalId })

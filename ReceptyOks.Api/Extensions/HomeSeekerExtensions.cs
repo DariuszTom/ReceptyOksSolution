@@ -109,6 +109,8 @@ public static class HomeSeekerExtensions
             // migrations; these guard existing DBs created before a column was added.
             EnsureColumn(db, logger, "SearchProfiles", "ScanLeaseUntil",
                 sqliteType: "TEXT NULL", sqlServerType: "DATETIME2 NULL");
+            EnsureColumn(db, logger, "SearchProfiles", "ScanLeaseToken",
+                sqliteType: "TEXT NULL", sqlServerType: "UNIQUEIDENTIFIER NULL");
             EnsureColumn(db, logger, "SearchProfiles", "OwnerId",
                 sqliteType: "TEXT NULL", sqlServerType: "NVARCHAR(200) NULL");
         }

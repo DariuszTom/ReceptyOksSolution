@@ -48,9 +48,14 @@ public sealed class SearchProfileRequestValidator : AbstractValidator<SearchProf
             .MaximumLength(2000).WithMessage("Extra criteria must be at most 2000 characters")
             .When(x => !string.IsNullOrWhiteSpace(x.ExtraCriteria));
 
+        // Validate the parsed/normalized list rather than the raw string: ",;" must be
+        // rejected as empty, and the stored value is the normalized form (", "-joined),
+        // which can be longer than the raw input.
         RuleFor(x => x.NotificationEmail)
-            .NotEmpty().WithMessage("Notification email is required")
-            .MaximumLength(NotificationEmails.MaxLength)
+            .Cascade(CascadeMode.Stop)
+            .Must(v => NotificationEmails.Parse(v).Count > 0)
+                .WithMessage("At least one notification email is required")
+            .Must(v => NotificationEmails.Normalize(v).Length <= NotificationEmails.MaxLength)
                 .WithMessage($"Notification email list must be at most {NotificationEmails.MaxLength} characters")
             .Must(v => NotificationEmails.Parse(v).Count <= NotificationEmails.MaxRecipients)
                 .WithMessage($"At most {NotificationEmails.MaxRecipients} notification emails are allowed")

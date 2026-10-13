@@ -21,7 +21,9 @@ public class SearchProfile
     public string City { get; set; } = string.Empty;
 
     /// <summary>
-    /// Optional district/neighborhood filter.
+    /// Optional preferred district/neighborhood. This is a soft preference passed to
+    /// the AI evaluator (affects scoring), not a portal search filter: the scrapers
+    /// query by <see cref="City"/>, price and area only.
     /// </summary>
     public string? District { get; set; }
 
@@ -69,11 +71,15 @@ public class SearchProfile
 
     /// <summary>
     /// Short-lived lease held by whichever instance is currently running a scan
-    /// for this profile. Prevents concurrent scans across replicas and lets
-    /// on-demand triggers acquire the lock without being blocked by the
-    /// "already scanned recently" check.
+    /// for this profile. Prevents concurrent scans across replicas.
     /// </summary>
     public DateTime? ScanLeaseUntil { get; set; }
+
+    /// <summary>
+    /// Identifies the holder of the current lease. Releasing requires the same
+    /// token, so an instance whose lease expired cannot clobber a newer holder.
+    /// </summary>
+    public Guid? ScanLeaseToken { get; set; }
 
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }

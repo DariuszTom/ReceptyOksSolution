@@ -33,11 +33,13 @@ public sealed partial class OlxScraper : IListingScraper
         _logger = logger;
     }
 
-    public async Task<IReadOnlyList<ScrapedListing>> SearchAsync(
+    public async Task<ScrapeResult> SearchAsync(
         SearchProfile profile,
         CancellationToken cancellationToken = default)
     {
         var results = new List<ScrapedListing>();
+        var pagesFetched = 0;
+        string? failure = null;
 
         try
         {
@@ -52,6 +54,7 @@ public sealed partial class OlxScraper : IListingScraper
                 try
                 {
                     var html = await _httpClient.GetStringAsync(url, cancellationToken).ConfigureAwait(false);
+                    pagesFetched++;
 
                     // Try JSON parsing first, fallback to HTML
                     var listings = ParsePrerenderedState(html);
@@ -77,11 +80,13 @@ public sealed partial class OlxScraper : IListingScraper
                 catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Forbidden)
                 {
                     _logger.LogWarning("OLX returned 403 Forbidden - possible rate limiting or bot detection");
+                    failure = "OLX returned 403 Forbidden";
                     break;
                 }
                 catch (HttpRequestException ex)
                 {
                     _logger.LogWarning(ex, "Failed to fetch OLX page {Page}", page);
+                    failure = $"OLX request failed: {ex.Message}";
                     break;
                 }
             }
@@ -89,16 +94,25 @@ public sealed partial class OlxScraper : IListingScraper
         catch (OperationCanceledException)
         {
             _logger.LogDebug("OLX scraping cancelled");
+            failure = "OLX scraping cancelled";
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unexpected error during OLX scraping");
+            failure = $"OLX scraping error: {ex.Message}";
+        }
+
+        // Only treat the portal as failed when we never got a usable page.
+        // A failure after at least one good page still yields a partial success.
+        if (pagesFetched == 0 && failure is not null)
+        {
+            return ScrapeResult.Failure(failure);
         }
 
         _logger.LogInformation("OLX scraper found {Count} listings for profile {ProfileId}",
             results.Count, profile.Id);
 
-        return results;
+        return ScrapeResult.Success(results);
     }
 
     private static string BuildSearchUrl(SearchProfile profile, int page)

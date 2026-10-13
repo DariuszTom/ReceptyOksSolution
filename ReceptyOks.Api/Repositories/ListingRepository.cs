@@ -26,6 +26,13 @@ public sealed class ListingRepository : IListingRepository
     // afterwards it's considered expired and may be re-acquired by another instance.
     private static readonly TimeSpan ScanLeaseDuration = TimeSpan.FromMinutes(30);
 
+    /// <summary>
+    /// Fixed primary key of the single household profile. Using a constant key makes
+    /// "create if missing" atomic: two concurrent first writers both try to insert the
+    /// same row and the database's primary-key constraint rejects the loser.
+    /// </summary>
+    public static readonly Guid SharedProfileId = new("6d2a1f0e-9c3b-4d7a-8e5f-1a2b3c4d5e6f");
+
     public async Task<SearchProfile?> GetSharedProfileAsync(CancellationToken cancellationToken = default)
     {
         // Exactly one non-deleted profile is expected. If legacy data left several,
@@ -34,6 +41,7 @@ public sealed class ListingRepository : IListingRepository
             .AsNoTracking()
             .Where(p => !p.IsDeleted)
             .OrderByDescending(p => p.UpdatedAt)
+            .ThenBy(p => p.Id)
             .FirstOrDefaultAsync(cancellationToken)
             .ConfigureAwait(false);
     }
@@ -48,6 +56,7 @@ public sealed class ListingRepository : IListingRepository
         var profile = await _db.SearchProfiles
             .Where(p => !p.IsDeleted)
             .OrderByDescending(p => p.UpdatedAt)
+            .ThenBy(p => p.Id)
             .FirstOrDefaultAsync(cancellationToken)
             .ConfigureAwait(false);
 
@@ -55,12 +64,39 @@ public sealed class ListingRepository : IListingRepository
         {
             profile = new SearchProfile
             {
-                Id = Guid.NewGuid(),
+                Id = SharedProfileId,
                 CreatedAt = now
             };
             _db.SearchProfiles.Add(profile);
+
+            ApplyRequest(profile, request, updatedBy, now);
+
+            try
+            {
+                await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+                return profile;
+            }
+            catch (DbUpdateException)
+            {
+                // Lost the race: another request created the shared profile first.
+                // Fall through and update that row instead.
+                _db.ChangeTracker.Clear();
+                profile = await _db.SearchProfiles
+                    .FirstAsync(p => p.Id == SharedProfileId, cancellationToken)
+                    .ConfigureAwait(false);
+                profile.IsDeleted = false;
+            }
         }
 
+        ApplyRequest(profile, request, updatedBy, now);
+
+        await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+
+        return profile;
+    }
+
+    private static void ApplyRequest(SearchProfile profile, SearchProfileRequest request, string updatedBy, DateTime now)
+    {
         profile.OwnerId = updatedBy;
         profile.City = request.City;
         profile.District = request.District;
@@ -72,13 +108,11 @@ public sealed class ListingRepository : IListingRepository
         profile.NotificationEmail = NotificationEmails.Normalize(request.NotificationEmail);
         profile.IsActive = request.IsActive;
         profile.UpdatedAt = now;
-
-        await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
-
-        return profile;
     }
 
-    public async Task<SearchProfile?> GetProfileByIdAsync(Guid profileId, CancellationToken cancellationToken = default)
+    public async Task<SearchProfile?> GetProfileByIdAsync(
+        Guid profileId,
+        CancellationToken cancellationToken = default)
     {
         return await _db.SearchProfiles
             .AsNoTracking()
@@ -86,7 +120,7 @@ public sealed class ListingRepository : IListingRepository
             .ConfigureAwait(false);
     }
 
-    public async Task<bool> TryMarkProfileScannedAsync(Guid profileId, CancellationToken cancellationToken = default)
+    public async Task<Guid?> TryAcquireScanLeaseAsync(Guid profileId, CancellationToken cancellationToken = default)
     {
         // Periodic lease: requires profile to be due AND lease free.
         // Lease is set so concurrent instances won't double-scan; LastScannedAt
@@ -94,6 +128,7 @@ public sealed class ListingRepository : IListingRepository
         var now = DateTime.UtcNow;
         var cutoff = now - _options.ScanInterval;
         var leaseUntil = now + ScanLeaseDuration;
+        var token = Guid.NewGuid();
 
         var updated = await _db.SearchProfiles
             .Where(p => p.Id == profileId && !p.IsDeleted && p.IsActive)
@@ -101,24 +136,30 @@ public sealed class ListingRepository : IListingRepository
             .Where(p => p.ScanLeaseUntil == null || p.ScanLeaseUntil < now)
             .ExecuteUpdateAsync(s => s
                 .SetProperty(p => p.ScanLeaseUntil, leaseUntil)
+                .SetProperty(p => p.ScanLeaseToken, token)
                 .SetProperty(p => p.UpdatedAt, now),
                 cancellationToken)
             .ConfigureAwait(false);
 
-        return updated > 0;
+        return updated > 0 ? token : null;
     }
 
-    public async Task ReleaseScanLeaseAsync(Guid profileId, bool markScanned, CancellationToken cancellationToken = default)
+    public async Task<bool> ReleaseScanLeaseAsync(Guid profileId, Guid leaseToken, bool markScanned, CancellationToken cancellationToken = default)
     {
         var now = DateTime.UtcNow;
-        var query = _db.SearchProfiles.Where(p => p.Id == profileId);
 
+        // Only the current holder may release. If our lease expired and another
+        // instance took over, the token no longer matches and this is a no-op.
+        var query = _db.SearchProfiles.Where(p => p.Id == profileId && p.ScanLeaseToken == leaseToken);
+
+        int updated;
         if (markScanned)
         {
-            await query
+            updated = await query
                 .ExecuteUpdateAsync(s => s
                     .SetProperty(p => (DateTime?)p.LastScannedAt, now)
                     .SetProperty(p => (DateTime?)p.ScanLeaseUntil, (DateTime?)null)
+                    .SetProperty(p => (Guid?)p.ScanLeaseToken, (Guid?)null)
                     .SetProperty(p => p.UpdatedAt, now),
                     cancellationToken)
                 .ConfigureAwait(false);
@@ -127,13 +168,16 @@ public sealed class ListingRepository : IListingRepository
         {
             // Failed or cancelled scan: free the lease but leave LastScannedAt untouched
             // so the profile is retried on the next cycle instead of after a full interval.
-            await query
+            updated = await query
                 .ExecuteUpdateAsync(s => s
                     .SetProperty(p => (DateTime?)p.ScanLeaseUntil, (DateTime?)null)
+                    .SetProperty(p => (Guid?)p.ScanLeaseToken, (Guid?)null)
                     .SetProperty(p => p.UpdatedAt, now),
                     cancellationToken)
                 .ConfigureAwait(false);
         }
+
+        return updated > 0;
     }
 
     public async Task<ScanRun> CreateScanRunAsync(Guid profileId, CancellationToken cancellationToken = default)
@@ -258,22 +302,22 @@ public sealed class ListingRepository : IListingRepository
         ListingEvaluation evaluation,
         CancellationToken cancellationToken = default)
     {
-        var prosJson = evaluation.Pros.Count > 0
-            ? JsonSerializer.Serialize(evaluation.Pros)
-            : null;
-
-        var consJson = evaluation.Cons.Count > 0
-            ? JsonSerializer.Serialize(evaluation.Cons)
-            : null;
+        // Model output is unbounded; clamp to the column sizes declared in
+        // HomeSeekerDbContext so a verbose answer cannot fail the whole evaluation.
+        var prosJson = SerializeBounded(evaluation.Pros, HomeSeekerDbContext.AiListJsonMaxLength);
+        var consJson = SerializeBounded(evaluation.Cons, HomeSeekerDbContext.AiListJsonMaxLength);
+        var summary = Truncate(evaluation.Summary, HomeSeekerDbContext.AiSummaryMaxLength);
+        var priceAssessment = Truncate(evaluation.PriceAssessment, HomeSeekerDbContext.AiPriceAssessmentMaxLength);
+        var score = Math.Clamp(evaluation.Score, 0, 100);
 
         await _db.HouseListings
             .Where(l => l.Id == listingId)
             .ExecuteUpdateAsync(s => s
-                .SetProperty(l => l.AiScore, evaluation.Score)
-                .SetProperty(l => l.AiSummary, evaluation.Summary)
+                .SetProperty(l => l.AiScore, score)
+                .SetProperty(l => l.AiSummary, summary)
                 .SetProperty(l => l.AiProsJson, prosJson)
                 .SetProperty(l => l.AiConsJson, consJson)
-                .SetProperty(l => l.AiPriceAssessment, evaluation.PriceAssessment)
+                .SetProperty(l => l.AiPriceAssessment, priceAssessment)
                 .SetProperty(l => l.EvaluatedAt, DateTime.UtcNow)
                 .SetProperty(l => l.UpdatedAt, DateTime.UtcNow),
                 cancellationToken)
@@ -291,6 +335,7 @@ public sealed class ListingRepository : IListingRepository
             .Where(l => l.AiScore != null)
             .OrderByDescending(l => l.AiScore)
             .ThenBy(l => l.Price / l.AreaSqm)
+            .ThenBy(l => l.Id)
             .Take(count)
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
@@ -315,15 +360,17 @@ public sealed class ListingRepository : IListingRepository
 
         var totalCount = await query.CountAsync(cancellationToken).ConfigureAwait(false);
 
-        query = sortBy?.ToLowerInvariant() switch
+        // Every ordering ends with the unique Id so ties are stable across pages;
+        // otherwise SQL may return tied rows in a different order per request.
+        var ordered = sortBy?.ToLowerInvariant() switch
         {
-            "score" => query.OrderByDescending(l => l.AiScore ?? 0),
             "price" => query.OrderBy(l => l.Price),
             "firstseen" => query.OrderByDescending(l => l.FirstSeenAt),
             _ => query.OrderByDescending(l => l.AiScore ?? 0)
         };
 
-        var listings = await query
+        var listings = await ordered
+            .ThenBy(l => l.Id)
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(cancellationToken)
@@ -366,5 +413,36 @@ public sealed class ListingRepository : IListingRepository
             .AsNoTracking()
             .FirstOrDefaultAsync(s => s.Id == scanRunId, cancellationToken)
             .ConfigureAwait(false);
+    }
+
+    private static string? Truncate(string? value, int maxLength)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return null;
+        value = value.Trim();
+        return value.Length <= maxLength ? value : value[..maxLength];
+    }
+
+    /// <summary>
+    /// Serializes a list of strings to JSON that fits in <paramref name="maxLength"/>
+    /// characters. Items are truncated and dropped from the end until it fits so
+    /// the stored value is always valid JSON. Returns null for an empty list.
+    /// </summary>
+    internal static string? SerializeBounded(IReadOnlyList<string> items, int maxLength)
+    {
+        var cleaned = items
+            .Where(i => !string.IsNullOrWhiteSpace(i))
+            .Select(i => Truncate(i, maxLength / 4)!)
+            .ToList();
+
+        while (cleaned.Count > 0)
+        {
+            var json = JsonSerializer.Serialize(cleaned);
+            if (json.Length <= maxLength)
+                return json;
+
+            cleaned.RemoveAt(cleaned.Count - 1);
+        }
+
+        return null;
     }
 }

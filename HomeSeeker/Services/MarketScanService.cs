@@ -66,17 +66,31 @@ public sealed class MarketScanService : IMarketScanService
         {
             // Phase 1: Scrape listings from all portals
             var allScraped = new List<ScrapedListing>();
+            var portalsAttempted = 0;
+            var portalsSucceeded = 0;
+            var portalErrors = new List<string>();
 
             foreach (var scraper in _scrapers)
             {
+                portalsAttempted++;
                 try
                 {
                     _logger.LogDebug("Scraping {Portal} for profile {ProfileId}", scraper.PortalName, profileId);
 
-                    var listings = await scraper.SearchAsync(profile, cancellationToken).ConfigureAwait(false);
-                    allScraped.AddRange(listings);
-
-                    _logger.LogDebug("{Portal} returned {Count} listings", scraper.PortalName, listings.Count);
+                    var result = await scraper.SearchAsync(profile, cancellationToken).ConfigureAwait(false);
+                    if (result.Succeeded)
+                    {
+                        portalsSucceeded++;
+                        allScraped.AddRange(result.Listings);
+                        _logger.LogDebug("{Portal} returned {Count} listings",
+                            scraper.PortalName, result.Listings.Count);
+                    }
+                    else
+                    {
+                        portalErrors.Add($"{scraper.PortalName}: {result.Error ?? "unknown error"}");
+                        _logger.LogWarning("Scraper {Portal} failed for profile {ProfileId}: {Error}",
+                            scraper.PortalName, profileId, result.Error);
+                    }
                 }
                 catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                 {
@@ -84,14 +98,24 @@ public sealed class MarketScanService : IMarketScanService
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "Scraper {Portal} failed for profile {ProfileId}",
+                    portalErrors.Add($"{scraper.PortalName}: {ex.Message}");
+                    _logger.LogWarning(ex, "Scraper {Portal} threw for profile {ProfileId}",
                         scraper.PortalName, profileId);
                 }
             }
 
+            // If every portal failed we must not record a "Completed" scan with zero
+            // results; mark it failed so the lease is released without stamping
+            // LastScannedAt and the profile is retried on the next cycle.
+            if (portalsAttempted > 0 && portalsSucceeded == 0)
+            {
+                throw new InvalidOperationException(
+                    "No portal completed successfully: " + string.Join("; ", portalErrors));
+            }
+
             totalFound = allScraped.Count;
-            _logger.LogInformation("Total scraped: {Count} listings from {ScraperCount} portals",
-                totalFound, _scrapers.Count());
+            _logger.LogInformation("Total scraped: {Count} listings from {Succeeded}/{Attempted} portals",
+                totalFound, portalsSucceeded, portalsAttempted);
 
             // Phase 2: Upsert listings and track changes
             var upsertResults = new List<UpsertResult>();
@@ -220,6 +244,7 @@ public sealed class MarketScanService : IMarketScanService
         // final status write will throw and the run will stay in `Running` forever (H1).
         // Use a short bounded timeout off a fresh source so a hang can't block shutdown.
         var status = error is null ? ScanStatus.Completed : ScanStatus.Failed;
+        var persisted = false;
 
         try
         {
@@ -228,6 +253,7 @@ public sealed class MarketScanService : IMarketScanService
                 scanRun.Id, status, totalFound, newCount, priceDrops, evaluated, reportHtml, error,
                 finalWriteCts.Token)
                 .ConfigureAwait(false);
+            persisted = true;
         }
         catch (Exception finalWriteEx)
         {
@@ -239,7 +265,9 @@ public sealed class MarketScanService : IMarketScanService
                 scanRun.Id);
         }
 
-        return status == ScanStatus.Completed;
+        // Report success only when the run both completed and its final state was
+        // recorded; otherwise the caller must not stamp LastScannedAt.
+        return status == ScanStatus.Completed && persisted;
     }
 
     private static string? Truncate(string? value, int maxLength)

@@ -30,11 +30,13 @@ public sealed partial class OtodomScraper : IListingScraper
         _logger = logger;
     }
 
-    public async Task<IReadOnlyList<ScrapedListing>> SearchAsync(
+    public async Task<ScrapeResult> SearchAsync(
         SearchProfile profile,
         CancellationToken cancellationToken = default)
     {
         var results = new List<ScrapedListing>();
+        var pagesFetched = 0;
+        string? failure = null;
 
         try
         {
@@ -49,6 +51,7 @@ public sealed partial class OtodomScraper : IListingScraper
                 try
                 {
                     var html = await _httpClient.GetStringAsync(url, cancellationToken).ConfigureAwait(false);
+                    pagesFetched++;
                     var listings = ParseNextData(html);
 
                     if (listings.Count == 0)
@@ -67,11 +70,13 @@ public sealed partial class OtodomScraper : IListingScraper
                 catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Forbidden)
                 {
                     _logger.LogWarning("Otodom returned 403 Forbidden - possible rate limiting or bot detection");
+                    failure = "Otodom returned 403 Forbidden";
                     break;
                 }
                 catch (HttpRequestException ex)
                 {
                     _logger.LogWarning(ex, "Failed to fetch Otodom page {Page}", page);
+                    failure = $"Otodom request failed: {ex.Message}";
                     break;
                 }
             }
@@ -79,16 +84,24 @@ public sealed partial class OtodomScraper : IListingScraper
         catch (OperationCanceledException)
         {
             _logger.LogDebug("Otodom scraping cancelled");
+            failure = "Otodom scraping cancelled";
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unexpected error during Otodom scraping");
+            failure = $"Otodom scraping error: {ex.Message}";
+        }
+
+        // Only treat the portal as failed when we never got a usable page.
+        if (pagesFetched == 0 && failure is not null)
+        {
+            return ScrapeResult.Failure(failure);
         }
 
         _logger.LogInformation("Otodom scraper found {Count} listings for profile {ProfileId}",
             results.Count, profile.Id);
 
-        return results;
+        return ScrapeResult.Success(results);
     }
 
     private static string BuildSearchUrl(SearchProfile profile, int page)

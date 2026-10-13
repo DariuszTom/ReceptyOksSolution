@@ -14,10 +14,11 @@ public interface IListingScraper
 
     /// <summary>
     /// Searches for listings matching the profile criteria.
-    /// Implementations should not throw exceptions for content/parsing issues - log and return empty.
+    /// Implementations should not throw for request/parsing issues; instead they
+    /// log and return <see cref="ScrapeResult.Failure"/> so the caller can tell a
+    /// broken portal apart from a genuinely empty result set.
     /// </summary>
     /// <param name="profile">Search profile with criteria.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>Collection of scraped listings.</returns>
-    Task<IReadOnlyList<ScrapedListing>> SearchAsync(SearchProfile profile, CancellationToken cancellationToken = default);
+    Task<ScrapeResult> SearchAsync(SearchProfile profile, CancellationToken cancellationToken = default);
 }
