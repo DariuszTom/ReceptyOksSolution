@@ -80,7 +80,7 @@ public class AuthEndpointsTests
     }
 
     [Test]
-    public async Task IssuedToken_GrantsAccessToHomeSeekerScopedToClientId()
+    public async Task IssuedToken_GrantsAccessToHomeSeekerAndStampsClientIdAsEditor()
     {
         var login = await _client.PostAsJsonAsync("/api/auth/validate", new { SecretHash = SecretBytes, ClientId = "device-42" });
         var token = (await login.Content.ReadFromJsonAsync<AuthResponse>())!.Token!;
@@ -88,7 +88,7 @@ public class AuthEndpointsTests
         using var homeSeeker = _factory.CreateAuthenticatedClient();
         homeSeeker.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
-        var create = await homeSeeker.PostAsJsonAsync("/api/homeseeker/profiles", new SearchProfileRequest
+        var put = await homeSeeker.PutAsJsonAsync("/api/homeseeker/profile", new SearchProfileRequest
         {
             City = "Kraków",
             NotificationEmail = "t@e.com",
@@ -96,13 +96,13 @@ public class AuthEndpointsTests
             IsActive = false
         });
 
-        Assert.That(create.StatusCode, Is.EqualTo(HttpStatusCode.Created));
-        var profile = await create.Content.ReadFromJsonAsync<SearchProfile>();
+        Assert.That(put.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        var profile = await put.Content.ReadFromJsonAsync<SearchProfile>();
         Assert.That(profile!.OwnerId, Is.EqualTo("device-42"));
 
-        // A different device cannot see it.
+        // The profile is shared: a different device sees the same one.
         using var other = _factory.CreateAuthenticatedClient("device-other");
-        var foreign = await other.GetAsync($"/api/homeseeker/profiles/{profile.Id}");
-        Assert.That(foreign.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+        var shared = await other.GetFromJsonAsync<SearchProfile>("/api/homeseeker/profile");
+        Assert.That(shared!.Id, Is.EqualTo(profile.Id));
     }
 }

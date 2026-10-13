@@ -19,7 +19,7 @@ w wybranym mieście (portale polskie: **Otodom**, **OLX**) w poszukiwaniu dobryc
 │ ReceptyOks.Api (Azure Container App)                                       │
 │                                                                            │
 │  HomeSeekerEndpoints          HomeSeekerScanService (BackgroundService)    │
-│  /api/homeseeker/*                 │ PeriodicTimer + ScanTriggerQueue      │
+│  /api/homeseeker/*                 │ PeriodicTimer (jeden wspólny profil)  │
 │        │                           ▼                                       │
 │        │                    IMarketScanService ◄──────────────┐            │
 │        ▼                           │                          │            │
@@ -88,7 +88,7 @@ zawierający wyłącznie nowe encje oraz:
 - **`ReceptyOks.Api/Extensions/HomeSeekerExtensions.cs`** (do zrobienia):
   - `AddHomeSeekerDatabase(...)` — kopia logiki `DatabaseExtensions.AddRecipeDatabase` (ten sam connection string, `AddDbContextPool`).
   - `EnsureHomeSeekerTablesCreated(...)` — `EnsureCreated()` (świeża baza), potem sonda `db.SearchProfiles.Any()`; przy braku tabeli `GetService<IRelationalDatabaseCreator>().CreateTables()` — tworzy tylko tabele tego kontekstu, bez kolizji z tabelami przepisów. **Uwaga w kodzie:** przyszłe zmiany *kolumn* nadal wymagają ręcznego SQL (projekt nie używa migracji).
-- **`HomeSeeker/Abstractions/IListingRepository.cs`** ✅ (implementacja `ReceptyOks.Api/Repositories/ListingRepository.cs` do zrobienia): GetActiveProfilesAsync, TryMarkProfileScannedAsync (blokada duplikatów między replikami), Create/CompleteScanRunAsync, UpsertListingAsync (śledzenie zmian ceny; flagi IsNew/PriceDropped), SaveEvaluationAsync, GetTopListingsAsync.
+- **`HomeSeeker/Abstractions/IListingRepository.cs`** ✅ (implementacja `ReceptyOks.Api/Repositories/ListingRepository.cs`): GetSharedProfileAsync / UpsertSharedProfileAsync (jeden wspólny profil domowy — brak własności per użytkownik, `OwnerId` = kto ostatnio edytował), TryMarkProfileScannedAsync / ReleaseScanLeaseAsync (blokada duplikatów między replikami), Create/CompleteScanRunAsync, UpsertListingAsync (śledzenie zmian ceny; flagi IsNew/PriceDropped), SaveEvaluationAsync, GetTopListingsAsync.
 
 ### Faza 3 — ocena agentem i raport
 
@@ -132,27 +132,22 @@ Agent jako dodatkowe *źródło odkrywania* ogłoszeń, obok deterministycznych 
   1. Jawna implementacja `IMailSender.MailConfig` (linia 71) rzuca `NotImplementedException` — ujednolicić interfejs do `Task<bool>` i usunąć stub.
   2. `SendMail` zwraca task wysyłki, a `using (_mailMessage)` dispose'uje wiadomość przed zakończeniem wysyłki → `await` wewnątrz using; zwracać `Task`.
   3. `Timeout = 20` → `20_000` (kosmetyka; dotyczy wysyłki synchronicznej).
-- **`ReceptyOks.Api/Services/ScanTriggerQueue.cs`**: singleton z `Channel<Guid>` dla skanów na żądanie.
-- **`ReceptyOks.Api/Middleware/HomeSeekerScanService.cs`**: `BackgroundService` wg `ShoppingListCleaner` (PeriodicTimer, scope per skan, try/catch per profil). Pętla czeka na tick timera LUB odczyt z kanału; tick skanuje aktywne profile z przeterminowanym `LastScannedAt`. Przy `Enabled=false` obsługuje tylko kanał na żądanie. Ochrona przed duplikatami przy 2 replikach: `TryMarkProfileScannedAsync` (update-first); rozważyć maxReplicas=1.
+- **`ReceptyOks.Api/Middleware/HomeSeekerScanService.cs`**: `BackgroundService` wg `ShoppingListCleaner` (PeriodicTimer, scope per skan). Brak skanów na żądanie — harmonogram (`HomeSeeker:Enabled`, `HomeSeeker:ScanInterval`) jest ustalany przy wdrożeniu; użytkownicy zmieniają tylko parametry wyszukiwania wspólnego profilu, które obowiązują od następnego skanu. Każdy tick skanuje wspólny profil, jeśli jest aktywny i `LastScannedAt` się przeterminował. Przy `Enabled=false` serwis pozostaje bezczynny. Ochrona przed duplikatami przy 2 replikach: `TryMarkProfileScannedAsync` (update-first); rozważyć maxReplicas=1.
 
 ### Faza 5 — API
 
-**`ReceptyOks.Api/Endpoints/HomeSeekerEndpoints.cs`** — `MapGroup("/api/homeseeker")` + `"fixed"` rate limit:
+**`ReceptyOks.Api/Endpoints/HomeSeekerEndpoints.cs`** — `MapGroup("/api/homeseeker")` + `"fixed"` rate limit + JWT (`RequireAuthorization`). Aplikacja domowa (max 3 użytkowników): jeden wspólny profil, jeden okresowy skan, jeden zestaw wyników — każdy zalogowany użytkownik widzi i edytuje to samo:
 
 ```
-POST   /profiles                    utworzenie (FluentValidation)
-GET    /profiles                    lista (bez IsDeleted)
-GET    /profiles/{id}               pojedynczy
-PUT    /profiles/{id}               aktualizacja
-DELETE /profiles/{id}               soft delete
-POST   /profiles/{id}/scan          limiter "strict" → ScanTriggerQueue → 202 Accepted
-GET    /profiles/{id}/listings      stronicowane; ?minScore=&sort=score|price|firstSeen
-GET    /profiles/{id}/scans         historia (bez ReportHtml)
+GET    /profile                     aktualne parametry skanu (404 dopóki nie ustawione)
+PUT    /profile                     ustawienie parametrów na następny skan (FluentValidation; tworzy lub nadpisuje)
+GET    /listings                    wyniki; stronicowane; ?minScore=&sort=score|price|firstSeen
+GET    /scans                       historia skanów (bez ReportHtml)
 GET    /scans/{id}/report           Results.Content(ReportHtml, "text/html")
 ```
 
 - **`Validators/SearchProfileRequestValidator.cs`**: City wymagane ≤100; NotificationEmail poprawny; Max≥Min dla ceny/metrażu; ExtraCriteria ≤2000.
-- **`Program.cs`**: `Configure<HomeSeekerOptions>/<SmtpOptions>`, `AddHomeSeekerDatabase`, nazwany HttpClient `"homeseeker-scraper"`, DI (scrapery/repo/fabryka/ewaluator/sender/scan service), `AddSingleton<ScanTriggerQueue>`, `AddHostedService<HomeSeekerScanService>`, health check `homeseeker-db`; po `app.EnsureDatabaseCreated()` → `app.EnsureHomeSeekerTablesCreated()`; `app.MapHomeSeekerEndpoints()`. Referencja HomeSeeker w `ReceptyOks.Api.csproj`.
+DI (scrapery/repo/fabryka/ewaluator/sender/scan service), `AddHostedService<HomeSeekerScanService>`
 
 ### Faza 6 — konfiguracja i wdrożenie
 

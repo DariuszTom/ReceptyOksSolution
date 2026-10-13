@@ -26,19 +26,56 @@ public sealed class ListingRepository : IListingRepository
     // afterwards it's considered expired and may be re-acquired by another instance.
     private static readonly TimeSpan ScanLeaseDuration = TimeSpan.FromMinutes(30);
 
-    public async Task<IReadOnlyList<SearchProfile>> GetActiveProfilesAsync(CancellationToken cancellationToken = default)
+    public async Task<SearchProfile?> GetSharedProfileAsync(CancellationToken cancellationToken = default)
     {
-        var now = DateTime.UtcNow;
-        var cutoff = now - _options.ScanInterval;
-
+        // Exactly one non-deleted profile is expected. If legacy data left several,
+        // the most recently updated one wins so edits are never silently lost.
         return await _db.SearchProfiles
             .AsNoTracking()
-            .Where(p => !p.IsDeleted && p.IsActive)
-            .Where(p => p.LastScannedAt == null || p.LastScannedAt < cutoff)
-            .Where(p => p.ScanLeaseUntil == null || p.ScanLeaseUntil < now)
-            .OrderBy(p => p.LastScannedAt ?? DateTime.MinValue)
-            .ToListAsync(cancellationToken)
+            .Where(p => !p.IsDeleted)
+            .OrderByDescending(p => p.UpdatedAt)
+            .FirstOrDefaultAsync(cancellationToken)
             .ConfigureAwait(false);
+    }
+
+    public async Task<SearchProfile> UpsertSharedProfileAsync(
+        SearchProfileRequest request,
+        string updatedBy,
+        CancellationToken cancellationToken = default)
+    {
+        var now = DateTime.UtcNow;
+
+        var profile = await _db.SearchProfiles
+            .Where(p => !p.IsDeleted)
+            .OrderByDescending(p => p.UpdatedAt)
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        if (profile is null)
+        {
+            profile = new SearchProfile
+            {
+                Id = Guid.NewGuid(),
+                CreatedAt = now
+            };
+            _db.SearchProfiles.Add(profile);
+        }
+
+        profile.OwnerId = updatedBy;
+        profile.City = request.City;
+        profile.District = request.District;
+        profile.MinPrice = request.MinPrice;
+        profile.MaxPrice = request.MaxPrice;
+        profile.MinAreaSqm = request.MinAreaSqm;
+        profile.MaxAreaSqm = request.MaxAreaSqm;
+        profile.ExtraCriteria = request.ExtraCriteria;
+        profile.NotificationEmail = request.NotificationEmail;
+        profile.IsActive = request.IsActive;
+        profile.UpdatedAt = now;
+
+        await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+
+        return profile;
     }
 
     public async Task<SearchProfile?> GetProfileByIdAsync(Guid profileId, CancellationToken cancellationToken = default)
@@ -46,14 +83,6 @@ public sealed class ListingRepository : IListingRepository
         return await _db.SearchProfiles
             .AsNoTracking()
             .FirstOrDefaultAsync(p => p.Id == profileId && !p.IsDeleted, cancellationToken)
-            .ConfigureAwait(false);
-    }
-
-    public async Task<SearchProfile?> GetProfileByIdAsync(Guid profileId, string ownerId, CancellationToken cancellationToken = default)
-    {
-        return await _db.SearchProfiles
-            .AsNoTracking()
-            .FirstOrDefaultAsync(p => p.Id == profileId && p.OwnerId == ownerId && !p.IsDeleted, cancellationToken)
             .ConfigureAwait(false);
     }
 
@@ -69,24 +98,6 @@ public sealed class ListingRepository : IListingRepository
         var updated = await _db.SearchProfiles
             .Where(p => p.Id == profileId && !p.IsDeleted && p.IsActive)
             .Where(p => p.LastScannedAt == null || p.LastScannedAt < cutoff)
-            .Where(p => p.ScanLeaseUntil == null || p.ScanLeaseUntil < now)
-            .ExecuteUpdateAsync(s => s
-                .SetProperty(p => p.ScanLeaseUntil, leaseUntil)
-                .SetProperty(p => p.UpdatedAt, now),
-                cancellationToken)
-            .ConfigureAwait(false);
-
-        return updated > 0;
-    }
-
-    public async Task<bool> TryAcquireScanLeaseAsync(Guid profileId, CancellationToken cancellationToken = default)
-    {
-        // On-demand lease: ignores LastScannedAt; only requires the lease to be free.
-        var now = DateTime.UtcNow;
-        var leaseUntil = now + ScanLeaseDuration;
-
-        var updated = await _db.SearchProfiles
-            .Where(p => p.Id == profileId && !p.IsDeleted)
             .Where(p => p.ScanLeaseUntil == null || p.ScanLeaseUntil < now)
             .ExecuteUpdateAsync(s => s
                 .SetProperty(p => p.ScanLeaseUntil, leaseUntil)
@@ -349,92 +360,11 @@ public sealed class ListingRepository : IListingRepository
             .ConfigureAwait(false);
     }
 
-    public async Task<ScanRun?> GetScanRunByIdAsync(Guid scanRunId, string ownerId, CancellationToken cancellationToken = default)
+    public async Task<ScanRun?> GetScanRunByIdAsync(Guid scanRunId, CancellationToken cancellationToken = default)
     {
         return await _db.ScanRuns
             .AsNoTracking()
-            .Where(s => s.Id == scanRunId)
-            .Where(s => _db.SearchProfiles.Any(p =>
-                p.Id == s.SearchProfileId && p.OwnerId == ownerId && !p.IsDeleted))
-            .FirstOrDefaultAsync(cancellationToken)
-            .ConfigureAwait(false);
-    }
-
-    public async Task<SearchProfile> CreateProfileAsync(SearchProfileRequest request, string ownerId, CancellationToken cancellationToken = default)
-    {
-        var now = DateTime.UtcNow;
-        var profile = new SearchProfile
-        {
-            Id = Guid.NewGuid(),
-            OwnerId = ownerId,
-            City = request.City,
-            District = request.District,
-            MinPrice = request.MinPrice,
-            MaxPrice = request.MaxPrice,
-            MinAreaSqm = request.MinAreaSqm,
-            MaxAreaSqm = request.MaxAreaSqm,
-            ExtraCriteria = request.ExtraCriteria,
-            NotificationEmail = request.NotificationEmail,
-            IsActive = request.IsActive,
-            CreatedAt = now,
-            UpdatedAt = now
-        };
-
-        _db.SearchProfiles.Add(profile);
-        await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
-
-        return profile;
-    }
-
-    public async Task<SearchProfile?> UpdateProfileAsync(
-        Guid profileId,
-        string ownerId,
-        SearchProfileRequest request,
-        CancellationToken cancellationToken = default)
-    {
-        var profile = await _db.SearchProfiles
-            .FirstOrDefaultAsync(p => p.Id == profileId && p.OwnerId == ownerId && !p.IsDeleted, cancellationToken)
-            .ConfigureAwait(false);
-
-        if (profile is null)
-            return null;
-
-        profile.City = request.City;
-        profile.District = request.District;
-        profile.MinPrice = request.MinPrice;
-        profile.MaxPrice = request.MaxPrice;
-        profile.MinAreaSqm = request.MinAreaSqm;
-        profile.MaxAreaSqm = request.MaxAreaSqm;
-        profile.ExtraCriteria = request.ExtraCriteria;
-        profile.NotificationEmail = request.NotificationEmail;
-        profile.IsActive = request.IsActive;
-        profile.UpdatedAt = DateTime.UtcNow;
-
-        await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
-
-        return profile;
-    }
-
-    public async Task<bool> DeleteProfileAsync(Guid profileId, string ownerId, CancellationToken cancellationToken = default)
-    {
-        var updated = await _db.SearchProfiles
-            .Where(p => p.Id == profileId && p.OwnerId == ownerId && !p.IsDeleted)
-            .ExecuteUpdateAsync(s => s
-                .SetProperty(p => p.IsDeleted, true)
-                .SetProperty(p => p.UpdatedAt, DateTime.UtcNow),
-                cancellationToken)
-            .ConfigureAwait(false);
-
-        return updated > 0;
-    }
-
-    public async Task<IReadOnlyList<SearchProfile>> GetAllProfilesAsync(string ownerId, CancellationToken cancellationToken = default)
-    {
-        return await _db.SearchProfiles
-            .AsNoTracking()
-            .Where(p => p.OwnerId == ownerId && !p.IsDeleted)
-            .OrderByDescending(p => p.CreatedAt)
-            .ToListAsync(cancellationToken)
+            .FirstOrDefaultAsync(s => s.Id == scanRunId, cancellationToken)
             .ConfigureAwait(false);
     }
 }

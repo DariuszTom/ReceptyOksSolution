@@ -1,17 +1,17 @@
 namespace HomeSeeker.Models;
 
 /// <summary>
-/// Represents a user's search profile for real estate listings.
+/// Represents the household's shared search profile for real estate listings.
+/// There is exactly one non-deleted profile; every authenticated user reads and
+/// edits the same one, and the background scanner scans only it.
 /// </summary>
 public class SearchProfile
 {
     public Guid Id { get; set; }
 
     /// <summary>
-    /// Identity of the caller who created this profile (JWT <c>sub</c> claim).
-    /// All API access to the profile is scoped to this owner. Null only for
-    /// legacy rows created before ownership was introduced; such rows remain
-    /// scannable by the background service but are not reachable via the API.
+    /// Identity of the caller who last edited this profile (JWT <c>sub</c> claim).
+    /// Informational only; it does not restrict access.
     /// </summary>
     public string? OwnerId { get; set; }
 

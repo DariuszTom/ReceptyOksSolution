@@ -8,36 +8,32 @@ namespace HomeSeeker.Abstractions;
 public interface IListingRepository
 {
     /// <summary>
-    /// Gets all active search profiles that are due for scanning.
+    /// Gets the single household search profile, or null when it has not been
+    /// configured yet. All users share this profile; the background scanner only
+    /// ever scans this one.
     /// </summary>
-    Task<IReadOnlyList<SearchProfile>> GetActiveProfilesAsync(CancellationToken cancellationToken = default);
+    Task<SearchProfile?> GetSharedProfileAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Gets a search profile by ID regardless of owner. Intended for the background
-    /// scan pipeline only; API endpoints must use the owner-scoped overload.
+    /// Creates or replaces the shared household profile with the supplied
+    /// parameters. Changes take effect on the next periodic scan.
+    /// <paramref name="updatedBy"/> records who last edited it.
+    /// </summary>
+    Task<SearchProfile> UpsertSharedProfileAsync(SearchProfileRequest request, string updatedBy, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets a search profile by ID. Intended for the background scan pipeline.
     /// </summary>
     Task<SearchProfile?> GetProfileByIdAsync(Guid profileId, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Gets a search profile by ID, returning null unless it belongs to <paramref name="ownerId"/>.
-    /// </summary>
-    Task<SearchProfile?> GetProfileByIdAsync(Guid profileId, string ownerId, CancellationToken cancellationToken = default);
-
-    /// <summary>
     /// Tries to acquire a scan lease for a periodic scan: succeeds only when the
-    /// profile is due (<see cref="SearchProfile.LastScannedAt"/> older than
+    /// profile is active and due (<see cref="SearchProfile.LastScannedAt"/> older than
     /// <see cref="Configuration.HomeSeekerOptions.ScanInterval"/>) AND no active
     /// lease is held by another instance. On success the lease is extended for
     /// a short, bounded duration. Returns false otherwise.
     /// </summary>
     Task<bool> TryMarkProfileScannedAsync(Guid profileId, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Tries to acquire a scan lease for an on-demand scan: succeeds whenever no
-    /// active lease is held, regardless of <see cref="SearchProfile.LastScannedAt"/>.
-    /// This allows manual scans to run even shortly after a previous one.
-    /// </summary>
-    Task<bool> TryAcquireScanLeaseAsync(Guid profileId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Releases the scan lease. When <paramref name="markScanned"/> is true the scan
@@ -117,28 +113,7 @@ public interface IListingRepository
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Gets a scan run by ID, returning null unless its profile belongs to <paramref name="ownerId"/>.
+    /// Gets a scan run by ID, including its HTML report, or null when it does not exist.
     /// </summary>
-    Task<ScanRun?> GetScanRunByIdAsync(Guid scanRunId, string ownerId, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Creates a new search profile owned by <paramref name="ownerId"/>.
-    /// </summary>
-    Task<SearchProfile> CreateProfileAsync(SearchProfileRequest request, string ownerId, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Updates an existing search profile owned by <paramref name="ownerId"/>.
-    /// Returns null when the profile does not exist or belongs to someone else.
-    /// </summary>
-    Task<SearchProfile?> UpdateProfileAsync(Guid profileId, string ownerId, SearchProfileRequest request, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Soft-deletes a search profile owned by <paramref name="ownerId"/>.
-    /// </summary>
-    Task<bool> DeleteProfileAsync(Guid profileId, string ownerId, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Gets all non-deleted search profiles owned by <paramref name="ownerId"/>.
-    /// </summary>
-    Task<IReadOnlyList<SearchProfile>> GetAllProfilesAsync(string ownerId, CancellationToken cancellationToken = default);
+    Task<ScanRun?> GetScanRunByIdAsync(Guid scanRunId, CancellationToken cancellationToken = default);
 }

@@ -1,4 +1,4 @@
-using HomeSeeker.Models;
+﻿using HomeSeeker.Models;
 using System.Net;
 using System.Net.Http.Json;
 
@@ -7,26 +7,26 @@ namespace ReceptyOks.Api.IntegrationTests;
 [TestFixture]
 public class HomeSeekerEndpointsTests
 {
-    private const string OwnerA = "owner-a";
-    private const string OwnerB = "owner-b";
+    private const string UserA = "user-a";
+    private const string UserB = "user-b";
 
     private CustomWebApplicationFactory _factory = null!;
-    private HttpClient _ownerA = null!;
-    private HttpClient _ownerB = null!;
+    private HttpClient _userA = null!;
+    private HttpClient _userB = null!;
 
     [SetUp]
     public void Setup()
     {
         _factory = new CustomWebApplicationFactory();
-        _ownerA = _factory.CreateAuthenticatedClient(OwnerA);
-        _ownerB = _factory.CreateAuthenticatedClient(OwnerB);
+        _userA = _factory.CreateAuthenticatedClient(UserA);
+        _userB = _factory.CreateAuthenticatedClient(UserB);
     }
 
     [TearDown]
     public void TearDown()
     {
-        _ownerA.Dispose();
-        _ownerB.Dispose();
+        _userA.Dispose();
+        _userB.Dispose();
         _factory.Dispose();
     }
 
@@ -38,165 +38,141 @@ public class HomeSeekerEndpointsTests
         IsActive = false
     };
 
-    private async Task<SearchProfile> CreateProfileAsync(HttpClient client, string city = "Warszawa")
+    private static async Task<SearchProfile> PutProfileAsync(HttpClient client, string city = "Warszawa")
     {
-        var response = await client.PostAsJsonAsync("/api/homeseeker/profiles", NewRequest(city));
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
+        var response = await client.PutAsJsonAsync("/api/homeseeker/profile", NewRequest(city));
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
         var profile = await response.Content.ReadFromJsonAsync<SearchProfile>();
         Assert.That(profile, Is.Not.Null);
         return profile!;
     }
 
     [Test]
-    public async Task GetProfiles_WithApiKeyButNoBearerToken_Returns401()
+    public async Task GetProfile_WithApiKeyButNoBearerToken_Returns401()
     {
         using var apiKeyOnly = _factory.CreateAuthenticatedClient();
 
-        var response = await apiKeyOnly.GetAsync("/api/homeseeker/profiles");
+        var response = await apiKeyOnly.GetAsync("/api/homeseeker/profile");
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
     }
 
     [Test]
-    public async Task GetProfiles_WithBearerTokenButNoApiKey_Returns401()
+    public async Task GetProfile_WithBearerTokenButNoApiKey_Returns401()
     {
         using var bearerOnly = _factory.CreateClient();
         bearerOnly.DefaultRequestHeaders.Authorization =
-            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", CustomWebApplicationFactory.CreateJwt(OwnerA));
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", CustomWebApplicationFactory.CreateJwt(UserA));
 
-        var response = await bearerOnly.GetAsync("/api/homeseeker/profiles");
+        var response = await bearerOnly.GetAsync("/api/homeseeker/profile");
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
     }
 
     [Test]
-    public async Task CreateProfile_StampsCallerAsOwner()
+    public async Task GetProfile_BeforeConfigured_Returns404()
     {
-        var profile = await CreateProfileAsync(_ownerA);
+        var response = await _userA.GetAsync("/api/homeseeker/profile");
 
-        Assert.That(profile.OwnerId, Is.EqualTo(OwnerA));
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
     }
 
     [Test]
-    public async Task GetProfiles_ReturnsOnlyCallersProfiles()
+    public async Task PutProfile_FirstTime_CreatesSharedProfileAndStampsEditor()
     {
-        await CreateProfileAsync(_ownerA, "Warszawa");
-        await CreateProfileAsync(_ownerA, "Krakow");
-        await CreateProfileAsync(_ownerB, "Gdansk");
+        var profile = await PutProfileAsync(_userA);
 
-        var a = await _ownerA.GetFromJsonAsync<List<SearchProfile>>("/api/homeseeker/profiles");
-        var b = await _ownerB.GetFromJsonAsync<List<SearchProfile>>("/api/homeseeker/profiles");
+        var reloaded = await _userA.GetFromJsonAsync<SearchProfile>("/api/homeseeker/profile");
 
         Assert.Multiple(() =>
         {
-            Assert.That(a, Has.Count.EqualTo(2));
-            Assert.That(a!.Select(p => p.OwnerId), Is.All.EqualTo(OwnerA));
-            Assert.That(b, Has.Count.EqualTo(1));
-            Assert.That(b![0].City, Is.EqualTo("Gdansk"));
+            Assert.That(profile.OwnerId, Is.EqualTo(UserA));
+            Assert.That(profile.City, Is.EqualTo("Warszawa"));
+            Assert.That(reloaded!.Id, Is.EqualTo(profile.Id));
         });
     }
 
     [Test]
-    public async Task GetProfile_OwnedByOtherCaller_Returns404()
+    public async Task PutProfile_ByAnotherUser_UpdatesTheSameSharedProfile()
     {
-        var profile = await CreateProfileAsync(_ownerA);
+        var first = await PutProfileAsync(_userA, "Warszawa");
+        var second = await PutProfileAsync(_userB, "Krakow");
 
-        var own = await _ownerA.GetAsync($"/api/homeseeker/profiles/{profile.Id}");
-        var foreign = await _ownerB.GetAsync($"/api/homeseeker/profiles/{profile.Id}");
+        var seenByA = await _userA.GetFromJsonAsync<SearchProfile>("/api/homeseeker/profile");
 
         Assert.Multiple(() =>
         {
-            Assert.That(own.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-            Assert.That(foreign.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+            Assert.That(second.Id, Is.EqualTo(first.Id));
+            Assert.That(second.OwnerId, Is.EqualTo(UserB));
+            Assert.That(seenByA!.City, Is.EqualTo("Krakow"));
+            Assert.That(seenByA.OwnerId, Is.EqualTo(UserB));
         });
     }
 
     [Test]
-    public async Task UpdateProfile_OwnedByOtherCaller_Returns404AndDoesNotModify()
+    public async Task PutProfile_WithInvalidRequest_ReturnsValidationProblem()
     {
-        var profile = await CreateProfileAsync(_ownerA, "Warszawa");
+        var request = NewRequest() with { MinPrice = 500_000, MaxPrice = 100_000 };
 
-        var foreign = await _ownerB.PutAsJsonAsync($"/api/homeseeker/profiles/{profile.Id}", NewRequest("Poznan"));
-        var reloaded = await _ownerA.GetFromJsonAsync<SearchProfile>($"/api/homeseeker/profiles/{profile.Id}");
+        var response = await _userA.PutAsJsonAsync("/api/homeseeker/profile", request);
 
-        Assert.Multiple(() =>
-        {
-            Assert.That(foreign.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
-            Assert.That(reloaded!.City, Is.EqualTo("Warszawa"));
-        });
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
     }
 
     [Test]
-    public async Task DeleteProfile_OwnedByOtherCaller_Returns404AndDoesNotDelete()
+    public async Task ListingsAndScans_BeforeConfigured_ReturnEmptyOk()
     {
-        var profile = await CreateProfileAsync(_ownerA);
-
-        var foreign = await _ownerB.DeleteAsync($"/api/homeseeker/profiles/{profile.Id}");
-        var stillThere = await _ownerA.GetAsync($"/api/homeseeker/profiles/{profile.Id}");
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(foreign.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
-            Assert.That(stillThere.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-        });
-    }
-
-    [Test]
-    public async Task DeleteProfile_ByOwner_HidesItFromSubsequentReads()
-    {
-        var profile = await CreateProfileAsync(_ownerA);
-
-        var delete = await _ownerA.DeleteAsync($"/api/homeseeker/profiles/{profile.Id}");
-        var get = await _ownerA.GetAsync($"/api/homeseeker/profiles/{profile.Id}");
-        var list = await _ownerA.GetFromJsonAsync<List<SearchProfile>>("/api/homeseeker/profiles");
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(delete.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
-            Assert.That(get.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
-            Assert.That(list, Is.Empty);
-        });
-    }
-
-    [Test]
-    public async Task ListingsAndScans_OwnedByOtherCaller_Return404()
-    {
-        var profile = await CreateProfileAsync(_ownerA);
-
-        var listings = await _ownerB.GetAsync($"/api/homeseeker/profiles/{profile.Id}/listings");
-        var scans = await _ownerB.GetAsync($"/api/homeseeker/profiles/{profile.Id}/scans");
-        var trigger = await _ownerB.PostAsync($"/api/homeseeker/profiles/{profile.Id}/scan", content: null);
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(listings.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
-            Assert.That(scans.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
-            Assert.That(trigger.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
-        });
-    }
-
-    [Test]
-    public async Task ListingsAndScans_ByOwner_ReturnOk()
-    {
-        var profile = await CreateProfileAsync(_ownerA);
-
-        var listings = await _ownerA.GetAsync($"/api/homeseeker/profiles/{profile.Id}/listings");
-        var scans = await _ownerA.GetAsync($"/api/homeseeker/profiles/{profile.Id}/scans");
+        var listings = await _userA.GetAsync("/api/homeseeker/listings");
+        var scans = await _userA.GetFromJsonAsync<List<ScanRun>>("/api/homeseeker/scans");
 
         Assert.Multiple(() =>
         {
             Assert.That(listings.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-            Assert.That(scans.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            Assert.That(scans, Is.Empty);
         });
     }
 
     [Test]
-    public async Task CreateProfile_WithInvalidRequest_ReturnsValidationProblem()
+    public async Task ListingsAndScans_AreSharedBetweenUsers()
     {
-        var request = NewRequest() with { MinPrice = 500_000, MaxPrice = 100_000 };
+        await PutProfileAsync(_userA);
 
-        var response = await _ownerA.PostAsJsonAsync("/api/homeseeker/profiles", request);
+        var listingsA = await _userA.GetAsync("/api/homeseeker/listings");
+        var listingsB = await _userB.GetAsync("/api/homeseeker/listings");
+        var scansA = await _userA.GetAsync("/api/homeseeker/scans");
+        var scansB = await _userB.GetAsync("/api/homeseeker/scans");
 
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+        Assert.Multiple(() =>
+        {
+            Assert.That(listingsA.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            Assert.That(listingsB.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            Assert.That(scansA.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            Assert.That(scansB.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        });
+    }
+
+    [Test]
+    public async Task RemovedPerProfileEndpoints_Return404()
+    {
+        var profile = await PutProfileAsync(_userA);
+
+        var create = await _userA.PostAsJsonAsync("/api/homeseeker/profiles", NewRequest());
+        var trigger = await _userA.PostAsync($"/api/homeseeker/profiles/{profile.Id}/scan", content: null);
+        var delete = await _userA.DeleteAsync($"/api/homeseeker/profiles/{profile.Id}");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(create.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+            Assert.That(trigger.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+            Assert.That(delete.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+        });
+    }
+
+    [Test]
+    public async Task GetScanReport_UnknownScan_Returns404()
+    {
+        var response = await _userA.GetAsync($"/api/homeseeker/scans/{Guid.NewGuid()}/report");
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
     }
 }

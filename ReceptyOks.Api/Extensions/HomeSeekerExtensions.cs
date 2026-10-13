@@ -254,9 +254,6 @@ public static class HomeSeekerExtensions
         // Market scan service
         services.AddScoped<IMarketScanService, MarketScanService>();
 
-        // Scan trigger queue (singleton channel for on-demand scans)
-        services.AddSingleton<ScanTriggerQueue>();
-
         // Background service
         services.AddHostedService<HomeSeekerScanService>();
 
