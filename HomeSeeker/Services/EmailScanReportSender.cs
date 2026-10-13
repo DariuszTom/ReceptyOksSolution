@@ -3,6 +3,7 @@ using System.Net.Mail;
 using System.Text;
 using HomeSeeker.Abstractions;
 using HomeSeeker.Configuration;
+using HomeSeeker.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -37,7 +38,8 @@ public sealed class EmailScanReportSender : IScanReportSender
             return false;
         }
 
-        if (string.IsNullOrWhiteSpace(recipient))
+        var recipients = NotificationEmails.Parse(recipient);
+        if (recipients.Count == 0)
         {
             _logger.LogWarning("No recipient specified, skipping email send");
             return false;
@@ -67,13 +69,16 @@ public sealed class EmailScanReportSender : IScanReportSender
                 SubjectEncoding = Encoding.UTF8
             };
 
-            mailMessage.To.Add(new MailAddress(recipient));
+            foreach (var address in recipients)
+            {
+                mailMessage.To.Add(new MailAddress(address));
+            }
 
-            _logger.LogDebug("Sending email to {Recipient}: {Subject}", recipient, subject);
+            _logger.LogDebug("Sending email to {RecipientCount} recipient(s): {Subject}", recipients.Count, subject);
 
             await smtpClient.SendMailAsync(mailMessage, cancellationToken).ConfigureAwait(false);
 
-            _logger.LogInformation("Email sent successfully to {Recipient}", recipient);
+            _logger.LogInformation("Email sent successfully to {RecipientCount} recipient(s)", recipients.Count);
             return true;
         }
         catch (OperationCanceledException)

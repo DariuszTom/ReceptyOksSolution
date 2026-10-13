@@ -57,7 +57,7 @@ public sealed class HomeSeekerOptions : IValidatableObject
     /// control; override via configuration when more capability is needed.
     /// </summary>
     [Required]
-    public string Model { get; set; } = "claude-haiku-4-5";
+    public string Model { get; set; } = "claude-sonnet-5-5";
 
     /// <summary>
     /// SMTP configuration for sending email reports.

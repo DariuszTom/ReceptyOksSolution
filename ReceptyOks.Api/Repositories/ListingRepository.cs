@@ -69,7 +69,7 @@ public sealed class ListingRepository : IListingRepository
         profile.MinAreaSqm = request.MinAreaSqm;
         profile.MaxAreaSqm = request.MaxAreaSqm;
         profile.ExtraCriteria = request.ExtraCriteria;
-        profile.NotificationEmail = request.NotificationEmail;
+        profile.NotificationEmail = NotificationEmails.Normalize(request.NotificationEmail);
         profile.IsActive = request.IsActive;
         profile.UpdatedAt = now;
 

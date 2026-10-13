@@ -177,8 +177,13 @@ public sealed class MarketScanService : IMarketScanService
             reportHtml = await _evaluator.WriteReportHtmlAsync(profile, topListings, scanRun, cancellationToken)
                 .ConfigureAwait(false);
 
-            // Phase 6: Send email
-            if (!string.IsNullOrWhiteSpace(profile.NotificationEmail))
+            // Phase 6: Send email - only when there is something new to tell the
+            // household about; the full report is always available via the API.
+            if (newCount == 0 && priceDrops == 0)
+            {
+                _logger.LogInformation("Scan {ScanRunId}: no new listings or price drops, skipping email", scanRun.Id);
+            }
+            else if (!string.IsNullOrWhiteSpace(profile.NotificationEmail))
             {
                 var subject = $"HomeSeeker: {profile.City} - {newCount} nowych, {priceDrops} obniżek";
 

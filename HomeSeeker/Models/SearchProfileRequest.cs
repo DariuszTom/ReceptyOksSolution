@@ -43,6 +43,10 @@ public sealed record SearchProfileRequest
     /// <summary>
     /// Email address for notifications (required).
     /// </summary>
+    /// <remarks>
+    /// One address, or several separated by comma/semicolon so every household
+    /// member gets the report (max <see cref="NotificationEmails.MaxRecipients"/>).
+    /// </remarks>
     public required string NotificationEmail { get; init; }
 
     /// <summary>

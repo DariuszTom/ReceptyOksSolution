@@ -127,7 +127,7 @@ Agent jako dodatkowe *źródło odkrywania* ogłoszeń, obok deterministycznych 
 ### Faza 4 — orkiestracja, e-mail, scheduler
 
 - **`HomeSeeker/Services/MarketScanService.cs`** (`IMarketScanService.RunScanAsync(profileId, ct)`): przebieg wg diagramu w sekcji 2; try/catch per portal i per ogłoszenie; błąd całości → ScanRun(Failed, Error).
-- **`HomeSeeker/Services/EmailScanReportSender.cs`** (`IScanReportSender.SendAsync(recipient, subject, html, ct)`): opakowuje `MailSender` (IsBodyHtml, konfiguracja ze `SmtpOptions`, dispose per wysyłka).
+- **`HomeSeeker/Services/EmailScanReportSender.cs`** (`IScanReportSender.SendAsync(recipients, subject, html, ct)`): `SmtpClient` per wysyłka (IsBodyHtml, konfiguracja ze `SmtpOptions`); `recipients` to lista `,`/`;` → wiele adresów `To`. Mail wychodzi **tylko gdy skan znalazł nowe ogłoszenia lub obniżki**; pełny raport zawsze dostępny przez `GET /scans/{id}/report`.
 - **Poprawki `ReceptyOks.Shared/MessegeSender/MailSender.cs`** (realne błędy, zweryfikowane):
   1. Jawna implementacja `IMailSender.MailConfig` (linia 71) rzuca `NotImplementedException` — ujednolicić interfejs do `Task<bool>` i usunąć stub.
   2. `SendMail` zwraca task wysyłki, a `using (_mailMessage)` dispose'uje wiadomość przed zakończeniem wysyłki → `await` wewnątrz using; zwracać `Task`.
@@ -146,7 +146,7 @@ GET    /scans                       historia skanów (bez ReportHtml)
 GET    /scans/{id}/report           Results.Content(ReportHtml, "text/html")
 ```
 
-- **`Validators/SearchProfileRequestValidator.cs`**: City wymagane ≤100; NotificationEmail poprawny; Max≥Min dla ceny/metrażu; ExtraCriteria ≤2000.
+- **`Validators/SearchProfileRequestValidator.cs`**: City wymagane ≤100; NotificationEmail = 1–5 adresów rozdzielonych `,`/`;` (każdy poprawny, łącznie ≤200 znaków; repo normalizuje do `a, b`); Max≥Min dla ceny/metrażu; ExtraCriteria ≤2000.
 DI (scrapery/repo/fabryka/ewaluator/sender/scan service), `AddHostedService<HomeSeekerScanService>`
 
 ### Faza 6 — konfiguracja i wdrożenie

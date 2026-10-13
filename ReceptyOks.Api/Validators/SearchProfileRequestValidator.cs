@@ -50,7 +50,18 @@ public sealed class SearchProfileRequestValidator : AbstractValidator<SearchProf
 
         RuleFor(x => x.NotificationEmail)
             .NotEmpty().WithMessage("Notification email is required")
-            .MaximumLength(200).WithMessage("Email must be at most 200 characters")
-            .EmailAddress().WithMessage("Invalid email address format");
+            .MaximumLength(NotificationEmails.MaxLength)
+                .WithMessage($"Notification email list must be at most {NotificationEmails.MaxLength} characters")
+            .Must(v => NotificationEmails.Parse(v).Count <= NotificationEmails.MaxRecipients)
+                .WithMessage($"At most {NotificationEmails.MaxRecipients} notification emails are allowed")
+            .Must(v => NotificationEmails.Parse(v).All(IsValidEmail))
+                .WithMessage("Invalid email address format");
+    }
+
+    private static bool IsValidEmail(string address)
+    {
+        // Same rule FluentValidation's EmailAddress() uses: a single '@' with text on both sides.
+        var at = address.IndexOf('@');
+        return at > 0 && at == address.LastIndexOf('@') && at < address.Length - 1;
     }
 }

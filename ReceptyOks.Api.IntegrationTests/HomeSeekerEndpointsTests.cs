@@ -120,6 +120,33 @@ public class HomeSeekerEndpointsTests
     }
 
     [Test]
+    public async Task PutProfile_WithMultipleRecipients_NormalizesList()
+    {
+        var request = NewRequest() with { NotificationEmail = "mom@example.com; dad@example.com ,kid@example.com" };
+
+        var response = await _userA.PutAsJsonAsync("/api/homeseeker/profile", request);
+        var profile = await response.Content.ReadFromJsonAsync<SearchProfile>();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            Assert.That(profile!.NotificationEmail, Is.EqualTo("mom@example.com, dad@example.com, kid@example.com"));
+        });
+    }
+
+    [TestCase("not-an-email")]
+    [TestCase("ok@example.com, broken")]
+    [TestCase("a@x.pl,b@x.pl,c@x.pl,d@x.pl,e@x.pl,f@x.pl")]
+    public async Task PutProfile_WithInvalidRecipients_ReturnsValidationProblem(string emails)
+    {
+        var request = NewRequest() with { NotificationEmail = emails };
+
+        var response = await _userA.PutAsJsonAsync("/api/homeseeker/profile", request);
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+    }
+
+    [Test]
     public async Task ListingsAndScans_BeforeConfigured_ReturnEmptyOk()
     {
         var listings = await _userA.GetAsync("/api/homeseeker/listings");

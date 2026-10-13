@@ -8,7 +8,10 @@ public interface IScanReportSender
     /// <summary>
     /// Sends an HTML report email.
     /// </summary>
-    /// <param name="recipient">Recipient email address.</param>
+    /// <param name="recipient">
+    /// Recipient email address, or several separated by comma/semicolon
+    /// (see <see cref="Models.NotificationEmails"/>).
+    /// </param>
     /// <param name="subject">Email subject.</param>
     /// <param name="htmlContent">HTML content of the email.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
