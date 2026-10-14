@@ -65,10 +65,10 @@ public partial class HomeSeekerViewModel(IHomeSeekerService service, ILogger<Hom
     private int totalListings;
 
     [ObservableProperty]
-    private int selectedSortIndex;
+    private string? selectedSortOption = "Ocena AI";
 
     [ObservableProperty]
-    private int selectedMinScoreIndex;
+    private string? selectedMinScoreOption = "Wszystkie";
 
     // Profile form (strings, so partially typed numbers do not get reset by the binding).
     [ObservableProperty] private string city = string.Empty;
@@ -87,9 +87,9 @@ public partial class HomeSeekerViewModel(IHomeSeekerService service, ILogger<Hom
 
     public bool HasValidationErrors => !string.IsNullOrEmpty(ValidationErrors);
 
-    partial void OnSelectedSortIndexChanged(int value) => ReloadListingsForFilterChange();
+    partial void OnSelectedSortOptionChanged(string? value) => ReloadListingsForFilterChange();
 
-    partial void OnSelectedMinScoreIndexChanged(int value) => ReloadListingsForFilterChange();
+    partial void OnSelectedMinScoreOptionChanged(string? value) => ReloadListingsForFilterChange();
 
     private void ReloadListingsForFilterChange()
     {
@@ -292,9 +292,12 @@ public partial class HomeSeekerViewModel(IHomeSeekerService service, ILogger<Hom
     [RelayCommand]
     private static async Task GoBackAsync() => await Shell.Current.GoToAsync("..");
 
-    private string? CurrentSort => SortKeys[Math.Clamp(SelectedSortIndex, 0, SortKeys.Length - 1)];
+    private string? CurrentSort => SortKeys[Math.Max(0, IndexOf(SortOptions, SelectedSortOption))];
 
-    private int? CurrentMinScore => MinScoreValues[Math.Clamp(SelectedMinScoreIndex, 0, MinScoreValues.Length - 1)];
+    private int? CurrentMinScore => MinScoreValues[Math.Max(0, IndexOf(MinScoreOptions, SelectedMinScoreOption))];
+
+    private static int IndexOf(IReadOnlyList<string> options, string? value) =>
+        value is null ? -1 : options.ToList().IndexOf(value);
 
     private async Task LoadListingsCoreAsync(CancellationToken cancellationToken)
     {

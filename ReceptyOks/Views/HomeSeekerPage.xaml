@@ -7,6 +7,7 @@
              xmlns:hs="clr-namespace:ReceptyOks.Models.HomeSeeker"
              xmlns:icons="clr-namespace:UraniumUI.Icons.MaterialSymbols;assembly=UraniumUI.Icons.MaterialSymbols"
              xmlns:material="http://schemas.enisn-projects.io/dotnet/maui/uraniumui/material"
+             xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
              x:DataType="vm:HomeSeekerViewModel"
              Shell.NavBarIsVisible="False"
              Background="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource BlackBrownPurpleGradient}}"
@@ -15,10 +16,12 @@
     <ContentPage.Resources>
         <Style x:Key="HsCard" TargetType="Border">
             <Setter Property="StrokeShape" Value="RoundRectangle 16"/>
-            <Setter Property="StrokeThickness" Value="1"/>
-            <Setter Property="Stroke" Value="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray600}}"/>
+            <Setter Property="StrokeThickness" Value="0"/>
             <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}"/>
             <Setter Property="Padding" Value="16"/>
+            <Setter Property="Shadow">
+                <Shadow Brush="{StaticResource Gray400Brush}" Offset="0,2" Radius="8" Opacity="0.1"/>
+            </Setter>
         </Style>
         <Style x:Key="HsText" TargetType="Label">
             <Setter Property="FontSize" Value="14"/>
@@ -28,337 +31,406 @@
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray400}}"/>
         </Style>
-        <Style x:Key="HsTab" TargetType="Button">
-            <Setter Property="CornerRadius" Value="10"/>
-            <Setter Property="FontSize" Value="13"/>
-            <Setter Property="Padding" Value="8,6"/>
-            <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"/>
-            <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray800}}"/>
+        <Style x:Key="HsChip" TargetType="Border">
+            <Setter Property="StrokeThickness" Value="0"/>
+            <Setter Property="StrokeShape" Value="RoundRectangle 8"/>
+            <Setter Property="Padding" Value="8,3"/>
+            <Setter Property="VerticalOptions" Value="Center"/>
         </Style>
     </ContentPage.Resources>
 
-    <Grid RowDefinitions="Auto,Auto,Auto,*">
+    <Grid RowDefinitions="Auto,Auto,*">
 
         <!-- Header -->
         <Grid Grid.Row="0" Padding="20,16" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12"
               BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}">
             <Grid.Shadow>
-                <Shadow Brush="{StaticResource Gray400Brush}" Offset="0,2" Radius="4" Opacity="0.1"/>
+                <Shadow Brush="{StaticResource Gray400Brush}" Offset="0,3" Radius="8" Opacity="0.12"/>
             </Grid.Shadow>
-            <Button Grid.Column="0"
-                    Padding="8"
-                    CornerRadius="10"
-                    BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray600}}"
+            <Border Grid.Column="0"
+                    StrokeThickness="0"
+                    StrokeShape="RoundRectangle 22"
+                    HeightRequest="44"
+                    WidthRequest="44"
                     VerticalOptions="Center"
-                    Command="{Binding GoBackCommand}">
-                <Button.ImageSource>
-                    <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Arrow_back}"
-                                     FontFamily="MaterialSymbolsOutlined"
-                                     Color="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"
-                                     Size="24"/>
-                </Button.ImageSource>
-            </Button>
-            <VerticalStackLayout Grid.Column="1" VerticalOptions="Center">
-                <Label Text="HomeSeeker" Style="{StaticResource PageTitle}" FontSize="24"/>
-                <Label Text="{Binding ProfileStatusText}" Style="{StaticResource CaptionLabel}" LineBreakMode="WordWrap"/>
-            </VerticalStackLayout>
-            <Button Grid.Column="2"
-                    Padding="8"
-                    CornerRadius="10"
-                    BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray600}}"
-                    VerticalOptions="Center"
-                    Command="{Binding LoadCommand}">
-                <Button.ImageSource>
-                    <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Refresh}"
-                                     FontFamily="MaterialSymbolsOutlined"
-                                     Color="{StaticResource Primary}"
-                                     Size="24"/>
-                </Button.ImageSource>
-            </Button>
-        </Grid>
+                    BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray600}}">
+                <Border.Behaviors>
+                    <toolkit:TouchBehavior PressedScale="0.9" PressedOpacity="0.7" Command="{Binding GoBackCommand}"/>
+                </Border.Behaviors>
+                <Image HeightRequest="22" WidthRequest="22" HorizontalOptions="Center" VerticalOptions="Center">
+                    <Image.Source>
+                        <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Arrow_back}"
+                                         FontFamily="MaterialSymbolsOutlined"
+                                         Color="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"
+                                         Size="22"/>
+                    </Image.Source>
+                </Image>
+            </Border>
 
-        <!-- Section switcher -->
-        <Grid Grid.Row="1" ColumnDefinitions="*,*,*" ColumnSpacing="8" Padding="16,12,16,4">
-            <Button Grid.Column="0" Text="Ogłoszenia" Style="{StaticResource HsTab}"
-                    Command="{Binding SelectSectionCommand}"
-                    CommandParameter="{x:Static vm:HomeSeekerSection.Listings}">
-                <Button.Triggers>
-                    <DataTrigger TargetType="Button" Binding="{Binding IsListingsSection}" Value="True">
-                        <Setter Property="BackgroundColor" Value="{StaticResource Primary}"/>
-                        <Setter Property="TextColor" Value="White"/>
-                    </DataTrigger>
-                </Button.Triggers>
-            </Button>
-            <Button Grid.Column="1" Text="Skany" Style="{StaticResource HsTab}"
-                    Command="{Binding SelectSectionCommand}"
-                    CommandParameter="{x:Static vm:HomeSeekerSection.Scans}">
-                <Button.Triggers>
-                    <DataTrigger TargetType="Button" Binding="{Binding IsScansSection}" Value="True">
-                        <Setter Property="BackgroundColor" Value="{StaticResource Primary}"/>
-                        <Setter Property="TextColor" Value="White"/>
-                    </DataTrigger>
-                </Button.Triggers>
-            </Button>
-            <Button Grid.Column="2" Text="Profil" Style="{StaticResource HsTab}"
-                    Command="{Binding SelectSectionCommand}"
-                    CommandParameter="{x:Static vm:HomeSeekerSection.Profile}">
-                <Button.Triggers>
-                    <DataTrigger TargetType="Button" Binding="{Binding IsProfileSection}" Value="True">
-                        <Setter Property="BackgroundColor" Value="{StaticResource Primary}"/>
-                        <Setter Property="TextColor" Value="White"/>
-                    </DataTrigger>
-                </Button.Triggers>
-            </Button>
+            <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="2">
+                <Label Text="HomeSeeker" Style="{StaticResource PageTitle}" FontSize="22"/>
+                <Label Text="{Binding ProfileStatusText}" Style="{StaticResource HsMuted}" LineBreakMode="TailTruncation" MaxLines="2"/>
+            </VerticalStackLayout>
+
+            <Border Grid.Column="2"
+                    StrokeThickness="0"
+                    StrokeShape="RoundRectangle 22"
+                    HeightRequest="44"
+                    WidthRequest="44"
+                    VerticalOptions="Center"
+                    BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray600}}">
+                <Border.Behaviors>
+                    <toolkit:TouchBehavior PressedScale="0.9" PressedOpacity="0.7" Command="{Binding LoadCommand}"/>
+                </Border.Behaviors>
+                <Grid>
+                    <Image HeightRequest="22" WidthRequest="22" HorizontalOptions="Center" VerticalOptions="Center"
+                           IsVisible="{Binding IsLoading, Converter={toolkit:InvertedBoolConverter}}">
+                        <Image.Source>
+                            <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Refresh}"
+                                             FontFamily="MaterialSymbolsOutlined"
+                                             Color="{StaticResource Primary}"
+                                             Size="22"/>
+                        </Image.Source>
+                    </Image>
+                    <ActivityIndicator IsRunning="{Binding IsLoading}" IsVisible="{Binding IsLoading}"
+                                       Color="{StaticResource Primary}" HeightRequest="22" WidthRequest="22"/>
+                </Grid>
+            </Border>
         </Grid>
 
         <!-- Error banner -->
-        <Border Grid.Row="2" Margin="16,8,16,0" Padding="12,8" StrokeThickness="0"
-                StrokeShape="RoundRectangle 10"
+        <Border Grid.Row="1" Margin="16,12,16,0" Padding="12,10" StrokeThickness="0"
+                StrokeShape="RoundRectangle 12"
                 BackgroundColor="#33ED0241"
                 IsVisible="{Binding HasError}">
-            <Label Text="{Binding ErrorMessage}" TextColor="{StaticResource PinkColor}" FontSize="13"/>
+            <HorizontalStackLayout Spacing="8">
+                <Image HeightRequest="18" WidthRequest="18" VerticalOptions="Center">
+                    <Image.Source>
+                        <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Error}"
+                                         FontFamily="MaterialSymbolsOutlined"
+                                         Color="{StaticResource PinkColor}"
+                                         Size="18"/>
+                    </Image.Source>
+                </Image>
+                <Label Text="{Binding ErrorMessage}" TextColor="{StaticResource PinkColor}" FontSize="13" VerticalOptions="Center"/>
+            </HorizontalStackLayout>
         </Border>
 
-        <ActivityIndicator Grid.Row="3"
-                           IsRunning="{Binding IsLoading}"
-                           IsVisible="{Binding IsLoading}"
-                           Color="{StaticResource Primary}"
-                           HorizontalOptions="Center"
-                           VerticalOptions="Start"
-                           Margin="0,24"
-                           ZIndex="1"/>
+        <!-- Tabs -->
+        <material:TabView Grid.Row="2"
+                          x:Name="SectionTabs"
+                          TabPlacement="Top"
+                          TabHeaderItemColumnWidth="*"
+                          CachingStrategy="CacheOnLayout"
+                          SelectedTabChanged="OnSelectedTabChanged"
+                          Margin="0,8,0,0">
 
-        <!-- ===== Listings ===== -->
-        <Grid Grid.Row="3" RowDefinitions="Auto,*" IsVisible="{Binding IsListingsSection}">
-            <Grid ColumnDefinitions="*,*,Auto" ColumnSpacing="8" Padding="16,8">
-                <Picker Grid.Column="0" Title="Sortuj"
-                        ItemsSource="{Binding SortOptions}"
-                        SelectedIndex="{Binding SelectedSortIndex}"
-                        FontSize="13"/>
-                <Picker Grid.Column="1" Title="Ocena AI"
-                        ItemsSource="{Binding MinScoreOptions}"
-                        SelectedIndex="{Binding SelectedMinScoreIndex}"
-                        FontSize="13"/>
-                <Label Grid.Column="2" VerticalOptions="Center" Style="{StaticResource HsMuted}"
-                       Text="{Binding TotalListings, StringFormat='{0} ogł.'}"/>
-            </Grid>
+            <material:TabView.TabHeaderItemTemplate>
+                <DataTemplate x:DataType="material:TabItem">
+                    <Grid RowDefinitions="*,Auto" HeightRequest="48">
+                        <Button Text="{Binding Title}"
+                                Command="{Binding Command}"
+                                BackgroundColor="Transparent"
+                                FontSize="14"
+                                CornerRadius="0"
+                                TextColor="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray400}}">
+                            <Button.Triggers>
+                                <DataTrigger TargetType="Button" Binding="{Binding IsSelected}" Value="True">
+                                    <Setter Property="TextColor" Value="{StaticResource Primary}"/>
+                                    <Setter Property="FontAttributes" Value="Bold"/>
+                                </DataTrigger>
+                            </Button.Triggers>
+                        </Button>
+                        <BoxView Grid.Row="1" HeightRequest="3" CornerRadius="2" Margin="24,0"
+                                 Color="{StaticResource Primary}"
+                                 IsVisible="{Binding IsSelected}"/>
+                    </Grid>
+                </DataTemplate>
+            </material:TabView.TabHeaderItemTemplate>
 
-            <RefreshView Grid.Row="1"
-                         IsRefreshing="{Binding IsRefreshing}"
-                         Command="{Binding LoadListingsCommand}">
-                <CollectionView ItemsSource="{Binding Listings}"
-                                SelectionMode="None"
-                                RemainingItemsThreshold="4"
-                                RemainingItemsThresholdReachedCommand="{Binding LoadMoreListingsCommand}"
-                                Margin="16,0">
-                    <CollectionView.ItemsLayout>
-                        <LinearItemsLayout Orientation="Vertical" ItemSpacing="12"/>
-                    </CollectionView.ItemsLayout>
-                    <CollectionView.EmptyView>
-                        <Label Text="Brak ogłoszeń. Wyniki pojawią się po pierwszym skanie."
-                               Style="{StaticResource HsMuted}"
-                               HorizontalTextAlignment="Center"
-                               Margin="24,40"/>
-                    </CollectionView.EmptyView>
-                    <CollectionView.Footer>
-                        <ActivityIndicator IsRunning="{Binding IsLoadingMore}"
-                                           IsVisible="{Binding IsLoadingMore}"
-                                           Color="{StaticResource Primary}"
-                                           Margin="0,12"/>
-                    </CollectionView.Footer>
-                    <CollectionView.ItemTemplate>
-                        <DataTemplate x:DataType="hs:HomeSeekerListing">
-                            <Border Style="{StaticResource HsCard}">
-                                <Border.GestureRecognizers>
-                                    <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:HomeSeekerViewModel}}, Path=OpenListingCommand, x:DataType=vm:HomeSeekerViewModel}"
-                                                          CommandParameter="{Binding .}"/>
-                                </Border.GestureRecognizers>
-                                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="14" RowDefinitions="Auto,Auto,Auto,Auto,Auto">
-                                    <!-- Score badge -->
-                                    <Border Grid.RowSpan="3" WidthRequest="52" HeightRequest="52"
-                                            StrokeThickness="0" StrokeShape="RoundRectangle 26"
-                                            VerticalOptions="Start"
-                                            BackgroundColor="{StaticResource Primary}">
-                                        <Border.Triggers>
-                                            <DataTrigger TargetType="Border" Binding="{Binding IsEvaluated}" Value="False">
-                                                <Setter Property="BackgroundColor" Value="{StaticResource Gray400}"/>
-                                            </DataTrigger>
-                                        </Border.Triggers>
-                                        <Label Text="{Binding ScoreText}" TextColor="White" FontAttributes="Bold" FontSize="18"
-                                               HorizontalOptions="Center" VerticalOptions="Center"/>
-                                    </Border>
-
-                                    <Label Grid.Column="1" Grid.Row="0" Text="{Binding Title}" Style="{StaticResource HsText}"
-                                           FontAttributes="Bold" MaxLines="2" LineBreakMode="TailTruncation"/>
-
-                                    <HorizontalStackLayout Grid.Column="1" Grid.Row="1" Spacing="10">
-                                        <Label Text="{Binding Price, StringFormat='{0:N0} zł'}" Style="{StaticResource HsText}"
-                                               FontAttributes="Bold" TextColor="{StaticResource GreenColor}"/>
-                                        <Label Text="{Binding AreaSqm, StringFormat='{0:0.#} m²'}" Style="{StaticResource HsText}"/>
-                                        <Label Text="{Binding PricePerSqm, StringFormat='{0:N0} zł/m²'}" Style="{StaticResource HsMuted}"
-                                               VerticalOptions="Center"/>
-                                    </HorizontalStackLayout>
-
-                                    <HorizontalStackLayout Grid.Column="1" Grid.Row="2" Spacing="8">
-                                        <Border StrokeThickness="0" StrokeShape="RoundRectangle 6" Padding="6,2"
-                                                BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray800}}">
-                                            <Label Text="{Binding Portal}" FontSize="11" Style="{StaticResource HsText}"/>
-                                        </Border>
-                                        <Border StrokeThickness="0" StrokeShape="RoundRectangle 6" Padding="6,2"
-                                                BackgroundColor="{StaticResource PinkColor}"
-                                                IsVisible="{Binding HasPriceDrop}">
-                                            <Label Text="{Binding PreviousPrice, StringFormat='obniżka (było {0:N0} zł)'}" FontSize="11" TextColor="White"/>
-                                        </Border>
-                                        <Label Text="{Binding Location}" Style="{StaticResource HsMuted}" VerticalOptions="Center"
-                                               LineBreakMode="TailTruncation"/>
-                                    </HorizontalStackLayout>
-
-                                    <VerticalStackLayout Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="3" Spacing="6" Margin="0,10,0,0"
-                                                         IsVisible="{Binding IsEvaluated}">
-                                        <Label Text="{Binding AiSummary}" Style="{StaticResource HsText}" FontSize="13"/>
-                                        <Label Text="{Binding ProsText}" FontSize="12" TextColor="{StaticResource GreenColor}"
-                                               IsVisible="{Binding ProsText, Converter={StaticResource IsNotNullOrEmptyConverter}}"/>
-                                        <Label Text="{Binding ConsText}" FontSize="12" TextColor="{StaticResource PinkColor}"
-                                               IsVisible="{Binding ConsText, Converter={StaticResource IsNotNullOrEmptyConverter}}"/>
-                                        <Label Text="{Binding AiPriceAssessment, StringFormat='Cena: {0}'}" Style="{StaticResource HsMuted}"
-                                               IsVisible="{Binding AiPriceAssessment, Converter={StaticResource IsNotNullOrEmptyConverter}}"/>
-                                    </VerticalStackLayout>
-
-                                    <Label Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="4" Margin="0,8,0,0"
-                                           Style="{StaticResource HsMuted}" FontSize="11"
-                                           Text="{Binding FirstSeenAtLocal, StringFormat='Pierwszy raz: {0:dd.MM.yyyy}'}"/>
-                                </Grid>
+            <!-- ===== Listings ===== -->
+            <material:TabItem Title="Ogłoszenia" x:Name="ListingsTab">
+                <material:TabItem.Content>
+                    <Grid RowDefinitions="Auto,*">
+                        <Grid ColumnDefinitions="*,*,Auto" ColumnSpacing="10" Padding="16,8,16,4">
+                            <material:PickerField Grid.Column="0" Title="Sortuj"
+                                                  ItemsSource="{Binding SortOptions}"
+                                                  SelectedItem="{Binding SelectedSortOption}"
+                                                  AllowClear="False"
+                                                  AccentColor="{StaticResource Primary}"/>
+                            <material:PickerField Grid.Column="1" Title="Ocena AI"
+                                                  ItemsSource="{Binding MinScoreOptions}"
+                                                  SelectedItem="{Binding SelectedMinScoreOption}"
+                                                  AllowClear="False"
+                                                  AccentColor="{StaticResource Primary}"/>
+                            <Border Grid.Column="2" Style="{StaticResource HsChip}"
+                                    BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray800}}">
+                                <Label Text="{Binding TotalListings, StringFormat='{0} ogł.'}" Style="{StaticResource HsMuted}"/>
                             </Border>
-                        </DataTemplate>
-                    </CollectionView.ItemTemplate>
-                </CollectionView>
-            </RefreshView>
-        </Grid>
-
-        <!-- ===== Scans ===== -->
-        <RefreshView Grid.Row="3"
-                     IsVisible="{Binding IsScansSection}"
-                     IsRefreshing="{Binding IsRefreshing}"
-                     Command="{Binding RefreshScansCommand}">
-            <CollectionView ItemsSource="{Binding Scans}" SelectionMode="None" Margin="16,8">
-                <CollectionView.ItemsLayout>
-                    <LinearItemsLayout Orientation="Vertical" ItemSpacing="10"/>
-                </CollectionView.ItemsLayout>
-                <CollectionView.EmptyView>
-                    <Label Text="Brak historii skanów."
-                           Style="{StaticResource HsMuted}"
-                           HorizontalTextAlignment="Center"
-                           Margin="24,40"/>
-                </CollectionView.EmptyView>
-                <CollectionView.ItemTemplate>
-                    <DataTemplate x:DataType="hs:HomeSeekerScanRun">
-                        <Border Style="{StaticResource HsCard}">
-                            <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto" RowSpacing="4">
-                                <Label Text="{Binding StartedAtLocal, StringFormat='{0:dd.MM.yyyy HH:mm}'}"
-                                       Style="{StaticResource HsText}" FontAttributes="Bold"/>
-                                <Border Grid.Column="1" StrokeThickness="0" StrokeShape="RoundRectangle 6" Padding="8,2"
-                                        BackgroundColor="{StaticResource GreenColor}">
-                                    <Border.Triggers>
-                                        <DataTrigger TargetType="Border" Binding="{Binding IsFailed}" Value="True">
-                                            <Setter Property="BackgroundColor" Value="{StaticResource PinkColor}"/>
-                                        </DataTrigger>
-                                    </Border.Triggers>
-                                    <Label Text="{Binding StatusText}" FontSize="11" TextColor="White"/>
-                                </Border>
-                                <Label Grid.Row="1" Grid.ColumnSpan="2" Style="{StaticResource HsMuted}">
-                                    <Label.FormattedText>
-                                        <FormattedString>
-                                            <Span Text="Znalezione: "/>
-                                            <Span Text="{Binding ListingsFoundCount}"/>
-                                            <Span Text="  •  nowe: "/>
-                                            <Span Text="{Binding NewListingsCount}"/>
-                                            <Span Text="  •  obniżki: "/>
-                                            <Span Text="{Binding PriceDropsCount}"/>
-                                            <Span Text="  •  ocenione: "/>
-                                            <Span Text="{Binding EvaluatedCount}"/>
-                                        </FormattedString>
-                                    </Label.FormattedText>
-                                </Label>
-                                <Label Grid.Row="2" Text="{Binding Error}" FontSize="12" TextColor="{StaticResource PinkColor}"
-                                       IsVisible="{Binding Error, Converter={StaticResource IsNotNullOrEmptyConverter}}"/>
-                                <Button Grid.Row="2" Grid.Column="1" Text="Raport" FontSize="12" Padding="10,4"
-                                        CornerRadius="8" HeightRequest="32"
-                                        BackgroundColor="{StaticResource Primary}" TextColor="White"
-                                        IsVisible="{Binding HasReport}"
-                                        Command="{Binding Source={RelativeSource AncestorType={x:Type vm:HomeSeekerViewModel}}, Path=ShowReportCommand, x:DataType=vm:HomeSeekerViewModel}"
-                                        CommandParameter="{Binding .}"/>
-                            </Grid>
-                        </Border>
-                    </DataTemplate>
-                </CollectionView.ItemTemplate>
-            </CollectionView>
-        </RefreshView>
-
-        <!-- ===== Profile ===== -->
-        <ScrollView Grid.Row="3" IsVisible="{Binding IsProfileSection}">
-            <VerticalStackLayout Padding="16,8,16,24" Spacing="16">
-                <Border Style="{StaticResource HsCard}" Padding="20">
-                    <VerticalStackLayout Spacing="16">
-                        <Label Text="Wspólny profil wyszukiwania" Style="{StaticResource HsText}" FontSize="16" FontAttributes="Bold"/>
-                        <Label Text="Profil jest współdzielony przez domowników. Skan uruchamia się cyklicznie na serwerze."
-                               Style="{StaticResource HsMuted}"/>
-
-                        <material:TextField Title="Miasto *" Text="{Binding City}" AllowClear="True" MaxLength="100"
-                                            AccentColor="{StaticResource Primary}"/>
-                        <material:TextField Title="Dzielnica" Text="{Binding District}" AllowClear="True" MaxLength="100"
-                                            AccentColor="{StaticResource Primary}"/>
-
-                        <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
-                            <material:TextField Grid.Column="0" Title="Cena min (zł)" Text="{Binding MinPrice}" Keyboard="Numeric"
-                                                AccentColor="{StaticResource Primary}"/>
-                            <material:TextField Grid.Column="1" Title="Cena max (zł)" Text="{Binding MaxPrice}" Keyboard="Numeric"
-                                                AccentColor="{StaticResource Primary}"/>
-                        </Grid>
-                        <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
-                            <material:TextField Grid.Column="0" Title="Metraż min (m²)" Text="{Binding MinArea}" Keyboard="Numeric"
-                                                AccentColor="{StaticResource Primary}"/>
-                            <material:TextField Grid.Column="1" Title="Metraż max (m²)" Text="{Binding MaxArea}" Keyboard="Numeric"
-                                                AccentColor="{StaticResource Primary}"/>
                         </Grid>
 
-                        <material:EditorField Title="Dodatkowe kryteria (dla AI)" Text="{Binding ExtraCriteria}"
-                                              MinimumHeightRequest="100"
-                                              AccentColor="{StaticResource Primary}"/>
+                        <RefreshView Grid.Row="1"
+                                     IsRefreshing="{Binding IsRefreshing}"
+                                     Command="{Binding LoadListingsCommand}"
+                                     RefreshColor="{StaticResource Primary}">
+                            <CollectionView ItemsSource="{Binding Listings}"
+                                            SelectionMode="None"
+                                            RemainingItemsThreshold="4"
+                                            RemainingItemsThresholdReachedCommand="{Binding LoadMoreListingsCommand}"
+                                            Margin="16,4">
+                                <CollectionView.ItemsLayout>
+                                    <LinearItemsLayout Orientation="Vertical" ItemSpacing="12"/>
+                                </CollectionView.ItemsLayout>
+                                <CollectionView.EmptyView>
+                                    <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center" Spacing="12" Margin="24,60">
+                                        <Image HeightRequest="64" WidthRequest="64">
+                                            <Image.Source>
+                                                <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Home}"
+                                                                 FontFamily="MaterialSymbolsOutlined"
+                                                                 Color="{StaticResource Gray400}"
+                                                                 Size="64"/>
+                                            </Image.Source>
+                                        </Image>
+                                        <Label Text="Brak ogłoszeń" Style="{StaticResource HsText}" FontSize="16"
+                                               FontAttributes="Bold" HorizontalTextAlignment="Center"/>
+                                        <Label Text="Wyniki pojawią się po pierwszym skanie."
+                                               Style="{StaticResource HsMuted}" HorizontalTextAlignment="Center"/>
+                                    </VerticalStackLayout>
+                                </CollectionView.EmptyView>
+                                <CollectionView.Footer>
+                                    <ActivityIndicator IsRunning="{Binding IsLoadingMore}"
+                                                       IsVisible="{Binding IsLoadingMore}"
+                                                       Color="{StaticResource Primary}"
+                                                       Margin="0,12"/>
+                                </CollectionView.Footer>
+                                <CollectionView.ItemTemplate>
+                                    <DataTemplate x:DataType="hs:HomeSeekerListing">
+                                        <Border Style="{StaticResource HsCard}">
+                                            <Border.Behaviors>
+                                                <toolkit:TouchBehavior PressedScale="0.98"
+                                                                       PressedOpacity="0.85"
+                                                                       Command="{Binding Source={RelativeSource AncestorType={x:Type vm:HomeSeekerViewModel}}, Path=OpenListingCommand, x:DataType=vm:HomeSeekerViewModel}"
+                                                                       CommandParameter="{Binding .}"/>
+                                            </Border.Behaviors>
+                                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="14" RowDefinitions="Auto,Auto,Auto,Auto,Auto">
+                                                <!-- Score badge -->
+                                                <Border Grid.RowSpan="3" WidthRequest="54" HeightRequest="54"
+                                                        StrokeThickness="0" StrokeShape="RoundRectangle 27"
+                                                        VerticalOptions="Start"
+                                                        BackgroundColor="{StaticResource Primary}">
+                                                    <Border.Triggers>
+                                                        <DataTrigger TargetType="Border" Binding="{Binding IsEvaluated}" Value="False">
+                                                            <Setter Property="BackgroundColor" Value="{StaticResource Gray400}"/>
+                                                        </DataTrigger>
+                                                    </Border.Triggers>
+                                                    <Label Text="{Binding ScoreText}" TextColor="White" FontAttributes="Bold" FontSize="18"
+                                                           HorizontalOptions="Center" VerticalOptions="Center"/>
+                                                </Border>
 
-                        <material:TextField Title="E-mail(e) do raportów * (rozdziel , lub ;)" Text="{Binding NotificationEmail}"
-                                            Keyboard="Email" AllowClear="True"
-                                            AccentColor="{StaticResource Primary}"/>
+                                                <Label Grid.Column="1" Grid.Row="0" Text="{Binding Title}" Style="{StaticResource HsText}"
+                                                       FontAttributes="Bold" MaxLines="2" LineBreakMode="TailTruncation"/>
 
-                        <Grid ColumnDefinitions="*,Auto">
-                            <VerticalStackLayout VerticalOptions="Center">
-                                <Label Text="Skanowanie aktywne" Style="{StaticResource HsText}"/>
-                                <Label Text="Wyłącz, aby wstrzymać cykliczne skany" Style="{StaticResource HsMuted}"/>
-                            </VerticalStackLayout>
-                            <Switch Grid.Column="1" IsToggled="{Binding IsActive}" OnColor="{StaticResource Primary}"/>
-                        </Grid>
+                                                <HorizontalStackLayout Grid.Column="1" Grid.Row="1" Spacing="10" Margin="0,4,0,0">
+                                                    <Label Text="{Binding Price, StringFormat='{0:N0} zł'}" Style="{StaticResource HsText}"
+                                                           FontAttributes="Bold" TextColor="{StaticResource GreenColor}"/>
+                                                    <Label Text="{Binding AreaSqm, StringFormat='{0:0.#} m²'}" Style="{StaticResource HsText}"/>
+                                                    <Label Text="{Binding PricePerSqm, StringFormat='{0:N0} zł/m²'}" Style="{StaticResource HsMuted}"
+                                                           VerticalOptions="Center"/>
+                                                </HorizontalStackLayout>
 
-                        <Label Text="{Binding ValidationErrors}" IsVisible="{Binding HasValidationErrors}"
-                               TextColor="{StaticResource PinkColor}" FontSize="13"/>
-                    </VerticalStackLayout>
-                </Border>
+                                                <FlexLayout Grid.Column="1" Grid.Row="2" Wrap="Wrap" AlignItems="Center" Margin="0,6,0,0">
+                                                    <Border Style="{StaticResource HsChip}" Margin="0,0,6,4"
+                                                            BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray800}}">
+                                                        <Label Text="{Binding Portal}" FontSize="11" Style="{StaticResource HsText}"/>
+                                                    </Border>
+                                                    <Border Style="{StaticResource HsChip}" Margin="0,0,6,4"
+                                                            BackgroundColor="{StaticResource PinkColor}"
+                                                            IsVisible="{Binding HasPriceDrop}">
+                                                        <Label Text="{Binding PreviousPrice, StringFormat='obniżka (było {0:N0} zł)'}" FontSize="11" TextColor="White"/>
+                                                    </Border>
+                                                    <Label Text="{Binding Location}" Style="{StaticResource HsMuted}" Margin="0,0,0,4"
+                                                           LineBreakMode="TailTruncation"/>
+                                                </FlexLayout>
 
-                <Button Text="Zapisz profil"
-                        Command="{Binding SaveProfileCommand}"
-                        IsEnabled="{Binding IsSaving, Converter={StaticResource InvertedBoolConverter}}"
-                        BackgroundColor="{StaticResource GreenColor}"
-                        TextColor="{StaticResource White}"
-                        FontAttributes="Bold"
-                        FontSize="16"
-                        CornerRadius="12"
-                        HeightRequest="50">
-                    <Button.ImageSource>
-                        <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Save}"
-                                         FontFamily="MaterialSymbolsOutlined"
-                                         Color="{StaticResource White}"
-                                         Size="20"/>
-                    </Button.ImageSource>
-                </Button>
-            </VerticalStackLayout>
-        </ScrollView>
+                                                <VerticalStackLayout Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="3" Spacing="6" Margin="0,10,0,0"
+                                                                     IsVisible="{Binding IsEvaluated}">
+                                                    <BoxView HeightRequest="1" Color="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray600}}"/>
+                                                    <Label Text="{Binding AiSummary}" Style="{StaticResource HsText}" FontSize="13"/>
+                                                    <Label Text="{Binding ProsText}" FontSize="12" TextColor="{StaticResource GreenColor}"
+                                                           IsVisible="{Binding ProsText, Converter={toolkit:IsStringNotNullOrWhiteSpaceConverter}}"/>
+                                                    <Label Text="{Binding ConsText}" FontSize="12" TextColor="{StaticResource PinkColor}"
+                                                           IsVisible="{Binding ConsText, Converter={toolkit:IsStringNotNullOrWhiteSpaceConverter}}"/>
+                                                    <Label Text="{Binding AiPriceAssessment, StringFormat='Cena: {0}'}" Style="{StaticResource HsMuted}"
+                                                           IsVisible="{Binding AiPriceAssessment, Converter={toolkit:IsStringNotNullOrWhiteSpaceConverter}}"/>
+                                                </VerticalStackLayout>
+
+                                                <Label Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="4" Margin="0,8,0,0"
+                                                       Style="{StaticResource HsMuted}" FontSize="11"
+                                                       Text="{Binding FirstSeenAtLocal, StringFormat='Pierwszy raz: {0:dd.MM.yyyy}'}"/>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </CollectionView.ItemTemplate>
+                            </CollectionView>
+                        </RefreshView>
+                    </Grid>
+                </material:TabItem.Content>
+            </material:TabItem>
+
+            <!-- ===== Scans ===== -->
+            <material:TabItem Title="Skany" x:Name="ScansTab">
+                <material:TabItem.Content>
+                    <RefreshView IsRefreshing="{Binding IsRefreshing}"
+                                 Command="{Binding RefreshScansCommand}"
+                                 RefreshColor="{StaticResource Primary}">
+                        <CollectionView ItemsSource="{Binding Scans}" SelectionMode="None" Margin="16,8">
+                            <CollectionView.ItemsLayout>
+                                <LinearItemsLayout Orientation="Vertical" ItemSpacing="10"/>
+                            </CollectionView.ItemsLayout>
+                            <CollectionView.EmptyView>
+                                <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center" Spacing="12" Margin="24,60">
+                                    <Image HeightRequest="64" WidthRequest="64">
+                                        <Image.Source>
+                                            <FontImageSource Glyph="{x:Static icons:MaterialOutlined.History}"
+                                                             FontFamily="MaterialSymbolsOutlined"
+                                                             Color="{StaticResource Gray400}"
+                                                             Size="64"/>
+                                        </Image.Source>
+                                    </Image>
+                                    <Label Text="Brak historii skanów" Style="{StaticResource HsText}" FontSize="16"
+                                           FontAttributes="Bold" HorizontalTextAlignment="Center"/>
+                                </VerticalStackLayout>
+                            </CollectionView.EmptyView>
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate x:DataType="hs:HomeSeekerScanRun">
+                                    <Border Style="{StaticResource HsCard}">
+                                        <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto" RowSpacing="6">
+                                            <Label Text="{Binding StartedAtLocal, StringFormat='{0:dd.MM.yyyy HH:mm}'}"
+                                                   Style="{StaticResource HsText}" FontAttributes="Bold" VerticalOptions="Center"/>
+                                            <Border Grid.Column="1" Style="{StaticResource HsChip}"
+                                                    BackgroundColor="{StaticResource GreenColor}">
+                                                <Border.Triggers>
+                                                    <DataTrigger TargetType="Border" Binding="{Binding IsFailed}" Value="True">
+                                                        <Setter Property="BackgroundColor" Value="{StaticResource PinkColor}"/>
+                                                    </DataTrigger>
+                                                </Border.Triggers>
+                                                <Label Text="{Binding StatusText}" FontSize="11" TextColor="White"/>
+                                            </Border>
+                                            <Label Grid.Row="1" Grid.ColumnSpan="2" Style="{StaticResource HsMuted}">
+                                                <Label.FormattedText>
+                                                    <FormattedString>
+                                                        <Span Text="Znalezione: "/>
+                                                        <Span Text="{Binding ListingsFoundCount}" FontAttributes="Bold"/>
+                                                        <Span Text="  •  nowe: "/>
+                                                        <Span Text="{Binding NewListingsCount}" FontAttributes="Bold"/>
+                                                        <Span Text="  •  obniżki: "/>
+                                                        <Span Text="{Binding PriceDropsCount}" FontAttributes="Bold"/>
+                                                        <Span Text="  •  ocenione: "/>
+                                                        <Span Text="{Binding EvaluatedCount}" FontAttributes="Bold"/>
+                                                    </FormattedString>
+                                                </Label.FormattedText>
+                                            </Label>
+                                            <Label Grid.Row="2" Text="{Binding Error}" FontSize="12" TextColor="{StaticResource PinkColor}"
+                                                   VerticalOptions="Center"
+                                                   IsVisible="{Binding Error, Converter={toolkit:IsStringNotNullOrWhiteSpaceConverter}}"/>
+                                            <Button Grid.Row="2" Grid.Column="1" Text="Raport" FontSize="12" Padding="12,4"
+                                                    CornerRadius="16" HeightRequest="34"
+                                                    BackgroundColor="Transparent"
+                                                    BorderColor="{StaticResource Primary}"
+                                                    BorderWidth="1"
+                                                    TextColor="{StaticResource Primary}"
+                                                    IsVisible="{Binding HasReport}"
+                                                    Command="{Binding Source={RelativeSource AncestorType={x:Type vm:HomeSeekerViewModel}}, Path=ShowReportCommand, x:DataType=vm:HomeSeekerViewModel}"
+                                                    CommandParameter="{Binding .}">
+                                                <Button.ImageSource>
+                                                    <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Description}"
+                                                                     FontFamily="MaterialSymbolsOutlined"
+                                                                     Color="{StaticResource Primary}"
+                                                                     Size="16"/>
+                                                </Button.ImageSource>
+                                            </Button>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+                        </CollectionView>
+                    </RefreshView>
+                </material:TabItem.Content>
+            </material:TabItem>
+
+            <!-- ===== Profile ===== -->
+            <material:TabItem Title="Profil" x:Name="ProfileTab">
+                <material:TabItem.Content>
+                    <ScrollView>
+                        <VerticalStackLayout Padding="16,8,16,24" Spacing="16">
+                            <Border Style="{StaticResource HsCard}" Padding="20">
+                                <VerticalStackLayout Spacing="14">
+                                    <Label Text="Wspólny profil wyszukiwania" Style="{StaticResource HsText}" FontSize="16" FontAttributes="Bold"/>
+                                    <Label Text="Profil jest współdzielony przez domowników. Skan uruchamia się cyklicznie na serwerze."
+                                           Style="{StaticResource HsMuted}"/>
+
+                                    <material:TextField Title="Miasto *" Text="{Binding City}" AllowClear="True" MaxLength="100"
+                                                        Icon="{FontImageSource FontFamily=MaterialSymbolsOutlined, Glyph={x:Static icons:MaterialOutlined.Location_city}}"
+                                                        AccentColor="{StaticResource Primary}"/>
+                                    <material:TextField Title="Dzielnica" Text="{Binding District}" AllowClear="True" MaxLength="100"
+                                                        Icon="{FontImageSource FontFamily=MaterialSymbolsOutlined, Glyph={x:Static icons:MaterialOutlined.Map}}"
+                                                        AccentColor="{StaticResource Primary}"/>
+
+                                    <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                                        <material:TextField Grid.Column="0" Title="Cena min (zł)" Text="{Binding MinPrice}" Keyboard="Numeric"
+                                                            AccentColor="{StaticResource Primary}"/>
+                                        <material:TextField Grid.Column="1" Title="Cena max (zł)" Text="{Binding MaxPrice}" Keyboard="Numeric"
+                                                            AccentColor="{StaticResource Primary}"/>
+                                    </Grid>
+                                    <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                                        <material:TextField Grid.Column="0" Title="Metraż min (m²)" Text="{Binding MinArea}" Keyboard="Numeric"
+                                                            AccentColor="{StaticResource Primary}"/>
+                                        <material:TextField Grid.Column="1" Title="Metraż max (m²)" Text="{Binding MaxArea}" Keyboard="Numeric"
+                                                            AccentColor="{StaticResource Primary}"/>
+                                    </Grid>
+
+                                    <material:EditorField Title="Dodatkowe kryteria (dla AI)" Text="{Binding ExtraCriteria}"
+                                                          MinimumHeightRequest="100"
+                                                          AccentColor="{StaticResource Primary}"/>
+
+                                    <material:TextField Title="E-mail(e) do raportów * (rozdziel , lub ;)" Text="{Binding NotificationEmail}"
+                                                        Keyboard="Email" AllowClear="True"
+                                                        Icon="{FontImageSource FontFamily=MaterialSymbolsOutlined, Glyph={x:Static icons:MaterialOutlined.Mail}}"
+                                                        AccentColor="{StaticResource Primary}"/>
+
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <VerticalStackLayout VerticalOptions="Center">
+                                            <Label Text="Skanowanie aktywne" Style="{StaticResource HsText}"/>
+                                            <Label Text="Wyłącz, aby wstrzymać cykliczne skany" Style="{StaticResource HsMuted}"/>
+                                        </VerticalStackLayout>
+                                        <Switch Grid.Column="1" IsToggled="{Binding IsActive}" OnColor="{StaticResource Primary}"/>
+                                    </Grid>
+
+                                    <Label Text="{Binding ValidationErrors}" IsVisible="{Binding HasValidationErrors}"
+                                           TextColor="{StaticResource PinkColor}" FontSize="13"/>
+                                </VerticalStackLayout>
+                            </Border>
+
+                            <Button Text="Zapisz profil"
+                                    Command="{Binding SaveProfileCommand}"
+                                    IsEnabled="{Binding IsSaving, Converter={toolkit:InvertedBoolConverter}}"
+                                    BackgroundColor="{StaticResource GreenColor}"
+                                    TextColor="{StaticResource White}"
+                                    FontAttributes="Bold"
+                                    FontSize="16"
+                                    CornerRadius="12"
+                                    HeightRequest="50">
+                                <Button.ImageSource>
+                                    <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Save}"
+                                                     FontFamily="MaterialSymbolsOutlined"
+                                                     Color="{StaticResource White}"
+                                                     Size="20"/>
+                                </Button.ImageSource>
+                            </Button>
+                        </VerticalStackLayout>
+                    </ScrollView>
+                </material:TabItem.Content>
+            </material:TabItem>
+        </material:TabView>
     </Grid>
 </ContentPage>
