@@ -18,6 +18,8 @@ public partial class AppShell : Shell
         Routing.RegisterRoute("LoginPage", typeof(LoginPage));
         Routing.RegisterRoute(nameof(UserDetailsPage), typeof(UserDetailsPage));
         Routing.RegisterRoute(nameof(AppStatusView), typeof(AppStatusView));
+        Routing.RegisterRoute(nameof(HomeSeekerPage), typeof(HomeSeekerPage));
+        Routing.RegisterRoute(nameof(HomeSeekerReportPage), typeof(HomeSeekerReportPage));
     }
     protected override async void OnAppearing()
     {

@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="ReceptyOks.Views.HomeSeekerReportPage"
+             xmlns:vm="clr-namespace:ReceptyOks.ViewModels"
+             xmlns:icons="clr-namespace:UraniumUI.Icons.MaterialSymbols;assembly=UraniumUI.Icons.MaterialSymbols"
+             x:DataType="vm:HomeSeekerReportViewModel"
+             Shell.NavBarIsVisible="False"
+             Background="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource BlackBrownPurpleGradient}}"
+             Title="Raport HomeSeeker">
+
+    <Grid RowDefinitions="Auto,*">
+        <Grid Grid.Row="0" Padding="20,16" ColumnDefinitions="Auto,*" ColumnSpacing="12"
+              BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}">
+            <Grid.Shadow>
+                <Shadow Brush="{StaticResource Gray400Brush}" Offset="0,2" Radius="4" Opacity="0.1"/>
+            </Grid.Shadow>
+            <Button Grid.Column="0"
+                    Padding="8"
+                    CornerRadius="10"
+                    BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray600}}"
+                    VerticalOptions="Center"
+                    Command="{Binding GoBackCommand}">
+                <Button.ImageSource>
+                    <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Arrow_back}"
+                                     FontFamily="MaterialSymbolsOutlined"
+                                     Color="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"
+                                     Size="24"/>
+                </Button.ImageSource>
+            </Button>
+            <VerticalStackLayout Grid.Column="1" VerticalOptions="Center">
+                <Label Text="{Binding Title}" Style="{StaticResource PageTitle}" FontSize="22"/>
+                <Label Text="Raport ze skanu rynku" Style="{StaticResource CaptionLabel}"/>
+            </VerticalStackLayout>
+        </Grid>
+
+        <WebView Grid.Row="1"
+                 x:Name="ReportWebView"
+                 Source="{Binding ReportSource}"
+                 Navigating="OnReportNavigating"/>
+
+        <ActivityIndicator Grid.Row="1"
+                           IsRunning="{Binding IsLoading}"
+                           IsVisible="{Binding IsLoading}"
+                           Color="{StaticResource Primary}"
+                           HorizontalOptions="Center"
+                           VerticalOptions="Center"/>
+
+        <Label Grid.Row="1"
+               Text="{Binding ErrorMessage}"
+               IsVisible="{Binding HasError}"
+               Margin="24"
+               HorizontalTextAlignment="Center"
+               VerticalOptions="Center"
+               TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray300}}"/>
+    </Grid>
+</ContentPage>

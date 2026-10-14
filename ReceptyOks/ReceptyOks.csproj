@@ -112,6 +112,9 @@
 	  <MauiXaml Update="Views\CategoryEditPage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
+	  <MauiXaml Update="Views\HomeSeekerPage.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
 	  <MauiXaml Update="Views\IngredientsCalculationPage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
@@ -156,6 +159,12 @@
 
 	<ItemGroup Condition="'$(Configuration)' == 'Debug'">
 	  <EmbeddedResource Include="appsettings.Debug.json" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Compile Update="Views\HomeSeekerPage.xaml.cs">
+	    <DependentUpon>HomeSeekerPage.xaml</DependentUpon>
+	  </Compile>
 	</ItemGroup>
 
 </Project>

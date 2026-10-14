@@ -190,6 +190,18 @@ GET    /scans/{id}/report           Results.Content(ReportHtml, "text/html") + r
 3. Test maila przez smtp4dev/Mailtrap przed realnym SMTP.
 4. Deploy z `HomeSeeker:Enabled=false`; weryfikacja utworzenia tabel w Azure SQL (`CreateTables()`); potem włączenie (`appsettings.json` lub sekret `HomeSeeker--Enabled` w Key Vault).
 
+### Faza 8 — klient MAUI (aplikacja ReceptyOks) ✅
+
+- **Wejście:** Ustawienia → „HomeSeeker – domy” (`HomeSeekerPage`, trasa w `AppShell`).
+- **Auth:** ten sam przepływ co reszta aplikacji — `ApiKeyHandler` + `BearerTokenHandler` na typowanym `HttpClient` (`IHomeSeekerService` → `HomeSeekerService`). `AccessTokenRefresher` pobiera JWT przez `BackendAuthService.TryValidateAsync`, gdy tokenu brak. Po 401 odświeża token i ponawia żądanie raz.
+- **DTO** (`Models/HomeSeeker/HomeSeekerModels.cs`): kopia kontraktu po stronie klienta, bo MAUI nie referencjonuje biblioteki HomeSeeker. Zgodność pilnują testy kontraktowe. `ScanStatus` jest liczbą.
+- **Widok:** 3 sekcje.
+  - Ogłoszenia: sort AI/cena/najnowsze, filtr min. oceny, stronicowanie przy przewijaniu, otwieranie tylko URL-i http(s).
+  - Skany: historia z licznikami i błędem.
+  - Profil: formularz `PUT /profile` z walidacją klienta i błędami `ValidationProblem` z serwera. Brak profilu (404) przełącza na tę sekcję.
+- **Raport:** `HomeSeekerReportPage` = WebView z HTML z `/scans/{id}/report` i wstrzykniętym meta-CSP (`default-src 'none'`). Nawigacja http(s) w WebView jest anulowana, a link otwierany w przeglądarce systemowej.
+- **Testy:** `HomeSeekerClientServiceTests` (24) — mapowanie statusów (404/400/401/błąd sieci), refresh + retry JWT, budowa query, zgodność DTO z modelami serwera, `ParseList`, `HasHttpUrl`, `ParseDecimal`, wstrzykiwanie CSP.
+
 ## 5. Model danych
 
 ```
@@ -229,7 +241,7 @@ SearchProfile 1 ──── * HouseListing      (unikalny: SearchProfileId+Port
 | 5. API | ✅ `/profile`, `/listings`, `/scans`, `/scans/{id}/report` + walidator |
 | 6. Konfiguracja | ✅ appsettings, CI, sekrety SMTP w Key Vault; `main.bicep` celowo bez zmian |
 | 7. Testy | ✅ 70 jednostkowych HomeSeeker (parsery, `NotificationEmails`, `SearchAsync`, `MarketScanService`, `AgentListingEvaluator`, `HomeSeekerScanService`) + 18 integracyjnych endpointów |
-
+| 8. Klient MAUI | ✅ `HomeSeekerPage` + `HomeSeekerReportPage`, JWT refresh/retry, 24 testy klienta |
 ### Pozostało do zrobienia
 
 1. Job rekoncyliacyjny oznaczający przeterminowane `Running` jako `Failed`.

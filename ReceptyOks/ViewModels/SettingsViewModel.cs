@@ -111,6 +111,25 @@ public partial class SettingsViewModel : ObservableObject
     }
 
     [RelayCommand]
+    public async Task GoToHomeSeekerAsync()
+    {
+        try
+        {
+            await Microsoft.Maui.ApplicationModel.MainThread.InvokeOnMainThreadAsync(async () =>
+            {
+                await Shell.Current.GoToAsync("/HomeSeekerPage");
+            });
+        }
+        catch (Exception ex)
+        {
+            await Microsoft.Maui.ApplicationModel.MainThread.InvokeOnMainThreadAsync(async () =>
+            {
+                await Shell.Current.DisplayAlertAsync("Błąd nawigacji", $"Nie można otworzyć HomeSeeker: {ex.Message}", "OK");
+            });
+        }
+    }
+
+    [RelayCommand]
     public async Task AppStatusAsync()
     {
         try

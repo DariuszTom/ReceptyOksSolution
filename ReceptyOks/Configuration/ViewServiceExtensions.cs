@@ -28,6 +28,8 @@ internal static class ViewServiceExtensions
         services.AddTransient<UserDetailsPage>();
         services.AddTransient<AppStatusView>();
         services.AddTransient<IngredientsCalculationPage>();
+        services.AddTransient<HomeSeekerPage>();
+        services.AddTransient<HomeSeekerReportPage>();
 
         return services;
     }
