@@ -26,7 +26,7 @@ namespace ReceptyOks.Shared.Misc
         /// <summary>
         /// Unit of the ingredient.
         /// </summary>
-        public string Unit { get; set; }
+        public string? Unit { get; set; }
 
         /// <summary>
         /// Gets the scaled quantity rounded up (useful for items like eggs).
