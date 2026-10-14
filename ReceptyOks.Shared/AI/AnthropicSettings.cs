@@ -18,11 +18,6 @@
         public int MaxTokens { get; set; } = 50000;
 
         /// <summary>
-        /// Temperature controls randomness (0.0 = deterministic, 1.0 = creative). Default is 0.7 for balanced responses.
-        /// </summary>
-        public double Temperature { get; set; } = 0.7;
-
-        /// <summary>
         /// System prompt that defines AI assistant's behavior and constraints. 
         /// Placeholder {UserName} should be replaced at runtime with the actual user's name.
         /// </summary>
