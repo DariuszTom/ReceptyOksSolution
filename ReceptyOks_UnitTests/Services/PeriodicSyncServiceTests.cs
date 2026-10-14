@@ -122,7 +122,12 @@ public class PeriodicSyncServiceTests
 
         // Act
         var task = service.StartAsync(cts.Token);
-        await Task.Delay(TimeSpan.FromMilliseconds(200));
+        var deadline = DateTime.UtcNow.AddSeconds(5);
+        while (DateTime.UtcNow < deadline &&
+               !_mockLogger.Invocations.Any(i => i.Arguments.Count > 2 && i.Arguments[2]?.ToString()?.Contains("Manual") == true))
+        {
+            await Task.Delay(50);
+        }
         cts.Cancel();
         await task;
 
