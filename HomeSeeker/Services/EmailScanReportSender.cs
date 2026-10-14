@@ -7,6 +7,7 @@ using MailKit.Net.Smtp;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using SharedLibrary.Misc.MessegeSender;
+using ReceptyOks.Shared.Misc;
 
 namespace HomeSeeker.Services;
 
@@ -50,7 +51,7 @@ public sealed class EmailScanReportSender : IScanReportSender
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            using var password = ToSecureString(_smtpOptions.Password);
+            using var password = _smtpOptions.Password.ToSecureString();
             using var mailSender = new MailSender { IsBodyHtml = true };
 
             await mailSender.MailConfig(_smtpOptions.Host, _smtpOptions.Port, password, _smtpOptions.Login)
@@ -83,14 +84,4 @@ public sealed class EmailScanReportSender : IScanReportSender
         }
     }
 
-    private static SecureString ToSecureString(string value)
-    {
-        var secure = new SecureString();
-        foreach (var c in value)
-        {
-            secure.AppendChar(c);
-        }
-        secure.MakeReadOnly();
-        return secure;
-    }
 }
