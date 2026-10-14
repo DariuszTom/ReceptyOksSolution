@@ -36,5 +36,6 @@ namespace ReceptyOks.Shared.Misc
             DayOfWeek.Sunday => "Niedziela",
             _ => string.Empty
         };
+
     }
 }

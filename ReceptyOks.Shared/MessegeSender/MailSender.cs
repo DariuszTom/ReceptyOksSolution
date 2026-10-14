@@ -1,17 +1,21 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.Net;
-using System.Net.Mail;
 using System.Runtime.InteropServices;
 using System.Security;
+using MailKit.Net.Smtp;
+using MailKit.Security;
+using MimeKit;
 
 namespace SharedLibrary.Misc.MessegeSender
 {
     public class MailSender : IMailSender, IDisposable
     {
         #region Fields
-        private SmtpClient? _smtpClient;
+        private string? _host;
+        private int _port;
+        private NetworkCredential? _credentials;
         private bool _IsBodyHtml;
-        private MailMessage? _mailMessage;
+        private MimeMessage? _mailMessage;
         private string? _MyMail;
         #endregion
         #region Properiets
@@ -23,46 +27,45 @@ namespace SharedLibrary.Misc.MessegeSender
                 throw new ArgumentException("Invalid login email address", nameof(login));
 
             _MyMail = login;
-            _smtpClient = new SmtpClient(addres)
-            {
-                Port = port,
-                Credentials = new NetworkCredential(login, pw),
-                EnableSsl = true,
-                Timeout = 20_000 // 20 seconds
-            };
+            _host = addres;
+            _port = port;
+            _credentials = new NetworkCredential(login, pw);
         }
         public void CreateMail(string subject, StringBuilder body)
         {
             if (_MyMail is null) throw new InvalidOperationException("Mail sender is not configured. Call MailConfig first.");
-            _mailMessage = new MailMessage
+            _mailMessage = new MimeMessage
             {
-                From = new MailAddress(_MyMail),
                 Subject = subject,
-                Body = body.ToString(),
-                IsBodyHtml = _IsBodyHtml,
+                Body = new TextPart(_IsBodyHtml ? "html" : "plain") { Text = body.ToString() }
             };
+            _mailMessage.From.Add(MailboxAddress.Parse(_MyMail));
         }
         public async Task SendMail(string[] sendTo, [Optional] params string[] sendCC)
         {
-            if (_mailMessage is null || _smtpClient is null)
+            if (_mailMessage is null || _host is null || _credentials is null)
                 throw new InvalidOperationException("Mail sender is not configured or mail not created.");
 
-            using (_mailMessage)
+            var message = _mailMessage;
+            _mailMessage = null;
+
+            foreach (string email in sendTo)
             {
-                foreach (string email in sendTo)
-                {
-                    if (await IsMailValid(email) == true) _mailMessage.To.Add(email);
-                }
-                if (sendCC != null)
-                {
-                    foreach (string email in sendCC)
-                    {
-                        if (await IsMailValid(email) == true) _mailMessage.CC.Add(email);
-                    }
-                }
-                // Await the send before disposing the message
-                await _smtpClient.SendMailAsync(_mailMessage).ConfigureAwait(false);
+                if (await IsMailValid(email) == true) message.To.Add(MailboxAddress.Parse(email));
             }
+            if (sendCC != null)
+            {
+                foreach (string email in sendCC)
+                {
+                    if (await IsMailValid(email) == true) message.Cc.Add(MailboxAddress.Parse(email));
+                }
+            }
+
+            using var client = new SmtpClient { Timeout = 20_000 }; // 20 seconds
+            await client.ConnectAsync(_host, _port, SecureSocketOptions.Auto).ConfigureAwait(false);
+            await client.AuthenticateAsync(_credentials).ConfigureAwait(false);
+            await client.SendAsync(message).ConfigureAwait(false);
+            await client.DisconnectAsync(true).ConfigureAwait(false);
         }
 
         private static async Task<bool> IsMailValid(string mail)
@@ -73,8 +76,8 @@ namespace SharedLibrary.Misc.MessegeSender
 
         public void Dispose()
         {
-            _mailMessage?.Dispose();
-            _smtpClient?.Dispose();
+            _mailMessage = null;
+            _credentials = null;
             GC.SuppressFinalize(this);
         }
     }

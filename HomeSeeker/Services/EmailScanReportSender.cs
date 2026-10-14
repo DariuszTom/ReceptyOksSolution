@@ -1,17 +1,18 @@
-using System.Net;
-using System.Net.Mail;
+using System.Security;
 using System.Text;
 using HomeSeeker.Abstractions;
 using HomeSeeker.Configuration;
 using HomeSeeker.Models;
+using MailKit.Net.Smtp;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using SharedLibrary.Misc.MessegeSender;
 
 namespace HomeSeeker.Services;
 
 /// <summary>
-/// Sends scan reports via email using SMTP.
-/// Creates a new SmtpClient per send to ensure proper disposal.
+/// Sends scan reports via email using the shared <see cref="MailSender"/> (MailKit).
+/// Creates a new <see cref="MailSender"/> per send to ensure proper disposal.
 /// </summary>
 public sealed class EmailScanReportSender : IScanReportSender
 {
@@ -47,36 +48,19 @@ public sealed class EmailScanReportSender : IScanReportSender
 
         try
         {
-            using var smtpClient = new SmtpClient(_smtpOptions.Host)
-            {
-                Port = _smtpOptions.Port,
-                Credentials = new NetworkCredential(_smtpOptions.Login, _smtpOptions.Password),
-                EnableSsl = true,
-                Timeout = 30_000 // 30 seconds
-            };
+            cancellationToken.ThrowIfCancellationRequested();
 
-            var fromAddress = string.IsNullOrWhiteSpace(_smtpOptions.FromAddress)
-                ? _smtpOptions.Login
-                : _smtpOptions.FromAddress;
+            using var password = ToSecureString(_smtpOptions.Password);
+            using var mailSender = new MailSender { IsBodyHtml = true };
 
-            using var mailMessage = new MailMessage
-            {
-                From = new MailAddress(fromAddress, "HomeSeeker"),
-                Subject = subject,
-                Body = htmlContent,
-                IsBodyHtml = true,
-                BodyEncoding = Encoding.UTF8,
-                SubjectEncoding = Encoding.UTF8
-            };
+            await mailSender.MailConfig(_smtpOptions.Host, _smtpOptions.Port, password, _smtpOptions.Login)
+                .ConfigureAwait(false);
 
-            foreach (var address in recipients)
-            {
-                mailMessage.To.Add(new MailAddress(address));
-            }
+            mailSender.CreateMail(subject, new StringBuilder(htmlContent));
 
             _logger.LogDebug("Sending email to {RecipientCount} recipient(s): {Subject}", recipients.Count, subject);
 
-            await smtpClient.SendMailAsync(mailMessage, cancellationToken).ConfigureAwait(false);
+            await mailSender.SendMail(recipients.ToArray()).ConfigureAwait(false);
 
             _logger.LogInformation("Email sent successfully to {RecipientCount} recipient(s)", recipients.Count);
             return true;
@@ -86,7 +70,7 @@ public sealed class EmailScanReportSender : IScanReportSender
             _logger.LogDebug("Email send cancelled");
             return false;
         }
-        catch (SmtpException ex)
+        catch (SmtpCommandException ex)
         {
             _logger.LogError(ex, "SMTP error sending email to {Recipient}: {StatusCode}",
                 recipient, ex.StatusCode);
@@ -97,5 +81,16 @@ public sealed class EmailScanReportSender : IScanReportSender
             _logger.LogError(ex, "Failed to send email to {Recipient}", recipient);
             return false;
         }
+    }
+
+    private static SecureString ToSecureString(string value)
+    {
+        var secure = new SecureString();
+        foreach (var c in value)
+        {
+            secure.AppendChar(c);
+        }
+        secure.MakeReadOnly();
+        return secure;
     }
 }
