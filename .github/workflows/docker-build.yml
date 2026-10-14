@@ -31,6 +31,7 @@ on:
       - 'ReceptyOks.Api/**'
       - 'ReceptyOks.Shared/**'
       - 'ReceptyOksSolution.ServiceDefaults/**'
+      - 'HomeSeeker/**'
   pull_request:
     branches:
       - master
@@ -38,6 +39,7 @@ on:
       - 'ReceptyOks.Api/**'
       - 'ReceptyOks.Shared/**'
       - 'ReceptyOksSolution.ServiceDefaults/**'
+      - 'HomeSeeker/**'
   workflow_dispatch:
     inputs:
       promote:

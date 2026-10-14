@@ -19,7 +19,7 @@ w wybranym mieście (portale polskie: **Otodom**, **OLX**) w poszukiwaniu dobryc
 │ ReceptyOks.Api (Azure Container App)                                       │
 │                                                                            │
 │  HomeSeekerEndpoints          HomeSeekerScanService (BackgroundService)    │
-│  /api/homeseeker/*                 │ PeriodicTimer + ScanTriggerQueue      │
+│  /api/homeseeker/*                 │ PeriodicTimer (jeden wspólny profil)  │
 │        │                           ▼                                       │
 │        │                    IMarketScanService ◄──────────────┐            │
 │        ▼                           │                          │            │
@@ -67,13 +67,13 @@ ScanRun(Running) → scrapery (try/catch per portal) → upsert/dedup po (profil
 
 - **`HomeSeeker.csproj`** ✅: referencja do `ReceptyOks.Shared`; pakiety `HtmlAgilityPack`, `Microsoft.Extensions.Options/Http/Logging.Abstractions`.
 - **`Models/`** ✅ (wzorzec soft-delete `IsDeleted` + `UpdatedAt` jak `Recipe.cs`):
-  - `SearchProfile` — kryteria: City, District?, Min/MaxPrice, Min/MaxAreaSqm, ExtraCriteria (wolny tekst dla agenta), NotificationEmail, IsActive, LastScannedAt.
+  - `SearchProfile` — kryteria: City, District? (miękka preferencja dla agenta AI — **nie** filtr portalu; scrapery filtrują tylko po City/cenie/powierzchni), Min/MaxPrice, Min/MaxAreaSqm, ExtraCriteria (wolny tekst dla agenta), NotificationEmail, IsActive, LastScannedAt, ScanLeaseUntil/ScanLeaseToken (lease skanu z tokenem — zwolnienie tylko przez właściciela lease).
   - `HouseListing` — jednostka deduplikacji: Portal, ExternalId, Url, Price, PreviousPrice, AreaSqm, FirstSeen/LastSeenAt + pola AI: AiScore (0–100), AiSummary, AiProsJson, AiConsJson, AiPriceAssessment, EvaluatedAt.
   - `ScanRun` — Status (Running/Completed/Failed), liczniki, ReportHtml, Error.
   - `ScrapedListing` (rekord — wynik scrapera), `ListingEvaluation` (DTO do `ChatAsync<T>`), `SearchProfileRequest` (DTO API).
 - **`Configuration/HomeSeekerOptions.cs`** ✅: Enabled (domyślnie **false**), ScanInterval (12h), StartupDelay, MaxSearchPagesPerPortal (2), RequestDelay (3s), MaxCandidatesPerScan (8 — limit kosztów), TopListingsInReport (5), Model (tańszy model do oceny). `SmtpOptions`: Host, Port, Login, Password, FromAddress.
 - **`Scrapers/`** ✅:
-  - `IListingScraper` — `SearchAsync(SearchProfile, ct)`; implementacje nie rzucają wyjątków dla problemów z treścią.
+  - `IListingScraper` — `SearchAsync(SearchProfile, ct)` zwraca `ScrapeResult { Listings, Succeeded, Error }`; implementacje nie rzucają wyjątków — błąd HTTP/403/parsowania przed pobraniem pierwszej strony zwraca `Succeeded=false`. `MarketScanService` oznacza skan jako `Failed` (bez stempla `LastScannedAt`, ponowna próba w następnym cyklu), gdy żaden portal nie zakończył się sukcesem.
   - `OtodomScraper` — URL `otodom.pl/pl/wyniki/sprzedaz/dom/{miasto}?priceMin=..&areaMin=..&page=n`; parsowanie bloku JSON `<script id="__NEXT_DATA__">` (stabilniejsze niż selektory CSS); logika w statycznym `ParseNextData(html)` pod testy fixture.
   - `OlxScraper` — URL `olx.pl/nieruchomosci/domy/sprzedaz/{miasto}/?search[filter_float_price:from]=..`; główne źródło: `window.__PRERENDERED_STATE__` (regex + JSON); fallback: HtmlAgilityPack `[data-cy="l-card"]`.
   - Oba: nazwany HttpClient `"homeseeker-scraper"` (nagłówki przeglądarkowe, `Accept-Language: pl-PL`), odstęp między stronami, defensywne parsowanie (`TryGetProperty`), osobny warning przy 403.
@@ -88,7 +88,7 @@ zawierający wyłącznie nowe encje oraz:
 - **`ReceptyOks.Api/Extensions/HomeSeekerExtensions.cs`** (do zrobienia):
   - `AddHomeSeekerDatabase(...)` — kopia logiki `DatabaseExtensions.AddRecipeDatabase` (ten sam connection string, `AddDbContextPool`).
   - `EnsureHomeSeekerTablesCreated(...)` — `EnsureCreated()` (świeża baza), potem sonda `db.SearchProfiles.Any()`; przy braku tabeli `GetService<IRelationalDatabaseCreator>().CreateTables()` — tworzy tylko tabele tego kontekstu, bez kolizji z tabelami przepisów. **Uwaga w kodzie:** przyszłe zmiany *kolumn* nadal wymagają ręcznego SQL (projekt nie używa migracji).
-- **`HomeSeeker/Abstractions/IListingRepository.cs`** ✅ (implementacja `ReceptyOks.Api/Repositories/ListingRepository.cs` do zrobienia): GetActiveProfilesAsync, TryMarkProfileScannedAsync (blokada duplikatów między replikami), Create/CompleteScanRunAsync, UpsertListingAsync (śledzenie zmian ceny; flagi IsNew/PriceDropped), SaveEvaluationAsync, GetTopListingsAsync.
+- **`HomeSeeker/Abstractions/IListingRepository.cs`** ✅ (implementacja `ReceptyOks.Api/Repositories/ListingRepository.cs`): GetSharedProfileAsync / UpsertSharedProfileAsync (jeden wspólny profil domowy — brak własności per użytkownik, `OwnerId` = kto ostatnio edytował), TryMarkProfileScannedAsync / ReleaseScanLeaseAsync (blokada duplikatów między replikami), Create/CompleteScanRunAsync, UpsertListingAsync (śledzenie zmian ceny; flagi IsNew/PriceDropped), SaveEvaluationAsync, GetTopListingsAsync.
 
 ### Faza 3 — ocena agentem i raport
 
@@ -127,32 +127,27 @@ Agent jako dodatkowe *źródło odkrywania* ogłoszeń, obok deterministycznych 
 ### Faza 4 — orkiestracja, e-mail, scheduler
 
 - **`HomeSeeker/Services/MarketScanService.cs`** (`IMarketScanService.RunScanAsync(profileId, ct)`): przebieg wg diagramu w sekcji 2; try/catch per portal i per ogłoszenie; błąd całości → ScanRun(Failed, Error).
-- **`HomeSeeker/Services/EmailScanReportSender.cs`** (`IScanReportSender.SendAsync(recipient, subject, html, ct)`): opakowuje `MailSender` (IsBodyHtml, konfiguracja ze `SmtpOptions`, dispose per wysyłka).
+- **`HomeSeeker/Services/EmailScanReportSender.cs`** (`IScanReportSender.SendAsync(recipients, subject, html, ct)`): `SmtpClient` per wysyłka (IsBodyHtml, konfiguracja ze `SmtpOptions`); `recipients` to lista `,`/`;` → wiele adresów `To`. Mail wychodzi **tylko gdy skan znalazł nowe ogłoszenia lub obniżki**; pełny raport zawsze dostępny przez `GET /scans/{id}/report`.
 - **Poprawki `ReceptyOks.Shared/MessegeSender/MailSender.cs`** (realne błędy, zweryfikowane):
   1. Jawna implementacja `IMailSender.MailConfig` (linia 71) rzuca `NotImplementedException` — ujednolicić interfejs do `Task<bool>` i usunąć stub.
   2. `SendMail` zwraca task wysyłki, a `using (_mailMessage)` dispose'uje wiadomość przed zakończeniem wysyłki → `await` wewnątrz using; zwracać `Task`.
   3. `Timeout = 20` → `20_000` (kosmetyka; dotyczy wysyłki synchronicznej).
-- **`ReceptyOks.Api/Services/ScanTriggerQueue.cs`**: singleton z `Channel<Guid>` dla skanów na żądanie.
-- **`ReceptyOks.Api/Middleware/HomeSeekerScanService.cs`**: `BackgroundService` wg `ShoppingListCleaner` (PeriodicTimer, scope per skan, try/catch per profil). Pętla czeka na tick timera LUB odczyt z kanału; tick skanuje aktywne profile z przeterminowanym `LastScannedAt`. Przy `Enabled=false` obsługuje tylko kanał na żądanie. Ochrona przed duplikatami przy 2 replikach: `TryMarkProfileScannedAsync` (update-first); rozważyć maxReplicas=1.
+- **`ReceptyOks.Api/Middleware/HomeSeekerScanService.cs`**: `BackgroundService` wg `ShoppingListCleaner` (PeriodicTimer, scope per skan). Brak skanów na żądanie — harmonogram (`HomeSeeker:Enabled`, `HomeSeeker:ScanInterval`) jest ustalany przy wdrożeniu; użytkownicy zmieniają tylko parametry wyszukiwania wspólnego profilu, które obowiązują od następnego skanu. Każdy tick skanuje wspólny profil, jeśli jest aktywny i `LastScannedAt` się przeterminował. Przy `Enabled=false` serwis pozostaje bezczynny. Ochrona przed duplikatami przy 2 replikach: `TryMarkProfileScannedAsync` (update-first); rozważyć maxReplicas=1.
 
 ### Faza 5 — API
 
-**`ReceptyOks.Api/Endpoints/HomeSeekerEndpoints.cs`** — `MapGroup("/api/homeseeker")` + `"fixed"` rate limit:
+**`ReceptyOks.Api/Endpoints/HomeSeekerEndpoints.cs`** — `MapGroup("/api/homeseeker")` + `"fixed"` rate limit + JWT (`RequireAuthorization`). Aplikacja domowa (max 3 użytkowników): jeden wspólny profil, jeden okresowy skan, jeden zestaw wyników — każdy zalogowany użytkownik widzi i edytuje to samo:
 
 ```
-POST   /profiles                    utworzenie (FluentValidation)
-GET    /profiles                    lista (bez IsDeleted)
-GET    /profiles/{id}               pojedynczy
-PUT    /profiles/{id}               aktualizacja
-DELETE /profiles/{id}               soft delete
-POST   /profiles/{id}/scan          limiter "strict" → ScanTriggerQueue → 202 Accepted
-GET    /profiles/{id}/listings      stronicowane; ?minScore=&sort=score|price|firstSeen
-GET    /profiles/{id}/scans         historia (bez ReportHtml)
+GET    /profile                     aktualne parametry skanu (404 dopóki nie ustawione)
+PUT    /profile                     ustawienie parametrów na następny skan (FluentValidation; tworzy lub nadpisuje)
+GET    /listings                    wyniki; stronicowane; ?minScore=&sort=score|price|firstSeen
+GET    /scans                       historia skanów (bez ReportHtml)
 GET    /scans/{id}/report           Results.Content(ReportHtml, "text/html")
 ```
 
-- **`Validators/SearchProfileRequestValidator.cs`**: City wymagane ≤100; NotificationEmail poprawny; Max≥Min dla ceny/metrażu; ExtraCriteria ≤2000.
-- **`Program.cs`**: `Configure<HomeSeekerOptions>/<SmtpOptions>`, `AddHomeSeekerDatabase`, nazwany HttpClient `"homeseeker-scraper"`, DI (scrapery/repo/fabryka/ewaluator/sender/scan service), `AddSingleton<ScanTriggerQueue>`, `AddHostedService<HomeSeekerScanService>`, health check `homeseeker-db`; po `app.EnsureDatabaseCreated()` → `app.EnsureHomeSeekerTablesCreated()`; `app.MapHomeSeekerEndpoints()`. Referencja HomeSeeker w `ReceptyOks.Api.csproj`.
+- **`Validators/SearchProfileRequestValidator.cs`**: City wymagane ≤100; NotificationEmail = 1–5 adresów rozdzielonych `,`/`;` (każdy poprawny, łącznie ≤200 znaków; repo normalizuje do `a, b`); Max≥Min dla ceny/metrażu; ExtraCriteria ≤2000.
+DI (scrapery/repo/fabryka/ewaluator/sender/scan service), `AddHostedService<HomeSeekerScanService>`
 
 ### Faza 6 — konfiguracja i wdrożenie
 
@@ -201,7 +196,7 @@ SearchProfile 1 ──── * HouseListing      (unikalny: SearchProfileId+Port
 
 ## 7. Ryzyka i mitygacje
 
-1. **Wykrywanie botów / ToS**: Otodom (Cloudflare) i OLX mogą zwracać 403 dla IP Azure — realistyczne nagłówki, niska częstotliwość, łagodna degradacja (pusty wynik), osobny warning przy 403. Scraping narusza regulaminy portali — akceptowalne dla narzędzia osobistego; abstrakcja `IListingScraper` pozwala później podmienić źródło na API/RSS.
+łagodna degradacja (`ScrapeResult.Failure` zamiast wyjątku; skan `Failed` tylko gdy padną wszystkie portale), osobny warning przy 403.
 2. **Dryf struktur JSON** (`__NEXT_DATA__`/`__PRERENDERED_STATE__`): defensywne parsowanie + testy fixture + fail-soft.
 3. **Ewolucja schematu bez migracji**: pierwszy rollout przez `CreateTables()`; późniejsze zmiany kolumn = ręczny SQL (udokumentowane w kodzie).
 4. **2 repliki → podwójne skany/maile**: guard `TryMarkProfileScannedAsync`; rozważyć maxReplicas=1.

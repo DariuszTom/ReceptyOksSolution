@@ -1,4 +1,5 @@
-﻿
+﻿using System.Security;
+
 namespace ReceptyOks.Shared.Misc
 {
     public static class ExtensionMethods
@@ -36,5 +37,15 @@ namespace ReceptyOks.Shared.Misc
             DayOfWeek.Sunday => "Niedziela",
             _ => string.Empty
         };
-    }
+        public static SecureString ToSecureString(this string str)
+        {
+            var secureString = new SecureString();
+            for (int i = 0; i < str.Length; i++)
+            {
+                secureString.AppendChar(str[i]);
+            }
+            secureString.MakeReadOnly();
+            return secureString;
+        }
+    }    
 }
