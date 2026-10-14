@@ -312,9 +312,19 @@ public sealed class AttachmentService
                 return null;
             }
 
-            var result = useCamera
-                ? await MediaPicker.Default.CapturePhotoAsync().ConfigureAwait(false)
-                : await MediaPicker.Default.PickPhotoAsync().ConfigureAwait(false);
+            FileResult? result;
+            if (useCamera)
+            {
+                result = await MediaPicker.Default.CapturePhotoAsync().ConfigureAwait(false);
+            }
+            else
+            {
+                var photos = await MediaPicker.Default.PickPhotosAsync(new MediaPickerOptions
+                {
+                    SelectionLimit = 1,
+                }).ConfigureAwait(false);
+                result = photos?.FirstOrDefault();
+            }
 
             if (result is null)
             {
