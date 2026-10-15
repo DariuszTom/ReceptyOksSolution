@@ -20,6 +20,10 @@ public sealed class SearchProfileRequestValidator : AbstractValidator<SearchProf
             .Matches(@"^[\p{L}\s\-]*$").WithMessage("District can only contain letters, spaces, and hyphens")
             .When(x => !string.IsNullOrWhiteSpace(x.District));
 
+        RuleFor(x => x.PropertyTypes)
+            .Must(t => t != PropertyTypes.None && (t & ~PropertyTypes.All) == 0)
+            .WithMessage("Select at least one property type (house or apartment)");
+
         RuleFor(x => x.MinPrice)
             .GreaterThanOrEqualTo(0).WithMessage("Minimum price cannot be negative")
             .When(x => x.MinPrice.HasValue);
@@ -43,6 +47,10 @@ public sealed class SearchProfileRequestValidator : AbstractValidator<SearchProf
         RuleFor(x => x.MaxAreaSqm)
             .GreaterThan(0).WithMessage("Maximum area must be greater than zero")
             .When(x => x.MaxAreaSqm.HasValue);
+
+        RuleFor(x => x.MinRooms)
+            .InclusiveBetween(1, 20).WithMessage("Minimum rooms must be between 1 and 20")
+            .When(x => x.MinRooms.HasValue);
 
         RuleFor(x => x.ExtraCriteria)
             .MaximumLength(2000).WithMessage("Extra criteria must be at most 2000 characters")

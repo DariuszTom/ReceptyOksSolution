@@ -4,6 +4,7 @@ using HomeSeeker.Configuration;
 using HomeSeeker.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using ReceptyOks.Shared.Misc;
 
 namespace HomeSeeker.Services;
 
@@ -55,178 +56,39 @@ public sealed class MarketScanService : IMarketScanService
         _logger.LogInformation("Starting scan {ScanRunId} for profile {ProfileId} in {City}",
             scanRun.Id, profileId, profile.City);
 
-        int totalFound = 0;
-        int newCount = 0;
-        int priceDrops = 0;
-        int evaluated = 0;
+        // Counters are filled in as phases complete, so a failed or cancelled run still
+        // records how far it got.
+        var stats = new ScanStats();
         string? reportHtml = null;
         string? error = null;
 
         try
         {
-            // Phase 1: Scrape listings from all portals
-            var allScraped = new List<ScrapedListing>();
-            var portalsAttempted = 0;
-            var portalsSucceeded = 0;
-            var portalErrors = new List<string>();
+            var scraped = await ScrapePortalsAsync(profile, stats, cancellationToken).ConfigureAwait(false);
+            await ExcludeOutOfRangeAsync(profile, scraped, cancellationToken).ConfigureAwait(false);
 
-            foreach (var scraper in _scrapers)
-            {
-                portalsAttempted++;
-                try
-                {
-                    _logger.LogDebug("Scraping {Portal} for profile {ProfileId}", scraper.PortalName, profileId);
+            stats.Found = scraped.Count;
+            _logger.LogInformation("Total scraped: {Count} listings", stats.Found);
 
-                    var result = await scraper.SearchAsync(profile, cancellationToken).ConfigureAwait(false);
-                    if (result.Succeeded)
-                    {
-                        portalsSucceeded++;
-                        allScraped.AddRange(result.Listings);
-                        _logger.LogDebug("{Portal} returned {Count} listings",
-                            scraper.PortalName, result.Listings.Count);
-                    }
-                    else
-                    {
-                        portalErrors.Add($"{scraper.PortalName}: {result.Error ?? "unknown error"}");
-                        _logger.LogWarning("Scraper {Portal} failed for profile {ProfileId}: {Error}",
-                            scraper.PortalName, profileId, result.Error);
-                    }
-                }
-                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-                {
-                    throw;
-                }
-                catch (Exception ex)
-                {
-                    portalErrors.Add($"{scraper.PortalName}: {ex.Message}");
-                    _logger.LogWarning(ex, "Scraper {Portal} threw for profile {ProfileId}",
-                        scraper.PortalName, profileId);
-                }
-            }
-
-            // If every portal failed we must not record a "Completed" scan with zero
-            // results; mark it failed so the lease is released without stamping
-            // LastScannedAt and the profile is retried on the next cycle.
-            if (portalsAttempted > 0 && portalsSucceeded == 0)
-            {
-                throw new InvalidOperationException(
-                    "No portal completed successfully: " + string.Join("; ", portalErrors));
-            }
-
-            totalFound = allScraped.Count;
-            _logger.LogInformation("Total scraped: {Count} listings from {Succeeded}/{Attempted} portals",
-                totalFound, portalsSucceeded, portalsAttempted);
-
-            // Phase 2: Upsert listings and track changes
-            var upsertResults = new List<UpsertResult>();
-
-            foreach (var scraped in allScraped)
-            {
-                try
-                {
-                    var result = await _repository.UpsertListingAsync(profileId, scraped, cancellationToken)
-                        .ConfigureAwait(false);
-                    upsertResults.Add(result);
-
-                    if (result.IsNew) newCount++;
-                    if (result.PriceDropped) priceDrops++;
-                }
-                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-                {
-                    throw;
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Failed to upsert listing {ExternalId} from {Portal}",
-                        scraped.ExternalId, scraped.Portal);
-
-                    // Drop any tracked-but-unsaved entity so later SaveChanges calls
-                    // in this scope don't retry (and re-fail on) the same insert.
-                    _repository.ResetTracking();
-                }
-            }
-
-            // Phase 3: Select candidates for AI evaluation
-            // Only new or price-dropped listings, sorted by price per sqm, limited by config
-            var candidates = upsertResults
-                .Where(r => r.IsNew || r.PriceDropped)
-                .OrderBy(r => r.Listing.Price / r.Listing.AreaSqm)
-                .Take(_options.MaxCandidatesPerScan)
-                .ToList();
-
-            _logger.LogInformation("Selected {Count} candidates for AI evaluation", candidates.Count);
-
-            // Phase 4: Evaluate candidates sequentially (to respect API limits)
-            foreach (var candidate in candidates)
-            {
-                if (cancellationToken.IsCancellationRequested)
-                    break;
-
-                try
-                {
-                    var evaluation = await _evaluator.EvaluateAsync(profile, candidate.Listing, cancellationToken)
-                        .ConfigureAwait(false);
-
-                    if (evaluation is not null)
-                    {
-                        await _repository.SaveEvaluationAsync(candidate.Listing.Id, evaluation, cancellationToken)
-                            .ConfigureAwait(false);
-                        evaluated++;
-
-                        _logger.LogDebug("Evaluated listing {ListingId}: score {Score}",
-                            candidate.Listing.Id, evaluation.Score);
-                    }
-                }
-                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-                {
-                    throw;
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Failed to evaluate listing {ListingId}", candidate.Listing.Id);
-                    _repository.ResetTracking();
-                }
-            }
-
-            // Phase 5: Generate report
-            var topListings = await _repository.GetTopListingsAsync(
-                profileId, _options.TopListingsInReport, cancellationToken).ConfigureAwait(false);
-
-            // Update scan run with counts before generating report
-            scanRun.ListingsFoundCount = totalFound;
-            scanRun.NewListingsCount = newCount;
-            scanRun.PriceDropsCount = priceDrops;
-            scanRun.EvaluatedCount = evaluated;
-
-            reportHtml = await _evaluator.WriteReportHtmlAsync(profile, topListings, scanRun, cancellationToken)
+            var upsertResults = await UpsertListingsAsync(profileId, scraped, stats, cancellationToken)
                 .ConfigureAwait(false);
 
-            // Phase 6: Send email - only when there is something new to tell the
-            // household about; the full report is always available via the API.
-            if (newCount == 0 && priceDrops == 0)
-            {
-                _logger.LogInformation("Scan {ScanRunId}: no new listings or price drops, skipping email", scanRun.Id);
-            }
-            else if (!string.IsNullOrWhiteSpace(profile.NotificationEmail))
-            {
-                var subject = $"HomeSeeker: {profile.City} - {newCount} nowych, {priceDrops} obniżek";
+            // Only new or price-dropped listings (plus unevaluated backlog), ranked by price per m²
+            // relative to the local (district) median, limited by config.
+            var priceStats = new MarketPriceStats(
+                await GetMarketSampleAsync(profileId, upsertResults, cancellationToken).ConfigureAwait(false));
+            var candidates = ListingSelection.SelectCandidates(upsertResults, _options.MaxCandidatesPerScan, priceStats);
+            _logger.LogInformation("Selected {Count} candidates for AI evaluation", candidates.Count);
 
-                var sent = await _reportSender.SendAsync(
-                    profile.NotificationEmail, subject, reportHtml, cancellationToken).ConfigureAwait(false);
+            await EvaluateCandidatesAsync(profile, candidates, scraped, priceStats, stats, cancellationToken)
+                .ConfigureAwait(false);
 
-                if (sent)
-                {
-                    _logger.LogInformation("Report sent to {Email}", profile.NotificationEmail);
-                }
-                else
-                {
-                    _logger.LogWarning("Failed to send report to {Email}", profile.NotificationEmail);
-                }
-            }
+            reportHtml = await WriteReportAsync(profile, scanRun, stats, cancellationToken).ConfigureAwait(false);
+            await SendReportAsync(profile, scanRun, stats, reportHtml, cancellationToken).ConfigureAwait(false);
 
             _logger.LogInformation(
                 "Scan {ScanRunId} completed: found={Found}, new={New}, drops={Drops}, evaluated={Evaluated}",
-                scanRun.Id, totalFound, newCount, priceDrops, evaluated);
+                scanRun.Id, stats.Found, stats.New, stats.PriceDrops, stats.Evaluated);
         }
         catch (OperationCanceledException)
         {
@@ -236,24 +98,279 @@ public sealed class MarketScanService : IMarketScanService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Scan {ScanRunId} failed", scanRun.Id);
-            error = Truncate(ex.Message, 2000);
+            error = ex.Message.Truncate(2000);
         }
 
-        // Complete the scan run.
-        // IMPORTANT: never pass the original (possibly cancelled) token here, or the
-        // final status write will throw and the run will stay in `Running` forever (H1).
-        // Use a short bounded timeout off a fresh source so a hang can't block shutdown.
+        return await CompleteScanRunAsync(scanRun, stats, reportHtml, error).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Phase 1: scrapes every portal. Partial failures (a whole portal or one property type)
+    /// are recorded in <see cref="ScanStats.Warnings"/>; throws when no portal succeeded, so a
+    /// zero-result run is never recorded as completed and the profile is retried next cycle.
+    /// </summary>
+    private async Task<List<ScrapedListing>> ScrapePortalsAsync(
+        SearchProfile profile, ScanStats stats, CancellationToken cancellationToken)
+    {
+        var allScraped = new List<ScrapedListing>();
+        var portalsAttempted = 0;
+        var portalsSucceeded = 0;
+        var portalErrors = new List<string>();
+
+        foreach (var scraper in _scrapers)
+        {
+            portalsAttempted++;
+            try
+            {
+                _logger.LogDebug("Scraping {Portal} for profile {ProfileId}", scraper.PortalName, profile.Id);
+
+                var result = await scraper.SearchAsync(profile, cancellationToken).ConfigureAwait(false);
+                if (result.Succeeded)
+                {
+                    portalsSucceeded++;
+                    allScraped.AddRange(result.Listings);
+                    foreach (var warning in result.Warnings)
+                    {
+                        portalErrors.Add($"{scraper.PortalName}: {warning}");
+                        _logger.LogWarning("Scraper {Portal} partial result for profile {ProfileId}: {Warning}",
+                            scraper.PortalName, profile.Id, warning);
+                    }
+                    _logger.LogDebug("{Portal} returned {Count} listings",
+                        scraper.PortalName, result.Listings.Count);
+                }
+                else
+                {
+                    portalErrors.Add($"{scraper.PortalName}: {result.Error ?? "unknown error"}");
+                    _logger.LogWarning("Scraper {Portal} failed for profile {ProfileId}: {Error}",
+                        scraper.PortalName, profile.Id, result.Error);
+                }
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                portalErrors.Add($"{scraper.PortalName}: {ex.Message}");
+                _logger.LogWarning(ex, "Scraper {Portal} threw for profile {ProfileId}",
+                    scraper.PortalName, profile.Id);
+            }
+        }
+
+        if (portalsAttempted > 0 && portalsSucceeded == 0)
+        {
+            throw new InvalidOperationException(
+                "No portal completed successfully: " + string.Join("; ", portalErrors));
+        }
+
+        if (portalErrors.Count > 0)
+            stats.Warnings = ("Niepełny skan: " + string.Join("; ", portalErrors)).Truncate(2000);
+
+        _logger.LogDebug("Scraped {Count} listings from {Succeeded}/{Attempted} portals",
+            allScraped.Count, portalsSucceeded, portalsAttempted);
+        return allScraped;
+    }
+
+    /// <summary>
+    /// Portals don't always honour the price/area filters in the URL (Otodom mixes in
+    /// "similar" offers), so the profile's ranges are enforced here before anything is stored.
+    /// Removes out-of-range listings from <paramref name="scraped"/>; already-stored ones are
+    /// refreshed and hidden so lists and reports never keep showing them at a stale price.
+    /// </summary>
+    private async Task ExcludeOutOfRangeAsync(
+        SearchProfile profile, List<ScrapedListing> scraped, CancellationToken cancellationToken)
+    {
+        var outOfRange = scraped.Where(s => !ListingSelection.MatchesCriteria(profile, s)).ToList();
+        if (outOfRange.Count == 0)
+            return;
+
+        scraped.RemoveAll(s => !ListingSelection.MatchesCriteria(profile, s));
+        _logger.LogInformation("Dropped {Count} listings outside the profile's price/area/rooms range",
+            outOfRange.Count);
+
+        foreach (var listing in outOfRange)
+        {
+            try
+            {
+                await _repository.ExcludeListingAsync(profile.Id, listing, cancellationToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to exclude listing {ExternalId} from {Portal}",
+                    listing.ExternalId, listing.Portal);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Phase 2: stores the scraped listings, tracking new ones and price drops.
+    /// A failing listing is skipped without aborting the scan.
+    /// </summary>
+    private async Task<List<UpsertResult>> UpsertListingsAsync(
+        Guid profileId, List<ScrapedListing> scraped, ScanStats stats, CancellationToken cancellationToken)
+    {
+        var upsertResults = new List<UpsertResult>(scraped.Count);
+
+        foreach (var listing in scraped)
+        {
+            try
+            {
+                var result = await _repository.UpsertListingAsync(profileId, listing, cancellationToken)
+                    .ConfigureAwait(false);
+                upsertResults.Add(result);
+
+                if (result.IsNew) stats.New++;
+                if (result.PriceDropped) stats.PriceDrops++;
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to upsert listing {ExternalId} from {Portal}",
+                    listing.ExternalId, listing.Portal);
+
+                // Drop any tracked-but-unsaved entity so later SaveChanges calls
+                // in this scope don't retry (and re-fail on) the same insert.
+                _repository.ResetTracking();
+            }
+        }
+
+        return upsertResults;
+    }
+
+    /// <summary>
+    /// Phase 3: evaluates candidates sequentially (to respect API limits). Descriptions come
+    /// from the search results when present (OLX), otherwise from the portal's detail page.
+    /// </summary>
+    private async Task EvaluateCandidatesAsync(
+        SearchProfile profile,
+        IReadOnlyList<UpsertResult> candidates,
+        IReadOnlyList<ScrapedListing> scraped,
+        MarketPriceStats priceStats,
+        ScanStats stats,
+        CancellationToken cancellationToken)
+    {
+        var scrapedDetails = scraped
+            .Where(s => !string.IsNullOrWhiteSpace(s.Details))
+            .GroupBy(s => (s.Portal, s.ExternalId))
+            .ToDictionary(g => g.Key, g => g.First().Details);
+
+        var detailRequests = 0;
+        foreach (var candidate in candidates)
+        {
+            if (cancellationToken.IsCancellationRequested)
+                break;
+
+            var listing = candidate.Listing;
+            try
+            {
+                if (!scrapedDetails.TryGetValue((listing.Portal, listing.ExternalId), out var details))
+                {
+                    var scraper = _scrapers.FirstOrDefault(s =>
+                        string.Equals(s.PortalName, listing.Portal, StringComparison.OrdinalIgnoreCase));
+                    if (scraper is not null)
+                    {
+                        if (detailRequests++ > 0)
+                            await Task.Delay(_options.RequestDelay, cancellationToken).ConfigureAwait(false);
+
+                        details = await FetchDetailsAsync(scraper, listing, cancellationToken).ConfigureAwait(false);
+                        if (details is null)
+                            _logger.LogDebug("No details for listing {ListingId}, evaluating without description", listing.Id);
+                    }
+                }
+
+                var evaluation = await _evaluator.EvaluateAsync(
+                        profile, listing, details, priceStats.GetBenchmark(listing), cancellationToken)
+                    .ConfigureAwait(false);
+                if (evaluation is null)
+                    continue;
+
+                await _repository.SaveEvaluationAsync(listing.Id, evaluation, cancellationToken).ConfigureAwait(false);
+                stats.Evaluated++;
+                _logger.LogDebug("Evaluated listing {ListingId}: score {Score}", listing.Id, evaluation.Score);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to evaluate listing {ListingId}", listing.Id);
+                _repository.ResetTracking();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Phase 4: renders the HTML report of the profile's top listings.
+    /// </summary>
+    private async Task<string> WriteReportAsync(
+        SearchProfile profile, ScanRun scanRun, ScanStats stats, CancellationToken cancellationToken)
+    {
+        var topListings = await _repository.GetTopListingsAsync(
+            profile.Id, _options.TopListingsInReport, cancellationToken).ConfigureAwait(false);
+
+        // The report shows this run's counts.
+        scanRun.ListingsFoundCount = stats.Found;
+        scanRun.NewListingsCount = stats.New;
+        scanRun.PriceDropsCount = stats.PriceDrops;
+        scanRun.EvaluatedCount = stats.Evaluated;
+
+        return await _evaluator.WriteReportHtmlAsync(profile, topListings, scanRun, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Phase 5: e-mails the report - only when there is something new to tell the
+    /// household about; the full report is always available via the API.
+    /// </summary>
+    private async Task SendReportAsync(
+        SearchProfile profile, ScanRun scanRun, ScanStats stats, string reportHtml, CancellationToken cancellationToken)
+    {
+        if (stats.New == 0 && stats.PriceDrops == 0)
+        {
+            _logger.LogInformation("Scan {ScanRunId}: no new listings or price drops, skipping email", scanRun.Id);
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(profile.NotificationEmail))
+            return;
+
+        var subject = $"HomeSeeker: {profile.City} - {stats.New} nowych, {stats.PriceDrops} obniżek";
+        var sent = await _reportSender.SendAsync(profile.NotificationEmail, subject, reportHtml, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (sent)
+            _logger.LogInformation("Report sent to {Email}", profile.NotificationEmail);
+        else
+            _logger.LogWarning("Failed to send report to {Email}", profile.NotificationEmail);
+    }
+
+    /// <summary>
+    /// Persists the run's final state. Returns true only when the run both completed and its
+    /// final state was recorded; otherwise the caller must not stamp LastScannedAt.
+    /// </summary>
+    private async Task<bool> CompleteScanRunAsync(ScanRun scanRun, ScanStats stats, string? reportHtml, string? error)
+    {
         var status = error is null ? ScanStatus.Completed : ScanStatus.Failed;
-        var persisted = false;
 
         try
         {
+            // IMPORTANT: never pass the original (possibly cancelled) token here, or the
+            // final status write will throw and the run will stay in `Running` forever (H1).
+            // Use a short bounded timeout off a fresh source so a hang can't block shutdown.
             using var finalWriteCts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
             await _repository.CompleteScanRunAsync(
-                scanRun.Id, status, totalFound, newCount, priceDrops, evaluated, reportHtml, error,
-                finalWriteCts.Token)
+                    scanRun.Id, status, stats.Found, stats.New, stats.PriceDrops, stats.Evaluated,
+                    reportHtml, error ?? stats.Warnings, finalWriteCts.Token)
                 .ConfigureAwait(false);
-            persisted = true;
+            return status == ScanStatus.Completed;
         }
         catch (Exception finalWriteEx)
         {
@@ -263,16 +380,86 @@ public sealed class MarketScanService : IMarketScanService
             _logger.LogError(finalWriteEx,
                 "Failed to persist final status for scan {ScanRunId}; run may stay in Running state",
                 scanRun.Id);
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Mutable per-run counters shared by the scan phases.
+    /// </summary>
+    private sealed class ScanStats
+    {
+        public int Found { get; set; }
+        public int New { get; set; }
+        public int PriceDrops { get; set; }
+        public int Evaluated { get; set; }
+        public string? Warnings { get; set; }
+    }
+
+    /// <summary>
+    /// Market sample for price medians: every listing seen within <see cref="HomeSeekerOptions.ListingRetention"/>
+    /// (so the sample grows across scans) in the cities returned by this scan, merged with
+    /// this scan's listings. Falls back to
+    /// this scan alone when the history can't be loaded.
+    /// </summary>
+    private async Task<IReadOnlyCollection<HouseListing>> GetMarketSampleAsync(
+        Guid profileId, List<UpsertResult> upsertResults, CancellationToken cancellationToken)
+    {
+        // Current-scan entries win over history so the latest prices are used.
+        var sample = new Dictionary<Guid, HouseListing>();
+        foreach (var result in upsertResults)
+            sample.TryAdd(result.Listing.Id, result.Listing);
+
+        try
+        {
+            var history = await _repository
+                .GetMarketSampleAsync(profileId, DateTime.UtcNow - _options.ListingRetention, cancellationToken)
+                .ConfigureAwait(false);
+
+            // History may hold listings from a city the profile no longer targets (the city
+            // can be edited); districts are keyed without the city, so only keep listings
+            // from the cities this scan actually returned.
+            var cities = upsertResults
+                .Select(r => MarketPriceStats.CityOf(r.Listing.Location))
+                .ToHashSet();
+
+            foreach (var listing in history ?? [])
+            {
+                if (cities.Contains(MarketPriceStats.CityOf(listing.Location)))
+                    sample.TryAdd(listing.Id, listing);
+            }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Loading market sample failed for profile {ProfileId}; using current scan only", profileId);
+            _repository.ResetTracking();
         }
 
-        // Report success only when the run both completed and its final state was
-        // recorded; otherwise the caller must not stamp LastScannedAt.
-        return status == ScanStatus.Completed && persisted;
+        _logger.LogDebug("Market sample for price medians: {Count} listings ({Current} from this scan)",
+            sample.Count, upsertResults.Count);
+        return sample.Values;
     }
 
-    private static string? Truncate(string? value, int maxLength)
+    private async Task<string?> FetchDetailsAsync(
+        IListingScraper scraper, HouseListing listing, CancellationToken cancellationToken)
     {
-        if (string.IsNullOrEmpty(value)) return value;
-        return value.Length <= maxLength ? value : value[..maxLength];
+        try
+        {
+            return await scraper.GetDetailsAsync(listing.Url, cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Fetching details failed for listing {ListingId}", listing.Id);
+            return null;
+        }
     }
+
 }

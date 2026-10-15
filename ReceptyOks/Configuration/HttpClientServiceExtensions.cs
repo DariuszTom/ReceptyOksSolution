@@ -67,9 +67,9 @@ internal static class HttpClientServiceExtensions
         .AddHttpMessageHandler<ApiKeyHandler>()
         .AddServiceDiscovery();
 
-        // Owner-scoped API (HomeSeeker): API key + JWT issued at login. Future HomeSeeker
-        // client services should use this named client or replicate both handlers.
-        services.AddHttpClient(HomeSeekerHttpClientName, client =>
+        // Owner-scoped API (HomeSeeker): API key + JWT issued at login (refreshed on demand).
+        services.AddTransient<IAccessTokenRefresher, AccessTokenRefresher>();
+        services.AddHttpClient<IHomeSeekerService, HomeSeekerService>(HomeSeekerHttpClientName, client =>
         {
             client.BaseAddress = new Uri(baseUrl);
             client.Timeout = defaultTimeout;

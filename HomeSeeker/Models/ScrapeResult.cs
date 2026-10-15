@@ -24,8 +24,14 @@ public sealed record ScrapeResult
     /// </summary>
     public string? Error { get; init; }
 
-    public static ScrapeResult Success(IReadOnlyList<ScrapedListing> listings) =>
-        new() { Listings = listings, Succeeded = true };
+    /// <summary>
+    /// Non-fatal problems on a successful scrape, e.g. one property-type category
+    /// could not be read while another succeeded.
+    /// </summary>
+    public IReadOnlyList<string> Warnings { get; init; } = [];
+
+    public static ScrapeResult Success(IReadOnlyList<ScrapedListing> listings, IReadOnlyList<string>? warnings = null) =>
+        new() { Listings = listings, Succeeded = true, Warnings = warnings ?? [] };
 
     public static ScrapeResult Failure(string error) =>
         new() { Succeeded = false, Error = error };

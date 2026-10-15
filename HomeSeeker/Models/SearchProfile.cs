@@ -28,6 +28,11 @@ public class SearchProfile
     public string? District { get; set; }
 
     /// <summary>
+    /// Property kinds to scan for (houses, apartments or both).
+    /// </summary>
+    public PropertyTypes PropertyTypes { get; set; } = PropertyTypes.House;
+
+    /// <summary>
     /// Minimum price in PLN.
     /// </summary>
     public decimal? MinPrice { get; set; }
@@ -46,6 +51,12 @@ public class SearchProfile
     /// Maximum area in square meters.
     /// </summary>
     public decimal? MaxAreaSqm { get; set; }
+
+    /// <summary>
+    /// Minimum number of rooms. Hard filter: listings with a known, lower room count
+    /// are dropped before AI evaluation.
+    /// </summary>
+    public int? MinRooms { get; set; }
 
     /// <summary>
     /// Free-text criteria for the AI agent to consider during evaluation.

@@ -113,6 +113,13 @@ public static class HomeSeekerExtensions
                 sqliteType: "TEXT NULL", sqlServerType: "UNIQUEIDENTIFIER NULL");
             EnsureColumn(db, logger, "SearchProfiles", "OwnerId",
                 sqliteType: "TEXT NULL", sqlServerType: "NVARCHAR(200) NULL");
+            // Existing profiles/listings predate apartments, so they default to House (1).
+            EnsureColumn(db, logger, "SearchProfiles", "PropertyTypes",
+                sqliteType: "INTEGER NOT NULL DEFAULT 1", sqlServerType: "INT NOT NULL DEFAULT 1");
+            EnsureColumn(db, logger, "HouseListings", "PropertyType",
+                sqliteType: "INTEGER NOT NULL DEFAULT 1", sqlServerType: "INT NOT NULL DEFAULT 1");
+            EnsureColumn(db, logger, "SearchProfiles", "MinRooms",
+                sqliteType: "INTEGER NULL", sqlServerType: "INT NULL");
         }
         catch (Exception ex)
         {
@@ -258,6 +265,7 @@ public static class HomeSeekerExtensions
 
         // Background service
         services.AddHostedService<HomeSeekerScanService>();
+        services.AddHostedService<HomeSeekerCleaner>();
 
         return services;
     }

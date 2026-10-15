@@ -100,10 +100,12 @@ public sealed class ListingRepository : IListingRepository
         profile.OwnerId = updatedBy;
         profile.City = request.City;
         profile.District = request.District;
+        profile.PropertyTypes = request.PropertyTypes;
         profile.MinPrice = request.MinPrice;
         profile.MaxPrice = request.MaxPrice;
         profile.MinAreaSqm = request.MinAreaSqm;
         profile.MaxAreaSqm = request.MaxAreaSqm;
+        profile.MinRooms = request.MinRooms;
         profile.ExtraCriteria = request.ExtraCriteria;
         profile.NotificationEmail = NotificationEmails.Normalize(request.NotificationEmail);
         profile.IsActive = request.IsActive;
@@ -253,8 +255,11 @@ public sealed class ListingRepository : IListingRepository
             existing.Title = scraped.Title;
             existing.Url = scraped.Url;
             existing.Location = scraped.Location;
+            existing.PropertyType = scraped.PropertyType;
             existing.LastSeenAt = now;
             existing.UpdatedAt = now;
+            // Seen again within the criteria: restore a listing hidden as stale or out of range.
+            existing.IsDeleted = false;
 
             await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
@@ -278,6 +283,7 @@ public sealed class ListingRepository : IListingRepository
             Price = scraped.Price,
             AreaSqm = scraped.AreaSqm,
             Location = scraped.Location,
+            PropertyType = scraped.PropertyType,
             FirstSeenAt = now,
             LastSeenAt = now,
             CreatedAt = now,
@@ -293,6 +299,26 @@ public sealed class ListingRepository : IListingRepository
             IsNew = true,
             PriceDropped = false
         };
+    }
+
+    public async Task ExcludeListingAsync(
+        Guid profileId,
+        ScrapedListing scraped,
+        CancellationToken cancellationToken = default)
+    {
+        var now = DateTime.UtcNow;
+        await _db.HouseListings
+            .Where(l => l.SearchProfileId == profileId
+                && l.Portal == scraped.Portal
+                && l.ExternalId == scraped.ExternalId)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(l => l.Price, scraped.Price)
+                .SetProperty(l => l.AreaSqm, scraped.AreaSqm)
+                .SetProperty(l => l.LastSeenAt, now)
+                .SetProperty(l => l.UpdatedAt, now)
+                .SetProperty(l => l.IsDeleted, true),
+                cancellationToken)
+            .ConfigureAwait(false);
     }
 
     public void ResetTracking() => _db.ChangeTracker.Clear();
@@ -324,6 +350,26 @@ public sealed class ListingRepository : IListingRepository
             .ConfigureAwait(false);
     }
 
+    public async Task<IReadOnlyList<HouseListing>> GetMarketSampleAsync(
+        Guid profileId,
+        DateTime seenSince,
+        CancellationToken cancellationToken = default)
+    {
+        return await _db.HouseListings
+            .AsNoTracking()
+            .Where(l => l.SearchProfileId == profileId && !l.IsDeleted && l.LastSeenAt >= seenSince)
+            .Select(l => new HouseListing
+            {
+                Id = l.Id,
+                PropertyType = l.PropertyType,
+                Price = l.Price,
+                AreaSqm = l.AreaSqm,
+                Location = l.Location
+            })
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+    }
+
     public async Task<IReadOnlyList<HouseListing>> GetTopListingsAsync(
         Guid profileId,
         int count,
@@ -334,7 +380,7 @@ public sealed class ListingRepository : IListingRepository
             .Where(l => l.SearchProfileId == profileId && !l.IsDeleted)
             .Where(l => l.AiScore != null)
             .OrderByDescending(l => l.AiScore)
-            .ThenBy(l => l.Price / l.AreaSqm)
+            .ThenBy(l => (double)l.Price / (double)l.AreaSqm)
             .ThenBy(l => l.Id)
             .Take(count)
             .ToListAsync(cancellationToken)
@@ -364,7 +410,7 @@ public sealed class ListingRepository : IListingRepository
         // otherwise SQL may return tied rows in a different order per request.
         var ordered = sortBy?.ToLowerInvariant() switch
         {
-            "price" => query.OrderBy(l => l.Price),
+            "price" => query.OrderBy(l => (double)l.Price),
             "firstseen" => query.OrderByDescending(l => l.FirstSeenAt),
             _ => query.OrderByDescending(l => l.AiScore ?? 0)
         };
@@ -400,8 +446,9 @@ public sealed class ListingRepository : IListingRepository
                 NewListingsCount = s.NewListingsCount,
                 PriceDropsCount = s.PriceDropsCount,
                 EvaluatedCount = s.EvaluatedCount,
-                Error = s.Error
-                // Exclude ReportHtml for list view
+                Error = s.Error,
+                // Exclude ReportHtml for list view; expose only its availability.
+                HasReport = s.ReportHtml != null && s.ReportHtml != ""
             })
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);

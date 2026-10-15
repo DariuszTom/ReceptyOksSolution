@@ -17,6 +17,12 @@ public sealed record SearchProfileRequest
     public string? District { get; init; }
 
     /// <summary>
+    /// Property kinds to scan for; at least one is required. Defaults to houses
+    /// so older clients that do not send the field keep their behavior.
+    /// </summary>
+    public PropertyTypes PropertyTypes { get; init; } = PropertyTypes.House;
+
+    /// <summary>
     /// Minimum price in PLN.
     /// </summary>
     public decimal? MinPrice { get; init; }
@@ -35,6 +41,11 @@ public sealed record SearchProfileRequest
     /// Maximum area in square meters.
     /// </summary>
     public decimal? MaxAreaSqm { get; init; }
+
+    /// <summary>
+    /// Minimum number of rooms.
+    /// </summary>
+    public int? MinRooms { get; init; }
 
     /// <summary>
     /// Free-text criteria for AI evaluation.

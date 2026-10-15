@@ -29,6 +29,8 @@ internal static class ViewModelServiceExtensions
         services.AddTransient<UserDetailsViewModel>();
         services.AddTransient<AppStatusViewModel>();
         services.AddTransient<IngredientsCalculationViewModel>();
+        services.AddTransient<HomeSeekerViewModel>();
+        services.AddTransient<HomeSeekerReportViewModel>();
 
         return services;
     }

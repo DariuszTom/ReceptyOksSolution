@@ -30,7 +30,8 @@ public sealed class HomeSeekerOptions : IValidatableObject
     public TimeSpan StartupDelay { get; set; } = TimeSpan.FromMinutes(1);
 
     /// <summary>
-    /// Maximum search pages to fetch per portal per scan.
+    /// Maximum search pages to fetch per portal and per selected property type per scan.
+    /// A profile searching both houses and apartments can send up to twice as many requests.
     /// </summary>
     [Range(1, 50)]
     public int MaxSearchPagesPerPortal { get; set; } = 5;
@@ -42,6 +43,7 @@ public sealed class HomeSeekerOptions : IValidatableObject
 
     /// <summary>
     /// Maximum number of candidates to evaluate with AI per scan (cost control).
+    /// Shared round-robin between the selected property types.
     /// </summary>
     [Range(1, 100)]
     public int MaxCandidatesPerScan { get; set; } = 8;
@@ -58,6 +60,23 @@ public sealed class HomeSeekerOptions : IValidatableObject
     /// </summary>
     [Required]
     public string Model { get; set; } = "claude-sonnet-5-5";
+
+    /// <summary>
+    /// Listings not seen in any scan for this long are hidden (soft-deleted), but only when their
+    /// profile was scanned within this window (so pausing scans never wipes data). Hidden listings
+    /// are hard-deleted once unseen for <see cref="ScanHistoryRetention"/>.
+    /// </summary>
+    public TimeSpan ListingRetention { get; set; } = TimeSpan.FromDays(30);
+
+    /// <summary>
+    /// Completed scan runs (including their HTML reports) older than this are deleted.
+    /// </summary>
+    public TimeSpan ScanHistoryRetention { get; set; } = TimeSpan.FromDays(90);
+
+    /// <summary>
+    /// Interval between retention cleanups.
+    /// </summary>
+    public TimeSpan CleanupInterval { get; set; } = TimeSpan.FromHours(24);
 
     /// <summary>
     /// SMTP configuration for sending email reports.
@@ -82,6 +101,24 @@ public sealed class HomeSeekerOptions : IValidatableObject
         {
             yield return new ValidationResult(
                 "RequestDelay must be non-negative.", [nameof(RequestDelay)]);
+        }
+
+        if (ListingRetention <= TimeSpan.Zero)
+        {
+            yield return new ValidationResult(
+                "ListingRetention must be positive.", [nameof(ListingRetention)]);
+        }
+
+        if (ScanHistoryRetention <= TimeSpan.Zero)
+        {
+            yield return new ValidationResult(
+                "ScanHistoryRetention must be positive.", [nameof(ScanHistoryRetention)]);
+        }
+
+        if (CleanupInterval <= TimeSpan.Zero)
+        {
+            yield return new ValidationResult(
+                "CleanupInterval must be positive.", [nameof(CleanupInterval)]);
         }
 
         // SMTP is only required when scanning is enabled AND a profile may be

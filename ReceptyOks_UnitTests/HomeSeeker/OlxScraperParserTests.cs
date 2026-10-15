@@ -73,6 +73,26 @@ public sealed class OlxScraperParserTests
     }
 
     [Test]
+    public void ParsePrerenderedState_CurrentFormat_ParsesNormalizedAreaAndFlatLocation()
+    {
+        const string html = """
+            <script>
+            window.__PRERENDERED_STATE__= "{\"listing\":{\"listing\":{\"ads\":[{\"id\":1103246338,\"url\":\"https://www.olx.pl/d/oferta/willa-CID3-ID1cF6LM.html\",\"title\":\"Willa\",\"price\":{\"displayValue\":\"1 399 000 z\u0142\",\"regularPrice\":{\"value\":1399000}},\"params\":[{\"key\":\"price_per_m\",\"value\":\"13962.08 z\u0142/m\u00b2\",\"normalizedValue\":\"13962.08\"},{\"key\":\"m\",\"value\":\"100,20 m\u00b2\",\"normalizedValue\":\"100.2\"},{\"key\":\"area\",\"value\":\"321 m\u00b2\",\"normalizedValue\":\"321\"}],\"location\":{\"cityName\":\"Krak\u00f3w\",\"districtName\":\"Pr\u0105dnik Bia\u0142y\"}}]}}}";
+            </script>
+            """;
+
+        var results = OlxScraper.ParsePrerenderedState(html);
+
+        Assert.That(results, Has.Count.EqualTo(1));
+        Assert.Multiple(() =>
+        {
+            Assert.That(results[0].Price, Is.EqualTo(1399000m));
+            Assert.That(results[0].AreaSqm, Is.EqualTo(100.2m));
+            Assert.That(results[0].Location, Is.EqualTo("Kraków, Prądnik Biały"));
+        });
+    }
+
+    [Test]
     public void ParsePrerenderedState_NoPrerenderedState_ReturnsEmpty()
     {
         var results = OlxScraper.ParsePrerenderedState("<html><body><p>Nothing here</p></body></html>");
@@ -114,6 +134,18 @@ public sealed class OlxScraperParserTests
         var results = OlxScraper.ParsePrerenderedState(html);
 
         Assert.That(results, Is.Empty);
+    }
+
+    [TestCase("""{"params":[{"key":"rooms","value":"3 pokoje","normalizedValue":"three"}]}""", 3)]
+    [TestCase("""{"params":[{"key":"rooms","value":{"key":"two","label":"2 pokoje"}}]}""", 2)]
+    [TestCase("""{"params":[{"key":"rooms","value":"4 i więcej","normalizedValue":"four"}]}""", null)]
+    [TestCase("""{"params":[{"key":"rooms","value":"5 pokoi"}]}""", 5)]
+    [TestCase("""{"params":[{"key":"m","normalizedValue":"50"}]}""", null)]
+    public void ParseRooms_ReadsRoomsParam(string json, int? expected)
+    {
+        using var doc = System.Text.Json.JsonDocument.Parse(json);
+
+        Assert.That(OlxScraper.ParseRooms(doc.RootElement), Is.EqualTo(expected));
     }
 
     #endregion

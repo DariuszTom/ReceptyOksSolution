@@ -39,4 +39,20 @@ public sealed record ScrapedListing
     /// Location description.
     /// </summary>
     public string? Location { get; init; }
+
+    /// <summary>
+    /// Kind of property (set by the scraper from the search category).
+    /// </summary>
+    public PropertyTypes PropertyType { get; init; } = PropertyTypes.House;
+
+    /// <summary>
+    /// Number of rooms when the search page provides it; null when unknown.
+    /// </summary>
+    public int? Rooms { get; init; }
+
+    /// <summary>
+    /// Plain-text parameters and description, when the search page already provides them
+    /// (OLX). Not persisted; only passed to the AI evaluator.
+    /// </summary>
+    public string? Details { get; init; }
 }

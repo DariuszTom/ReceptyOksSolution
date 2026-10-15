@@ -50,6 +50,29 @@ public sealed class OtodomScraperParserTests
     }
 
     [Test]
+    public void ParseNextData_CurrentFormat_ReadsLocationFromReverseGeocoding()
+    {
+        const string html = """
+            <script id="__NEXT_DATA__" type="application/json">
+            {"props":{"pageProps":{"data":{"searchAds":{"items":[
+              {"id":68529519,"slug":"willa-ID4DxEP","title":"Willa","totalPrice":{"value":2512750},"areaInSquareMeters":218.5,
+               "location":{"address":{"street":{"name":"Królowej Jadwigi"},"city":null,"province":null},
+                 "reverseGeocoding":{"locations":[
+                   {"locationLevel":"voivodeship","name":"małopolskie"},
+                   {"locationLevel":"city_or_village","name":"Kraków"},
+                   {"locationLevel":"district","name":"Zwierzyniec"},
+                   {"locationLevel":"residential","name":"Zwierzyniec"}]}}}
+            ]}}}}}
+            </script>
+            """;
+
+        var listings = OtodomScraper.ParseNextData(html);
+
+        Assert.That(listings, Has.Count.EqualTo(1));
+        Assert.That(listings[0].Location, Is.EqualTo("Kraków, Zwierzyniec"));
+    }
+
+    [Test]
     public void ParseNextData_WithoutNextDataScript_ReturnsEmpty()
     {
         var listings = OtodomScraper.ParseNextData("<html><body><p>Nothing here</p></body></html>");
@@ -96,5 +119,25 @@ public sealed class OtodomScraperParserTests
 
         Assert.That(listings, Has.Count.EqualTo(1));
         Assert.That(listings[0].ExternalId, Is.EqualTo("3"));
+    }
+
+    [Test]
+    public void ParseNextData_ReadsRoomsNumber()
+    {
+        const string html = """
+            <script id="__NEXT_DATA__" type="application/json">
+            {"props":{"pageProps":{"data":{"searchAds":{"items":[
+              {"id":1,"slug":"a","title":"A","totalPrice":{"value":1},"areaInSquareMeters":1,"roomsNumber":"FOUR"},
+              {"id":2,"slug":"b","title":"B","totalPrice":{"value":1},"areaInSquareMeters":1,"roomsNumber":3},
+              {"id":3,"slug":"c","title":"C","totalPrice":{"value":1},"areaInSquareMeters":1},
+              {"id":4,"slug":"d","title":"D","totalPrice":{"value":1},"areaInSquareMeters":1,"roomsNumber":"TEN"},
+              {"id":5,"slug":"e","title":"E","totalPrice":{"value":1},"areaInSquareMeters":1,"roomsNumber":"MORE"}
+            ]}}}}}
+            </script>
+            """;
+
+        var listings = OtodomScraper.ParseNextData(html);
+
+        Assert.That(listings.Select(l => l.Rooms), Is.EqualTo(new int?[] { 4, 3, null, 10, null }));
     }
 }

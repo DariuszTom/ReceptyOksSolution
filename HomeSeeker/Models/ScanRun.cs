@@ -52,6 +52,18 @@ public class ScanRun
     /// </summary>
     public string? ReportHtml { get; set; }
 
+    private bool? _hasReport;
+
+    /// <summary>
+    /// Whether an HTML report exists. Not persisted: list projections that omit
+    /// <see cref="ReportHtml"/> set it explicitly; otherwise it is derived from the report.
+    /// </summary>
+    public bool HasReport
+    {
+        get => _hasReport ?? !string.IsNullOrWhiteSpace(ReportHtml);
+        set => _hasReport = value;
+    }
+
     /// <summary>
     /// Error message if scan failed.
     /// </summary>

@@ -57,8 +57,7 @@ public sealed class AnthropicAiAgentFactory : IAiAgentFactory
         var settings = new AnthropicSettings
         {
             Model = _options.Model,
-            MaxTokens = 4096,
-            BaseUrl = "https://api.anthropic.com"
+            MaxTokens = 8192
         };
 
         var anthropicAgent = new AnthropicAgent(settings, tokenBytes);

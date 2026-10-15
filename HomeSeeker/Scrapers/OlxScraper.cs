@@ -40,55 +40,79 @@ public sealed partial class OlxScraper : IListingScraper
         var results = new List<ScrapedListing>();
         var pagesFetched = 0;
         string? failure = null;
+        var lostTypes = new List<PropertyTypes>();
+        var partialTypes = new List<(PropertyTypes Type, string Error)>();
 
         try
         {
-            for (int page = 1; page <= _options.MaxSearchPagesPerPortal; page++)
+            var requestsSent = 0;
+            var blocked = false;
+            foreach (var type in profile.PropertyTypes.Selected())
             {
-                if (cancellationToken.IsCancellationRequested)
-                    break;
-
-                var url = BuildSearchUrl(profile, page);
-                _logger.LogDebug("Fetching OLX page {Page}: {Url}", page, url);
-
-                try
+                // Bot detection applies to the whole portal; do not hammer it with the next category.
+                if (blocked)
                 {
-                    var html = await _httpClient.GetStringAsync(url, cancellationToken).ConfigureAwait(false);
-                    pagesFetched++;
+                    lostTypes.Add(type);
+                    continue;
+                }
 
-                    // Try JSON parsing first, fallback to HTML
-                    var listings = ParsePrerenderedState(html);
-                    if (listings.Count == 0)
-                    {
-                        _logger.LogDebug("JSON parsing returned empty, trying HTML fallback");
-                        listings = ParseHtmlFallback(html);
-                    }
-
-                    if (listings.Count == 0)
-                    {
-                        _logger.LogDebug("No more listings found on page {Page}", page);
+                var pagesBefore = pagesFetched;
+                string? typeFailure = null;
+                for (int page = 1; page <= _options.MaxSearchPagesPerPortal; page++)
+                {
+                    if (cancellationToken.IsCancellationRequested)
                         break;
-                    }
 
-                    results.AddRange(listings);
-
-                    if (page < _options.MaxSearchPagesPerPortal)
+                    if (requestsSent++ > 0)
                     {
                         await Task.Delay(_options.RequestDelay, cancellationToken).ConfigureAwait(false);
                     }
+
+                    var url = BuildSearchUrl(profile, type, page);
+                    _logger.LogDebug("Fetching OLX {Type} page {Page}: {Url}", type, page, url);
+
+                    try
+                    {
+                        var html = await _httpClient.GetStringAsync(url, cancellationToken).ConfigureAwait(false);
+                        pagesFetched++;
+
+                        // Try JSON parsing first, fallback to HTML
+                        var listings = ParsePrerenderedState(html);
+                        if (listings.Count == 0)
+                        {
+                            _logger.LogDebug("JSON parsing returned empty, trying HTML fallback");
+                            listings = ParseHtmlFallback(html);
+                        }
+
+                        if (listings.Count == 0)
+                        {
+                            _logger.LogDebug("No more {Type} listings found on page {Page}", type, page);
+                            break;
+                        }
+
+                        results.AddRange(listings.Select(l => l with { PropertyType = type }));
+                    }
+                    catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Forbidden)
+                    {
+                        _logger.LogWarning("OLX returned 403 Forbidden - possible rate limiting or bot detection");
+                        failure = "OLX returned 403 Forbidden";
+                        typeFailure = failure;
+                        blocked = true;
+                        break;
+                    }
+                    catch (HttpRequestException ex)
+                    {
+                        _logger.LogWarning(ex, "Failed to fetch OLX {Type} page {Page}", type, page);
+                        failure = $"OLX request failed: {ex.Message}";
+                        typeFailure = failure;
+                        break;
+                    }
                 }
-                catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Forbidden)
-                {
-                    _logger.LogWarning("OLX returned 403 Forbidden - possible rate limiting or bot detection");
-                    failure = "OLX returned 403 Forbidden";
-                    break;
-                }
-                catch (HttpRequestException ex)
-                {
-                    _logger.LogWarning(ex, "Failed to fetch OLX page {Page}", page);
-                    failure = $"OLX request failed: {ex.Message}";
-                    break;
-                }
+
+                if (pagesFetched == pagesBefore && !cancellationToken.IsCancellationRequested)
+                    lostTypes.Add(type);
+                else if (typeFailure is not null)
+                    partialTypes.Add((type, typeFailure)); // Later page failed: keep the listings, flag as incomplete.
             }
         }
         catch (OperationCanceledException)
@@ -112,13 +136,17 @@ public sealed partial class OlxScraper : IListingScraper
         _logger.LogInformation("OLX scraper found {Count} listings for profile {ProfileId}",
             results.Count, profile.Id);
 
-        return ScrapeResult.Success(results);
+        var warnings = lostTypes.Select(t => $"{t.ToPolish()} - nie pobrano")
+            .Concat(partialTypes.Select(p => $"{p.Type.ToPolish()} - niepełne wyniki ({p.Error})"))
+            .ToList();
+        return ScrapeResult.Success(results, warnings);
     }
 
-    private static string BuildSearchUrl(SearchProfile profile, int page)
+    private static string BuildSearchUrl(SearchProfile profile, PropertyTypes type, int page)
     {
         var city = NormalizeCity(profile.City);
-        var url = $"https://www.olx.pl/nieruchomosci/domy/sprzedaz/{city}/?page={page}";
+        var category = type == PropertyTypes.Apartment ? "mieszkania" : "domy";
+        var url = $"https://www.olx.pl/nieruchomosci/{category}/sprzedaz/{city}/?page={page}";
 
         if (profile.MinPrice.HasValue)
             url += $"&search[filter_float_price:from]={profile.MinPrice.Value:F0}";
@@ -128,6 +156,14 @@ public sealed partial class OlxScraper : IListingScraper
             url += $"&search[filter_float_m:from]={profile.MinAreaSqm.Value:F0}";
         if (profile.MaxAreaSqm.HasValue)
             url += $"&search[filter_float_m:to]={profile.MaxAreaSqm.Value:F0}";
+
+        // OLX has a room filter only for apartments; its last option "four" means "4 i więcej".
+        if (type == PropertyTypes.Apartment && profile.MinRooms is > 1 and var minRooms)
+        {
+            var codes = OlxRoomCodes.Skip(Math.Min(minRooms, OlxRoomCodes.Length) - 1).ToList();
+            for (var i = 0; i < codes.Count; i++)
+                url += $"&search[filter_enum_rooms][{i}]={codes[i]}";
+        }
 
         return url;
     }
@@ -252,30 +288,54 @@ public sealed partial class OlxScraper : IListingScraper
             {
                 foreach (var param in paramsProp.EnumerateArray())
                 {
-                    if (param.TryGetProperty("key", out var key) &&
-                        key.GetString() == "m" &&
-                        param.TryGetProperty("value", out var valueObj) &&
-                        valueObj.TryGetProperty("key", out var areaValue))
+                    if (param.ValueKind != JsonValueKind.Object ||
+                        !param.TryGetProperty("key", out var key) ||
+                        key.ValueKind != JsonValueKind.String ||
+                        key.GetString() != "m")
                     {
-                        var areaStr = areaValue.GetString() ?? "0";
-                        area = ParseDecimalInvariant(areaStr);
-                        break;
+                        continue;
                     }
+
+                    // Current OLX format: "normalizedValue": "100.2"; legacy: "value": { "key": "100.2" }.
+                    string? areaStr = null;
+                    if (param.TryGetProperty("normalizedValue", out var normalized) &&
+                        normalized.ValueKind == JsonValueKind.String)
+                    {
+                        areaStr = normalized.GetString();
+                    }
+                    else if (param.TryGetProperty("value", out var valueProp))
+                    {
+                        if (valueProp.ValueKind == JsonValueKind.Object &&
+                            valueProp.TryGetProperty("key", out var areaValue) &&
+                            areaValue.ValueKind == JsonValueKind.String)
+                        {
+                            areaStr = areaValue.GetString();
+                        }
+                        else if (valueProp.ValueKind == JsonValueKind.String)
+                        {
+                            var match = AreaRegex().Match(valueProp.GetString() ?? string.Empty);
+                            if (match.Success)
+                                areaStr = match.Groups[1].Value;
+                        }
+                    }
+
+                    area = ParseDecimalInvariant(areaStr ?? "0");
+                    break;
                 }
             }
 
             // Extract location
             string? location = null;
             if (item.TryGetProperty("location", out var locationProp) &&
-                locationProp.TryGetProperty("city", out var cityProp) &&
-                cityProp.TryGetProperty("name", out var cityName))
+                locationProp.ValueKind == JsonValueKind.Object)
             {
-                location = cityName.GetString();
+                // Current OLX format uses flat cityName/districtName; legacy uses nested city.name/district.name.
+                var city = GetNestedName(locationProp, "city") ?? GetString(locationProp, "cityName");
+                var district = GetNestedName(locationProp, "district") ?? GetString(locationProp, "districtName");
 
-                if (locationProp.TryGetProperty("district", out var districtProp) &&
-                    districtProp.TryGetProperty("name", out var districtName))
+                if (!string.IsNullOrWhiteSpace(city))
                 {
-                    location = $"{location}, {districtName.GetString()}";
+                    location = string.IsNullOrWhiteSpace(district) ? city : $"{city}, {district}";
                 }
             }
 
@@ -290,7 +350,9 @@ public sealed partial class OlxScraper : IListingScraper
                 Title = title,
                 Price = price,
                 AreaSqm = area,
-                Location = location
+                Location = location,
+                Details = BuildDetails(item),
+                Rooms = ParseRooms(item)
             };
         }
         catch
@@ -406,6 +468,136 @@ public sealed partial class OlxScraper : IListingScraper
         }
     }
 
+    public async Task<string?> GetDetailsAsync(string url, CancellationToken cancellationToken = default)
+    {
+        if (!IsOlxUrl(url))
+            return null;
+
+        try
+        {
+            var html = await _httpClient.GetStringAsync(url, cancellationToken).ConfigureAwait(false);
+            return ParseDetails(html);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to fetch OLX listing details {Url}", url);
+            return null;
+        }
+    }
+
+    internal static bool IsOlxUrl(string url) =>
+        Uri.TryCreate(url, UriKind.Absolute, out var uri) &&
+        uri.Scheme == Uri.UriSchemeHttps &&
+        (uri.Host.Equals("olx.pl", StringComparison.OrdinalIgnoreCase) ||
+         uri.Host.EndsWith(".olx.pl", StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>
+    /// Parses parameters and description from an OLX ad page (__PRERENDERED_STATE__ → ad.ad).
+    /// </summary>
+    internal static string? ParseDetails(string html)
+    {
+        try
+        {
+            var match = PrerenderedStateRegex().Match(html);
+            if (!match.Success)
+                return null;
+
+            using var doc = JsonDocument.Parse(Regex.Unescape(match.Groups[1].Value));
+            if (!doc.RootElement.TryGetProperty("ad", out var adWrapper) ||
+                adWrapper.ValueKind != JsonValueKind.Object ||
+                !adWrapper.TryGetProperty("ad", out var ad) ||
+                ad.ValueKind != JsonValueKind.Object)
+            {
+                return null;
+            }
+
+            return BuildDetails(ad);
+        }
+        catch (Exception ex) when (ex is JsonException or ArgumentException)
+        {
+            return null;
+        }
+    }
+
+    private static readonly string[] OlxRoomCodes = ["one", "two", "three", "four"];
+
+    /// <summary>
+    /// Reads the "rooms" param. OLX's top option ("four" / "4 i więcej") is open-ended,
+    /// so it is reported as unknown rather than exactly 4; the URL filter handles it.
+    /// </summary>
+    internal static int? ParseRooms(JsonElement item)
+    {
+        if (!item.TryGetProperty("params", out var paramsProp) || paramsProp.ValueKind != JsonValueKind.Array)
+            return null;
+
+        foreach (var param in paramsProp.EnumerateArray())
+        {
+            if (param.ValueKind != JsonValueKind.Object || GetString(param, "key") != "rooms")
+                continue;
+
+            var code = GetString(param, "normalizedValue");
+            string? text = null;
+            if (param.TryGetProperty("value", out var valueProp))
+            {
+                if (valueProp.ValueKind == JsonValueKind.Object)
+                {
+                    code ??= GetString(valueProp, "key");
+                    text = GetString(valueProp, "label");
+                }
+                else if (valueProp.ValueKind == JsonValueKind.String)
+                {
+                    text = valueProp.GetString();
+                }
+            }
+
+            if (text is not null && text.Contains("więcej", StringComparison.OrdinalIgnoreCase))
+                return null;
+
+            var index = Array.FindIndex(OlxRoomCodes, c => c.Equals(code, StringComparison.OrdinalIgnoreCase));
+            if (index >= 0)
+                return index == OlxRoomCodes.Length - 1 ? null : index + 1;
+
+            var digits = RoomsDigitsRegex().Match(text ?? code ?? string.Empty);
+            return digits.Success && int.TryParse(digits.Value, out var rooms) && rooms > 0 ? rooms : null;
+        }
+
+        return null;
+    }
+
+    private static string? BuildDetails(JsonElement ad)
+    {
+        var parameters = new List<(string, string)>();
+        if (ad.TryGetProperty("params", out var paramsProp) && paramsProp.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var param in paramsProp.EnumerateArray())
+            {
+                if (param.ValueKind != JsonValueKind.Object)
+                    continue;
+
+                var name = GetString(param, "name");
+                var value = GetString(param, "value");
+                if (name is not null && value is not null)
+                    parameters.Add((name, value));
+            }
+        }
+
+        return ListingDetailsText.Build(parameters, GetString(ad, "description"));
+    }
+
+    private static string? GetString(JsonElement element, string propertyName) =>
+        element.TryGetProperty(propertyName, out var prop) && prop.ValueKind == JsonValueKind.String
+            ? prop.GetString()
+            : null;
+
+    private static string? GetNestedName(JsonElement element, string propertyName) =>
+        element.TryGetProperty(propertyName, out var prop) && prop.ValueKind == JsonValueKind.Object
+            ? GetString(prop, "name")
+            : null;
+
     private static decimal ParseDecimalInvariant(string value)
     {
         return decimal.TryParse(
@@ -455,4 +647,7 @@ public sealed partial class OlxScraper : IListingScraper
 
     [GeneratedRegex(@"[^\d.]")]
     private static partial Regex PriceCleanRegex();
+
+    [GeneratedRegex(@"\d+")]
+    private static partial Regex RoomsDigitsRegex();
 }

@@ -11,6 +11,12 @@ public sealed record ListingEvaluation
     public int Score { get; init; }
 
     /// <summary>
+    /// Whether the buyer's hard requirements (e.g. "minimum 4 pokoje") are met:
+    /// "spełnione", "niespełnione" or "brak danych". Used only to cap <see cref="Score"/>; not persisted.
+    /// </summary>
+    public string? Requirements { get; init; }
+
+    /// <summary>
     /// Brief summary of the listing.
     /// </summary>
     public string? Summary { get; init; }

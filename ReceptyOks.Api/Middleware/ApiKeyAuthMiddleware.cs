@@ -132,9 +132,6 @@ public sealed class ApiKeyAuthMiddleware
     }
 }
 
-/// <summary>
-/// Extension method do rejestracji middleware.
-/// </summary>
 public static class ApiKeyAuthMiddlewareExtensions
 {
     public static IApplicationBuilder UseApiKeyAuth(this IApplicationBuilder builder)

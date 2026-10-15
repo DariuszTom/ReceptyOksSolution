@@ -37,48 +37,72 @@ public sealed partial class OtodomScraper : IListingScraper
         var results = new List<ScrapedListing>();
         var pagesFetched = 0;
         string? failure = null;
+        var lostTypes = new List<PropertyTypes>();
+        var partialTypes = new List<(PropertyTypes Type, string Error)>();
 
         try
         {
-            for (int page = 1; page <= _options.MaxSearchPagesPerPortal; page++)
+            var requestsSent = 0;
+            var blocked = false;
+            foreach (var type in profile.PropertyTypes.Selected())
             {
-                if (cancellationToken.IsCancellationRequested)
-                    break;
-
-                var url = BuildSearchUrl(profile, page);
-                _logger.LogDebug("Fetching Otodom page {Page}: {Url}", page, url);
-
-                try
+                // Bot detection applies to the whole portal; do not hammer it with the next category.
+                if (blocked)
                 {
-                    var html = await _httpClient.GetStringAsync(url, cancellationToken).ConfigureAwait(false);
-                    pagesFetched++;
-                    var listings = ParseNextData(html);
+                    lostTypes.Add(type);
+                    continue;
+                }
 
-                    if (listings.Count == 0)
-                    {
-                        _logger.LogDebug("No more listings found on page {Page}", page);
+                var pagesBefore = pagesFetched;
+                string? typeFailure = null;
+                for (int page = 1; page <= _options.MaxSearchPagesPerPortal; page++)
+                {
+                    if (cancellationToken.IsCancellationRequested)
                         break;
-                    }
 
-                    results.AddRange(listings);
-
-                    if (page < _options.MaxSearchPagesPerPortal)
+                    if (requestsSent++ > 0)
                     {
                         await Task.Delay(_options.RequestDelay, cancellationToken).ConfigureAwait(false);
                     }
+
+                    var url = BuildSearchUrl(profile, type, page);
+                    _logger.LogDebug("Fetching Otodom {Type} page {Page}: {Url}", type, page, url);
+
+                    try
+                    {
+                        var html = await _httpClient.GetStringAsync(url, cancellationToken).ConfigureAwait(false);
+                        pagesFetched++;
+                        var listings = ParseNextData(html);
+
+                        if (listings.Count == 0)
+                        {
+                            _logger.LogDebug("No more {Type} listings found on page {Page}", type, page);
+                            break;
+                        }
+
+                        results.AddRange(listings.Select(l => l with { PropertyType = type }));
+                    }
+                    catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Forbidden)
+                    {
+                        _logger.LogWarning("Otodom returned 403 Forbidden - possible rate limiting or bot detection");
+                        failure = "Otodom returned 403 Forbidden";
+                        typeFailure = failure;
+                        blocked = true;
+                        break;
+                    }
+                    catch (HttpRequestException ex)
+                    {
+                        _logger.LogWarning(ex, "Failed to fetch Otodom {Type} page {Page}", type, page);
+                        failure = $"Otodom request failed: {ex.Message}";
+                        typeFailure = failure;
+                        break;
+                    }
                 }
-                catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Forbidden)
-                {
-                    _logger.LogWarning("Otodom returned 403 Forbidden - possible rate limiting or bot detection");
-                    failure = "Otodom returned 403 Forbidden";
-                    break;
-                }
-                catch (HttpRequestException ex)
-                {
-                    _logger.LogWarning(ex, "Failed to fetch Otodom page {Page}", page);
-                    failure = $"Otodom request failed: {ex.Message}";
-                    break;
-                }
+
+                if (pagesFetched == pagesBefore && !cancellationToken.IsCancellationRequested)
+                    lostTypes.Add(type);
+                else if (typeFailure is not null)
+                    partialTypes.Add((type, typeFailure)); // Later page failed: keep the listings, flag as incomplete.
             }
         }
         catch (OperationCanceledException)
@@ -101,13 +125,20 @@ public sealed partial class OtodomScraper : IListingScraper
         _logger.LogInformation("Otodom scraper found {Count} listings for profile {ProfileId}",
             results.Count, profile.Id);
 
-        return ScrapeResult.Success(results);
+        var warnings = lostTypes.Select(t => $"{t.ToPolish()} - nie pobrano")
+            .Concat(partialTypes.Select(p => $"{p.Type.ToPolish()} - niepełne wyniki ({p.Error})"))
+            .ToList();
+        return ScrapeResult.Success(results, warnings);
     }
 
-    private static string BuildSearchUrl(SearchProfile profile, int page)
+    private static string BuildSearchUrl(SearchProfile profile, PropertyTypes type, int page)
     {
         var city = NormalizeCity(profile.City);
-        var url = $"https://www.otodom.pl/pl/wyniki/sprzedaz/dom/{city}?page={page}";
+        var category = type == PropertyTypes.Apartment ? "mieszkanie" : "dom";
+        // "/pl/wyniki/..." now requires the full location path (e.g. malopolskie/krakow/krakow/krakow)
+        // and returns 404 for a bare city slug. "/pl/oferty/..." resolves the slug and redirects there,
+        // preserving the query string.
+        var url = $"https://www.otodom.pl/pl/oferty/sprzedaz/{category}/{city}?page={page}";
 
         if (profile.MinPrice.HasValue)
             url += $"&priceMin={profile.MinPrice.Value:F0}";
@@ -117,6 +148,8 @@ public sealed partial class OtodomScraper : IListingScraper
             url += $"&areaMin={profile.MinAreaSqm.Value:F0}";
         if (profile.MaxAreaSqm.HasValue)
             url += $"&areaMax={profile.MaxAreaSqm.Value:F0}";
+        if (profile.MinRooms is > 1 and var minRooms)
+            url += $"&roomsNumber=%5B{string.Join("%2C", RoomCodes.Skip(Math.Min(minRooms, RoomCodes.Length) - 1))}%5D";
 
         return url;
     }
@@ -219,16 +252,45 @@ public sealed partial class OtodomScraper : IListingScraper
             // Extract location
             string? location = null;
             if (item.TryGetProperty("location", out var locationProp) &&
-                locationProp.TryGetProperty("address", out var addressProp) &&
-                addressProp.TryGetProperty("city", out var cityProp) &&
-                cityProp.TryGetProperty("name", out var cityName))
+                locationProp.ValueKind == JsonValueKind.Object)
             {
-                location = cityName.GetString();
+                string? city = null;
+                string? district = null;
 
-                if (addressProp.TryGetProperty("district", out var districtProp) &&
-                    districtProp.TryGetProperty("name", out var districtName))
+                if (locationProp.TryGetProperty("address", out var addressProp) &&
+                    addressProp.ValueKind == JsonValueKind.Object)
                 {
-                    location = $"{location}, {districtName.GetString()}";
+                    city = GetNestedName(addressProp, "city");
+                    district = GetNestedName(addressProp, "district");
+                }
+
+                // Current Otodom format leaves address.city null and exposes the hierarchy here.
+                if (city is null &&
+                    locationProp.TryGetProperty("reverseGeocoding", out var geo) &&
+                    geo.ValueKind == JsonValueKind.Object &&
+                    geo.TryGetProperty("locations", out var geoLocations) &&
+                    geoLocations.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (var loc in geoLocations.EnumerateArray())
+                    {
+                        if (loc.ValueKind != JsonValueKind.Object ||
+                            !loc.TryGetProperty("locationLevel", out var level) ||
+                            level.ValueKind != JsonValueKind.String)
+                        {
+                            continue;
+                        }
+
+                        var levelName = level.GetString();
+                        if (levelName == "city_or_village")
+                            city ??= GetString(loc, "name");
+                        else if (levelName == "district")
+                            district ??= GetString(loc, "name");
+                    }
+                }
+
+                if (!string.IsNullOrWhiteSpace(city))
+                {
+                    location = string.IsNullOrWhiteSpace(district) ? city : $"{city}, {district}";
                 }
             }
 
@@ -243,7 +305,8 @@ public sealed partial class OtodomScraper : IListingScraper
                 Title = title,
                 Price = price,
                 AreaSqm = area,
-                Location = location
+                Location = location,
+                Rooms = ParseRooms(item)
             };
         }
         catch
@@ -251,6 +314,189 @@ public sealed partial class OtodomScraper : IListingScraper
             return null;
         }
     }
+
+    // Otodom's roomsNumber enum; "MORE" means more than ten.
+    private static readonly string[] RoomCodes =
+        ["ONE", "TWO", "THREE", "FOUR", "FIVE", "SIX", "SEVEN", "EIGHT", "NINE", "TEN", "MORE"];
+
+    private static int? ParseRooms(JsonElement item)
+    {
+        if (!item.TryGetProperty("roomsNumber", out var rooms))
+            return null;
+
+        if (rooms.ValueKind == JsonValueKind.Number && rooms.TryGetInt32(out var number))
+            return number > 0 ? number : null;
+
+        if (rooms.ValueKind != JsonValueKind.String)
+            return null;
+
+        // "MORE" is open-ended (> 10), so its exact count is unknown.
+        var index = Array.FindIndex(RoomCodes, c => c.Equals(rooms.GetString(), StringComparison.OrdinalIgnoreCase));
+        return index >= 0 && index < RoomCodes.Length - 1 ? index + 1 : null;
+    }
+
+    public async Task<string?> GetDetailsAsync(string url, CancellationToken cancellationToken = default)
+    {
+        if (!IsOtodomUrl(url))
+            return null;
+
+        try
+        {
+            var html = await _httpClient.GetStringAsync(url, cancellationToken).ConfigureAwait(false);
+            return ParseDetails(html);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to fetch Otodom listing details {Url}", url);
+            return null;
+        }
+    }
+
+    internal static bool IsOtodomUrl(string url) =>
+        Uri.TryCreate(url, UriKind.Absolute, out var uri) &&
+        uri.Scheme == Uri.UriSchemeHttps &&
+        (uri.Host.Equals("otodom.pl", StringComparison.OrdinalIgnoreCase) ||
+         uri.Host.EndsWith(".otodom.pl", StringComparison.OrdinalIgnoreCase));
+
+    // Already present in the prompt (price, area) or irrelevant for evaluation.
+    private static readonly HashSet<string> SkippedDetailKeys = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "price", "price_per_m", "m", "is_ai_video_enabled", "advertiser_type"
+    };
+
+    private static readonly Dictionary<string, string> DetailLabels = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["rent"] = "Czynsz",
+        ["market"] = "Rynek",
+        ["building_type"] = "Rodzaj zabudowy",
+        ["floor_no"] = "Piętro",
+        ["building_floors_num"] = "Liczba pięter w budynku",
+        ["construction_status"] = "Stan wykończenia",
+        ["building_material"] = "Materiał budynku",
+        ["windows_type"] = "Okna",
+        ["building_ownership"] = "Forma własności",
+        ["heating"] = "Ogrzewanie",
+        ["rooms_num"] = "Liczba pokoi",
+        ["build_year"] = "Rok budowy",
+        ["terrain_area"] = "Powierzchnia działki",
+        ["security_types"] = "Zabezpieczenia",
+        ["extras_types"] = "Dodatkowe",
+        ["equipment_types"] = "Wyposażenie",
+        ["media_types"] = "Media",
+        ["lift"] = "Winda",
+        ["roof_type"] = "Dach",
+        ["recreational"] = "Rekreacyjny",
+        ["location"] = "Położenie",
+        ["vicinity_types"] = "Okolica",
+        ["fence_types"] = "Ogrodzenie",
+        ["access_types"] = "Dojazd",
+        ["garret_type"] = "Poddasze",
+        ["free_from"] = "Dostępne od"
+    };
+
+    /// <summary>
+    /// Parses parameters and description from an Otodom ad page
+    /// (__NEXT_DATA__ → props.pageProps.ad).
+    /// </summary>
+    internal static string? ParseDetails(string html)
+    {
+        try
+        {
+            var match = NextDataRegex().Match(html);
+            if (!match.Success)
+                return null;
+
+            using var doc = JsonDocument.Parse(match.Groups[1].Value);
+            if (!doc.RootElement.TryGetProperty("props", out var props) ||
+                !props.TryGetProperty("pageProps", out var pageProps) ||
+                !pageProps.TryGetProperty("ad", out var ad) ||
+                ad.ValueKind != JsonValueKind.Object)
+            {
+                return null;
+            }
+
+            var parameters = new List<(string, string)>();
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            if (ad.TryGetProperty("characteristics", out var characteristics) &&
+                characteristics.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var c in characteristics.EnumerateArray())
+                {
+                    if (c.ValueKind != JsonValueKind.Object) continue;
+                    var key = GetString(c, "key");
+                    if (key is null || SkippedDetailKeys.Contains(key) || !seen.Add(key)) continue;
+
+                    var localized = GetString(c, "localizedValue");
+                    var value = string.IsNullOrWhiteSpace(localized) ? HumanizeCode(GetString(c, "value")) : localized;
+                    if (!string.IsNullOrWhiteSpace(value))
+                        parameters.Add((LabelFor(key), value));
+                }
+            }
+
+            // Multi-value features (extras, equipment, security, media...) only live here.
+            if (ad.TryGetProperty("additionalInformation", out var additional) &&
+                additional.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var info in additional.EnumerateArray())
+                {
+                    if (info.ValueKind != JsonValueKind.Object) continue;
+                    var key = GetString(info, "label");
+                    if (key is null || SkippedDetailKeys.Contains(key) || !seen.Add(key)) continue;
+                    if (!info.TryGetProperty("values", out var values) || values.ValueKind != JsonValueKind.Array) continue;
+
+                    var items = values.EnumerateArray()
+                        .Where(v => v.ValueKind == JsonValueKind.String)
+                        .Select(v => HumanizeCode(v.GetString()))
+                        .Where(v => !string.IsNullOrWhiteSpace(v))
+                        .ToList();
+                    if (items.Count > 0)
+                        parameters.Add((LabelFor(key), string.Join(", ", items)));
+                }
+            }
+
+            return ListingDetailsText.Build(parameters, GetString(ad, "description"));
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+
+    private static string LabelFor(string key) =>
+        DetailLabels.TryGetValue(key, out var label) ? label : HumanizeCode(key) ?? key;
+
+    /// <summary>
+    /// Turns Otodom codes like "extras_types::balcony", "floor_no::floor_1" or "::y" into readable text.
+    /// </summary>
+    private static string? HumanizeCode(string? code)
+    {
+        if (string.IsNullOrWhiteSpace(code)) return null;
+
+        var sep = code.LastIndexOf("::", StringComparison.Ordinal);
+        var value = sep >= 0 ? code[(sep + 2)..] : code;
+
+        return value switch
+        {
+            "y" => "tak",
+            "n" => "nie",
+            _ => value.Replace('_', ' ')
+        };
+    }
+
+    private static string? GetString(JsonElement element, string propertyName) =>
+        element.TryGetProperty(propertyName, out var prop) && prop.ValueKind == JsonValueKind.String
+            ? prop.GetString()
+            : null;
+
+    private static string? GetNestedName(JsonElement element, string propertyName) =>
+        element.TryGetProperty(propertyName, out var prop) && prop.ValueKind == JsonValueKind.Object
+            ? GetString(prop, "name")
+            : null;
 
     [GeneratedRegex(@"<script\s+id=""__NEXT_DATA__""\s+type=""application/json""[^>]*>(.*?)</script>", RegexOptions.Singleline)]
     private static partial Regex NextDataRegex();
