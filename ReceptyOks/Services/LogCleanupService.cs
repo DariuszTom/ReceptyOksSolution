@@ -8,7 +8,7 @@ namespace ReceptyOks.Services;
 /// Runs once after a startup delay and then on a recurring interval.
 /// </summary>
 public sealed class LogCleanupService(
-    LocalDatabase database,
+    ILocalDatabase database,
     CleanupOptions options,
     ILogger<LogCleanupService> logger) : BackgroundService
 {
