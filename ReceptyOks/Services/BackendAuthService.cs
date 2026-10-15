@@ -43,10 +43,10 @@ namespace ReceptyOks.Services
             try
             {
                 var clientId = await ClientIdentityService.GetOrCreateAsync().ConfigureAwait(false);
-                using var response = await _httpClient.PostAsJsonAsync("/api/auth/validate", new { SecretHash = apiKey, ClientId = clientId }).ConfigureAwait(false);
+                using var response = await _httpClient.PostAsJsonAsync("/api/auth/validate", new ValidateRequest(apiKey, clientId), AuthJsonContext.Default.ValidateRequest).ConfigureAwait(false);
                 if (response.IsSuccessStatusCode)
                 {
-                    var parsed = await response.Content.ReadFromJsonAsync<AuthResponse>().ConfigureAwait(false)
+                    var parsed = await response.Content.ReadFromJsonAsync(AuthJsonContext.Default.AuthResponse).ConfigureAwait(false)
                         ?? new AuthResponse { IsValid = false, Message = "Nieznany bład" };
                     await StoreTokenAsync(parsed).ConfigureAwait(false);
                     return parsed;
@@ -75,11 +75,11 @@ namespace ReceptyOks.Services
             try
             {
                 var clientId = await ClientIdentityService.GetOrCreateAsync().ConfigureAwait(false);
-                using var response = await _httpClient.PostAsJsonAsync("/api/auth/validate", new { SecretHash = apiKey, ClientId = clientId }, cancellationToken).ConfigureAwait(false);
+                using var response = await _httpClient.PostAsJsonAsync("/api/auth/validate", new ValidateRequest(apiKey, clientId), AuthJsonContext.Default.ValidateRequest, cancellationToken).ConfigureAwait(false);
 
                 if (response.IsSuccessStatusCode)
                 {
-                    var parsed = await response.Content.ReadFromJsonAsync<AuthResponse>(cancellationToken).ConfigureAwait(false)
+                    var parsed = await response.Content.ReadFromJsonAsync(AuthJsonContext.Default.AuthResponse, cancellationToken).ConfigureAwait(false)
                         ?? new AuthResponse { IsValid = false, Message = "Nieznany bład" };
                     await StoreTokenAsync(parsed).ConfigureAwait(false);
                     return (parsed.IsValid ? AuthOutcome.Valid : AuthOutcome.Invalid, parsed);
@@ -128,7 +128,6 @@ namespace ReceptyOks.Services
             }
         }
 
-        [JsonSerializable(typeof(AuthResponse))]
         public sealed class AuthResponse
         {
             [JsonPropertyName("isValid")]
@@ -140,6 +139,14 @@ namespace ReceptyOks.Services
             [JsonPropertyName("expiresAt")]
             public DateTimeOffset? ExpiresAt { get; set; }
         }
+
+        public sealed record ValidateRequest(byte[] SecretHash, string ClientId);
     }
 
+    [JsonSerializable(typeof(BackendAuthService.AuthResponse))]
+    [JsonSerializable(typeof(BackendAuthService.ValidateRequest))]
+    [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
+    internal partial class AuthJsonContext : JsonSerializerContext
+    {
+    }
 }
