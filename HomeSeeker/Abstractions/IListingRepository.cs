@@ -88,6 +88,16 @@ public interface IListingRepository
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets listings of a profile seen in any scan since <paramref name="seenSince"/>, used as the
+    /// market sample for price medians. Only <c>Id</c>, <c>PropertyType</c>, <c>Price</c>,
+    /// <c>AreaSqm</c> and <c>Location</c> are populated.
+    /// </summary>
+    Task<IReadOnlyList<HouseListing>> GetMarketSampleAsync(
+        Guid profileId,
+        DateTime seenSince,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Gets top-rated listings for a profile.
     /// </summary>
     Task<IReadOnlyList<HouseListing>> GetTopListingsAsync(

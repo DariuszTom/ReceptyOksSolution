@@ -14,12 +14,14 @@ public interface IListingEvaluator
     /// <param name="profile">Search profile with criteria and preferences.</param>
     /// <param name="listing">The listing to evaluate.</param>
     /// <param name="details">Optional plain-text parameters and description scraped from the listing page.</param>
+    /// <param name="benchmark">Optional local market prices (district/city median per m²) from the current scan.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Evaluation result, or null on failure.</returns>
     Task<ListingEvaluation?> EvaluateAsync(
         SearchProfile profile,
         HouseListing listing,
         string? details,
+        PriceBenchmark? benchmark,
         CancellationToken cancellationToken = default);
 
     /// <summary>

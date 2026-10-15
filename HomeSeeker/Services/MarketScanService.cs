@@ -159,8 +159,11 @@ public sealed class MarketScanService : IMarketScanService
             }
 
             // Phase 3: Select candidates for AI evaluation
-            // Only new or price-dropped listings, sorted by price per sqm, limited by config
-            var candidates = SelectCandidates(upsertResults, _options.MaxCandidatesPerScan);
+            // Only new or price-dropped listings, ranked by price per m² relative to the
+            // local (district) median, limited by config.
+            var priceStats = new MarketPriceStats(
+                await GetMarketSampleAsync(profileId, upsertResults, cancellationToken).ConfigureAwait(false));
+            var candidates = SelectCandidates(upsertResults, _options.MaxCandidatesPerScan, priceStats);
 
             _logger.LogInformation("Selected {Count} candidates for AI evaluation", candidates.Count);
 
@@ -196,7 +199,8 @@ public sealed class MarketScanService : IMarketScanService
                         }
                     }
 
-                    var evaluation = await _evaluator.EvaluateAsync(profile, listing, details, cancellationToken)
+                    var evaluation = await _evaluator.EvaluateAsync(
+                            profile, listing, details, priceStats.GetBenchmark(listing), cancellationToken)
                         .ConfigureAwait(false);
 
                     if (evaluation is not null)
@@ -302,6 +306,43 @@ public sealed class MarketScanService : IMarketScanService
         return status == ScanStatus.Completed && persisted;
     }
 
+    /// <summary>
+    /// Market sample for price medians: every listing seen within <see cref="HomeSeekerOptions.ListingRetention"/>
+    /// (so the sample grows across scans), merged with this scan's listings. Falls back to
+    /// this scan alone when the history can't be loaded.
+    /// </summary>
+    private async Task<IReadOnlyCollection<HouseListing>> GetMarketSampleAsync(
+        Guid profileId, List<UpsertResult> upsertResults, CancellationToken cancellationToken)
+    {
+        // Current-scan entries win over history so the latest prices are used.
+        var sample = new Dictionary<Guid, HouseListing>();
+        foreach (var result in upsertResults)
+            sample.TryAdd(result.Listing.Id, result.Listing);
+
+        try
+        {
+            var history = await _repository
+                .GetMarketSampleAsync(profileId, DateTime.UtcNow - _options.ListingRetention, cancellationToken)
+                .ConfigureAwait(false);
+
+            foreach (var listing in history ?? [])
+                sample.TryAdd(listing.Id, listing);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Loading market sample failed for profile {ProfileId}; using current scan only", profileId);
+            _repository.ResetTracking();
+        }
+
+        _logger.LogDebug("Market sample for price medians: {Count} listings ({Current} from this scan)",
+            sample.Count, upsertResults.Count);
+        return sample.Values;
+    }
+
     private async Task<string?> FetchDetailsAsync(
         IListingScraper scraper, HouseListing listing, CancellationToken cancellationToken)
     {
@@ -321,17 +362,24 @@ public sealed class MarketScanService : IMarketScanService
     }
 
     /// <summary>
-    /// Picks new/price-dropped listings, cheapest per m² first, sharing the cap fairly
-    /// between property types (round-robin) so cheaper-per-m² houses can't crowd out
-    /// apartments. Slots a type can't use go to the other type.
+    /// Picks new/price-dropped listings that are cheapest relative to their local market
+    /// (price per m² / district median, see <see cref="MarketPriceStats"/>), so central
+    /// bargains compete fairly with cheap outskirts. The cap is shared round-robin between
+    /// property types so cheaper-per-m² houses can't crowd out apartments; slots a type
+    /// can't use go to the other type.
     /// </summary>
-    internal static List<UpsertResult> SelectCandidates(IEnumerable<UpsertResult> upsertResults, int max)
+    internal static List<UpsertResult> SelectCandidates(
+        IReadOnlyCollection<UpsertResult> upsertResults, int max, MarketPriceStats? priceStats = null)
     {
+        priceStats ??= new MarketPriceStats(upsertResults.Select(r => r.Listing));
+
         var queues = upsertResults
             .Where(r => r.IsNew || r.PriceDropped)
             .GroupBy(r => r.Listing.PropertyType)
             .OrderBy(g => g.Key)
-            .Select(g => new Queue<UpsertResult>(g.OrderBy(r => PricePerSqm(r.Listing))))
+            .Select(g => new Queue<UpsertResult>(g
+                .OrderBy(r => priceStats.RelativePrice(r.Listing))
+                .ThenBy(r => PricePerSqm(r.Listing))))
             .ToList();
 
         var selected = new List<UpsertResult>(max);

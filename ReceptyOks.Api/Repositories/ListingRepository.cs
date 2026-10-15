@@ -327,6 +327,26 @@ public sealed class ListingRepository : IListingRepository
             .ConfigureAwait(false);
     }
 
+    public async Task<IReadOnlyList<HouseListing>> GetMarketSampleAsync(
+        Guid profileId,
+        DateTime seenSince,
+        CancellationToken cancellationToken = default)
+    {
+        return await _db.HouseListings
+            .AsNoTracking()
+            .Where(l => l.SearchProfileId == profileId && !l.IsDeleted && l.LastSeenAt >= seenSince)
+            .Select(l => new HouseListing
+            {
+                Id = l.Id,
+                PropertyType = l.PropertyType,
+                Price = l.Price,
+                AreaSqm = l.AreaSqm,
+                Location = l.Location
+            })
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+    }
+
     public async Task<IReadOnlyList<HouseListing>> GetTopListingsAsync(
         Guid profileId,
         int count,

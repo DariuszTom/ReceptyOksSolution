@@ -47,7 +47,7 @@ public sealed class MarketScanServiceTests
             .ReturnsAsync([]);
 
         _evaluator = new Mock<IListingEvaluator>();
-        _evaluator.Setup(e => e.EvaluateAsync(It.IsAny<SearchProfile>(), It.IsAny<HouseListing>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+        _evaluator.Setup(e => e.EvaluateAsync(It.IsAny<SearchProfile>(), It.IsAny<HouseListing>(), It.IsAny<string?>(), It.IsAny<PriceBenchmark?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ListingEvaluation { Score = 70 });
         _evaluator.Setup(e => e.WriteReportHtmlAsync(It.IsAny<SearchProfile>(), It.IsAny<IReadOnlyList<HouseListing>>(),
                 It.IsAny<ScanRun>(), It.IsAny<CancellationToken>()))
@@ -102,7 +102,7 @@ public sealed class MarketScanServiceTests
         Assert.That(result, Is.False);
         _repository.Verify(r => r.CompleteScanRunAsync(_scanRun.Id, ScanStatus.Failed, 0, 0, 0, 0, null,
             It.Is<string>(e => e.Contains("Otodom: 403") && e.Contains("OLX: boom")), It.IsAny<CancellationToken>()), Times.Once);
-        _evaluator.Verify(e => e.EvaluateAsync(It.IsAny<SearchProfile>(), It.IsAny<HouseListing>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Never);
+        _evaluator.Verify(e => e.EvaluateAsync(It.IsAny<SearchProfile>(), It.IsAny<HouseListing>(), It.IsAny<string?>(), It.IsAny<PriceBenchmark?>(), It.IsAny<CancellationToken>()), Times.Never);
         _sender.VerifyNoOtherCalls();
     }
 
@@ -137,8 +137,8 @@ public sealed class MarketScanServiceTests
         AddUpsert("unchanged", price: 100_000, area: 100);
 
         var evaluatedIds = new List<string>();
-        _evaluator.Setup(e => e.EvaluateAsync(It.IsAny<SearchProfile>(), It.IsAny<HouseListing>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
-            .Callback((SearchProfile _, HouseListing l, string? _, CancellationToken _) => evaluatedIds.Add(l.ExternalId))
+        _evaluator.Setup(e => e.EvaluateAsync(It.IsAny<SearchProfile>(), It.IsAny<HouseListing>(), It.IsAny<string?>(), It.IsAny<PriceBenchmark?>(), It.IsAny<CancellationToken>()))
+            .Callback((SearchProfile _, HouseListing l, string? _, PriceBenchmark? _, CancellationToken _) => evaluatedIds.Add(l.ExternalId))
             .ReturnsAsync(new ListingEvaluation { Score = 50 });
 
         var sut = CreateSut([SucceedingScraper("Otodom", "cheap", "mid", "dropped", "expensive", "unchanged")],
@@ -162,8 +162,8 @@ public sealed class MarketScanServiceTests
         AddUpsert("a2", price: 950_000, area: 100, isNew: true, type: PropertyTypes.Apartment);
 
         var evaluatedIds = new List<string>();
-        _evaluator.Setup(e => e.EvaluateAsync(It.IsAny<SearchProfile>(), It.IsAny<HouseListing>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
-            .Callback((SearchProfile _, HouseListing l, string? _, CancellationToken _) => evaluatedIds.Add(l.ExternalId))
+        _evaluator.Setup(e => e.EvaluateAsync(It.IsAny<SearchProfile>(), It.IsAny<HouseListing>(), It.IsAny<string?>(), It.IsAny<PriceBenchmark?>(), It.IsAny<CancellationToken>()))
+            .Callback((SearchProfile _, HouseListing l, string? _, PriceBenchmark? _, CancellationToken _) => evaluatedIds.Add(l.ExternalId))
             .ReturnsAsync(new ListingEvaluation { Score = 50 });
 
         var sut = CreateSut([SucceedingScraper("Otodom", "h1", "h2", "h3", "a1", "a2")], maxCandidates: 4);
@@ -184,6 +184,131 @@ public sealed class MarketScanServiceTests
         var selected = MarketScanService.SelectCandidates(_upsertResults.Values, 4);
 
         Assert.That(selected.Select(r => r.Listing.ExternalId), Is.EquivalentTo(new[] { "h1", "h2", "h3", "a1" }));
+    }
+
+    [Test]
+    public void SelectCandidates_RanksByPriceRelativeToDistrictMedian()
+    {
+        // Outskirts: median 8 000 zł/m²; "outskirts-typical" is cheap in absolute terms but average locally.
+        for (var i = 0; i < 5; i++)
+            AddUpsert($"o{i}", price: 800_000 + i * 10_000, area: 100, location: "Kraków, Swoszowice");
+        AddUpsert("outskirts-typical", price: 800_000, area: 100, isNew: true, location: "Kraków, Swoszowice");
+
+        // Centre: median 18 000 zł/m²; "centre-bargain" is 14 000 zł/m² (~22% below local median).
+        for (var i = 0; i < 5; i++)
+            AddUpsert($"c{i}", price: 1_800_000 + i * 10_000, area: 100, location: "Kraków, Kazimierz");
+        AddUpsert("centre-bargain", price: 1_400_000, area: 100, isNew: true, location: "Kraków, kazimierz");
+
+        var selected = MarketScanService.SelectCandidates(_upsertResults.Values, 1);
+
+        Assert.That(selected.Single().Listing.ExternalId, Is.EqualTo("centre-bargain"));
+    }
+
+    [Test]
+    public async Task RunScan_PassesDistrictBenchmarkToEvaluator()
+    {
+        for (var i = 0; i < 5; i++)
+            AddUpsert($"o{i}", price: 800_000, area: 100, location: "Kraków, Swoszowice");
+        AddUpsert("new", price: 700_000, area: 100, isNew: true, location: "Kraków, Swoszowice");
+
+        PriceBenchmark? captured = null;
+        _evaluator.Setup(e => e.EvaluateAsync(It.IsAny<SearchProfile>(), It.IsAny<HouseListing>(), It.IsAny<string?>(), It.IsAny<PriceBenchmark?>(), It.IsAny<CancellationToken>()))
+            .Callback((SearchProfile _, HouseListing _, string? _, PriceBenchmark? b, CancellationToken _) => captured = b)
+            .ReturnsAsync(new ListingEvaluation { Score = 50 });
+
+        var sut = CreateSut([SucceedingScraper("Otodom", "o0", "o1", "o2", "o3", "o4", "new")]);
+
+        await sut.RunScanAsync(ProfileId);
+
+        Assert.That(captured, Is.Not.Null);
+        Assert.Multiple(() =>
+        {
+            Assert.That(captured!.DistrictMedianPerSqm, Is.EqualTo(8_000m));
+            Assert.That(captured.DistrictSampleSize, Is.EqualTo(6));
+            Assert.That(captured.CitySampleSize, Is.EqualTo(6));
+        });
+    }
+
+    [Test]
+    public async Task RunScan_UsesListingsFromPreviousScansForDistrictMedian()
+    {
+        // Only one listing in this scan; four more from earlier scans make the district reliable.
+        AddUpsert("new", price: 700_000, area: 100, isNew: true, location: "Kraków, Swoszowice");
+        var history = Enumerable.Range(0, 4).Select(_ => new HouseListing
+        {
+            Id = Guid.NewGuid(), Price = 900_000, AreaSqm = 100, Location = "Kraków, Swoszowice"
+        }).ToList();
+        // The current listing also comes back from the DB (already upserted) - must not be counted twice.
+        history.Add(_upsertResults["new"].Listing);
+
+        DateTime? seenSince = null;
+        _repository.Setup(r => r.GetMarketSampleAsync(ProfileId, It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .Callback((Guid _, DateTime since, CancellationToken _) => seenSince = since)
+            .ReturnsAsync(history);
+
+        PriceBenchmark? captured = null;
+        _evaluator.Setup(e => e.EvaluateAsync(It.IsAny<SearchProfile>(), It.IsAny<HouseListing>(), It.IsAny<string?>(), It.IsAny<PriceBenchmark?>(), It.IsAny<CancellationToken>()))
+            .Callback((SearchProfile _, HouseListing _, string? _, PriceBenchmark? b, CancellationToken _) => captured = b)
+            .ReturnsAsync(new ListingEvaluation { Score = 50 });
+
+        await CreateSut([SucceedingScraper("Otodom", "new")]).RunScanAsync(ProfileId);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(captured!.DistrictSampleSize, Is.EqualTo(5));
+            Assert.That(captured.DistrictMedianPerSqm, Is.EqualTo(9_000m));
+            Assert.That(seenSince, Is.EqualTo(DateTime.UtcNow.AddDays(-30)).Within(TimeSpan.FromMinutes(1)));
+        });
+    }
+
+    [Test]
+    public async Task RunScan_WhenMarketSampleFails_UsesCurrentScanOnly()
+    {
+        AddUpsert("new", price: 700_000, area: 100, isNew: true, location: "Kraków, Swoszowice");
+        _repository.Setup(r => r.GetMarketSampleAsync(ProfileId, It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("db"));
+
+        PriceBenchmark? captured = null;
+        _evaluator.Setup(e => e.EvaluateAsync(It.IsAny<SearchProfile>(), It.IsAny<HouseListing>(), It.IsAny<string?>(), It.IsAny<PriceBenchmark?>(), It.IsAny<CancellationToken>()))
+            .Callback((SearchProfile _, HouseListing _, string? _, PriceBenchmark? b, CancellationToken _) => captured = b)
+            .ReturnsAsync(new ListingEvaluation { Score = 50 });
+
+        var result = await CreateSut([SucceedingScraper("Otodom", "new")]).RunScanAsync(ProfileId);
+
+        Assert.That(result, Is.True);
+        Assert.That(captured!.CitySampleSize, Is.EqualTo(1));
+    }
+
+    [Test]
+    public void MarketPriceStats_WhenDistrictHasFewListings_FallsBackToCityMedian()
+    {
+        var listings = new[]
+        {
+            Listing(5_000, "Kraków, Podgórze"), Listing(6_000, "Kraków, Podgórze"),
+            Listing(7_000, "Kraków, Nowa Huta"), Listing(8_000, null)
+        };
+
+        var benchmark = new MarketPriceStats(listings).GetBenchmark(listings[0]);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(benchmark!.DistrictMedianPerSqm, Is.Null);
+            Assert.That(benchmark.CityMedianPerSqm, Is.EqualTo(6_500m));
+            Assert.That(benchmark.ReferencePerSqm, Is.EqualTo(6_500m));
+        });
+
+        static HouseListing Listing(decimal perSqm, string? location) =>
+            new() { Price = perSqm * 50, AreaSqm = 50, Location = location };
+    }
+
+    [TestCase("Kraków, Swoszowice", "swoszowice")]
+    [TestCase("Kraków,  Stare Miasto ", "stare miasto")]
+    [TestCase("Kraków", null)]
+    [TestCase("Kraków, ", null)]
+    [TestCase(null, null)]
+    public void MarketPriceStats_DistrictOf_ParsesLocation(string? location, string? expected)
+    {
+        Assert.That(MarketPriceStats.DistrictOf(location), Is.EqualTo(expected));
     }
 
     [Test]
@@ -222,7 +347,7 @@ public sealed class MarketScanServiceTests
 
         await sut.RunScanAsync(ProfileId);
 
-        _evaluator.Verify(e => e.EvaluateAsync(It.IsAny<SearchProfile>(), It.IsAny<HouseListing>(), "Opis z listy", It.IsAny<CancellationToken>()), Times.Once);
+        _evaluator.Verify(e => e.EvaluateAsync(It.IsAny<SearchProfile>(), It.IsAny<HouseListing>(), "Opis z listy", It.IsAny<PriceBenchmark?>(), It.IsAny<CancellationToken>()), Times.Once);
         scraper.Verify(s => s.GetDetailsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
@@ -241,7 +366,7 @@ public sealed class MarketScanServiceTests
         await sut.RunScanAsync(ProfileId);
 
         _evaluator.Verify(e => e.EvaluateAsync(It.IsAny<SearchProfile>(), It.Is<HouseListing>(l => l.ExternalId == "a"),
-            "Rok budowy: 2009", It.IsAny<CancellationToken>()), Times.Once);
+            "Rok budowy: 2009", It.IsAny<PriceBenchmark?>(), It.IsAny<CancellationToken>()), Times.Once);
         // Only AI candidates get the extra request.
         scraper.Verify(s => s.GetDetailsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -260,7 +385,7 @@ public sealed class MarketScanServiceTests
         var result = await sut.RunScanAsync(ProfileId);
 
         Assert.That(result, Is.True);
-        _evaluator.Verify(e => e.EvaluateAsync(It.IsAny<SearchProfile>(), It.IsAny<HouseListing>(), null, It.IsAny<CancellationToken>()), Times.Once);
+        _evaluator.Verify(e => e.EvaluateAsync(It.IsAny<SearchProfile>(), It.IsAny<HouseListing>(), null, It.IsAny<PriceBenchmark?>(), It.IsAny<CancellationToken>()), Times.Once);
         _repository.Verify(r => r.SaveEvaluationAsync(It.IsAny<Guid>(), It.IsAny<ListingEvaluation>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -271,9 +396,9 @@ public sealed class MarketScanServiceTests
         AddUpsert("throws", price: 200_000, area: 100, isNew: true);
         AddUpsert("ok", price: 300_000, area: 100, isNew: true);
 
-        _evaluator.Setup(e => e.EvaluateAsync(It.IsAny<SearchProfile>(), It.Is<HouseListing>(l => l.ExternalId == "null"), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+        _evaluator.Setup(e => e.EvaluateAsync(It.IsAny<SearchProfile>(), It.Is<HouseListing>(l => l.ExternalId == "null"), It.IsAny<string?>(), It.IsAny<PriceBenchmark?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((ListingEvaluation?)null);
-        _evaluator.Setup(e => e.EvaluateAsync(It.IsAny<SearchProfile>(), It.Is<HouseListing>(l => l.ExternalId == "throws"), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+        _evaluator.Setup(e => e.EvaluateAsync(It.IsAny<SearchProfile>(), It.Is<HouseListing>(l => l.ExternalId == "throws"), It.IsAny<string?>(), It.IsAny<PriceBenchmark?>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("AI down"));
 
         var sut = CreateSut([SucceedingScraper("Otodom", "null", "throws", "ok")]);
@@ -405,7 +530,7 @@ public sealed class MarketScanServiceTests
             NullLogger<MarketScanService>.Instance);
 
     private void AddUpsert(string externalId, decimal price, decimal area, bool isNew = false, bool priceDropped = false,
-        PropertyTypes type = PropertyTypes.House)
+        PropertyTypes type = PropertyTypes.House, string? location = null)
     {
         _upsertResults[externalId] = new UpsertResult
         {
@@ -419,7 +544,8 @@ public sealed class MarketScanServiceTests
                 Title = externalId,
                 Price = price,
                 AreaSqm = area,
-                PropertyType = type
+                PropertyType = type,
+                Location = location
             },
             IsNew = isNew,
             PriceDropped = priceDropped

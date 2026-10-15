@@ -44,11 +44,18 @@ public sealed class AgentListingEvaluator : IListingEvaluator
 
         Pola "pros" i "cons" ZAWSZE jako tablica (nawet pusta []), nigdy null.
 
+        Cenę i lokalizację oceniaj OSOBNO, żeby tania peryferia nie wygrywała samą ceną:
+        - "priceAssessment" i ocena ceny: porównuj cenę za m² z medianą DZIELNICY ogłoszenia
+          (jeśli podano "Ceny rynkowe"), a nie z ogólną średnią miasta. Tanio względem miasta,
+          ale drożej niż typowo w tej dzielnicy, to NIE jest okazja.
+        - Lokalizacja to osobne kryterium: dojazd do centrum, komunikacja, infrastruktura,
+          otoczenie. Odległa lokalizacja obniża ocenę, nawet przy niskiej cenie za m².
+
         Oceniaj pod kątem:
-        - Lokalizacja i okolica
+        - Lokalizacja i okolica (dostępność centrum i komunikacji)
         - Stan techniczny i wiek budynku
         - Układ pomieszczeń
-        - Cena za metr kwadratowy w porównaniu do rynku (osobno dla domów i mieszkań)
+        - Cena za metr kwadratowy względem mediany dzielnicy (osobno dla domów i mieszkań)
         - Dla domów: działka, garaż, ogród, piwnica
         - Dla mieszkań: piętro i winda, balkon/taras, miejsce parkingowe, komórka lokatorska, wysokość czynszu
 
@@ -70,6 +77,7 @@ public sealed class AgentListingEvaluator : IListingEvaluator
         SearchProfile profile,
         HouseListing listing,
         string? details,
+        PriceBenchmark? benchmark,
         CancellationToken cancellationToken = default)
     {
         try
@@ -79,7 +87,7 @@ public sealed class AgentListingEvaluator : IListingEvaluator
             // (see CODE_REVIEW.md C4).
             var agent = _agentFactory.CreateAgent(EvaluationSystemPrompt, withWebBrowsing: false);
 
-            var prompt = BuildEvaluationPrompt(profile, listing, details);
+            var prompt = BuildEvaluationPrompt(profile, listing, details, benchmark);
 
             _logger.LogDebug("Evaluating listing {ListingId} from {Portal}", listing.Id, listing.Portal);
 
@@ -121,7 +129,8 @@ public sealed class AgentListingEvaluator : IListingEvaluator
         }
     }
 
-    private static string BuildEvaluationPrompt(SearchProfile profile, HouseListing listing, string? details)
+    private string BuildEvaluationPrompt(
+        SearchProfile profile, HouseListing listing, string? details, PriceBenchmark? benchmark)
     {
         // Use InvariantCulture to avoid locale-specific thousand separators leaking
         // non-ASCII characters into the model prompt.
@@ -151,6 +160,29 @@ public sealed class AgentListingEvaluator : IListingEvaluator
             sb.AppendLine(details);
         }
         sb.AppendLine("--- KONIEC DANYCH OGŁOSZENIA ---");
+
+        // Computed server-side from numeric scan data only, so it is trusted context.
+        if (benchmark is not null)
+        {
+            var type = listing.PropertyType.ToPolish();
+            sb.AppendLine();
+            sb.AppendLine($"Ceny rynkowe (mediana z ogłoszeń z ostatnich {_options.ListingRetention.TotalDays:0} dni, ten sam typ nieruchomości):");
+            if (benchmark.DistrictMedianPerSqm is { } districtMedian)
+            {
+                sb.AppendLine($"- Dzielnica ogłoszenia: {districtMedian.ToString("N0", ci)} zł/m² ({benchmark.DistrictSampleSize} ogłoszeń, {type})");
+            }
+            else
+            {
+                sb.AppendLine("- Dzielnica ogłoszenia: za mało ogłoszeń do wiarygodnej mediany");
+            }
+            sb.AppendLine($"- Całe miasto: {benchmark.CityMedianPerSqm.ToString("N0", ci)} zł/m² ({benchmark.CitySampleSize} ogłoszeń, {type})");
+            if (listing.AreaSqm > 0 && benchmark.ReferencePerSqm > 0)
+            {
+                var ratio = listing.Price / listing.AreaSqm / benchmark.ReferencePerSqm - 1m;
+                var reference = benchmark.DistrictMedianPerSqm is not null ? "dzielnicy" : "miasta";
+                sb.AppendLine($"- Cena za m² względem mediany {reference}: {ratio.ToString("+0%;-0%;0%", ci)}");
+            }
+        }
 
         sb.AppendLine();
         sb.AppendLine("Kryteria kupującego:");
