@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
 using ReceptyOks.Api.Endpoints;
 using ReceptyOks.Api.Extensions;
-using ReceptyOks.Api.Services;
 using ReceptyOks.Api.Validators;
 using ReceptyOks.Shared.Configuration;
 using Scalar.AspNetCore;
