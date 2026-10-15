@@ -43,7 +43,7 @@ public class HomeSeekerCleanerTests
     }
 
     [Test]
-    public async Task WhenListingUnseenBeyondRetentionAndProfileRecentlyScannedThenItIsDeleted()
+    public async Task WhenListingUnseenBeyondRetentionAndProfileRecentlyScannedThenItIsHiddenNotDeleted()
     {
         var profileId = await SeedProfileAsync(lastScannedDaysAgo: 1);
         await SeedListingAsync(profileId, "stale", lastSeenDaysAgo: 40);
@@ -51,8 +51,24 @@ public class HomeSeekerCleanerTests
 
         var result = await CreateSut().CleanupAsync(CancellationToken.None);
 
-        Assert.That(result.Listings, Is.EqualTo(1));
+        Assert.That(result.HiddenListings, Is.EqualTo(1));
+        Assert.That(result.DeletedListings, Is.Zero);
         Assert.That(await RemainingListingIdsAsync(), Is.EqualTo(new[] { "fresh" }));
+        Assert.That(await RemainingListingIdsAsync(includeHidden: true), Is.EquivalentTo(new[] { "fresh", "stale" }));
+    }
+
+    [Test]
+    public async Task WhenHiddenListingUnseenBeyondHistoryRetentionThenItIsDeleted()
+    {
+        var profileId = await SeedProfileAsync(lastScannedDaysAgo: 1);
+        await SeedListingAsync(profileId, "hidden-old", lastSeenDaysAgo: 100, isDeleted: true);
+        await SeedListingAsync(profileId, "hidden-recent", lastSeenDaysAgo: 40, isDeleted: true);
+        await SeedListingAsync(profileId, "fresh", lastSeenDaysAgo: 5);
+
+        var result = await CreateSut().CleanupAsync(CancellationToken.None);
+
+        Assert.That(result.DeletedListings, Is.EqualTo(1));
+        Assert.That(await RemainingListingIdsAsync(includeHidden: true), Is.EquivalentTo(new[] { "fresh", "hidden-recent" }));
     }
 
     [Test]
@@ -63,7 +79,7 @@ public class HomeSeekerCleanerTests
 
         var result = await CreateSut().CleanupAsync(CancellationToken.None);
 
-        Assert.That(result.Listings, Is.Zero);
+        Assert.That(result.HiddenListings, Is.Zero);
         Assert.That(await RemainingListingIdsAsync(), Is.EqualTo(new[] { "old" }));
     }
 
@@ -75,7 +91,7 @@ public class HomeSeekerCleanerTests
 
         var result = await CreateSut().CleanupAsync(CancellationToken.None);
 
-        Assert.That(result.Listings, Is.Zero);
+        Assert.That(result.HiddenListings, Is.Zero);
     }
 
     [Test]
@@ -87,7 +103,7 @@ public class HomeSeekerCleanerTests
 
         var result = await CreateSut().CleanupAsync(CancellationToken.None);
 
-        Assert.That(result.Listings, Is.Zero);
+        Assert.That(result.HiddenListings, Is.Zero);
     }
 
     [Test]
@@ -101,7 +117,7 @@ public class HomeSeekerCleanerTests
 
         var result = await CreateSut().CleanupAsync(CancellationToken.None);
 
-        Assert.That(result.Listings, Is.EqualTo(1));
+        Assert.That(result.HiddenListings, Is.EqualTo(1));
         Assert.That(await RemainingListingIdsAsync(), Is.EquivalentTo(new[] { "otodom-fresh", "olx-stale" }));
     }
 
@@ -144,7 +160,8 @@ public class HomeSeekerCleanerTests
         return profile.Id;
     }
 
-    private async Task SeedListingAsync(Guid profileId, string externalId, int lastSeenDaysAgo, string portal = "Otodom")
+    private async Task SeedListingAsync(Guid profileId, string externalId, int lastSeenDaysAgo, string portal = "Otodom",
+        bool isDeleted = false)
     {
         using var scope = _serviceProvider.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<HomeSeekerDbContext>();
@@ -162,7 +179,8 @@ public class HomeSeekerCleanerTests
             FirstSeenAt = seen,
             LastSeenAt = seen,
             CreatedAt = seen,
-            UpdatedAt = seen
+            UpdatedAt = seen,
+            IsDeleted = isDeleted
         });
         await db.SaveChangesAsync();
     }
@@ -184,10 +202,13 @@ public class HomeSeekerCleanerTests
         return run.Id;
     }
 
-    private async Task<List<string>> RemainingListingIdsAsync()
+    private async Task<List<string>> RemainingListingIdsAsync(bool includeHidden = false)
     {
         using var scope = _serviceProvider.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<HomeSeekerDbContext>();
-        return await db.HouseListings.Select(l => l.ExternalId).ToListAsync();
+        return await db.HouseListings
+            .Where(l => includeHidden || !l.IsDeleted)
+            .Select(l => l.ExternalId)
+            .ToListAsync();
     }
 }

@@ -330,8 +330,9 @@ public sealed partial class OtodomScraper : IListingScraper
         if (rooms.ValueKind != JsonValueKind.String)
             return null;
 
+        // "MORE" is open-ended (> 10), so its exact count is unknown.
         var index = Array.FindIndex(RoomCodes, c => c.Equals(rooms.GetString(), StringComparison.OrdinalIgnoreCase));
-        return index >= 0 ? index + 1 : null;
+        return index >= 0 && index < RoomCodes.Length - 1 ? index + 1 : null;
     }
 
     public async Task<string?> GetDetailsAsync(string url, CancellationToken cancellationToken = default)

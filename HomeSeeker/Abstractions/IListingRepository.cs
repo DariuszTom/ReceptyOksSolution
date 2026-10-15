@@ -73,6 +73,17 @@ public interface IListingRepository
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Refreshes an already-stored listing that no longer matches the profile's criteria
+    /// (current price, LastSeenAt) and hides it from listings and reports by soft-deleting it.
+    /// Does nothing when the listing is not stored. A later <see cref="UpsertListingAsync"/>
+    /// restores it once it matches again.
+    /// </summary>
+    Task ExcludeListingAsync(
+        Guid profileId,
+        ScrapedListing scraped,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Resets the underlying change tracker. Must be called after an upsert
     /// failure so a tracked-but-not-saved entity does not poison every subsequent
     /// SaveChanges call in the same scope.

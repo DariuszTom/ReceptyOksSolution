@@ -62,8 +62,9 @@ public sealed class HomeSeekerOptions : IValidatableObject
     public string Model { get; set; } = "claude-sonnet-5-5";
 
     /// <summary>
-    /// Listings not seen in any scan for this long are deleted, but only when their
-    /// profile was scanned within this window (so pausing scans never wipes data).
+    /// Listings not seen in any scan for this long are hidden (soft-deleted), but only when their
+    /// profile was scanned within this window (so pausing scans never wipes data). Hidden listings
+    /// are hard-deleted once unseen for <see cref="ScanHistoryRetention"/>.
     /// </summary>
     public TimeSpan ListingRetention { get; set; } = TimeSpan.FromDays(30);
 

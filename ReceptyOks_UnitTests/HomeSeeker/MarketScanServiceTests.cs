@@ -181,7 +181,7 @@ public sealed class MarketScanServiceTests
         AddUpsert("h3", price: 220_000, area: 100, isNew: true);
         AddUpsert("a1", price: 900_000, area: 100, isNew: true, type: PropertyTypes.Apartment);
 
-        var selected = MarketScanService.SelectCandidates(_upsertResults.Values, 4);
+        var selected = ListingSelection.SelectCandidates(_upsertResults.Values, 4);
 
         Assert.That(selected.Select(r => r.Listing.ExternalId), Is.EquivalentTo(new[] { "h1", "h2", "h3", "a1" }));
     }
@@ -199,7 +199,7 @@ public sealed class MarketScanServiceTests
         var profile = new SearchProfile { City = "Kraków", MinPrice = 700_000, MaxPrice = 1_400_000, MinAreaSqm = 70, MaxAreaSqm = 130 };
         var listing = new ScrapedListing { Portal = "Otodom", ExternalId = "x", Url = "https://x", Title = "x", Price = price, AreaSqm = area };
 
-        Assert.That(MarketScanService.MatchesCriteria(profile, listing), Is.EqualTo(expected));
+        Assert.That(ListingSelection.MatchesCriteria(profile, listing), Is.EqualTo(expected));
     }
 
     [TestCase(4, 4, true)]
@@ -212,7 +212,7 @@ public sealed class MarketScanServiceTests
         var profile = new SearchProfile { City = "Kraków", MinRooms = minRooms };
         var listing = new ScrapedListing { Portal = "Otodom", ExternalId = "x", Url = "https://x", Title = "x", Price = 1, AreaSqm = 1, Rooms = rooms };
 
-        Assert.That(MarketScanService.MatchesCriteria(profile, listing), Is.EqualTo(expected));
+        Assert.That(ListingSelection.MatchesCriteria(profile, listing), Is.EqualTo(expected));
     }
 
     [Test]
@@ -234,6 +234,22 @@ public sealed class MarketScanServiceTests
         Assert.That(result, Is.True);
         _repository.Verify(r => r.UpsertListingAsync(ProfileId, It.Is<ScrapedListing>(s => s.ExternalId == "too-expensive"), It.IsAny<CancellationToken>()), Times.Never);
         _repository.Verify(r => r.UpsertListingAsync(ProfileId, It.Is<ScrapedListing>(s => s.ExternalId == "ok"), It.IsAny<CancellationToken>()), Times.Once);
+        _repository.Verify(r => r.ExcludeListingAsync(ProfileId, It.Is<ScrapedListing>(s => s.ExternalId == "too-expensive" && s.Price == 2_500_000), It.IsAny<CancellationToken>()), Times.Once);
+        _repository.Verify(r => r.ExcludeListingAsync(ProfileId, It.Is<ScrapedListing>(s => s.ExternalId == "ok"), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Test]
+    public void SelectCandidates_DeduplicatesRepeatedListings_PreferringNewOccurrence()
+    {
+        AddUpsert("dup", price: 300_000, area: 100, isNew: true);
+        var first = _upsertResults["dup"];
+        var repeated = new UpsertResult { Listing = first.Listing, IsNew = false, PriceDropped = false };
+        AddUpsert("other", price: 900_000, area: 100);
+
+        var selected = ListingSelection.SelectCandidates([repeated, first, _upsertResults["other"]], 3);
+
+        Assert.That(selected.Select(r => r.Listing.ExternalId), Is.EqualTo(new[] { "dup", "other" }));
+        Assert.That(selected[0].IsNew, Is.True);
     }
 
     [Test]
@@ -245,7 +261,7 @@ public sealed class MarketScanServiceTests
         AddUpsert("already-scored", price: 100_000, area: 100);
         _upsertResults["already-scored"].Listing.AiScore = 70;
 
-        var selected = MarketScanService.SelectCandidates(_upsertResults.Values, 2);
+        var selected = ListingSelection.SelectCandidates(_upsertResults.Values, 2);
 
         // New listings come first; the cheapest unevaluated one fills the remaining slot.
         Assert.That(selected.Select(r => r.Listing.ExternalId), Is.EqualTo(new[] { "new", "backlog-cheap" }));
@@ -277,7 +293,7 @@ public sealed class MarketScanServiceTests
             AddUpsert($"c{i}", price: 1_800_000 + i * 10_000, area: 100, location: "Kraków, Kazimierz");
         AddUpsert("centre-bargain", price: 1_400_000, area: 100, isNew: true, location: "Kraków, kazimierz");
 
-        var selected = MarketScanService.SelectCandidates(_upsertResults.Values, 1);
+        var selected = ListingSelection.SelectCandidates(_upsertResults.Values, 1);
 
         Assert.That(selected.Single().Listing.ExternalId, Is.EqualTo("centre-bargain"));
     }

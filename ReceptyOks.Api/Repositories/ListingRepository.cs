@@ -258,6 +258,8 @@ public sealed class ListingRepository : IListingRepository
             existing.PropertyType = scraped.PropertyType;
             existing.LastSeenAt = now;
             existing.UpdatedAt = now;
+            // Seen again within the criteria: restore a listing hidden as stale or out of range.
+            existing.IsDeleted = false;
 
             await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
@@ -297,6 +299,26 @@ public sealed class ListingRepository : IListingRepository
             IsNew = true,
             PriceDropped = false
         };
+    }
+
+    public async Task ExcludeListingAsync(
+        Guid profileId,
+        ScrapedListing scraped,
+        CancellationToken cancellationToken = default)
+    {
+        var now = DateTime.UtcNow;
+        await _db.HouseListings
+            .Where(l => l.SearchProfileId == profileId
+                && l.Portal == scraped.Portal
+                && l.ExternalId == scraped.ExternalId)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(l => l.Price, scraped.Price)
+                .SetProperty(l => l.AreaSqm, scraped.AreaSqm)
+                .SetProperty(l => l.LastSeenAt, now)
+                .SetProperty(l => l.UpdatedAt, now)
+                .SetProperty(l => l.IsDeleted, true),
+                cancellationToken)
+            .ConfigureAwait(false);
     }
 
     public void ResetTracking() => _db.ChangeTracker.Clear();

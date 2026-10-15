@@ -129,13 +129,15 @@ public sealed class OtodomScraperParserTests
             {"props":{"pageProps":{"data":{"searchAds":{"items":[
               {"id":1,"slug":"a","title":"A","totalPrice":{"value":1},"areaInSquareMeters":1,"roomsNumber":"FOUR"},
               {"id":2,"slug":"b","title":"B","totalPrice":{"value":1},"areaInSquareMeters":1,"roomsNumber":3},
-              {"id":3,"slug":"c","title":"C","totalPrice":{"value":1},"areaInSquareMeters":1}
+              {"id":3,"slug":"c","title":"C","totalPrice":{"value":1},"areaInSquareMeters":1},
+              {"id":4,"slug":"d","title":"D","totalPrice":{"value":1},"areaInSquareMeters":1,"roomsNumber":"TEN"},
+              {"id":5,"slug":"e","title":"E","totalPrice":{"value":1},"areaInSquareMeters":1,"roomsNumber":"MORE"}
             ]}}}}}
             </script>
             """;
 
         var listings = OtodomScraper.ParseNextData(html);
 
-        Assert.That(listings.Select(l => l.Rooms), Is.EqualTo(new int?[] { 4, 3, null }));
+        Assert.That(listings.Select(l => l.Rooms), Is.EqualTo(new int?[] { 4, 3, null, 10, null }));
     }
 }
