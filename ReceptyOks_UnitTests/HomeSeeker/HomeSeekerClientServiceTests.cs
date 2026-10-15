@@ -190,13 +190,15 @@ public sealed class HomeSeekerClientServiceTests
             AreaSqm = 120,
             AiScore = 82,
             AiProsJson = """["Duży ogród","Cicha okolica"]""",
-            AiConsJson = """["Do remontu"]"""
+            AiConsJson = """["Do remontu"]""",
+            DistanceFromCenterKm = 4.25,
+            DistanceIsApproximate = true
         };
         var page = new { TotalCount = 41, PageNumber = 2, PageSize = 20, TotalPages = 3, Data = new[] { listing } };
         var handler = new StubHandler(_ => Json(HttpStatusCode.OK, page));
         var sut = CreateSut(handler, out _);
 
-        var result = await sut.GetListingsAsync(pageNumber: 2, pageSize: 20, minScore: 70, sort: "price");
+        var result = await sut.GetListingsAsync(2, 20, new HomeSeekerListingQuery { MinScore = 70, Sort = "price" });
 
         Assert.That(handler.Requests.Single().RequestUri!.PathAndQuery,
             Is.EqualTo("/api/homeseeker/listings?pageNumber=2&pageSize=20&minScore=70&sort=price"));
@@ -211,7 +213,30 @@ public sealed class HomeSeekerClientServiceTests
             Assert.That(item.Pros, Is.EqualTo(new[] { "Duży ogród", "Cicha okolica" }));
             Assert.That(item.Cons, Is.EqualTo(new[] { "Do remontu" }));
             Assert.That(item.HasHttpUrl, Is.True);
+            Assert.That(item.DistanceFromCenterKm, Is.EqualTo(4.25));
+            Assert.That(item.DistanceIsApproximate, Is.True);
+            Assert.That(item.DistanceText, Does.StartWith("ok. ").And.EndWith(" km do centrum"));
         });
+    }
+
+    [Test]
+    public async Task GetListingsAsync_SendsAllFilters()
+    {
+        var page = new { TotalCount = 0, PageNumber = 1, PageSize = 20, TotalPages = 0, Data = Array.Empty<object>() };
+        var handler = new StubHandler(_ => Json(HttpStatusCode.OK, page));
+        var sut = CreateSut(handler, out _);
+
+        await sut.GetListingsAsync(1, 20, new HomeSeekerListingQuery
+        {
+            Sort = "distance",
+            PropertyType = HomeSeekerPropertyTypes.Apartment,
+            Portal = "OLX",
+            MaxDistanceKm = 5,
+            PriceDropOnly = true
+        });
+
+        Assert.That(handler.Requests.Single().RequestUri!.PathAndQuery,
+            Is.EqualTo("/api/homeseeker/listings?pageNumber=1&pageSize=20&sort=distance&propertyType=2&portal=OLX&maxDistanceKm=5&priceDropOnly=true"));
     }
 
     [Test]

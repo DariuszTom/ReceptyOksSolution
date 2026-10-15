@@ -86,7 +86,14 @@ public sealed class MarketScanService : IMarketScanService
             var candidates = ListingSelection.SelectCandidates(upsertResults, _options.MaxCandidatesPerScan, priceStats);
             _logger.LogInformation("Selected {Count} candidates for AI evaluation", candidates.Count);
 
-            await EvaluateCandidatesAsync(profile, candidates, scraped, priceStats, stats, cancellationToken)
+            var cityCenter = upsertResults.Count > 0
+                ? await GetCityCenterAsync(profile.City, cancellationToken).ConfigureAwait(false)
+                : null;
+
+            await UpdateDistancesAsync(upsertResults, candidates, scraped, cityCenter, cancellationToken)
+                .ConfigureAwait(false);
+
+            await EvaluateCandidatesAsync(profile, candidates, scraped, priceStats, cityCenter, stats, cancellationToken)
                 .ConfigureAwait(false);
 
             reportHtml = await WriteReportAsync(profile, scanRun, stats, cancellationToken).ConfigureAwait(false);
@@ -259,16 +266,11 @@ public sealed class MarketScanService : IMarketScanService
         IReadOnlyList<UpsertResult> candidates,
         IReadOnlyList<ScrapedListing> scraped,
         MarketPriceStats priceStats,
+        GeoPoint? cityCenter,
         ScanStats stats,
         CancellationToken cancellationToken)
     {
-        var scrapedByKey = scraped
-            .GroupBy(s => (s.Portal, s.ExternalId))
-            .ToDictionary(g => g.Key, g => g.First());
-
-        var cityCenter = candidates.Count > 0
-            ? await GetCityCenterAsync(profile.City, cancellationToken).ConfigureAwait(false)
-            : null;
+        var scrapedByKey = ToScrapedLookup(scraped);
 
         var detailRequests = 0;
         foreach (var candidate in candidates)
@@ -303,6 +305,10 @@ public sealed class MarketScanService : IMarketScanService
                 var benchmark = await EnrichBenchmarkAsync(
                         priceStats.GetBenchmark(listing), listing, coordinates, cityCenter, cancellationToken)
                     .ConfigureAwait(false);
+
+                if (benchmark?.DistanceFromCenterKm is { } distanceKm)
+                    await SaveDistanceAsync(listing, distanceKm, benchmark.DistanceIsApproximate, cancellationToken)
+                        .ConfigureAwait(false);
 
                 var evaluation = await _evaluator.EvaluateAsync(
                         profile, listing, details, benchmark, cancellationToken)
@@ -527,6 +533,71 @@ public sealed class MarketScanService : IMarketScanService
             DistanceIsApproximate = distance is not null && point.IsApproximate,
             Rcn = rcn
         };
+    }
+
+    private static Dictionary<(string Portal, string ExternalId), ScrapedListing> ToScrapedLookup(
+        IReadOnlyList<ScrapedListing> scraped) =>
+        scraped
+            .GroupBy(s => (s.Portal, s.ExternalId))
+            .ToDictionary(g => g.Key, g => g.First());
+
+    /// <summary>
+    /// Stores the distance for every scraped listing whose search result has coordinates, not only
+    /// for AI candidates, so the distance filter covers the whole list. Candidates are skipped:
+    /// they get a more precise distance from the ad page during evaluation.
+    /// </summary>
+    private async Task UpdateDistancesAsync(
+        IReadOnlyList<UpsertResult> upsertResults,
+        IReadOnlyList<UpsertResult> candidates,
+        IReadOnlyList<ScrapedListing> scraped,
+        GeoPoint? cityCenter,
+        CancellationToken cancellationToken)
+    {
+        if (cityCenter is not { } center)
+            return;
+
+        var scrapedByKey = ToScrapedLookup(scraped);
+        var candidateIds = candidates.Select(c => c.Listing.Id).ToHashSet();
+
+        foreach (var result in upsertResults)
+        {
+            var listing = result.Listing;
+            if (candidateIds.Contains(listing.Id) ||
+                !scrapedByKey.TryGetValue((listing.Portal, listing.ExternalId), out var scrapedListing) ||
+                scrapedListing.Coordinates is not { } point)
+            {
+                continue;
+            }
+
+            var distanceKm = Math.Round(point.DistanceKmTo(center), 1);
+            if (listing.DistanceFromCenterKm == distanceKm && listing.DistanceIsApproximate == point.IsApproximate)
+                continue;
+
+            await SaveDistanceAsync(listing, distanceKm, point.IsApproximate, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>
+    /// Persists the distance so the app can show and filter by it; a failure only loses the distance.
+    /// </summary>
+    private async Task SaveDistanceAsync(
+        HouseListing listing, double distanceKm, bool isApproximate, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _repository.SaveDistanceAsync(listing.Id, distanceKm, isApproximate, cancellationToken)
+                .ConfigureAwait(false);
+            listing.DistanceFromCenterKm = distanceKm;
+            listing.DistanceIsApproximate = isApproximate;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Saving distance failed for listing {ListingId}", listing.Id);
+        }
     }
 
     private async Task<ListingDetails?> FetchDetailsAsync(

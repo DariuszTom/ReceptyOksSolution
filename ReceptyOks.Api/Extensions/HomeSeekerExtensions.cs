@@ -125,6 +125,10 @@ public static class HomeSeekerExtensions
                 sqliteType: "INTEGER NOT NULL DEFAULT 1", sqlServerType: "INT NOT NULL DEFAULT 1");
             EnsureColumn(db, logger, "SearchProfiles", "MinRooms",
                 sqliteType: "INTEGER NULL", sqlServerType: "INT NULL");
+            EnsureColumn(db, logger, "HouseListings", "DistanceFromCenterKm",
+                sqliteType: "REAL NULL", sqlServerType: "FLOAT NULL");
+            EnsureColumn(db, logger, "HouseListings", "DistanceIsApproximate",
+                sqliteType: "INTEGER NOT NULL DEFAULT 0", sqlServerType: "BIT NOT NULL DEFAULT 0");
         }
         catch (Exception ex)
         {

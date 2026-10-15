@@ -320,6 +320,39 @@ public sealed class AgentListingEvaluatorTests
     }
 
     [Test]
+    public async Task WriteReportHtmlAsync_RendersEncodedProsConsAndDistance()
+    {
+        var listing = Listing();
+        listing.AiProsJson = """["Duży taras","<b>cisza</b>"]""";
+        listing.AiConsJson = """["Do remontu"]""";
+        listing.DistanceFromCenterKm = 3.24;
+        listing.DistanceIsApproximate = true;
+
+        var html = await CreateSut().WriteReportHtmlAsync(Profile(), [listing], CreateScanRun());
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(html, Does.Contain("+ Duży taras"));
+            Assert.That(html, Does.Contain("+ &lt;b&gt;cisza&lt;/b&gt;"));
+            Assert.That(html, Does.Not.Contain("<b>cisza</b>"));
+            Assert.That(html, Does.Contain("− Do remontu"));
+            Assert.That(html, Does.Contain("ok. 3,2 km do centrum"));
+        });
+    }
+
+    [Test]
+    public async Task WriteReportHtmlAsync_WithMalformedProsJson_SkipsList()
+    {
+        var listing = Listing();
+        listing.AiProsJson = "not json";
+
+        var html = await CreateSut().WriteReportHtmlAsync(Profile(), [listing], CreateScanRun());
+
+        Assert.That(html, Does.Not.Contain("<ul"));
+        Assert.That(html, Does.Not.Contain("km do centrum"));
+    }
+
+    [Test]
     public async Task WriteReportHtmlAsync_WithNoListings_RendersEmptyMessage()
     {
         var html = await CreateSut().WriteReportHtmlAsync(Profile(), [], CreateScanRun());

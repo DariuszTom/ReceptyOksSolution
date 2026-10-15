@@ -224,6 +224,76 @@ public class HomeSeekerEndpointsTests
     }
 
     [Test]
+    public async Task Listings_FiltersAndSortsByQuery()
+    {
+        var profile = await PutProfileAsync(_userA);
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var repository = scope.ServiceProvider.GetRequiredService<HomeSeeker.Abstractions.IListingRepository>();
+
+            async Task SeedAsync(string id, string portal, PropertyTypes type, decimal price, decimal area, double? km, decimal? previousPrice = null)
+            {
+                var result = await repository.UpsertListingAsync(profile.Id, new ScrapedListing
+                {
+                    Portal = portal,
+                    ExternalId = id,
+                    Url = $"https://example.com/{id}",
+                    Title = id,
+                    Price = previousPrice ?? price,
+                    AreaSqm = area,
+                    PropertyType = type
+                });
+                if (previousPrice is not null)
+                {
+                    await repository.UpsertListingAsync(profile.Id, new ScrapedListing
+                    {
+                        Portal = portal, ExternalId = id, Url = $"https://example.com/{id}", Title = id,
+                        Price = price, AreaSqm = area, PropertyType = type
+                    });
+                }
+                if (km is { } distance)
+                    await repository.SaveDistanceAsync(result.Listing.Id, distance, false);
+            }
+
+            await SeedAsync("near-flat", "OLX", PropertyTypes.Apartment, 500_000, 50, 2.0, previousPrice: 550_000);
+            await SeedAsync("far-flat", "OLX", PropertyTypes.Apartment, 400_000, 60, 8.0);
+            await SeedAsync("mid-house", "Otodom", PropertyTypes.House, 900_000, 150, 4.0);
+            await SeedAsync("unknown-house", "Otodom", PropertyTypes.House, 700_000, 120, null);
+        }
+
+        async Task<string[]> TitlesAsync(string query)
+        {
+            var json = await _userA.GetStringAsync($"/api/homeseeker/listings?{query}");
+            using var doc = System.Text.Json.JsonDocument.Parse(json);
+            return doc.RootElement.GetProperty("data").EnumerateArray()
+                .Select(e => e.GetProperty("title").GetString()!).ToArray();
+        }
+
+        var expectations = new (string Query, string[] Titles)[]
+        {
+            ("sort=distance", ["near-flat", "mid-house", "far-flat", "unknown-house"]),
+            ("sort=price_desc", ["mid-house", "unknown-house", "near-flat", "far-flat"]),
+            ("sort=pricesqm", ["unknown-house", "mid-house", "far-flat", "near-flat"]),
+            ("sort=area_desc", ["mid-house", "unknown-house", "far-flat", "near-flat"]),
+            ("propertyType=2&sort=price", ["far-flat", "near-flat"]),
+            ("portal=otodom&sort=price", ["unknown-house", "mid-house"]),
+            ("maxDistanceKm=5&sort=distance", ["near-flat", "mid-house"]),
+            ("priceDropOnly=true", ["near-flat"]),
+            // Combined flags mean any type.
+            ("propertyType=3&sort=price", ["far-flat", "near-flat", "unknown-house", "mid-house"])
+        };
+        var actual = new List<string[]>();
+        foreach (var (query, _) in expectations)
+            actual.Add(await TitlesAsync(query));
+
+        Assert.Multiple(() =>
+        {
+            for (var i = 0; i < expectations.Length; i++)
+                Assert.That(actual[i], Is.EqualTo(expectations[i].Titles), expectations[i].Query);
+        });
+    }
+
+    [Test]
     public async Task RemovedPerProfileEndpoints_Return404()
     {
         var profile = await PutProfileAsync(_userA);

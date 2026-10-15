@@ -372,7 +372,7 @@ public sealed class AgentListingEvaluator : IListingEvaluator
                 var titleEncoded = System.Net.WebUtility.HtmlEncode(listing.Title ?? string.Empty);
                 var titleCell = (TryBuildSafeLink(listing.Url, titleEncoded)
                     ?? titleEncoded) // Fallback to plain text when the URL is unsafe.
-                    + $"<br><span style=\"color: #7f8c8d; font-size: 12px;\">{(listing.PropertyType == PropertyTypes.Apartment ? "🏢 Mieszkanie" : "🏠 Dom")}</span>";
+                    + $"<br><span style=\"color: #7f8c8d; font-size: 12px;\">{(listing.PropertyType == PropertyTypes.Apartment ? "🏢 Mieszkanie" : "🏠 Dom")}{FormatDistance(listing)}</span>";
                 var priceCell = listing.Price.ToString("N0", System.Globalization.CultureInfo.InvariantCulture);
                 var areaCell = listing.AreaSqm.ToString("N0", System.Globalization.CultureInfo.InvariantCulture);
                 var discountBadge = listing.PreviousPrice.HasValue && listing.PreviousPrice > listing.Price
@@ -396,13 +396,14 @@ public sealed class AgentListingEvaluator : IListingEvaluator
                             </tr>
                 """);
 
-                if (!string.IsNullOrWhiteSpace(listing.AiSummary))
+                var details = BuildDetailsCell(listing);
+                if (details.Length > 0)
                 {
                     sb.AppendLine($"""
                             <tr style="background-color: {bgColor};">
                                 <td></td>
-                                <td colspan="4" style="padding: 0 12px 12px 12px; color: #7f8c8d; font-size: 13px;">
-                                    {System.Net.WebUtility.HtmlEncode(listing.AiSummary)}
+                                <td colspan="4" style="padding: 0 12px 12px 12px; font-size: 13px;">
+                                    {details}
                                 </td>
                             </tr>
                     """);
@@ -425,6 +426,61 @@ public sealed class AgentListingEvaluator : IListingEvaluator
         """);
 
         return sb.ToString();
+    }
+
+    private static string FormatDistance(HouseListing listing)
+    {
+        if (listing.DistanceFromCenterKm is not { } km)
+            return string.Empty;
+
+        var prefix = listing.DistanceIsApproximate ? "ok. " : string.Empty;
+        return $" · 📍 {prefix}{km.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture).Replace('.', ',')} km do centrum";
+    }
+
+    /// <summary>
+    /// AI summary plus pros/cons lists; every piece of AI/scraped text is HTML-encoded.
+    /// </summary>
+    private static string BuildDetailsCell(HouseListing listing)
+    {
+        var sb = new StringBuilder();
+
+        if (!string.IsNullOrWhiteSpace(listing.AiSummary))
+            sb.Append($"<div style=\"color: #7f8c8d;\">{System.Net.WebUtility.HtmlEncode(listing.AiSummary)}</div>");
+
+        AppendPointList(sb, ParseStringList(listing.AiProsJson), "+", "#27ae60");
+        AppendPointList(sb, ParseStringList(listing.AiConsJson), "−", "#e74c3c");
+
+        return sb.ToString();
+    }
+
+    private static void AppendPointList(StringBuilder sb, IReadOnlyList<string> items, string marker, string color)
+    {
+        if (items.Count == 0)
+            return;
+
+        sb.Append("<ul style=\"list-style: none; padding: 0; margin: 6px 0 0 0;\">");
+        foreach (var item in items)
+        {
+            sb.Append($"<li style=\"color: {color}; margin: 2px 0;\">{marker} {System.Net.WebUtility.HtmlEncode(item)}</li>");
+        }
+        sb.Append("</ul>");
+    }
+
+    private static IReadOnlyList<string> ParseStringList(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+            return [];
+
+        try
+        {
+            return JsonSerializer.Deserialize<List<string>>(json)?
+                .Where(s => !string.IsNullOrWhiteSpace(s))
+                .ToList() ?? [];
+        }
+        catch (JsonException)
+        {
+            return [];
+        }
     }
 
     /// <summary>

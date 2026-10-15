@@ -18,8 +18,11 @@ public partial class HomeSeekerViewModel(IHomeSeekerService service, ILogger<Hom
     private const int PageSize = 20;
     private const int ScanHistoryCount = 20;
 
-    private static readonly string?[] SortKeys = [null, "price", "firstseen"];
+    private static readonly string?[] SortKeys = [null, "price", "price_desc", "pricesqm", "area_desc", "distance", "firstseen"];
     private static readonly int?[] MinScoreValues = [null, 50, 70, 85];
+    private static readonly HomeSeekerPropertyTypes?[] PropertyTypeValues = [null, HomeSeekerPropertyTypes.House, HomeSeekerPropertyTypes.Apartment];
+    private static readonly string?[] PortalValues = [null, "Otodom", "OLX"];
+    private static readonly double?[] MaxDistanceValues = [null, 3, 5, 10];
 
     private int _currentPage;
     private int _totalPages;
@@ -30,9 +33,16 @@ public partial class HomeSeekerViewModel(IHomeSeekerService service, ILogger<Hom
     private int _pendingListingReloads;
     private bool _reloadListingsAfterLoad;
 
-    public IReadOnlyList<string> SortOptions { get; } = ["Ocena AI", "Cena", "Najnowsze"];
+    public IReadOnlyList<string> SortOptions { get; } =
+        ["Ocena AI", "Cena", "Cena malejąco", "Cena za m²", "Największa powierzchnia", "Najbliżej centrum", "Najnowsze"];
 
     public IReadOnlyList<string> MinScoreOptions { get; } = ["Wszystkie", "Ocena ≥ 50", "Ocena ≥ 70", "Ocena ≥ 85"];
+
+    public IReadOnlyList<string> PropertyTypeOptions { get; } = ["Domy i mieszkania", "Domy", "Mieszkania"];
+
+    public IReadOnlyList<string> PortalOptions { get; } = ["Wszystkie portale", "Otodom", "OLX"];
+
+    public IReadOnlyList<string> MaxDistanceOptions { get; } = ["Dowolna odległość", "≤ 3 km od centrum", "≤ 5 km od centrum", "≤ 10 km od centrum"];
 
     public ObservableCollection<HomeSeekerListing> Listings { get; } = [];
 
@@ -79,7 +89,36 @@ public partial class HomeSeekerViewModel(IHomeSeekerService service, ILogger<Hom
     private string? selectedSortOption = "Ocena AI";
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ActiveFiltersCount), nameof(FiltersHeaderText))]
     private string? selectedMinScoreOption = "Wszystkie";
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ActiveFiltersCount), nameof(FiltersHeaderText))]
+    private string? selectedPropertyTypeOption = "Domy i mieszkania";
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ActiveFiltersCount), nameof(FiltersHeaderText))]
+    private string? selectedPortalOption = "Wszystkie portale";
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ActiveFiltersCount), nameof(FiltersHeaderText))]
+    private string? selectedMaxDistanceOption = "Dowolna odległość";
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ActiveFiltersCount), nameof(FiltersHeaderText))]
+    private bool priceDropOnly;
+
+    [ObservableProperty]
+    private bool areFiltersExpanded;
+
+    public int ActiveFiltersCount =>
+        (CurrentMinScore is null ? 0 : 1)
+        + (CurrentPropertyType is null ? 0 : 1)
+        + (CurrentPortal is null ? 0 : 1)
+        + (CurrentMaxDistance is null ? 0 : 1)
+        + (PriceDropOnly ? 1 : 0);
+
+    public string FiltersHeaderText => ActiveFiltersCount == 0 ? "Filtry" : $"Filtry ({ActiveFiltersCount})";
 
     // Profile form (strings, so partially typed numbers do not get reset by the binding).
     [ObservableProperty] private string city = string.Empty;
@@ -109,6 +148,28 @@ public partial class HomeSeekerViewModel(IHomeSeekerService service, ILogger<Hom
     partial void OnSelectedSortOptionChanged(string? value) => ReloadListingsForFilterChange();
 
     partial void OnSelectedMinScoreOptionChanged(string? value) => ReloadListingsForFilterChange();
+
+    partial void OnSelectedPropertyTypeOptionChanged(string? value) => ReloadListingsForFilterChange();
+
+    partial void OnSelectedPortalOptionChanged(string? value) => ReloadListingsForFilterChange();
+
+    partial void OnSelectedMaxDistanceOptionChanged(string? value) => ReloadListingsForFilterChange();
+
+    partial void OnPriceDropOnlyChanged(bool value) => ReloadListingsForFilterChange();
+
+    [RelayCommand]
+    private void ToggleFilters() => AreFiltersExpanded = !AreFiltersExpanded;
+
+    [RelayCommand]
+    private void ClearFilters()
+    {
+        // Each setter triggers a reload; the generation counter discards all but the last response.
+        SelectedMinScoreOption = MinScoreOptions[0];
+        SelectedPropertyTypeOption = PropertyTypeOptions[0];
+        SelectedPortalOption = PortalOptions[0];
+        SelectedMaxDistanceOption = MaxDistanceOptions[0];
+        PriceDropOnly = false;
+    }
 
     private void ReloadListingsForFilterChange()
     {
@@ -201,7 +262,7 @@ public partial class HomeSeekerViewModel(IHomeSeekerService service, ILogger<Hom
         try
         {
             IsLoadingMore = true;
-            var result = await service.GetListingsAsync(_currentPage + 1, PageSize, CurrentMinScore, CurrentSort, cancellationToken);
+            var result = await service.GetListingsAsync(_currentPage + 1, PageSize, CurrentQuery, cancellationToken);
             if (generation != _listingsGeneration)
                 return; // The list was reloaded meanwhile; this page belongs to the old results.
 
@@ -339,6 +400,22 @@ public partial class HomeSeekerViewModel(IHomeSeekerService service, ILogger<Hom
 
     private int? CurrentMinScore => MinScoreValues[Math.Max(0, IndexOf(MinScoreOptions, SelectedMinScoreOption))];
 
+    private HomeSeekerPropertyTypes? CurrentPropertyType => PropertyTypeValues[Math.Max(0, IndexOf(PropertyTypeOptions, SelectedPropertyTypeOption))];
+
+    private string? CurrentPortal => PortalValues[Math.Max(0, IndexOf(PortalOptions, SelectedPortalOption))];
+
+    private double? CurrentMaxDistance => MaxDistanceValues[Math.Max(0, IndexOf(MaxDistanceOptions, SelectedMaxDistanceOption))];
+
+    private HomeSeekerListingQuery CurrentQuery => new()
+    {
+        MinScore = CurrentMinScore,
+        Sort = CurrentSort,
+        PropertyType = CurrentPropertyType,
+        Portal = CurrentPortal,
+        MaxDistanceKm = CurrentMaxDistance,
+        PriceDropOnly = PriceDropOnly
+    };
+
     private static int IndexOf(IReadOnlyList<string> options, string? value) =>
         value is null ? -1 : options.ToList().IndexOf(value);
 
@@ -351,7 +428,7 @@ public partial class HomeSeekerViewModel(IHomeSeekerService service, ILogger<Hom
         _totalPages = 0;
         try
         {
-            var result = await service.GetListingsAsync(1, PageSize, CurrentMinScore, CurrentSort, cancellationToken);
+            var result = await service.GetListingsAsync(1, PageSize, CurrentQuery, cancellationToken);
             if (generation != _listingsGeneration)
                 return; // A newer reload superseded this one.
 

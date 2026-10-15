@@ -58,6 +58,10 @@ public static class HomeSeekerEndpoints
             int pageSize = 20,
             int? minScore = null,
             string? sort = null,
+            PropertyTypes? propertyType = null,
+            string? portal = null,
+            double? maxDistanceKm = null,
+            bool priceDropOnly = false,
             IListingRepository repository = default!,
             CancellationToken ct = default) =>
         {
@@ -78,8 +82,18 @@ public static class HomeSeekerEndpoints
                 });
             }
 
+            var query = new ListingQuery
+            {
+                MinScore = minScore,
+                Sort = sort,
+                // Only a single known type filters; combined flags or garbage mean "any".
+                PropertyType = propertyType is PropertyTypes.House or PropertyTypes.Apartment ? propertyType : null,
+                Portal = portal,
+                MaxDistanceKm = maxDistanceKm is > 0 ? maxDistanceKm : null,
+                PriceDropOnly = priceDropOnly
+            };
             var (listings, totalCount) = await repository.GetListingsAsync(
-                profile.Id, pageNumber, pageSize, minScore, sort, ct).ConfigureAwait(false);
+                profile.Id, pageNumber, pageSize, query, ct).ConfigureAwait(false);
 
             return Results.Ok(new
             {

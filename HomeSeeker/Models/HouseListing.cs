@@ -58,6 +58,17 @@ public class HouseListing
     public PropertyTypes PropertyType { get; set; } = PropertyTypes.House;
 
     /// <summary>
+    /// Distance from the city centre in kilometres, set when the listing is evaluated
+    /// and its coordinates are known; null otherwise.
+    /// </summary>
+    public double? DistanceFromCenterKm { get; set; }
+
+    /// <summary>
+    /// True when <see cref="DistanceFromCenterKm"/> is based on an approximate location (e.g. OLX map radius).
+    /// </summary>
+    public bool DistanceIsApproximate { get; set; }
+
+    /// <summary>
     /// When the listing was first discovered.
     /// </summary>
     public DateTime FirstSeenAt { get; set; }

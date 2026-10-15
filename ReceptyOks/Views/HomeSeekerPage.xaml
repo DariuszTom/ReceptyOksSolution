@@ -154,22 +154,67 @@
             <material:TabItem Title="Ogłoszenia" x:Name="ListingsTab">
                 <material:TabItem.Content>
                     <Grid RowDefinitions="Auto,*">
-                        <Grid ColumnDefinitions="*,*,Auto" ColumnSpacing="10" Padding="16,8,16,4">
-                            <material:PickerField Grid.Column="0" Title="Sortuj"
-                                                  ItemsSource="{Binding SortOptions}"
-                                                  SelectedItem="{Binding SelectedSortOption}"
-                                                  AllowClear="False"
-                                                  AccentColor="{StaticResource Primary}"/>
-                            <material:PickerField Grid.Column="1" Title="Ocena AI"
-                                                  ItemsSource="{Binding MinScoreOptions}"
-                                                  SelectedItem="{Binding SelectedMinScoreOption}"
-                                                  AllowClear="False"
-                                                  AccentColor="{StaticResource Primary}"/>
-                            <Border Grid.Column="2" Style="{StaticResource HsChip}"
-                                    BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray800}}">
-                                <Label Text="{Binding TotalListings, StringFormat='{0} ogł.'}" Style="{StaticResource HsMuted}"/>
+                        <VerticalStackLayout Padding="16,8,16,4" Spacing="6">
+                            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
+                                <material:PickerField Grid.Column="0" Title="Sortuj"
+                                                      ItemsSource="{Binding SortOptions}"
+                                                      SelectedItem="{Binding SelectedSortOption}"
+                                                      AllowClear="False"
+                                                      AccentColor="{StaticResource Primary}"/>
+                                <Button Grid.Column="1" Text="{Binding FiltersHeaderText}" FontSize="13" Padding="12,4"
+                                        CornerRadius="16" HeightRequest="36" VerticalOptions="Center"
+                                        BackgroundColor="Transparent"
+                                        BorderColor="{StaticResource Primary}"
+                                        BorderWidth="1"
+                                        TextColor="{StaticResource Primary}"
+                                        Command="{Binding ToggleFiltersCommand}">
+                                    <Button.ImageSource>
+                                        <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Filter_list}"
+                                                         FontFamily="MaterialSymbolsOutlined"
+                                                         Color="{StaticResource Primary}"
+                                                         Size="16"/>
+                                    </Button.ImageSource>
+                                </Button>
+                                <Border Grid.Column="2" Style="{StaticResource HsChip}" VerticalOptions="Center"
+                                        BackgroundColor="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray800}}">
+                                    <Label Text="{Binding TotalListings, StringFormat='{0} ogł.'}" Style="{StaticResource HsMuted}"/>
+                                </Border>
+                            </Grid>
+
+                            <Border Style="{StaticResource HsCard}" IsVisible="{Binding AreFiltersExpanded}">
+                                <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="6">
+                                    <material:PickerField Grid.Row="0" Grid.Column="0" Title="Ocena AI"
+                                                          ItemsSource="{Binding MinScoreOptions}"
+                                                          SelectedItem="{Binding SelectedMinScoreOption}"
+                                                          AllowClear="False"
+                                                          AccentColor="{StaticResource Primary}"/>
+                                    <material:PickerField Grid.Row="0" Grid.Column="1" Title="Typ"
+                                                          ItemsSource="{Binding PropertyTypeOptions}"
+                                                          SelectedItem="{Binding SelectedPropertyTypeOption}"
+                                                          AllowClear="False"
+                                                          AccentColor="{StaticResource Primary}"/>
+                                    <material:PickerField Grid.Row="1" Grid.Column="0" Title="Portal"
+                                                          ItemsSource="{Binding PortalOptions}"
+                                                          SelectedItem="{Binding SelectedPortalOption}"
+                                                          AllowClear="False"
+                                                          AccentColor="{StaticResource Primary}"/>
+                                    <material:PickerField Grid.Row="1" Grid.Column="1" Title="Odległość"
+                                                          ItemsSource="{Binding MaxDistanceOptions}"
+                                                          SelectedItem="{Binding SelectedMaxDistanceOption}"
+                                                          AllowClear="False"
+                                                          AccentColor="{StaticResource Primary}"/>
+                                    <HorizontalStackLayout Grid.Row="2" Grid.Column="0" Spacing="8" VerticalOptions="Center">
+                                        <Switch IsToggled="{Binding PriceDropOnly}" OnColor="{StaticResource Primary}" VerticalOptions="Center"/>
+                                        <Label Text="Tylko z obniżką" Style="{StaticResource HsText}" VerticalOptions="Center"/>
+                                    </HorizontalStackLayout>
+                                    <Button Grid.Row="2" Grid.Column="1" Text="Wyczyść filtry" FontSize="12" Padding="12,4"
+                                            CornerRadius="16" HeightRequest="34" HorizontalOptions="End" VerticalOptions="Center"
+                                            BackgroundColor="Transparent"
+                                            TextColor="{StaticResource Primary}"
+                                            Command="{Binding ClearFiltersCommand}"/>
+                                </Grid>
                             </Border>
-                        </Grid>
+                        </VerticalStackLayout>
 
                         <RefreshView Grid.Row="1"
                                      IsRefreshing="{Binding IsRefreshingListings}"
@@ -230,8 +275,12 @@
                                                            HorizontalOptions="Center" VerticalOptions="Center"/>
                                                 </Border>
 
-                                                <Label Grid.Column="1" Grid.Row="0" Text="{Binding Title}" Style="{StaticResource HsText}"
-                                                       FontAttributes="Bold" MaxLines="2" LineBreakMode="TailTruncation"/>
+                                                <VerticalStackLayout Grid.Column="1" Grid.Row="0" Spacing="2">
+                                                    <Label Text="{Binding Title}" Style="{StaticResource HsText}"
+                                                           FontAttributes="Bold" MaxLines="2" LineBreakMode="TailTruncation"/>
+                                                    <Label Text="{Binding DistanceText, StringFormat='📍 {0}'}" Style="{StaticResource HsMuted}" FontSize="12"
+                                                           IsVisible="{Binding DistanceText, Converter={toolkit:IsStringNotNullOrWhiteSpaceConverter}}"/>
+                                                </VerticalStackLayout>
 
                                                 <HorizontalStackLayout Grid.Column="1" Grid.Row="1" Spacing="10" Margin="0,4,0,0">
                                                     <Label Text="{Binding Price, StringFormat='{0:N0} zł'}" Style="{StaticResource HsText}"
