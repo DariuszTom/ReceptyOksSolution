@@ -1,4 +1,5 @@
 ﻿using HomeSeeker.Models;
+using Microsoft.Extensions.DependencyInjection;
 using System.Net;
 using System.Net.Http.Json;
 
@@ -194,6 +195,31 @@ public class HomeSeekerEndpointsTests
             Assert.That(listingsB.StatusCode, Is.EqualTo(HttpStatusCode.OK));
             Assert.That(scansA.StatusCode, Is.EqualTo(HttpStatusCode.OK));
             Assert.That(scansB.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        });
+    }
+
+    [Test]
+    public async Task ScanHistory_ReportsHasReportWithoutReturningHtml()
+    {
+        var profile = await PutProfileAsync(_userA);
+        Guid withReport, withoutReport;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var repository = scope.ServiceProvider.GetRequiredService<HomeSeeker.Abstractions.IListingRepository>();
+            withReport = (await repository.CreateScanRunAsync(profile.Id)).Id;
+            await repository.CompleteScanRunAsync(withReport, ScanStatus.Completed, 1, 1, 0, 1, "<p>raport</p>", null);
+            withoutReport = (await repository.CreateScanRunAsync(profile.Id)).Id;
+            await repository.CompleteScanRunAsync(withoutReport, ScanStatus.Failed, 0, 0, 0, 0, null, "boom");
+        }
+
+        var json = await _userA.GetStringAsync("/api/homeseeker/scans");
+        var scans = System.Text.Json.JsonSerializer.Deserialize<List<ScanRun>>(json, new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web))!;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(json, Does.Not.Contain("raport"), "History must not ship report HTML.");
+            Assert.That(scans.Single(s => s.Id == withReport).HasReport, Is.True);
+            Assert.That(scans.Single(s => s.Id == withoutReport).HasReport, Is.False);
         });
     }
 
