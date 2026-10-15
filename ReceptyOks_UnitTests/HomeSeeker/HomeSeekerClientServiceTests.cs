@@ -213,10 +213,11 @@ public sealed class HomeSeekerClientServiceTests
     [Test]
     public async Task GetScansAsync_MapsNumericStatus()
     {
+        // Mirrors ListingRepository.GetScanHistoryAsync: ReportHtml is omitted, only HasReport is projected.
         var scans = new[]
         {
-            new ServerModels.ScanRun { Id = Guid.NewGuid(), Status = ServerModels.ScanStatus.Failed, Error = "boom" },
-            new ServerModels.ScanRun { Id = Guid.NewGuid(), Status = ServerModels.ScanStatus.Completed, ReportHtml = "<p>x</p>", NewListingsCount = 3 }
+            new ServerModels.ScanRun { Id = Guid.NewGuid(), Status = ServerModels.ScanStatus.Failed, Error = "boom", HasReport = false },
+            new ServerModels.ScanRun { Id = Guid.NewGuid(), Status = ServerModels.ScanStatus.Completed, HasReport = true, NewListingsCount = 3 }
         };
         var sut = CreateSut(new StubHandler(_ => Json(HttpStatusCode.OK, scans)), out _);
 
@@ -263,17 +264,63 @@ public sealed class HomeSeekerClientServiceTests
         Assert.That(new HomeSeekerListing { Url = url }.HasHttpUrl, Is.EqualTo(expected));
     }
 
+    [Test]
+    public void ServerScanRun_HasReport_DerivesFromHtmlUnlessProjected()
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(new ServerModels.ScanRun { ReportHtml = "<p>x</p>" }.HasReport, Is.True);
+            Assert.That(new ServerModels.ScanRun().HasReport, Is.False);
+            Assert.That(new ServerModels.ScanRun { HasReport = true }.HasReport, Is.True);
+        });
+    }
+
     [TestCase("1 250 000", 1_250_000)]
     [TestCase("450000", 450_000)]
     [TestCase("120.5", 120.5)]
-    public void ViewModel_ParseDecimal_AcceptsCommonFormats(string text, decimal expected)
+    [TestCase("120,5", 120.5)]
+    [TestCase("-5", -5)]
+    public void ViewModel_ParseDecimal_AcceptsCommonFormats_InAnyCulture(string text, decimal expected)
     {
-        var errors = new List<string>();
+        foreach (var culture in new[] { "en-US", "de-DE", "pl-PL" })
+        {
+            var errors = new List<string>();
+            var value = WithCulture(culture, () => HomeSeekerViewModel.ParseDecimal(text, "Pole", errors));
 
-        var value = HomeSeekerViewModel.ParseDecimal(text, "Pole", errors);
+            if (expected < 0)
+            {
+                Assert.That(value, Is.Null, culture);
+                Assert.That(errors.Single(), Does.Contain("ujemna"), culture);
+            }
+            else
+            {
+                Assert.That(value, Is.EqualTo(expected), culture);
+                Assert.That(errors, Is.Empty, culture);
+            }
+        }
+    }
 
-        Assert.That(value, Is.EqualTo(expected));
-        Assert.That(errors, Is.Empty);
+    [TestCase("1,250,000")]
+    [TestCase("1.250.000")]
+    [TestCase("1.250,5")]
+    public void ViewModel_ParseDecimal_RejectsGroupSeparators(string text)
+    {
+        foreach (var culture in new[] { "en-US", "de-DE", "pl-PL" })
+        {
+            var errors = new List<string>();
+            var value = WithCulture(culture, () => HomeSeekerViewModel.ParseDecimal(text, "Pole", errors));
+
+            Assert.That(value, Is.Null, culture);
+            Assert.That(errors, Has.Count.EqualTo(1), culture);
+        }
+    }
+
+    private static T WithCulture<T>(string name, Func<T> action)
+    {
+        var previous = System.Globalization.CultureInfo.CurrentCulture;
+        System.Globalization.CultureInfo.CurrentCulture = System.Globalization.CultureInfo.GetCultureInfo(name);
+        try { return action(); }
+        finally { System.Globalization.CultureInfo.CurrentCulture = previous; }
     }
 
     [Test]

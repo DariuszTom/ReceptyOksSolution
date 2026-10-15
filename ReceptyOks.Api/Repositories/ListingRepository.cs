@@ -400,8 +400,9 @@ public sealed class ListingRepository : IListingRepository
                 NewListingsCount = s.NewListingsCount,
                 PriceDropsCount = s.PriceDropsCount,
                 EvaluatedCount = s.EvaluatedCount,
-                Error = s.Error
-                // Exclude ReportHtml for list view
+                Error = s.Error,
+                // Exclude ReportHtml for list view; expose only its availability.
+                HasReport = s.ReportHtml != null && s.ReportHtml != ""
             })
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);

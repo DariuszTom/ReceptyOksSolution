@@ -112,12 +112,12 @@ public sealed class HomeSeekerScanRun
     public int NewListingsCount { get; set; }
     public int PriceDropsCount { get; set; }
     public int EvaluatedCount { get; set; }
-    public string? ReportHtml { get; set; }
     public string? Error { get; set; }
 
-    public DateTime StartedAtLocal => HomeSeekerTime.ToLocal(StartedAt);
+    /// <summary>Report availability flag from the history endpoint (the HTML itself is fetched separately).</summary>
+    public bool HasReport { get; set; }
 
-    public bool HasReport => !string.IsNullOrWhiteSpace(ReportHtml);
+    public DateTime StartedAtLocal => HomeSeekerTime.ToLocal(StartedAt);
 
     public bool IsFailed => Status == HomeSeekerScanStatus.Failed;
 

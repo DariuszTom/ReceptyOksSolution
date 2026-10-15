@@ -101,6 +101,7 @@ public class HomeSeekerDbContext(DbContextOptions<HomeSeekerDbContext> options) 
             }
 
             entity.Property(s => s.Error).HasMaxLength(2000);
+            entity.Ignore(s => s.HasReport);
 
             entity.HasIndex(s => s.StartedAt);
             entity.HasIndex(s => s.Status);

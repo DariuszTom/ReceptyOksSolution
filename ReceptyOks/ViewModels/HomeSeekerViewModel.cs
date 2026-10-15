@@ -24,6 +24,12 @@ public partial class HomeSeekerViewModel(IHomeSeekerService service, ILogger<Hom
     private int _currentPage;
     private int _totalPages;
 
+    // Every first-page reload bumps the generation; responses from older generations are dropped
+    // so a slow request can never overwrite newer results or pagination state.
+    private int _listingsGeneration;
+    private int _pendingListingReloads;
+    private bool _reloadListingsAfterLoad;
+
     public IReadOnlyList<string> SortOptions { get; } = ["Ocena AI", "Cena", "Najnowsze"];
 
     public IReadOnlyList<string> MinScoreOptions { get; } = ["Wszystkie", "Ocena ≥ 50", "Ocena ≥ 70", "Ocena ≥ 85"];
@@ -94,7 +100,11 @@ public partial class HomeSeekerViewModel(IHomeSeekerService service, ILogger<Hom
     private void ReloadListingsForFilterChange()
     {
         if (IsLoading)
+        {
+            // LoadAsync may already have requested listings with the previous filters.
+            _reloadListingsAfterLoad = true;
             return;
+        }
 
         LoadListingsCommand.Execute(null);
     }
@@ -112,6 +122,7 @@ public partial class HomeSeekerViewModel(IHomeSeekerService service, ILogger<Hom
         {
             IsLoading = true;
             ErrorMessage = null;
+            _reloadListingsAfterLoad = false;
 
             var profile = await service.GetProfileAsync(cancellationToken);
             if (profile.IsSuccess && profile.Value is not null)
@@ -132,6 +143,12 @@ public partial class HomeSeekerViewModel(IHomeSeekerService service, ILogger<Hom
             }
 
             await Task.WhenAll(LoadListingsCoreAsync(cancellationToken), LoadScansCoreAsync(cancellationToken));
+
+            if (_reloadListingsAfterLoad)
+            {
+                _reloadListingsAfterLoad = false;
+                await LoadListingsCoreAsync(cancellationToken);
+            }
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -144,7 +161,9 @@ public partial class HomeSeekerViewModel(IHomeSeekerService service, ILogger<Hom
         }
     }
 
-    [RelayCommand]
+    // Concurrent so a filter change during a pull-to-refresh is not silently ignored;
+    // the generation check keeps only the newest response.
+    [RelayCommand(AllowConcurrentExecutions = true)]
     private async Task LoadListingsAsync(CancellationToken cancellationToken)
     {
         try
@@ -154,20 +173,24 @@ public partial class HomeSeekerViewModel(IHomeSeekerService service, ILogger<Hom
         }
         finally
         {
-            IsRefreshing = false;
+            IsRefreshing = _pendingListingReloads > 0;
         }
     }
 
     [RelayCommand]
     private async Task LoadMoreListingsAsync(CancellationToken cancellationToken)
     {
-        if (IsLoadingMore || IsRefreshing || IsLoading || _currentPage >= _totalPages)
+        if (IsLoadingMore || IsRefreshing || IsLoading || _pendingListingReloads > 0 || _currentPage >= _totalPages)
             return;
 
+        var generation = _listingsGeneration;
         try
         {
             IsLoadingMore = true;
             var result = await service.GetListingsAsync(_currentPage + 1, PageSize, CurrentMinScore, CurrentSort, cancellationToken);
+            if (generation != _listingsGeneration)
+                return; // The list was reloaded meanwhile; this page belongs to the old results.
+
             if (result.IsSuccess && result.Value is not null)
             {
                 foreach (var listing in result.Value.Data)
@@ -301,19 +324,31 @@ public partial class HomeSeekerViewModel(IHomeSeekerService service, ILogger<Hom
 
     private async Task LoadListingsCoreAsync(CancellationToken cancellationToken)
     {
-        var result = await service.GetListingsAsync(1, PageSize, CurrentMinScore, CurrentSort, cancellationToken);
-        if (result.IsSuccess && result.Value is not null)
+        var generation = ++_listingsGeneration;
+        _pendingListingReloads++;
+        try
         {
-            Listings.Clear();
-            foreach (var listing in result.Value.Data)
-                Listings.Add(listing);
-            _currentPage = result.Value.PageNumber;
-            _totalPages = result.Value.TotalPages;
-            TotalListings = result.Value.TotalCount;
+            var result = await service.GetListingsAsync(1, PageSize, CurrentMinScore, CurrentSort, cancellationToken);
+            if (generation != _listingsGeneration)
+                return; // A newer reload superseded this one.
+
+            if (result.IsSuccess && result.Value is not null)
+            {
+                Listings.Clear();
+                foreach (var listing in result.Value.Data)
+                    Listings.Add(listing);
+                _currentPage = result.Value.PageNumber;
+                _totalPages = result.Value.TotalPages;
+                TotalListings = result.Value.TotalCount;
+            }
+            else
+            {
+                ErrorMessage = result.Message;
+            }
         }
-        else
+        finally
         {
-            ErrorMessage = result.Message;
+            _pendingListingReloads--;
         }
     }
 
@@ -355,16 +390,20 @@ public partial class HomeSeekerViewModel(IHomeSeekerService service, ILogger<Hom
     private static string? FormatDecimal(decimal? value) =>
         value?.ToString("0.##", CultureInfo.CurrentCulture);
 
-    /// <summary>Parses user input such as "1 250 000", "450000" or "120,5"/"120.5"; returns null for empty input.</summary>
+    /// <summary>
+    /// Parses user input such as "1 250 000", "450000" or "120,5"/"120.5" independently of the device culture;
+    /// returns null for empty input. Spaces are the only accepted grouping; both ',' and '.' mean the decimal
+    /// separator, so "120,5" is never read as 1205.
+    /// </summary>
     public static decimal? ParseDecimal(string? text, string fieldName, List<string> errors)
     {
         if (string.IsNullOrWhiteSpace(text))
             return null;
 
-        var normalized = text.Replace(" ", string.Empty).Replace("\u00A0", string.Empty).Replace("\u202F", string.Empty);
+        var normalized = text.Replace(" ", string.Empty).Replace("\u00A0", string.Empty).Replace("\u202F", string.Empty)
+            .Replace(',', '.');
 
-        if (decimal.TryParse(normalized, NumberStyles.Number, CultureInfo.CurrentCulture, out var value)
-            || decimal.TryParse(normalized, NumberStyles.Number, CultureInfo.InvariantCulture, out value))
+        if (decimal.TryParse(normalized, NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var value))
         {
             if (value < 0)
             {
