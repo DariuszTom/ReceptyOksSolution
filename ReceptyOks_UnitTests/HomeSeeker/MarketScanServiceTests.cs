@@ -47,7 +47,7 @@ public sealed class MarketScanServiceTests
             .ReturnsAsync([]);
 
         _evaluator = new Mock<IListingEvaluator>();
-        _evaluator.Setup(e => e.EvaluateAsync(It.IsAny<SearchProfile>(), It.IsAny<HouseListing>(), It.IsAny<CancellationToken>()))
+        _evaluator.Setup(e => e.EvaluateAsync(It.IsAny<SearchProfile>(), It.IsAny<HouseListing>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ListingEvaluation { Score = 70 });
         _evaluator.Setup(e => e.WriteReportHtmlAsync(It.IsAny<SearchProfile>(), It.IsAny<IReadOnlyList<HouseListing>>(),
                 It.IsAny<ScanRun>(), It.IsAny<CancellationToken>()))
@@ -102,7 +102,7 @@ public sealed class MarketScanServiceTests
         Assert.That(result, Is.False);
         _repository.Verify(r => r.CompleteScanRunAsync(_scanRun.Id, ScanStatus.Failed, 0, 0, 0, 0, null,
             It.Is<string>(e => e.Contains("Otodom: 403") && e.Contains("OLX: boom")), It.IsAny<CancellationToken>()), Times.Once);
-        _evaluator.Verify(e => e.EvaluateAsync(It.IsAny<SearchProfile>(), It.IsAny<HouseListing>(), It.IsAny<CancellationToken>()), Times.Never);
+        _evaluator.Verify(e => e.EvaluateAsync(It.IsAny<SearchProfile>(), It.IsAny<HouseListing>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Never);
         _sender.VerifyNoOtherCalls();
     }
 
@@ -137,8 +137,8 @@ public sealed class MarketScanServiceTests
         AddUpsert("unchanged", price: 100_000, area: 100);
 
         var evaluatedIds = new List<string>();
-        _evaluator.Setup(e => e.EvaluateAsync(It.IsAny<SearchProfile>(), It.IsAny<HouseListing>(), It.IsAny<CancellationToken>()))
-            .Callback((SearchProfile _, HouseListing l, CancellationToken _) => evaluatedIds.Add(l.ExternalId))
+        _evaluator.Setup(e => e.EvaluateAsync(It.IsAny<SearchProfile>(), It.IsAny<HouseListing>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .Callback((SearchProfile _, HouseListing l, string? _, CancellationToken _) => evaluatedIds.Add(l.ExternalId))
             .ReturnsAsync(new ListingEvaluation { Score = 50 });
 
         var sut = CreateSut([SucceedingScraper("Otodom", "cheap", "mid", "dropped", "expensive", "unchanged")],
@@ -162,8 +162,8 @@ public sealed class MarketScanServiceTests
         AddUpsert("a2", price: 950_000, area: 100, isNew: true, type: PropertyTypes.Apartment);
 
         var evaluatedIds = new List<string>();
-        _evaluator.Setup(e => e.EvaluateAsync(It.IsAny<SearchProfile>(), It.IsAny<HouseListing>(), It.IsAny<CancellationToken>()))
-            .Callback((SearchProfile _, HouseListing l, CancellationToken _) => evaluatedIds.Add(l.ExternalId))
+        _evaluator.Setup(e => e.EvaluateAsync(It.IsAny<SearchProfile>(), It.IsAny<HouseListing>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .Callback((SearchProfile _, HouseListing l, string? _, CancellationToken _) => evaluatedIds.Add(l.ExternalId))
             .ReturnsAsync(new ListingEvaluation { Score = 50 });
 
         var sut = CreateSut([SucceedingScraper("Otodom", "h1", "h2", "h3", "a1", "a2")], maxCandidates: 4);
@@ -208,15 +208,72 @@ public sealed class MarketScanServiceTests
     }
 
     [Test]
+    public async Task RunScan_PassesDetailsFromSearchResults_WithoutFetchingPage()
+    {
+        AddUpsert("a", price: 300_000, area: 100, isNew: true);
+
+        var scraper = new Mock<IListingScraper>();
+        scraper.SetupGet(s => s.PortalName).Returns("Otodom");
+        scraper.Setup(s => s.SearchAsync(It.IsAny<SearchProfile>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ScrapeResult.Success(
+                [new ScrapedListing { Portal = "Otodom", ExternalId = "a", Url = "https://x/a", Title = "a", Price = 1, AreaSqm = 1, Details = "Opis z listy" }]));
+
+        var sut = CreateSut([scraper.Object]);
+
+        await sut.RunScanAsync(ProfileId);
+
+        _evaluator.Verify(e => e.EvaluateAsync(It.IsAny<SearchProfile>(), It.IsAny<HouseListing>(), "Opis z listy", It.IsAny<CancellationToken>()), Times.Once);
+        scraper.Verify(s => s.GetDetailsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Test]
+    public async Task RunScan_FetchesDetailsForCandidates_FromMatchingPortal()
+    {
+        AddUpsert("a", price: 300_000, area: 100, isNew: true);
+        AddUpsert("old", price: 300_000, area: 100);
+
+        var scraper = Mock.Get(SucceedingScraper("Otodom", "a", "old"));
+        scraper.Setup(s => s.GetDetailsAsync(_upsertResults["a"].Listing.Url, It.IsAny<CancellationToken>()))
+            .ReturnsAsync("Rok budowy: 2009");
+
+        var sut = CreateSut([scraper.Object]);
+
+        await sut.RunScanAsync(ProfileId);
+
+        _evaluator.Verify(e => e.EvaluateAsync(It.IsAny<SearchProfile>(), It.Is<HouseListing>(l => l.ExternalId == "a"),
+            "Rok budowy: 2009", It.IsAny<CancellationToken>()), Times.Once);
+        // Only AI candidates get the extra request.
+        scraper.Verify(s => s.GetDetailsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Test]
+    public async Task RunScan_WhenDetailsFetchThrows_StillEvaluatesWithoutDetails()
+    {
+        AddUpsert("a", price: 300_000, area: 100, isNew: true);
+
+        var scraper = Mock.Get(SucceedingScraper("Otodom", "a"));
+        scraper.Setup(s => s.GetDetailsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException("down"));
+
+        var sut = CreateSut([scraper.Object]);
+
+        var result = await sut.RunScanAsync(ProfileId);
+
+        Assert.That(result, Is.True);
+        _evaluator.Verify(e => e.EvaluateAsync(It.IsAny<SearchProfile>(), It.IsAny<HouseListing>(), null, It.IsAny<CancellationToken>()), Times.Once);
+        _repository.Verify(r => r.SaveEvaluationAsync(It.IsAny<Guid>(), It.IsAny<ListingEvaluation>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Test]
     public async Task RunScan_WhenEvaluationReturnsNullOrThrows_SkipsListingAndContinues()
     {
         AddUpsert("null", price: 100_000, area: 100, isNew: true);
         AddUpsert("throws", price: 200_000, area: 100, isNew: true);
         AddUpsert("ok", price: 300_000, area: 100, isNew: true);
 
-        _evaluator.Setup(e => e.EvaluateAsync(It.IsAny<SearchProfile>(), It.Is<HouseListing>(l => l.ExternalId == "null"), It.IsAny<CancellationToken>()))
+        _evaluator.Setup(e => e.EvaluateAsync(It.IsAny<SearchProfile>(), It.Is<HouseListing>(l => l.ExternalId == "null"), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((ListingEvaluation?)null);
-        _evaluator.Setup(e => e.EvaluateAsync(It.IsAny<SearchProfile>(), It.Is<HouseListing>(l => l.ExternalId == "throws"), It.IsAny<CancellationToken>()))
+        _evaluator.Setup(e => e.EvaluateAsync(It.IsAny<SearchProfile>(), It.Is<HouseListing>(l => l.ExternalId == "throws"), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("AI down"));
 
         var sut = CreateSut([SucceedingScraper("Otodom", "null", "throws", "ok")]);
@@ -344,7 +401,7 @@ public sealed class MarketScanServiceTests
             _repository.Object,
             _evaluator.Object,
             _sender.Object,
-            Options.Create(new HomeSeekerOptions { MaxCandidatesPerScan = maxCandidates, TopListingsInReport = 5 }),
+            Options.Create(new HomeSeekerOptions { MaxCandidatesPerScan = maxCandidates, TopListingsInReport = 5, RequestDelay = TimeSpan.Zero }),
             NullLogger<MarketScanService>.Instance);
 
     private void AddUpsert(string externalId, decimal price, decimal area, bool isNew = false, bool priceDropped = false,

@@ -8,16 +8,18 @@ namespace HomeSeeker.Abstractions;
 public interface IListingEvaluator
 {
     /// <summary>
-    /// Evaluates a listing using AI, fetching the listing page details.
+    /// Evaluates a listing using AI.
     /// Returns null on evaluation failure (bad JSON, timeout, etc.) - never throws.
     /// </summary>
     /// <param name="profile">Search profile with criteria and preferences.</param>
     /// <param name="listing">The listing to evaluate.</param>
+    /// <param name="details">Optional plain-text parameters and description scraped from the listing page.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Evaluation result, or null on failure.</returns>
     Task<ListingEvaluation?> EvaluateAsync(
         SearchProfile profile,
         HouseListing listing,
+        string? details,
         CancellationToken cancellationToken = default);
 
     /// <summary>

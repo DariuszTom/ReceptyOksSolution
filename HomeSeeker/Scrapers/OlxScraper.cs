@@ -333,7 +333,8 @@ public sealed partial class OlxScraper : IListingScraper
                 Title = title,
                 Price = price,
                 AreaSqm = area,
-                Location = location
+                Location = location,
+                Details = BuildDetails(item)
             };
         }
         catch
@@ -447,6 +448,81 @@ public sealed partial class OlxScraper : IListingScraper
         {
             return null;
         }
+    }
+
+    public async Task<string?> GetDetailsAsync(string url, CancellationToken cancellationToken = default)
+    {
+        if (!IsOlxUrl(url))
+            return null;
+
+        try
+        {
+            var html = await _httpClient.GetStringAsync(url, cancellationToken).ConfigureAwait(false);
+            return ParseDetails(html);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to fetch OLX listing details {Url}", url);
+            return null;
+        }
+    }
+
+    internal static bool IsOlxUrl(string url) =>
+        Uri.TryCreate(url, UriKind.Absolute, out var uri) &&
+        uri.Scheme == Uri.UriSchemeHttps &&
+        (uri.Host.Equals("olx.pl", StringComparison.OrdinalIgnoreCase) ||
+         uri.Host.EndsWith(".olx.pl", StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>
+    /// Parses parameters and description from an OLX ad page (__PRERENDERED_STATE__ → ad.ad).
+    /// </summary>
+    internal static string? ParseDetails(string html)
+    {
+        try
+        {
+            var match = PrerenderedStateRegex().Match(html);
+            if (!match.Success)
+                return null;
+
+            using var doc = JsonDocument.Parse(Regex.Unescape(match.Groups[1].Value));
+            if (!doc.RootElement.TryGetProperty("ad", out var adWrapper) ||
+                adWrapper.ValueKind != JsonValueKind.Object ||
+                !adWrapper.TryGetProperty("ad", out var ad) ||
+                ad.ValueKind != JsonValueKind.Object)
+            {
+                return null;
+            }
+
+            return BuildDetails(ad);
+        }
+        catch (Exception ex) when (ex is JsonException or ArgumentException)
+        {
+            return null;
+        }
+    }
+
+    private static string? BuildDetails(JsonElement ad)
+    {
+        var parameters = new List<(string, string)>();
+        if (ad.TryGetProperty("params", out var paramsProp) && paramsProp.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var param in paramsProp.EnumerateArray())
+            {
+                if (param.ValueKind != JsonValueKind.Object)
+                    continue;
+
+                var name = GetString(param, "name");
+                var value = GetString(param, "value");
+                if (name is not null && value is not null)
+                    parameters.Add((name, value));
+            }
+        }
+
+        return ListingDetailsText.Build(parameters, GetString(ad, "description"));
     }
 
     private static string? GetString(JsonElement element, string propertyName) =>

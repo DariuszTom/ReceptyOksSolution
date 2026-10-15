@@ -164,7 +164,14 @@ public sealed class MarketScanService : IMarketScanService
 
             _logger.LogInformation("Selected {Count} candidates for AI evaluation", candidates.Count);
 
+            // Details already included in search results (OLX) - no extra request needed.
+            var scrapedDetails = allScraped
+                .Where(s => !string.IsNullOrWhiteSpace(s.Details))
+                .GroupBy(s => (s.Portal, s.ExternalId))
+                .ToDictionary(g => g.Key, g => g.First().Details);
+
             // Phase 4: Evaluate candidates sequentially (to respect API limits)
+            var detailRequests = 0;
             foreach (var candidate in candidates)
             {
                 if (cancellationToken.IsCancellationRequested)
@@ -172,7 +179,24 @@ public sealed class MarketScanService : IMarketScanService
 
                 try
                 {
-                    var evaluation = await _evaluator.EvaluateAsync(profile, candidate.Listing, cancellationToken)
+                    var listing = candidate.Listing;
+                    if (!scrapedDetails.TryGetValue((listing.Portal, listing.ExternalId), out var details))
+                    {
+                        var scraper = _scrapers.FirstOrDefault(s =>
+                            string.Equals(s.PortalName, listing.Portal, StringComparison.OrdinalIgnoreCase));
+                        if (scraper is not null)
+                        {
+                            if (detailRequests++ > 0)
+                                await Task.Delay(_options.RequestDelay, cancellationToken).ConfigureAwait(false);
+
+                            details = await FetchDetailsAsync(scraper, listing, cancellationToken)
+                                .ConfigureAwait(false);
+                            if (details is null)
+                                _logger.LogDebug("No details for listing {ListingId}, evaluating without description", listing.Id);
+                        }
+                    }
+
+                    var evaluation = await _evaluator.EvaluateAsync(profile, listing, details, cancellationToken)
                         .ConfigureAwait(false);
 
                     if (evaluation is not null)
@@ -276,6 +300,24 @@ public sealed class MarketScanService : IMarketScanService
         // Report success only when the run both completed and its final state was
         // recorded; otherwise the caller must not stamp LastScannedAt.
         return status == ScanStatus.Completed && persisted;
+    }
+
+    private async Task<string?> FetchDetailsAsync(
+        IListingScraper scraper, HouseListing listing, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await scraper.GetDetailsAsync(listing.Url, cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Fetching details failed for listing {ListingId}", listing.Id);
+            return null;
+        }
     }
 
     /// <summary>

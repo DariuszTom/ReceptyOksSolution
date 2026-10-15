@@ -21,4 +21,13 @@ public interface IListingScraper
     /// <param name="profile">Search profile with criteria.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     Task<ScrapeResult> SearchAsync(SearchProfile profile, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Fetches the listing page and returns its parameters and description as plain,
+    /// length-capped text for AI evaluation. Only URLs on the scraper's own portal are
+    /// fetched. Returns null on any failure - never throws (except on cancellation).
+    /// </summary>
+    /// <param name="url">Listing URL (must belong to this portal).</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task<string?> GetDetailsAsync(string url, CancellationToken cancellationToken = default);
 }
