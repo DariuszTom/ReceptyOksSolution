@@ -55,7 +55,7 @@
                     VerticalOptions="Center"
                     BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray600}}">
                 <Border.Behaviors>
-                    <toolkit:TouchBehavior PressedScale="0.9" PressedOpacity="0.7" Command="{Binding GoBackCommand}"/>
+                    Command="{Binding BindingContext.GoBackCommand, Source={x:Reference HomeSeekerPageRoot}, x:DataType=ContentPage}"/>
                 </Border.Behaviors>
                 <Image HeightRequest="22" WidthRequest="22" HorizontalOptions="Center" VerticalOptions="Center">
                     <Image.Source>
@@ -80,7 +80,7 @@
                     VerticalOptions="Center"
                     BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray600}}">
                 <Border.Behaviors>
-                    <toolkit:TouchBehavior PressedScale="0.9" PressedOpacity="0.7" Command="{Binding LoadCommand}"/>
+                    Command="{Binding BindingContext.LoadCommand, Source={x:Reference HomeSeekerPageRoot}, x:DataType=ContentPage}"/>
                 </Border.Behaviors>
                 <Grid>
                     <Image HeightRequest="22" WidthRequest="22" HorizontalOptions="Center" VerticalOptions="Center"
@@ -170,7 +170,7 @@
                         </Grid>
 
                         <RefreshView Grid.Row="1"
-                                     IsRefreshing="{Binding IsRefreshing}"
+                                     IsRefreshing="{Binding IsRefreshingListings}"
                                      Command="{Binding LoadListingsCommand}"
                                      RefreshColor="{StaticResource Primary}">
                             <CollectionView ItemsSource="{Binding Listings}"
@@ -205,12 +205,13 @@
                                 </CollectionView.Footer>
                                 <CollectionView.ItemTemplate>
                                     <DataTemplate x:DataType="hs:HomeSeekerListing">
-                                        <Border Style="{StaticResource HsCard}">
+                                        <Border x:Name="ListingCard" Style="{StaticResource HsCard}">
                                             <Border.Behaviors>
+                                                <!-- Behaviors do not inherit BindingContext: source both command and parameter explicitly. -->
                                                 <toolkit:TouchBehavior PressedScale="0.98"
                                                                        PressedOpacity="0.85"
-                                                                       Command="{Binding Source={RelativeSource AncestorType={x:Type vm:HomeSeekerViewModel}}, Path=OpenListingCommand, x:DataType=vm:HomeSeekerViewModel}"
-                                                                       CommandParameter="{Binding .}"/>
+                                                                       Command="{Binding BindingContext.OpenListingCommand, Source={x:Reference HomeSeekerPageRoot}, x:DataType=ContentPage}"
+                                                                       CommandParameter="{Binding BindingContext, Source={x:Reference ListingCard}, x:DataType=Border}"/>
                                             </Border.Behaviors>
                                             <Grid ColumnDefinitions="Auto,*" ColumnSpacing="14" RowDefinitions="Auto,Auto,Auto,Auto,Auto">
                                                 <!-- Score badge -->
@@ -280,7 +281,7 @@
             <!-- ===== Scans ===== -->
             <material:TabItem Title="Skany" x:Name="ScansTab">
                 <material:TabItem.Content>
-                    <RefreshView IsRefreshing="{Binding IsRefreshing}"
+                    <RefreshView IsRefreshing="{Binding IsRefreshingScans}"
                                  Command="{Binding RefreshScansCommand}"
                                  RefreshColor="{StaticResource Primary}">
                         <CollectionView ItemsSource="{Binding Scans}" SelectionMode="None" Margin="16,8">

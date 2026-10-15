@@ -13,7 +13,8 @@ namespace ReceptyOks.Api.Services;
 /// </summary>
 public sealed class JwtTokenService
 {
-    public static readonly TimeSpan DefaultLifetime = TimeSpan.FromHours(12);
+    // Short-lived: the client (AccessTokenRefresher) re-issues it on demand via /api/auth/validate.
+    public static readonly TimeSpan DefaultLifetime = TimeSpan.FromHours(1);
 
     private readonly SigningCredentials _credentials;
     private readonly JsonWebTokenHandler _handler = new();

@@ -49,8 +49,13 @@ public partial class HomeSeekerViewModel(IHomeSeekerService service, ILogger<Hom
     [ObservableProperty]
     private bool isLoading;
 
+    // Separate per RefreshView: setting IsRefreshing on a RefreshView executes its command,
+    // so a shared flag would make a scan refresh also reload listings.
     [ObservableProperty]
-    private bool isRefreshing;
+    private bool isRefreshingListings;
+
+    [ObservableProperty]
+    private bool isRefreshingScans;
 
     [ObservableProperty]
     private bool isLoadingMore;
@@ -144,7 +149,8 @@ public partial class HomeSeekerViewModel(IHomeSeekerService service, ILogger<Hom
 
             await Task.WhenAll(LoadListingsCoreAsync(cancellationToken), LoadScansCoreAsync(cancellationToken));
 
-            if (_reloadListingsAfterLoad)
+            // Filters may change again while a replay is in flight; keep going until they settle.
+            while (_reloadListingsAfterLoad)
             {
                 _reloadListingsAfterLoad = false;
                 await LoadListingsCoreAsync(cancellationToken);
@@ -162,25 +168,30 @@ public partial class HomeSeekerViewModel(IHomeSeekerService service, ILogger<Hom
     }
 
     // Concurrent so a filter change during a pull-to-refresh is not silently ignored;
-    // the generation check keeps only the newest response.
+    // the generation check keeps only the newest response. IsRefreshingListings is not set to
+    // true here: the RefreshView sets it on pull, and setting it programmatically would re-run this command.
     [RelayCommand(AllowConcurrentExecutions = true)]
     private async Task LoadListingsAsync(CancellationToken cancellationToken)
     {
         try
         {
-            IsRefreshing = true;
             await LoadListingsCoreAsync(cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // Superseded by a newer execution (re-executing the command cancels the previous token).
         }
         finally
         {
-            IsRefreshing = _pendingListingReloads > 0;
+            if (_pendingListingReloads == 0)
+                IsRefreshingListings = false;
         }
     }
 
     [RelayCommand]
     private async Task LoadMoreListingsAsync(CancellationToken cancellationToken)
     {
-        if (IsLoadingMore || IsRefreshing || IsLoading || _pendingListingReloads > 0 || _currentPage >= _totalPages)
+        if (IsLoadingMore || IsRefreshingListings || IsLoading || _pendingListingReloads > 0 || _currentPage >= _totalPages)
             return;
 
         var generation = _listingsGeneration;
@@ -215,12 +226,11 @@ public partial class HomeSeekerViewModel(IHomeSeekerService service, ILogger<Hom
     {
         try
         {
-            IsRefreshing = true;
             await LoadScansCoreAsync(cancellationToken);
         }
         finally
         {
-            IsRefreshing = false;
+            IsRefreshingScans = false;
         }
     }
 
@@ -326,6 +336,9 @@ public partial class HomeSeekerViewModel(IHomeSeekerService service, ILogger<Hom
     {
         var generation = ++_listingsGeneration;
         _pendingListingReloads++;
+        // Old pagination belongs to the previous query; it is restored only when this first page succeeds.
+        _currentPage = 0;
+        _totalPages = 0;
         try
         {
             var result = await service.GetListingsAsync(1, PageSize, CurrentMinScore, CurrentSort, cancellationToken);

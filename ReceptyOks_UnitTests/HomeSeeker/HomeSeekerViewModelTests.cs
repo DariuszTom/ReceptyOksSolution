@@ -65,7 +65,67 @@ public sealed class HomeSeekerViewModelTests
         await refresh;
 
         Assert.That(vm.Listings.Select(l => l.Title), Is.EqualTo(new[] { "by-price" }));
-        Assert.That(vm.IsRefreshing, Is.False);
+        Assert.That(vm.IsRefreshingListings, Is.False);
+    }
+
+    [Test]
+    public async Task FilterChangesDuringReplay_AreAllApplied()
+    {
+        var initial = new TaskCompletionSource<HomeSeekerResult<HomeSeekerPagedResult<HomeSeekerListing>>>();
+        var replay = new TaskCompletionSource<HomeSeekerResult<HomeSeekerPagedResult<HomeSeekerListing>>>();
+        _service.Setup(s => s.GetListingsAsync(1, It.IsAny<int>(), It.IsAny<int?>(), null, It.IsAny<CancellationToken>()))
+            .Returns(initial.Task);
+        _service.Setup(s => s.GetListingsAsync(1, It.IsAny<int>(), It.IsAny<int?>(), "price", It.IsAny<CancellationToken>()))
+            .Returns(replay.Task);
+        _service.Setup(s => s.GetListingsAsync(1, It.IsAny<int>(), It.IsAny<int?>(), "firstseen", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Page(1, totalPages: 1, "newest"));
+
+        var vm = CreateViewModel();
+        var load = vm.LoadCommand.ExecuteAsync(null);
+        vm.SelectedSortOption = "Cena";
+        initial.SetResult(Page(1, totalPages: 1, "by-score"));
+        vm.SelectedSortOption = "Najnowsze";
+        replay.SetResult(Page(1, totalPages: 1, "by-price"));
+        await load;
+
+        Assert.That(vm.Listings.Select(l => l.Title), Is.EqualTo(new[] { "newest" }));
+    }
+
+    [Test]
+    public async Task SupersededReload_CancellationIsSwallowed()
+    {
+        _service.Setup(s => s.GetListingsAsync(1, It.IsAny<int>(), It.IsAny<int?>(), null, It.IsAny<CancellationToken>()))
+            .Returns<int, int, int?, string?, CancellationToken>(async (_, _, _, _, ct) =>
+            {
+                await Task.Delay(Timeout.Infinite, ct);
+                return Page(1, 1, "never");
+            });
+        _service.Setup(s => s.GetListingsAsync(1, It.IsAny<int>(), It.IsAny<int?>(), "price", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Page(1, totalPages: 1, "by-price"));
+
+        var vm = CreateViewModel();
+        var first = vm.LoadListingsCommand.ExecuteAsync(null);
+        vm.SelectedSortOption = "Cena";
+
+        Assert.DoesNotThrowAsync(async () => await first);
+        Assert.That(vm.Listings.Select(l => l.Title), Is.EqualTo(new[] { "by-price" }));
+    }
+
+    [Test]
+    public async Task FailedReload_DisablesLoadMoreForOldResults()
+    {
+        _service.Setup(s => s.GetListingsAsync(1, It.IsAny<int>(), It.IsAny<int?>(), null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Page(1, totalPages: 3, "old-1"));
+        _service.Setup(s => s.GetListingsAsync(1, It.IsAny<int>(), It.IsAny<int?>(), "price", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(HomeSeekerResult<HomeSeekerPagedResult<HomeSeekerListing>>.Fail(HomeSeekerCallStatus.Error, "boom"));
+
+        var vm = CreateViewModel();
+        await vm.LoadCommand.ExecuteAsync(null);
+        vm.SelectedSortOption = "Cena";
+        await vm.LoadListingsCommand.ExecuteAsync(null);
+        await vm.LoadMoreListingsCommand.ExecuteAsync(null);
+
+        _service.Verify(s => s.GetListingsAsync(2, It.IsAny<int>(), It.IsAny<int?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Test]
