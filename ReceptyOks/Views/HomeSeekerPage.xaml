@@ -55,7 +55,8 @@
                     VerticalOptions="Center"
                     BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray600}}">
                 <Border.Behaviors>
-                    Command="{Binding BindingContext.GoBackCommand, Source={x:Reference HomeSeekerPageRoot}, x:DataType=ContentPage}"/>
+                    <toolkit:TouchBehavior PressedScale="0.9" PressedOpacity="0.7"
+                                           Command="{Binding BindingContext.GoBackCommand, Source={x:Reference HomeSeekerPageRoot}, x:DataType=ContentPage}"/>
                 </Border.Behaviors>
                 <Image HeightRequest="22" WidthRequest="22" HorizontalOptions="Center" VerticalOptions="Center">
                     <Image.Source>
@@ -80,7 +81,8 @@
                     VerticalOptions="Center"
                     BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray600}}">
                 <Border.Behaviors>
-                    Command="{Binding BindingContext.LoadCommand, Source={x:Reference HomeSeekerPageRoot}, x:DataType=ContentPage}"/>
+                    <toolkit:TouchBehavior PressedScale="0.9" PressedOpacity="0.7"
+                                           Command="{Binding BindingContext.LoadCommand, Source={x:Reference HomeSeekerPageRoot}, x:DataType=ContentPage}"/>
                 </Border.Behaviors>
                 <Grid>
                     <Image HeightRequest="22" WidthRequest="22" HorizontalOptions="Center" VerticalOptions="Center"
