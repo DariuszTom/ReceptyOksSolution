@@ -8,12 +8,15 @@ public partial class HomeSeekerPage : ContentPage
 {
     private readonly HomeSeekerViewModel _viewModel;
     private bool _initialized;
+    private bool _componentReady;
 
     public HomeSeekerPage(HomeSeekerViewModel viewModel)
     {
-        InitializeComponent();
         _viewModel = viewModel;
+        InitializeComponent();
         BindingContext = _viewModel;
+        SectionTabs.SelectedTab = TabFor(_viewModel.CurrentSection);
+        _componentReady = true;
         _viewModel.PropertyChanged += OnViewModelPropertyChanged;
     }
 
@@ -29,6 +32,10 @@ public partial class HomeSeekerPage : ContentPage
 
     private void OnSelectedTabChanged(object? sender, TabItem? tab)
     {
+        // TabView raises this while XAML is loading (inside InitializeComponent).
+        if (!_componentReady)
+            return;
+
         var section = tab == ProfileTab ? HomeSeekerSection.Profile
             : tab == ScansTab ? HomeSeekerSection.Scans
             : HomeSeekerSection.Listings;

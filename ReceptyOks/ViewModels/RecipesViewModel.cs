@@ -39,8 +39,13 @@ public partial class RecipesViewModel : ObservableObject
                 ? await _database.GetRecipesAsync()
                 : await _database.SearchRecipesAsync(SearchQuery);
 
-            Recipes = new ObservableCollection<RecipeLocal>(recipeList);
-
+            // Update in place: replacing ItemsSource while the WinUI CollectionView
+            // is realizing items can crash with ExecutionEngineException.
+            Recipes.Clear();
+            foreach (var recipe in recipeList)
+            {
+                Recipes.Add(recipe);
+            }
         }
         catch (Exception ex)
         {
