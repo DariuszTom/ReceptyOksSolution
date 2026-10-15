@@ -334,7 +334,7 @@ public sealed class ListingRepository : IListingRepository
             .Where(l => l.SearchProfileId == profileId && !l.IsDeleted)
             .Where(l => l.AiScore != null)
             .OrderByDescending(l => l.AiScore)
-            .ThenBy(l => l.Price / l.AreaSqm)
+            .ThenBy(l => (double)l.Price / (double)l.AreaSqm)
             .ThenBy(l => l.Id)
             .Take(count)
             .ToListAsync(cancellationToken)
@@ -364,7 +364,7 @@ public sealed class ListingRepository : IListingRepository
         // otherwise SQL may return tied rows in a different order per request.
         var ordered = sortBy?.ToLowerInvariant() switch
         {
-            "price" => query.OrderBy(l => l.Price),
+            "price" => query.OrderBy(l => (double)l.Price),
             "firstseen" => query.OrderByDescending(l => l.FirstSeenAt),
             _ => query.OrderByDescending(l => l.AiScore ?? 0)
         };
