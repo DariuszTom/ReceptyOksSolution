@@ -125,6 +125,16 @@ public sealed class MarketScanService : IMarketScanService
             if (portalErrors.Count > 0)
                 warnings = Truncate("Niepełny skan: " + string.Join("; ", portalErrors), 2000);
 
+            // Portals don't always honour the price/area filters in the URL (Otodom mixes in
+            // "similar" offers), so enforce the profile's ranges here before anything is stored.
+            var scrapedCount = allScraped.Count;
+            allScraped.RemoveAll(s => !MatchesCriteria(profile, s));
+            if (allScraped.Count < scrapedCount)
+            {
+                _logger.LogInformation("Dropped {Count} listings outside the profile's price/area range",
+                    scrapedCount - allScraped.Count);
+            }
+
             totalFound = allScraped.Count;
             _logger.LogInformation("Total scraped: {Count} listings from {Succeeded}/{Attempted} portals",
                 totalFound, portalsSucceeded, portalsAttempted);
@@ -377,15 +387,29 @@ public sealed class MarketScanService : IMarketScanService
     /// (price per m² / district median, see <see cref="MarketPriceStats"/>), so central
     /// bargains compete fairly with cheap outskirts. The cap is shared round-robin between
     /// property types so cheaper-per-m² houses can't crowd out apartments; slots a type
-    /// can't use go to the other type.
+    /// can't use go to the other type. Slots left over go to listings still on the market that
+    /// were never evaluated (they didn't fit the cap in earlier scans), so the backlog drains
+    /// over time instead of staying unscored forever.
     /// </summary>
     internal static List<UpsertResult> SelectCandidates(
         IReadOnlyCollection<UpsertResult> upsertResults, int max, MarketPriceStats? priceStats = null)
     {
         priceStats ??= new MarketPriceStats(upsertResults.Select(r => r.Listing));
 
-        var queues = upsertResults
-            .Where(r => r.IsNew || r.PriceDropped)
+        var selected = RoundRobin(upsertResults.Where(r => r.IsNew || r.PriceDropped), max, priceStats);
+        if (selected.Count < max)
+        {
+            var backlog = upsertResults.Where(r => !r.IsNew && !r.PriceDropped && r.Listing.AiScore is null);
+            selected.AddRange(RoundRobin(backlog, max - selected.Count, priceStats));
+        }
+
+        return selected;
+    }
+
+    private static List<UpsertResult> RoundRobin(
+        IEnumerable<UpsertResult> results, int max, MarketPriceStats priceStats)
+    {
+        var queues = results
             .GroupBy(r => r.Listing.PropertyType)
             .OrderBy(g => g.Key)
             .Select(g => new Queue<UpsertResult>(g
@@ -404,6 +428,27 @@ public sealed class MarketScanService : IMarketScanService
         }
 
         return selected;
+    }
+
+    /// <summary>
+    /// True when the listing's price and area fall within the profile's ranges. Unknown values
+    /// (0, e.g. "zapytaj o cenę") are kept, since they can't be ruled out.
+    /// </summary>
+    internal static bool MatchesCriteria(SearchProfile profile, ScrapedListing listing)
+    {
+        if (listing.Price > 0)
+        {
+            if (profile.MinPrice is { } minPrice && listing.Price < minPrice) return false;
+            if (profile.MaxPrice is { } maxPrice && listing.Price > maxPrice) return false;
+        }
+
+        if (listing.AreaSqm > 0)
+        {
+            if (profile.MinAreaSqm is { } minArea && listing.AreaSqm < minArea) return false;
+            if (profile.MaxAreaSqm is { } maxArea && listing.AreaSqm > maxArea) return false;
+        }
+
+        return true;
     }
 
     private static decimal PricePerSqm(HouseListing listing) =>

@@ -186,6 +186,71 @@ public sealed class MarketScanServiceTests
         Assert.That(selected.Select(r => r.Listing.ExternalId), Is.EquivalentTo(new[] { "h1", "h2", "h3", "a1" }));
     }
 
+    [TestCase(1_000_000, 100, true)]
+    [TestCase(2_500_000, 410, false)]  // the Otodom "similar offers" case
+    [TestCase(1_500_000, 100, false)]
+    [TestCase(600_000, 100, false)]
+    [TestCase(1_000_000, 60, false)]
+    [TestCase(1_000_000, 140, false)]
+    [TestCase(0, 100, true)]           // price unknown - keep
+    [TestCase(1_000_000, 0, true)]     // area unknown - keep
+    public void MatchesCriteria_EnforcesProfileRanges(decimal price, decimal area, bool expected)
+    {
+        var profile = new SearchProfile { City = "Kraków", MinPrice = 700_000, MaxPrice = 1_400_000, MinAreaSqm = 70, MaxAreaSqm = 130 };
+        var listing = new ScrapedListing { Portal = "Otodom", ExternalId = "x", Url = "https://x", Title = "x", Price = price, AreaSqm = area };
+
+        Assert.That(MarketScanService.MatchesCriteria(profile, listing), Is.EqualTo(expected));
+    }
+
+    [Test]
+    public async Task RunScan_DropsListingsOutsideProfileRangeBeforeStoring()
+    {
+        _profile.MaxPrice = 1_400_000;
+        AddUpsert("ok", price: 1_000_000, area: 100, isNew: true);
+        var scraper = new Mock<IListingScraper>();
+        scraper.SetupGet(s => s.PortalName).Returns("Otodom");
+        scraper.Setup(s => s.SearchAsync(It.IsAny<SearchProfile>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ScrapeResult.Success(
+            [
+                new ScrapedListing { Portal = "Otodom", ExternalId = "ok", Url = "https://x/ok", Title = "ok", Price = 1_000_000, AreaSqm = 100 },
+                new ScrapedListing { Portal = "Otodom", ExternalId = "too-expensive", Url = "https://x/te", Title = "te", Price = 2_500_000, AreaSqm = 100 }
+            ]));
+
+        var result = await CreateSut([scraper.Object]).RunScanAsync(ProfileId);
+
+        Assert.That(result, Is.True);
+        _repository.Verify(r => r.UpsertListingAsync(ProfileId, It.Is<ScrapedListing>(s => s.ExternalId == "too-expensive"), It.IsAny<CancellationToken>()), Times.Never);
+        _repository.Verify(r => r.UpsertListingAsync(ProfileId, It.Is<ScrapedListing>(s => s.ExternalId == "ok"), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Test]
+    public void SelectCandidates_FillsSpareSlotsWithUnevaluatedBacklog()
+    {
+        AddUpsert("new", price: 900_000, area: 100, isNew: true);
+        AddUpsert("backlog-cheap", price: 300_000, area: 100);
+        AddUpsert("backlog-pricey", price: 800_000, area: 100);
+        AddUpsert("already-scored", price: 100_000, area: 100);
+        _upsertResults["already-scored"].Listing.AiScore = 70;
+
+        var selected = MarketScanService.SelectCandidates(_upsertResults.Values, 2);
+
+        // New listings come first; the cheapest unevaluated one fills the remaining slot.
+        Assert.That(selected.Select(r => r.Listing.ExternalId), Is.EqualTo(new[] { "new", "backlog-cheap" }));
+    }
+
+    [Test]
+    public async Task RunScan_WithOnlyUnevaluatedBacklog_EvaluatesItWithoutSendingEmail()
+    {
+        AddUpsert("backlog", price: 300_000, area: 100);
+
+        var result = await CreateSut([SucceedingScraper("Otodom", "backlog")]).RunScanAsync(ProfileId);
+
+        Assert.That(result, Is.True);
+        _evaluator.Verify(e => e.EvaluateAsync(It.IsAny<SearchProfile>(), It.Is<HouseListing>(l => l.ExternalId == "backlog"),
+            It.IsAny<string?>(), It.IsAny<PriceBenchmark?>(), It.IsAny<CancellationToken>()), Times.Once);
+        _sender.VerifyNoOtherCalls();
+    }
+
     [Test]
     public void SelectCandidates_RanksByPriceRelativeToDistrictMedian()
     {
@@ -386,6 +451,7 @@ public sealed class MarketScanServiceTests
     {
         AddUpsert("a", price: 300_000, area: 100, isNew: true);
         AddUpsert("old", price: 300_000, area: 100);
+        _upsertResults["old"].Listing.AiScore = 60;
 
         var scraper = Mock.Get(SucceedingScraper("Otodom", "a", "old"));
         scraper.Setup(s => s.GetDetailsAsync(_upsertResults["a"].Listing.Url, It.IsAny<CancellationToken>()))
@@ -479,6 +545,7 @@ public sealed class MarketScanServiceTests
     public async Task RunScan_WithoutNewListingsOrDrops_DoesNotSendEmailButStoresReport()
     {
         AddUpsert("a", price: 300_000, area: 100);
+        _upsertResults["a"].Listing.AiScore = 60;
 
         var sut = CreateSut([SucceedingScraper("Otodom", "a")]);
 
