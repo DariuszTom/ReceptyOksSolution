@@ -100,6 +100,7 @@ public sealed class ListingRepository : IListingRepository
         profile.OwnerId = updatedBy;
         profile.City = request.City;
         profile.District = request.District;
+        profile.PropertyTypes = request.PropertyTypes;
         profile.MinPrice = request.MinPrice;
         profile.MaxPrice = request.MaxPrice;
         profile.MinAreaSqm = request.MinAreaSqm;
@@ -253,6 +254,7 @@ public sealed class ListingRepository : IListingRepository
             existing.Title = scraped.Title;
             existing.Url = scraped.Url;
             existing.Location = scraped.Location;
+            existing.PropertyType = scraped.PropertyType;
             existing.LastSeenAt = now;
             existing.UpdatedAt = now;
 
@@ -278,6 +280,7 @@ public sealed class ListingRepository : IListingRepository
             Price = scraped.Price,
             AreaSqm = scraped.AreaSqm,
             Location = scraped.Location,
+            PropertyType = scraped.PropertyType,
             FirstSeenAt = now,
             LastSeenAt = now,
             CreatedAt = now,

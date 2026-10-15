@@ -28,6 +28,11 @@ public class SearchProfile
     public string? District { get; set; }
 
     /// <summary>
+    /// Property kinds to scan for (houses, apartments or both).
+    /// </summary>
+    public PropertyTypes PropertyTypes { get; set; } = PropertyTypes.House;
+
+    /// <summary>
     /// Minimum price in PLN.
     /// </summary>
     public decimal? MinPrice { get; set; }

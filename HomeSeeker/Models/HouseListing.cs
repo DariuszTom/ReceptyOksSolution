@@ -53,6 +53,11 @@ public class HouseListing
     public string? Location { get; set; }
 
     /// <summary>
+    /// Kind of property (house or apartment).
+    /// </summary>
+    public PropertyTypes PropertyType { get; set; } = PropertyTypes.House;
+
+    /// <summary>
     /// When the listing was first discovered.
     /// </summary>
     public DateTime FirstSeenAt { get; set; }

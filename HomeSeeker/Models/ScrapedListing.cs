@@ -39,4 +39,9 @@ public sealed record ScrapedListing
     /// Location description.
     /// </summary>
     public string? Location { get; init; }
+
+    /// <summary>
+    /// Kind of property (set by the scraper from the search category).
+    /// </summary>
+    public PropertyTypes PropertyType { get; init; } = PropertyTypes.House;
 }

@@ -2,12 +2,23 @@ using System.Text.Json;
 
 namespace ReceptyOks.Models.HomeSeeker;
 
+/// <summary>Mirrors the server's <c>HomeSeeker.Models.PropertyTypes</c> flags (serialized as a number).</summary>
+[Flags]
+public enum HomeSeekerPropertyTypes
+{
+    None = 0,
+    House = 1,
+    Apartment = 2,
+    All = House | Apartment
+}
+
 /// <summary>Client-side copy of the shared HomeSeeker search profile (<c>GET/PUT /api/homeseeker/profile</c>).</summary>
 public sealed class HomeSeekerProfile
 {
     public Guid Id { get; set; }
     public string City { get; set; } = string.Empty;
     public string? District { get; set; }
+    public HomeSeekerPropertyTypes PropertyTypes { get; set; } = HomeSeekerPropertyTypes.House;
     public decimal? MinPrice { get; set; }
     public decimal? MaxPrice { get; set; }
     public decimal? MinAreaSqm { get; set; }
@@ -26,6 +37,7 @@ public sealed class HomeSeekerProfileRequest
 {
     public string City { get; set; } = string.Empty;
     public string? District { get; set; }
+    public HomeSeekerPropertyTypes PropertyTypes { get; set; } = HomeSeekerPropertyTypes.House;
     public decimal? MinPrice { get; set; }
     public decimal? MaxPrice { get; set; }
     public decimal? MinAreaSqm { get; set; }
@@ -45,6 +57,7 @@ public sealed class HomeSeekerListing
     public decimal? PreviousPrice { get; set; }
     public decimal AreaSqm { get; set; }
     public string? Location { get; set; }
+    public HomeSeekerPropertyTypes PropertyType { get; set; } = HomeSeekerPropertyTypes.House;
     public DateTime FirstSeenAt { get; set; }
     public DateTime LastSeenAt { get; set; }
     public int? AiScore { get; set; }
@@ -55,6 +68,8 @@ public sealed class HomeSeekerListing
     public DateTime? EvaluatedAt { get; set; }
 
     public DateTime FirstSeenAtLocal => HomeSeekerTime.ToLocal(FirstSeenAt);
+
+    public string PropertyTypeText => PropertyType == HomeSeekerPropertyTypes.Apartment ? "Mieszkanie" : "Dom";
 
     public decimal? PricePerSqm => AreaSqm > 0 ? Math.Round(Price / AreaSqm, 0) : null;
 

@@ -20,6 +20,10 @@ public sealed class SearchProfileRequestValidator : AbstractValidator<SearchProf
             .Matches(@"^[\p{L}\s\-]*$").WithMessage("District can only contain letters, spaces, and hyphens")
             .When(x => !string.IsNullOrWhiteSpace(x.District));
 
+        RuleFor(x => x.PropertyTypes)
+            .Must(t => t != PropertyTypes.None && (t & ~PropertyTypes.All) == 0)
+            .WithMessage("Select at least one property type (house or apartment)");
+
         RuleFor(x => x.MinPrice)
             .GreaterThanOrEqualTo(0).WithMessage("Minimum price cannot be negative")
             .When(x => x.MinPrice.HasValue);

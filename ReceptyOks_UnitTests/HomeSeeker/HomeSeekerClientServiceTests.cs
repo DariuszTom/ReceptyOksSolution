@@ -43,6 +43,7 @@ public sealed class HomeSeekerClientServiceTests
         {
             Id = Guid.NewGuid(),
             City = "Wrocław",
+            PropertyTypes = ServerModels.PropertyTypes.Apartment,
             MinPrice = 500_000,
             MaxAreaSqm = 180.5m,
             NotificationEmail = "a@example.com; b@example.com",
@@ -59,6 +60,7 @@ public sealed class HomeSeekerClientServiceTests
         {
             Assert.That(profile.Id, Is.EqualTo(server.Id));
             Assert.That(profile.City, Is.EqualTo("Wrocław"));
+            Assert.That(profile.PropertyTypes, Is.EqualTo(HomeSeekerPropertyTypes.Apartment));
             Assert.That(profile.MinPrice, Is.EqualTo(500_000m));
             Assert.That(profile.MaxAreaSqm, Is.EqualTo(180.5m));
             Assert.That(profile.NotificationEmail, Is.EqualTo(server.NotificationEmail));
@@ -102,6 +104,7 @@ public sealed class HomeSeekerClientServiceTests
         await sut.SaveProfileAsync(new HomeSeekerProfileRequest
         {
             City = "Kraków",
+            PropertyTypes = HomeSeekerPropertyTypes.All,
             MinPrice = 400_000,
             ExtraCriteria = "ogród",
             NotificationEmail = "a@example.com",
@@ -112,6 +115,7 @@ public sealed class HomeSeekerClientServiceTests
         Assert.Multiple(() =>
         {
             Assert.That(server.City, Is.EqualTo("Kraków"));
+            Assert.That(server.PropertyTypes, Is.EqualTo(ServerModels.PropertyTypes.All));
             Assert.That(server.MinPrice, Is.EqualTo(400_000m));
             Assert.That(server.ExtraCriteria, Is.EqualTo("ogród"));
             Assert.That(server.NotificationEmail, Is.EqualTo("a@example.com"));

@@ -43,51 +43,61 @@ public sealed partial class OlxScraper : IListingScraper
 
         try
         {
-            for (int page = 1; page <= _options.MaxSearchPagesPerPortal; page++)
+            var requestsSent = 0;
+            var blocked = false;
+            foreach (var type in profile.PropertyTypes.Selected())
             {
-                if (cancellationToken.IsCancellationRequested)
+                // Bot detection applies to the whole portal; do not hammer it with the next category.
+                if (blocked)
                     break;
 
-                var url = BuildSearchUrl(profile, page);
-                _logger.LogDebug("Fetching OLX page {Page}: {Url}", page, url);
-
-                try
+                for (int page = 1; page <= _options.MaxSearchPagesPerPortal; page++)
                 {
-                    var html = await _httpClient.GetStringAsync(url, cancellationToken).ConfigureAwait(false);
-                    pagesFetched++;
-
-                    // Try JSON parsing first, fallback to HTML
-                    var listings = ParsePrerenderedState(html);
-                    if (listings.Count == 0)
-                    {
-                        _logger.LogDebug("JSON parsing returned empty, trying HTML fallback");
-                        listings = ParseHtmlFallback(html);
-                    }
-
-                    if (listings.Count == 0)
-                    {
-                        _logger.LogDebug("No more listings found on page {Page}", page);
+                    if (cancellationToken.IsCancellationRequested)
                         break;
-                    }
 
-                    results.AddRange(listings);
-
-                    if (page < _options.MaxSearchPagesPerPortal)
+                    if (requestsSent++ > 0)
                     {
                         await Task.Delay(_options.RequestDelay, cancellationToken).ConfigureAwait(false);
                     }
-                }
-                catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Forbidden)
-                {
-                    _logger.LogWarning("OLX returned 403 Forbidden - possible rate limiting or bot detection");
-                    failure = "OLX returned 403 Forbidden";
-                    break;
-                }
-                catch (HttpRequestException ex)
-                {
-                    _logger.LogWarning(ex, "Failed to fetch OLX page {Page}", page);
-                    failure = $"OLX request failed: {ex.Message}";
-                    break;
+
+                    var url = BuildSearchUrl(profile, type, page);
+                    _logger.LogDebug("Fetching OLX {Type} page {Page}: {Url}", type, page, url);
+
+                    try
+                    {
+                        var html = await _httpClient.GetStringAsync(url, cancellationToken).ConfigureAwait(false);
+                        pagesFetched++;
+
+                        // Try JSON parsing first, fallback to HTML
+                        var listings = ParsePrerenderedState(html);
+                        if (listings.Count == 0)
+                        {
+                            _logger.LogDebug("JSON parsing returned empty, trying HTML fallback");
+                            listings = ParseHtmlFallback(html);
+                        }
+
+                        if (listings.Count == 0)
+                        {
+                            _logger.LogDebug("No more {Type} listings found on page {Page}", type, page);
+                            break;
+                        }
+
+                        results.AddRange(listings.Select(l => l with { PropertyType = type }));
+                    }
+                    catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Forbidden)
+                    {
+                        _logger.LogWarning("OLX returned 403 Forbidden - possible rate limiting or bot detection");
+                        failure = "OLX returned 403 Forbidden";
+                        blocked = true;
+                        break;
+                    }
+                    catch (HttpRequestException ex)
+                    {
+                        _logger.LogWarning(ex, "Failed to fetch OLX {Type} page {Page}", type, page);
+                        failure = $"OLX request failed: {ex.Message}";
+                        break;
+                    }
                 }
             }
         }
@@ -115,10 +125,11 @@ public sealed partial class OlxScraper : IListingScraper
         return ScrapeResult.Success(results);
     }
 
-    private static string BuildSearchUrl(SearchProfile profile, int page)
+    private static string BuildSearchUrl(SearchProfile profile, PropertyTypes type, int page)
     {
         var city = NormalizeCity(profile.City);
-        var url = $"https://www.olx.pl/nieruchomosci/domy/sprzedaz/{city}/?page={page}";
+        var category = type == PropertyTypes.Apartment ? "mieszkania" : "domy";
+        var url = $"https://www.olx.pl/nieruchomosci/{category}/sprzedaz/{city}/?page={page}";
 
         if (profile.MinPrice.HasValue)
             url += $"&search[filter_float_price:from]={profile.MinPrice.Value:F0}";

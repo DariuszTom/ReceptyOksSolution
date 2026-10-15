@@ -71,6 +71,50 @@ public sealed class ScraperSearchAsyncTests
     }
 
     [Test]
+    public async Task Otodom_WithBothTypes_QueriesHousesThenApartmentsAndTagsListings()
+    {
+        var handler = new StubHandler(
+            (HttpStatusCode.OK, OtodomPage),
+            (HttpStatusCode.OK, OtodomPage));
+        var sut = CreateOtodom(handler, maxPages: 1);
+
+        var result = await sut.SearchAsync(ProfileOf(PropertyTypes.All));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(handler.Requests, Has.Count.EqualTo(2));
+            Assert.That(handler.Requests[0].AbsolutePath, Does.Contain("/sprzedaz/dom/"));
+            Assert.That(handler.Requests[1].AbsolutePath, Does.Contain("/sprzedaz/mieszkanie/"));
+            Assert.That(result.Listings.Select(l => l.PropertyType),
+                Is.EqualTo(new[] { PropertyTypes.House, PropertyTypes.House, PropertyTypes.Apartment, PropertyTypes.Apartment }));
+        });
+    }
+
+    [Test]
+    public async Task Otodom_With403OnHouses_DoesNotQueryApartments()
+    {
+        var handler = new StubHandler((HttpStatusCode.Forbidden, "blocked"));
+        var sut = CreateOtodom(handler);
+
+        var result = await sut.SearchAsync(ProfileOf(PropertyTypes.All));
+
+        Assert.That(result.Succeeded, Is.False);
+        Assert.That(handler.Requests, Has.Count.EqualTo(1));
+    }
+
+    [Test]
+    public async Task Olx_WithApartmentsOnly_UsesApartmentCategory()
+    {
+        var handler = new StubHandler((HttpStatusCode.OK, EmptyPage));
+        var sut = CreateOlx(handler);
+
+        await sut.SearchAsync(ProfileOf(PropertyTypes.Apartment));
+
+        Assert.That(handler.Requests, Has.Count.EqualTo(1));
+        Assert.That(handler.Requests[0].AbsolutePath, Does.StartWith("/nieruchomosci/mieszkania/sprzedaz/"));
+    }
+
+    [Test]
     public async Task Otodom_RespectsMaxSearchPagesPerPortal()
     {
         var handler = new StubHandler(
@@ -170,6 +214,17 @@ public sealed class ScraperSearchAsyncTests
         Assert.That(handler.Requests, Has.Count.EqualTo(1));
         Assert.That(handler.Requests[0].Host, Is.EqualTo("www.olx.pl"));
     }
+
+    private static SearchProfile ProfileOf(PropertyTypes types) => new()
+    {
+        Id = Profile.Id,
+        City = Profile.City,
+        MinPrice = Profile.MinPrice,
+        MaxPrice = Profile.MaxPrice,
+        MinAreaSqm = Profile.MinAreaSqm,
+        NotificationEmail = Profile.NotificationEmail,
+        PropertyTypes = types
+    };
 
     private static OtodomScraper CreateOtodom(StubHandler handler, int maxPages = 1) =>
         new(Factory(handler), Options(maxPages), NullLogger<OtodomScraper>.Instance);

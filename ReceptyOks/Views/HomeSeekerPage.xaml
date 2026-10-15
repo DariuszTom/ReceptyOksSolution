@@ -247,6 +247,10 @@
                                                         <Label Text="{Binding Portal}" FontSize="11" Style="{StaticResource HsText}"/>
                                                     </Border>
                                                     <Border Style="{StaticResource HsChip}" Margin="0,0,6,4"
+                                                            BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray800}}">
+                                                        <Label Text="{Binding PropertyTypeText}" FontSize="11" Style="{StaticResource HsText}"/>
+                                                    </Border>
+                                                    <Border Style="{StaticResource HsChip}" Margin="0,0,6,4"
                                                             BackgroundColor="{StaticResource PinkColor}"
                                                             IsVisible="{Binding HasPriceDrop}">
                                                         <Label Text="{Binding PreviousPrice, StringFormat='obniżka (było {0:N0} zł)'}" FontSize="11" TextColor="White"/>
@@ -378,6 +382,14 @@
                                     <material:TextField Title="Dzielnica" Text="{Binding District}" AllowClear="True" MaxLength="100"
                                                         Icon="{FontImageSource FontFamily=MaterialSymbolsOutlined, Glyph={x:Static icons:MaterialOutlined.Map}}"
                                                         AccentColor="{StaticResource Primary}"/>
+
+                                    <VerticalStackLayout Spacing="4">
+                                        <Label Text="Typ nieruchomości *" Style="{StaticResource HsText}"/>
+                                        <HorizontalStackLayout Spacing="24">
+                                            <material:CheckBox Text="Domy" IsChecked="{Binding SearchHouses}" Color="{StaticResource Primary}"/>
+                                            <material:CheckBox Text="Mieszkania" IsChecked="{Binding SearchApartments}" Color="{StaticResource Primary}"/>
+                                        </HorizontalStackLayout>
+                                    </VerticalStackLayout>
 
                                     <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
                                         <material:TextField Grid.Column="0" Title="Cena min (zł)" Text="{Binding MinPrice}" Keyboard="Numeric"

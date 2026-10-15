@@ -2,7 +2,9 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="ReceptyOks.Views.HomeSeekerReportPage"
+             x:Name="HomeSeekerReportPageRoot"
              xmlns:vm="clr-namespace:ReceptyOks.ViewModels"
+             xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
              xmlns:icons="clr-namespace:UraniumUI.Icons.MaterialSymbols;assembly=UraniumUI.Icons.MaterialSymbols"
              x:DataType="vm:HomeSeekerReportViewModel"
              Shell.NavBarIsVisible="False"
@@ -15,19 +17,29 @@
             <Grid.Shadow>
                 <Shadow Brush="{StaticResource Gray400Brush}" Offset="0,2" Radius="4" Opacity="0.1"/>
             </Grid.Shadow>
-            <Button Grid.Column="0"
-                    Padding="8"
-                    CornerRadius="10"
-                    BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray600}}"
+            <!-- Border + TouchBehavior instead of Button: on Windows a focused Button's
+                 Focused visual state is applied after its handler disconnects during
+                 navigation, throwing "PlatformView cannot be null here". -->
+            <Border Grid.Column="0"
+                    StrokeThickness="0"
+                    StrokeShape="RoundRectangle 22"
+                    HeightRequest="44"
+                    WidthRequest="44"
                     VerticalOptions="Center"
-                    Command="{Binding GoBackCommand}">
-                <Button.ImageSource>
-                    <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Arrow_back}"
-                                     FontFamily="MaterialSymbolsOutlined"
-                                     Color="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"
-                                     Size="24"/>
-                </Button.ImageSource>
-            </Button>
+                    BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray600}}">
+                <Border.Behaviors>
+                    <toolkit:TouchBehavior PressedScale="0.9" PressedOpacity="0.7"
+                                           Command="{Binding BindingContext.GoBackCommand, Source={x:Reference HomeSeekerReportPageRoot}, x:DataType=ContentPage}"/>
+                </Border.Behaviors>
+                <Image HeightRequest="22" WidthRequest="22" HorizontalOptions="Center" VerticalOptions="Center">
+                    <Image.Source>
+                        <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Arrow_back}"
+                                         FontFamily="MaterialSymbolsOutlined"
+                                         Color="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}"
+                                         Size="22"/>
+                    </Image.Source>
+                </Image>
+            </Border>
             <VerticalStackLayout Grid.Column="1" VerticalOptions="Center">
                 <Label Text="{Binding Title}" Style="{StaticResource PageTitle}" FontSize="22"/>
                 <Label Text="Raport ze skanu rynku" Style="{StaticResource CaptionLabel}"/>

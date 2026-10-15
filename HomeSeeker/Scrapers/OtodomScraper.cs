@@ -40,44 +40,54 @@ public sealed partial class OtodomScraper : IListingScraper
 
         try
         {
-            for (int page = 1; page <= _options.MaxSearchPagesPerPortal; page++)
+            var requestsSent = 0;
+            var blocked = false;
+            foreach (var type in profile.PropertyTypes.Selected())
             {
-                if (cancellationToken.IsCancellationRequested)
+                // Bot detection applies to the whole portal; do not hammer it with the next category.
+                if (blocked)
                     break;
 
-                var url = BuildSearchUrl(profile, page);
-                _logger.LogDebug("Fetching Otodom page {Page}: {Url}", page, url);
-
-                try
+                for (int page = 1; page <= _options.MaxSearchPagesPerPortal; page++)
                 {
-                    var html = await _httpClient.GetStringAsync(url, cancellationToken).ConfigureAwait(false);
-                    pagesFetched++;
-                    var listings = ParseNextData(html);
-
-                    if (listings.Count == 0)
-                    {
-                        _logger.LogDebug("No more listings found on page {Page}", page);
+                    if (cancellationToken.IsCancellationRequested)
                         break;
-                    }
 
-                    results.AddRange(listings);
-
-                    if (page < _options.MaxSearchPagesPerPortal)
+                    if (requestsSent++ > 0)
                     {
                         await Task.Delay(_options.RequestDelay, cancellationToken).ConfigureAwait(false);
                     }
-                }
-                catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Forbidden)
-                {
-                    _logger.LogWarning("Otodom returned 403 Forbidden - possible rate limiting or bot detection");
-                    failure = "Otodom returned 403 Forbidden";
-                    break;
-                }
-                catch (HttpRequestException ex)
-                {
-                    _logger.LogWarning(ex, "Failed to fetch Otodom page {Page}", page);
-                    failure = $"Otodom request failed: {ex.Message}";
-                    break;
+
+                    var url = BuildSearchUrl(profile, type, page);
+                    _logger.LogDebug("Fetching Otodom {Type} page {Page}: {Url}", type, page, url);
+
+                    try
+                    {
+                        var html = await _httpClient.GetStringAsync(url, cancellationToken).ConfigureAwait(false);
+                        pagesFetched++;
+                        var listings = ParseNextData(html);
+
+                        if (listings.Count == 0)
+                        {
+                            _logger.LogDebug("No more {Type} listings found on page {Page}", type, page);
+                            break;
+                        }
+
+                        results.AddRange(listings.Select(l => l with { PropertyType = type }));
+                    }
+                    catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Forbidden)
+                    {
+                        _logger.LogWarning("Otodom returned 403 Forbidden - possible rate limiting or bot detection");
+                        failure = "Otodom returned 403 Forbidden";
+                        blocked = true;
+                        break;
+                    }
+                    catch (HttpRequestException ex)
+                    {
+                        _logger.LogWarning(ex, "Failed to fetch Otodom {Type} page {Page}", type, page);
+                        failure = $"Otodom request failed: {ex.Message}";
+                        break;
+                    }
                 }
             }
         }
@@ -104,13 +114,14 @@ public sealed partial class OtodomScraper : IListingScraper
         return ScrapeResult.Success(results);
     }
 
-    private static string BuildSearchUrl(SearchProfile profile, int page)
+    private static string BuildSearchUrl(SearchProfile profile, PropertyTypes type, int page)
     {
         var city = NormalizeCity(profile.City);
+        var category = type == PropertyTypes.Apartment ? "mieszkanie" : "dom";
         // "/pl/wyniki/..." now requires the full location path (e.g. malopolskie/krakow/krakow/krakow)
         // and returns 404 for a bare city slug. "/pl/oferty/..." resolves the slug and redirects there,
         // preserving the query string.
-        var url = $"https://www.otodom.pl/pl/oferty/sprzedaz/dom/{city}?page={page}";
+        var url = $"https://www.otodom.pl/pl/oferty/sprzedaz/{category}/{city}?page={page}";
 
         if (profile.MinPrice.HasValue)
             url += $"&priceMin={profile.MinPrice.Value:F0}";

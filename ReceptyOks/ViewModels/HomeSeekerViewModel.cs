@@ -84,6 +84,8 @@ public partial class HomeSeekerViewModel(IHomeSeekerService service, ILogger<Hom
     // Profile form (strings, so partially typed numbers do not get reset by the binding).
     [ObservableProperty] private string city = string.Empty;
     [ObservableProperty] private string? district;
+    [ObservableProperty] private bool searchHouses = true;
+    [ObservableProperty] private bool searchApartments;
     [ObservableProperty] private string? minPrice;
     [ObservableProperty] private string? maxPrice;
     [ObservableProperty] private string? minArea;
@@ -245,11 +247,17 @@ public partial class HomeSeekerViewModel(IHomeSeekerService service, ILogger<Hom
             errors.Add("Miasto jest wymagane.");
         if (string.IsNullOrWhiteSpace(NotificationEmail))
             errors.Add("Adres e-mail jest wymagany.");
+        if (!SearchHouses && !SearchApartments)
+            errors.Add("Wybierz co najmniej jeden typ nieruchomości.");
+
+        var propertyTypes = (SearchHouses ? HomeSeekerPropertyTypes.House : HomeSeekerPropertyTypes.None)
+            | (SearchApartments ? HomeSeekerPropertyTypes.Apartment : HomeSeekerPropertyTypes.None);
 
         var request = new HomeSeekerProfileRequest
         {
             City = City.Trim(),
             District = string.IsNullOrWhiteSpace(District) ? null : District.Trim(),
+            PropertyTypes = propertyTypes,
             MinPrice = ParseDecimal(MinPrice, "Cena min", errors),
             MaxPrice = ParseDecimal(MaxPrice, "Cena max", errors),
             MinAreaSqm = ParseDecimal(MinArea, "Metraż min", errors),
@@ -384,6 +392,8 @@ public partial class HomeSeekerViewModel(IHomeSeekerService service, ILogger<Hom
     {
         City = profile.City;
         District = profile.District;
+        SearchHouses = profile.PropertyTypes.HasFlag(HomeSeekerPropertyTypes.House);
+        SearchApartments = profile.PropertyTypes.HasFlag(HomeSeekerPropertyTypes.Apartment);
         MinPrice = FormatDecimal(profile.MinPrice);
         MaxPrice = FormatDecimal(profile.MaxPrice);
         MinArea = FormatDecimal(profile.MinAreaSqm);
