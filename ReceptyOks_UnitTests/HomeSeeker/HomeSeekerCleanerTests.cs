@@ -79,6 +79,33 @@ public class HomeSeekerCleanerTests
     }
 
     [Test]
+    public async Task WhenProfileIsPausedThenStaleListingsAreKept()
+    {
+        var profileId = await SeedProfileAsync(lastScannedDaysAgo: 1, isActive: false);
+        await SeedListingAsync(profileId, "stale", lastSeenDaysAgo: 40);
+        await SeedListingAsync(profileId, "fresh", lastSeenDaysAgo: 5);
+
+        var result = await CreateSut().CleanupAsync(CancellationToken.None);
+
+        Assert.That(result.Listings, Is.Zero);
+    }
+
+    [Test]
+    public async Task WhenListingsPortalWasNotReadWithinRetentionThenItsListingsAreKept()
+    {
+        // Otodom keeps working (fresh listing), OLX has been blocked for the whole window.
+        var profileId = await SeedProfileAsync(lastScannedDaysAgo: 1);
+        await SeedListingAsync(profileId, "otodom-fresh", lastSeenDaysAgo: 1);
+        await SeedListingAsync(profileId, "otodom-stale", lastSeenDaysAgo: 40);
+        await SeedListingAsync(profileId, "olx-stale", lastSeenDaysAgo: 40, portal: "OLX");
+
+        var result = await CreateSut().CleanupAsync(CancellationToken.None);
+
+        Assert.That(result.Listings, Is.EqualTo(1));
+        Assert.That(await RemainingListingIdsAsync(), Is.EquivalentTo(new[] { "otodom-fresh", "olx-stale" }));
+    }
+
+    [Test]
     public async Task WhenScanRunOlderThanHistoryRetentionThenItIsDeleted()
     {
         var profileId = await SeedProfileAsync(lastScannedDaysAgo: 1);
@@ -98,7 +125,7 @@ public class HomeSeekerCleanerTests
         Microsoft.Extensions.Options.Options.Create(Options),
         NullLogger<HomeSeekerCleaner>.Instance);
 
-    private async Task<Guid> SeedProfileAsync(int? lastScannedDaysAgo)
+    private async Task<Guid> SeedProfileAsync(int? lastScannedDaysAgo, bool isActive = true)
     {
         using var scope = _serviceProvider.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<HomeSeekerDbContext>();
@@ -107,6 +134,7 @@ public class HomeSeekerCleanerTests
             Id = Guid.NewGuid(),
             City = "Kraków",
             NotificationEmail = "a@b.pl",
+            IsActive = isActive,
             LastScannedAt = lastScannedDaysAgo is { } d ? DateTime.UtcNow.AddDays(-d) : null,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
@@ -116,7 +144,7 @@ public class HomeSeekerCleanerTests
         return profile.Id;
     }
 
-    private async Task SeedListingAsync(Guid profileId, string externalId, int lastSeenDaysAgo)
+    private async Task SeedListingAsync(Guid profileId, string externalId, int lastSeenDaysAgo, string portal = "Otodom")
     {
         using var scope = _serviceProvider.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<HomeSeekerDbContext>();
@@ -125,7 +153,7 @@ public class HomeSeekerCleanerTests
         {
             Id = Guid.NewGuid(),
             SearchProfileId = profileId,
-            Portal = "Otodom",
+            Portal = portal,
             ExternalId = externalId,
             Url = $"https://www.otodom.pl/pl/oferta/{externalId}",
             Title = externalId,

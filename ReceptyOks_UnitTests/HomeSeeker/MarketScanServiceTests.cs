@@ -262,6 +262,36 @@ public sealed class MarketScanServiceTests
     }
 
     [Test]
+    public async Task RunScan_IgnoresHistoryFromOtherCitiesForMedians()
+    {
+        // Profile city changed from Warszawa to Kraków: old Warszawa listings must not
+        // pollute the Kraków medians (district keys have no city, e.g. "centrum").
+        AddUpsert("new", price: 700_000, area: 100, isNew: true, location: "Kraków, Centrum");
+        var history = Enumerable.Range(0, 5).Select(_ => new HouseListing
+        {
+            Id = Guid.NewGuid(), Price = 2_000_000, AreaSqm = 100, Location = "Warszawa, Centrum"
+        }).ToList();
+        history.Add(new HouseListing { Id = Guid.NewGuid(), Price = 900_000, AreaSqm = 100, Location = "kraków, Podgórze" });
+
+        _repository.Setup(r => r.GetMarketSampleAsync(ProfileId, It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(history);
+
+        PriceBenchmark? captured = null;
+        _evaluator.Setup(e => e.EvaluateAsync(It.IsAny<SearchProfile>(), It.IsAny<HouseListing>(), It.IsAny<string?>(), It.IsAny<PriceBenchmark?>(), It.IsAny<CancellationToken>()))
+            .Callback((SearchProfile _, HouseListing _, string? _, PriceBenchmark? b, CancellationToken _) => captured = b)
+            .ReturnsAsync(new ListingEvaluation { Score = 50 });
+
+        await CreateSut([SucceedingScraper("Otodom", "new")]).RunScanAsync(ProfileId);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(captured!.CitySampleSize, Is.EqualTo(2));
+            Assert.That(captured.CityMedianPerSqm, Is.EqualTo(8_000m));
+            Assert.That(captured.DistrictMedianPerSqm, Is.Null);
+        });
+    }
+
+    [Test]
     public async Task RunScan_WhenMarketSampleFails_UsesCurrentScanOnly()
     {
         AddUpsert("new", price: 700_000, area: 100, isNew: true, location: "Kraków, Swoszowice");

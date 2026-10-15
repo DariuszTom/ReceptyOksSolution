@@ -87,6 +87,19 @@ public sealed class MarketPriceStats
         return district.Length == 0 ? null : district.ToLowerInvariant();
     }
 
+    /// <summary>
+    /// The part of "City, District" before the first comma (case-insensitive), or null.
+    /// </summary>
+    internal static string? CityOf(string? location)
+    {
+        if (string.IsNullOrWhiteSpace(location))
+            return null;
+
+        var comma = location.IndexOf(',');
+        var city = (comma < 0 ? location : location[..comma]).Trim();
+        return city.Length == 0 ? null : city.ToLowerInvariant();
+    }
+
     private static decimal Median(IEnumerable<decimal> values)
     {
         var sorted = values.Order().ToArray();

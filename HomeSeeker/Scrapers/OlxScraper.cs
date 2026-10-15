@@ -41,6 +41,7 @@ public sealed partial class OlxScraper : IListingScraper
         var pagesFetched = 0;
         string? failure = null;
         var lostTypes = new List<PropertyTypes>();
+        var partialTypes = new List<(PropertyTypes Type, string Error)>();
 
         try
         {
@@ -56,6 +57,7 @@ public sealed partial class OlxScraper : IListingScraper
                 }
 
                 var pagesBefore = pagesFetched;
+                string? typeFailure = null;
                 for (int page = 1; page <= _options.MaxSearchPagesPerPortal; page++)
                 {
                     if (cancellationToken.IsCancellationRequested)
@@ -94,6 +96,7 @@ public sealed partial class OlxScraper : IListingScraper
                     {
                         _logger.LogWarning("OLX returned 403 Forbidden - possible rate limiting or bot detection");
                         failure = "OLX returned 403 Forbidden";
+                        typeFailure = failure;
                         blocked = true;
                         break;
                     }
@@ -101,12 +104,15 @@ public sealed partial class OlxScraper : IListingScraper
                     {
                         _logger.LogWarning(ex, "Failed to fetch OLX {Type} page {Page}", type, page);
                         failure = $"OLX request failed: {ex.Message}";
+                        typeFailure = failure;
                         break;
                     }
                 }
 
                 if (pagesFetched == pagesBefore && !cancellationToken.IsCancellationRequested)
                     lostTypes.Add(type);
+                else if (typeFailure is not null)
+                    partialTypes.Add((type, typeFailure)); // Later page failed: keep the listings, flag as incomplete.
             }
         }
         catch (OperationCanceledException)
@@ -130,7 +136,10 @@ public sealed partial class OlxScraper : IListingScraper
         _logger.LogInformation("OLX scraper found {Count} listings for profile {ProfileId}",
             results.Count, profile.Id);
 
-        return ScrapeResult.Success(results, lostTypes.Select(t => $"{t.ToPolish()} - nie pobrano").ToList());
+        var warnings = lostTypes.Select(t => $"{t.ToPolish()} - nie pobrano")
+            .Concat(partialTypes.Select(p => $"{p.Type.ToPolish()} - niepełne wyniki ({p.Error})"))
+            .ToList();
+        return ScrapeResult.Success(results, warnings);
     }
 
     private static string BuildSearchUrl(SearchProfile profile, PropertyTypes type, int page)

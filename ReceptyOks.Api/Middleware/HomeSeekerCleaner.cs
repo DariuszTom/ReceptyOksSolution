@@ -7,7 +7,8 @@ namespace ReceptyOks.Api.Middleware;
 /// <summary>
 /// Periodically hard-deletes stale HomeSeeker data:
 /// listings not seen for <see cref="HomeSeekerOptions.ListingRetention"/> (only when their
-/// profile kept being scanned, so they really disappeared from the portals) and scan runs
+/// active profile kept being scanned and their portal/property type was read successfully,
+/// so they really disappeared from the portals) and scan runs
 /// older than <see cref="HomeSeekerOptions.ScanHistoryRetention"/>.
 /// </summary>
 public sealed class HomeSeekerCleaner(
@@ -51,11 +52,20 @@ public sealed class HomeSeekerCleaner(
             var listingCutoff = now - _options.ListingRetention;
             var scanCutoff = now - _options.ScanHistoryRetention;
 
+            // A listing is stale only when its own source (same portal and property type) was
+            // read successfully within the window - evidenced by a sibling listing seen since the
+            // cutoff. A profile-wide timestamp is not enough: a scan counts as successful when
+            // one portal works while another is blocked. Paused profiles keep all their data.
             var deletedListings = await db.HouseListings
                 .Where(l => l.LastSeenAt < listingCutoff
                     && db.SearchProfiles.Any(p => p.Id == l.SearchProfileId
+                        && p.IsActive
                         && p.LastScannedAt != null
-                        && p.LastScannedAt > listingCutoff))
+                        && p.LastScannedAt > listingCutoff)
+                    && db.HouseListings.Any(s => s.SearchProfileId == l.SearchProfileId
+                        && s.Portal == l.Portal
+                        && s.PropertyType == l.PropertyType
+                        && s.LastSeenAt > listingCutoff))
                 .ExecuteDeleteAsync(ct).ConfigureAwait(false);
 
             // A run still marked Running after the retention window is an abandoned one.

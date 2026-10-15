@@ -147,6 +147,29 @@ public sealed class HomeSeekerViewModelTests
         Assert.That(vm.IsLoading, Is.False);
     }
 
+    [Test]
+    public async Task PullToRefreshFinishingBeforeFullLoad_ReleasesSpinnerWhenLoadCompletes()
+    {
+        var slow = new TaskCompletionSource<HomeSeekerResult<HomeSeekerPagedResult<HomeSeekerListing>>>();
+        var calls = 0;
+        _service.Setup(s => s.GetListingsAsync(1, It.IsAny<int>(), It.IsAny<int?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .Returns(() => calls++ == 0 ? slow.Task : Task.FromResult(Page(1, totalPages: 1, "refreshed")));
+
+        var vm = CreateViewModel();
+        var load = vm.LoadCommand.ExecuteAsync(null);
+
+        // RefreshView sets the flag on pull, then runs the command.
+        vm.IsRefreshingListings = true;
+        await vm.LoadListingsCommand.ExecuteAsync(null);
+        Assert.That(vm.IsRefreshingListings, Is.True, "full load still pending");
+
+        slow.SetResult(Page(1, totalPages: 1, "initial"));
+        await load;
+
+        Assert.That(vm.IsRefreshingListings, Is.False);
+        Assert.That(vm.Listings.Select(l => l.Title), Is.EqualTo(new[] { "refreshed" }));
+    }
+
     private HomeSeekerViewModel CreateViewModel() => new(_service.Object, NullLogger<HomeSeekerViewModel>.Instance);
 
     private static HomeSeekerResult<HomeSeekerPagedResult<HomeSeekerListing>> Page(int page, int totalPages, params string[] titles) =>

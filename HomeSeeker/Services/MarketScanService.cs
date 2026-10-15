@@ -308,7 +308,8 @@ public sealed class MarketScanService : IMarketScanService
 
     /// <summary>
     /// Market sample for price medians: every listing seen within <see cref="HomeSeekerOptions.ListingRetention"/>
-    /// (so the sample grows across scans), merged with this scan's listings. Falls back to
+    /// (so the sample grows across scans) in the cities returned by this scan, merged with
+    /// this scan's listings. Falls back to
     /// this scan alone when the history can't be loaded.
     /// </summary>
     private async Task<IReadOnlyCollection<HouseListing>> GetMarketSampleAsync(
@@ -325,8 +326,18 @@ public sealed class MarketScanService : IMarketScanService
                 .GetMarketSampleAsync(profileId, DateTime.UtcNow - _options.ListingRetention, cancellationToken)
                 .ConfigureAwait(false);
 
+            // History may hold listings from a city the profile no longer targets (the city
+            // can be edited); districts are keyed without the city, so only keep listings
+            // from the cities this scan actually returned.
+            var cities = upsertResults
+                .Select(r => MarketPriceStats.CityOf(r.Listing.Location))
+                .ToHashSet();
+
             foreach (var listing in history ?? [])
-                sample.TryAdd(listing.Id, listing);
+            {
+                if (cities.Contains(MarketPriceStats.CityOf(listing.Location)))
+                    sample.TryAdd(listing.Id, listing);
+            }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {

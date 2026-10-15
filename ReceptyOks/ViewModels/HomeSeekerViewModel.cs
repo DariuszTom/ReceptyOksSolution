@@ -183,11 +183,6 @@ public partial class HomeSeekerViewModel(IHomeSeekerService service, ILogger<Hom
         {
             // Superseded by a newer execution (re-executing the command cancels the previous token).
         }
-        finally
-        {
-            if (_pendingListingReloads == 0)
-                IsRefreshingListings = false;
-        }
     }
 
     [RelayCommand]
@@ -369,7 +364,10 @@ public partial class HomeSeekerViewModel(IHomeSeekerService service, ILogger<Hom
         }
         finally
         {
-            _pendingListingReloads--;
+            // Whichever reload finishes last (pull-to-refresh, full load, profile save)
+            // releases the spinner, so an overlapping caller can't leave it stuck on.
+            if (--_pendingListingReloads == 0)
+                IsRefreshingListings = false;
         }
     }
 

@@ -231,6 +231,23 @@ public sealed class ScraperSearchAsyncTests
 
         Assert.That(result.Succeeded, Is.True);
         Assert.That(result.Listings, Has.Count.EqualTo(2));
+        Assert.That(result.Warnings, Has.Count.EqualTo(1));
+        Assert.That(result.Warnings[0], Does.Contain("niepełne").And.Contain("403"));
+    }
+
+    [Test]
+    public async Task Olx_WithErrorAfterFirstPage_ReturnsPartialSuccessWithWarning()
+    {
+        var sut = CreateOlx(new StubHandler(
+            (HttpStatusCode.OK, OlxPage),
+            (HttpStatusCode.InternalServerError, "oops")), maxPages: 3);
+
+        var result = await sut.SearchAsync(Profile);
+
+        Assert.That(result.Succeeded, Is.True);
+        Assert.That(result.Listings, Has.Count.EqualTo(1));
+        Assert.That(result.Warnings, Has.Count.EqualTo(1));
+        Assert.That(result.Warnings[0], Does.Contain("niepełne").And.Contain("OLX request failed"));
     }
 
     [Test]
