@@ -33,10 +33,28 @@ public sealed class AgentListingEvaluator : IListingEvaluator
         sygnały ostrzegawcze (do remontu, spółdzielcze prawo, brak księgi wieczystej, hałas itp.).
         Jeśli szczegółów brak, oceniaj tylko na podstawie dostępnych danych.
 
+        NAJWAŻNIEJSZE: ocena to dopasowanie do kryteriów KUPUJĄCEGO, a nie obiektywna atrakcyjność oferty.
+        Najpierw podziel "Dodatkowe kryteria użytkownika" na:
+        - WYMAGANIA (twarde): sformułowania typu "minimum", "co najmniej", "musi", "wymagane",
+          "nie interesuje mnie", "bez", "tylko" (np. "minimum 4 pokoje").
+        - PREFERENCJE (miękkie): "preferuje", "to plus", "mile widziane", "najlepiej".
+        Następnie sprawdź każde kryterium z osobna na podstawie danych ogłoszenia
+        (tytuł, parametry, opis). Liczbę pokoi itp. odczytuj z parametrów lub opisu.
+        Zasady punktacji (bezwzględne):
+        - Choć jedno WYMAGANIE wyraźnie NIESPEŁNIONE: score maksymalnie 30, niezależnie od ceny
+          i innych zalet; ustaw "requirements": "niespełnione" i opisz to jako pierwszą wadę.
+        - Nie da się ustalić, czy WYMAGANIE jest spełnione (brak danych): score maksymalnie 60,
+          "requirements": "brak danych" i wada "Brak informacji: <kryterium>".
+        - Wszystkie WYMAGANIA spełnione (lub brak wymagań): "requirements": "spełnione"; dopiero wtedy
+          o wyniku decydują preferencje, cena względem dzielnicy, lokalizacja i stan.
+        - Każda spełniona PREFERENCJA podnosi wynik, a niespełniona go obniża - wymień je w pros/cons.
+        Wynik powyżej 80 tylko dla ofert spełniających wszystkie wymagania i większość preferencji.
+
         ZAWSZE odpowiadaj TYLKO poprawnym JSON w formacie:
         {
             "score": <liczba 0-100>,
-            "summary": "<krótkie podsumowanie 2-3 zdania>",
+            "requirements": "<spełnione|niespełnione|brak danych>",
+            "summary": "<krótkie podsumowanie 2-3 zdania, zacznij od dopasowania do kryteriów>",
             "pros": ["<zaleta 1>", "<zaleta 2>", ...],
             "cons": ["<wada 1>", "<wada 2>", ...],
             "priceAssessment": "<ocena ceny: 'okazja'|'uczciwa cena'|'lekko zawyżona'|'zawyżona'|'mocno zawyżona'>"
@@ -51,7 +69,7 @@ public sealed class AgentListingEvaluator : IListingEvaluator
         - Lokalizacja to osobne kryterium: dojazd do centrum, komunikacja, infrastruktura,
           otoczenie. Odległa lokalizacja obniża ocenę, nawet przy niskiej cenie za m².
 
-        Oceniaj pod kątem:
+        Oceniaj pod kątem (po sprawdzeniu kryteriów kupującego):
         - Lokalizacja i okolica (dostępność centrum i komunikacji)
         - Stan techniczny i wiek budynku
         - Układ pomieszczeń
@@ -106,7 +124,7 @@ public sealed class AgentListingEvaluator : IListingEvaluator
             {
                 Pros = response.Pros ?? [],
                 Cons = response.Cons ?? [],
-                Score = Math.Clamp(response.Score, 0, 100)
+                Score = CapScore(Math.Clamp(response.Score, 0, 100), response.Requirements)
             };
 
             if (response.Score < 0 || response.Score > 100)
@@ -127,6 +145,26 @@ public sealed class AgentListingEvaluator : IListingEvaluator
             _logger.LogWarning(ex, "AI evaluation failed for listing {ListingId}", listing.Id);
             return null;
         }
+    }
+
+    /// <summary>Score ceiling when a hard requirement is unmet or can't be verified.</summary>
+    internal const int UnmetRequirementsMaxScore = 30;
+    internal const int UnknownRequirementsMaxScore = 60;
+
+    /// <summary>
+    /// Enforces the prompt's caps server-side: models (especially smaller ones) tend to
+    /// report an unmet requirement yet still give a generous score. A missing/unrecognised
+    /// status leaves the score unchanged.
+    /// </summary>
+    internal static int CapScore(int score, string? requirements)
+    {
+        var status = requirements?.Trim().ToLowerInvariant();
+        return status switch
+        {
+            "niespełnione" or "niespelnione" => Math.Min(score, UnmetRequirementsMaxScore),
+            "brak danych" => Math.Min(score, UnknownRequirementsMaxScore),
+            _ => score
+        };
     }
 
     private string BuildEvaluationPrompt(

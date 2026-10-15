@@ -77,6 +77,21 @@ public sealed class AgentListingEvaluatorTests
         Assert.That(result!.Score, Is.EqualTo(expected));
     }
 
+    [TestCase(85, "niespełnione", 30)]
+    [TestCase(85, " Niespełnione ", 30)]
+    [TestCase(20, "niespełnione", 20)]
+    [TestCase(85, "brak danych", 60)]
+    [TestCase(85, "spełnione", 85)]
+    [TestCase(85, null, 85)]
+    public async Task EvaluateAsync_CapsScoreWhenRequirementsNotMet(int raw, string? requirements, int expected)
+    {
+        SetupResponse(new ListingEvaluation { Score = raw, Requirements = requirements });
+
+        var result = await CreateSut().EvaluateAsync(Profile(), Listing(), null, null);
+
+        Assert.That(result!.Score, Is.EqualTo(expected));
+    }
+
     [Test]
     public async Task EvaluateAsync_WhenModelReturnsInvalidJson_ReturnsNull()
     {
