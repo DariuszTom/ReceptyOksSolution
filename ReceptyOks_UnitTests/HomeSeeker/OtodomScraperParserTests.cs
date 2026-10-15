@@ -50,6 +50,29 @@ public sealed class OtodomScraperParserTests
     }
 
     [Test]
+    public void ParseNextData_CurrentFormat_ReadsLocationFromReverseGeocoding()
+    {
+        const string html = """
+            <script id="__NEXT_DATA__" type="application/json">
+            {"props":{"pageProps":{"data":{"searchAds":{"items":[
+              {"id":68529519,"slug":"willa-ID4DxEP","title":"Willa","totalPrice":{"value":2512750},"areaInSquareMeters":218.5,
+               "location":{"address":{"street":{"name":"Królowej Jadwigi"},"city":null,"province":null},
+                 "reverseGeocoding":{"locations":[
+                   {"locationLevel":"voivodeship","name":"małopolskie"},
+                   {"locationLevel":"city_or_village","name":"Kraków"},
+                   {"locationLevel":"district","name":"Zwierzyniec"},
+                   {"locationLevel":"residential","name":"Zwierzyniec"}]}}}
+            ]}}}}}
+            </script>
+            """;
+
+        var listings = OtodomScraper.ParseNextData(html);
+
+        Assert.That(listings, Has.Count.EqualTo(1));
+        Assert.That(listings[0].Location, Is.EqualTo("Kraków, Zwierzyniec"));
+    }
+
+    [Test]
     public void ParseNextData_WithoutNextDataScript_ReturnsEmpty()
     {
         var listings = OtodomScraper.ParseNextData("<html><body><p>Nothing here</p></body></html>");

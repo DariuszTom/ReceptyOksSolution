@@ -62,7 +62,7 @@ public sealed class ScraperSearchAsyncTests
         var url = handler.Requests[0].ToString();
         Assert.Multiple(() =>
         {
-            Assert.That(url, Does.StartWith("https://www.otodom.pl/pl/wyniki/sprzedaz/dom/wroclaw-srodmiescie?page=1"));
+            Assert.That(url, Does.StartWith("https://www.otodom.pl/pl/oferty/sprzedaz/dom/wroclaw-srodmiescie?page=1"));
             Assert.That(url, Does.Contain("priceMin=400000"));
             Assert.That(url, Does.Contain("priceMax=900000"));
             Assert.That(url, Does.Contain("areaMin=90"));

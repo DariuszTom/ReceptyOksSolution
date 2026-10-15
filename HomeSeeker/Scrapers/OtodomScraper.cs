@@ -107,7 +107,10 @@ public sealed partial class OtodomScraper : IListingScraper
     private static string BuildSearchUrl(SearchProfile profile, int page)
     {
         var city = NormalizeCity(profile.City);
-        var url = $"https://www.otodom.pl/pl/wyniki/sprzedaz/dom/{city}?page={page}";
+        // "/pl/wyniki/..." now requires the full location path (e.g. malopolskie/krakow/krakow/krakow)
+        // and returns 404 for a bare city slug. "/pl/oferty/..." resolves the slug and redirects there,
+        // preserving the query string.
+        var url = $"https://www.otodom.pl/pl/oferty/sprzedaz/dom/{city}?page={page}";
 
         if (profile.MinPrice.HasValue)
             url += $"&priceMin={profile.MinPrice.Value:F0}";
@@ -219,16 +222,45 @@ public sealed partial class OtodomScraper : IListingScraper
             // Extract location
             string? location = null;
             if (item.TryGetProperty("location", out var locationProp) &&
-                locationProp.TryGetProperty("address", out var addressProp) &&
-                addressProp.TryGetProperty("city", out var cityProp) &&
-                cityProp.TryGetProperty("name", out var cityName))
+                locationProp.ValueKind == JsonValueKind.Object)
             {
-                location = cityName.GetString();
+                string? city = null;
+                string? district = null;
 
-                if (addressProp.TryGetProperty("district", out var districtProp) &&
-                    districtProp.TryGetProperty("name", out var districtName))
+                if (locationProp.TryGetProperty("address", out var addressProp) &&
+                    addressProp.ValueKind == JsonValueKind.Object)
                 {
-                    location = $"{location}, {districtName.GetString()}";
+                    city = GetNestedName(addressProp, "city");
+                    district = GetNestedName(addressProp, "district");
+                }
+
+                // Current Otodom format leaves address.city null and exposes the hierarchy here.
+                if (city is null &&
+                    locationProp.TryGetProperty("reverseGeocoding", out var geo) &&
+                    geo.ValueKind == JsonValueKind.Object &&
+                    geo.TryGetProperty("locations", out var geoLocations) &&
+                    geoLocations.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (var loc in geoLocations.EnumerateArray())
+                    {
+                        if (loc.ValueKind != JsonValueKind.Object ||
+                            !loc.TryGetProperty("locationLevel", out var level) ||
+                            level.ValueKind != JsonValueKind.String)
+                        {
+                            continue;
+                        }
+
+                        var levelName = level.GetString();
+                        if (levelName == "city_or_village")
+                            city ??= GetString(loc, "name");
+                        else if (levelName == "district")
+                            district ??= GetString(loc, "name");
+                    }
+                }
+
+                if (!string.IsNullOrWhiteSpace(city))
+                {
+                    location = string.IsNullOrWhiteSpace(district) ? city : $"{city}, {district}";
                 }
             }
 
@@ -251,6 +283,16 @@ public sealed partial class OtodomScraper : IListingScraper
             return null;
         }
     }
+
+    private static string? GetString(JsonElement element, string propertyName) =>
+        element.TryGetProperty(propertyName, out var prop) && prop.ValueKind == JsonValueKind.String
+            ? prop.GetString()
+            : null;
+
+    private static string? GetNestedName(JsonElement element, string propertyName) =>
+        element.TryGetProperty(propertyName, out var prop) && prop.ValueKind == JsonValueKind.Object
+            ? GetString(prop, "name")
+            : null;
 
     [GeneratedRegex(@"<script\s+id=""__NEXT_DATA__""\s+type=""application/json""[^>]*>(.*?)</script>", RegexOptions.Singleline)]
     private static partial Regex NextDataRegex();

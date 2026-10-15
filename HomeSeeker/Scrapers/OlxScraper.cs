@@ -252,30 +252,54 @@ public sealed partial class OlxScraper : IListingScraper
             {
                 foreach (var param in paramsProp.EnumerateArray())
                 {
-                    if (param.TryGetProperty("key", out var key) &&
-                        key.GetString() == "m" &&
-                        param.TryGetProperty("value", out var valueObj) &&
-                        valueObj.TryGetProperty("key", out var areaValue))
+                    if (param.ValueKind != JsonValueKind.Object ||
+                        !param.TryGetProperty("key", out var key) ||
+                        key.ValueKind != JsonValueKind.String ||
+                        key.GetString() != "m")
                     {
-                        var areaStr = areaValue.GetString() ?? "0";
-                        area = ParseDecimalInvariant(areaStr);
-                        break;
+                        continue;
                     }
+
+                    // Current OLX format: "normalizedValue": "100.2"; legacy: "value": { "key": "100.2" }.
+                    string? areaStr = null;
+                    if (param.TryGetProperty("normalizedValue", out var normalized) &&
+                        normalized.ValueKind == JsonValueKind.String)
+                    {
+                        areaStr = normalized.GetString();
+                    }
+                    else if (param.TryGetProperty("value", out var valueProp))
+                    {
+                        if (valueProp.ValueKind == JsonValueKind.Object &&
+                            valueProp.TryGetProperty("key", out var areaValue) &&
+                            areaValue.ValueKind == JsonValueKind.String)
+                        {
+                            areaStr = areaValue.GetString();
+                        }
+                        else if (valueProp.ValueKind == JsonValueKind.String)
+                        {
+                            var match = AreaRegex().Match(valueProp.GetString() ?? string.Empty);
+                            if (match.Success)
+                                areaStr = match.Groups[1].Value;
+                        }
+                    }
+
+                    area = ParseDecimalInvariant(areaStr ?? "0");
+                    break;
                 }
             }
 
             // Extract location
             string? location = null;
             if (item.TryGetProperty("location", out var locationProp) &&
-                locationProp.TryGetProperty("city", out var cityProp) &&
-                cityProp.TryGetProperty("name", out var cityName))
+                locationProp.ValueKind == JsonValueKind.Object)
             {
-                location = cityName.GetString();
+                // Current OLX format uses flat cityName/districtName; legacy uses nested city.name/district.name.
+                var city = GetNestedName(locationProp, "city") ?? GetString(locationProp, "cityName");
+                var district = GetNestedName(locationProp, "district") ?? GetString(locationProp, "districtName");
 
-                if (locationProp.TryGetProperty("district", out var districtProp) &&
-                    districtProp.TryGetProperty("name", out var districtName))
+                if (!string.IsNullOrWhiteSpace(city))
                 {
-                    location = $"{location}, {districtName.GetString()}";
+                    location = string.IsNullOrWhiteSpace(district) ? city : $"{city}, {district}";
                 }
             }
 
@@ -405,6 +429,16 @@ public sealed partial class OlxScraper : IListingScraper
             return null;
         }
     }
+
+    private static string? GetString(JsonElement element, string propertyName) =>
+        element.TryGetProperty(propertyName, out var prop) && prop.ValueKind == JsonValueKind.String
+            ? prop.GetString()
+            : null;
+
+    private static string? GetNestedName(JsonElement element, string propertyName) =>
+        element.TryGetProperty(propertyName, out var prop) && prop.ValueKind == JsonValueKind.Object
+            ? GetString(prop, "name")
+            : null;
 
     private static decimal ParseDecimalInvariant(string value)
     {
