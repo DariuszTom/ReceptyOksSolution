@@ -5,6 +5,7 @@ using HomeSeeker.Configuration;
 using HomeSeeker.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using static HomeSeeker.Scrapers.ScraperHelper;
 
 namespace HomeSeeker.Scrapers;
 
@@ -133,7 +134,7 @@ public sealed partial class OtodomScraper : IListingScraper
 
     private static string BuildSearchUrl(SearchProfile profile, PropertyTypes type, int page)
     {
-        var city = NormalizeCity(profile.City);
+        var city = ScraperHelper.NormalizeCity(profile.City);
         var category = type == PropertyTypes.Apartment ? "mieszkanie" : "dom";
         // "/pl/wyniki/..." now requires the full location path (e.g. malopolskie/krakow/krakow/krakow)
         // and returns 404 for a bare city slug. "/pl/oferty/..." resolves the slug and redirects there,
@@ -149,24 +150,9 @@ public sealed partial class OtodomScraper : IListingScraper
         if (profile.MaxAreaSqm.HasValue)
             url += $"&areaMax={profile.MaxAreaSqm.Value:F0}";
         if (profile.MinRooms is > 1 and var minRooms)
-            url += $"&roomsNumber=%5B{string.Join("%2C", RoomCodes.Skip(Math.Min(minRooms, RoomCodes.Length) - 1))}%5D";
+            url += $"&roomsNumber=%5B{string.Join("%2C", RoomCodesFrom(RoomCodes, minRooms))}%5D";
 
         return url;
-    }
-
-    private static string NormalizeCity(string city)
-    {
-        return city.ToLowerInvariant()
-            .Replace("ą", "a")
-            .Replace("ć", "c")
-            .Replace("ę", "e")
-            .Replace("ł", "l")
-            .Replace("ń", "n")
-            .Replace("ó", "o")
-            .Replace("ś", "s")
-            .Replace("ź", "z")
-            .Replace("ż", "z")
-            .Replace(" ", "-");
     }
 
     /// <summary>
@@ -331,8 +317,7 @@ public sealed partial class OtodomScraper : IListingScraper
             return null;
 
         // "MORE" is open-ended (> 10), so its exact count is unknown.
-        var index = Array.FindIndex(RoomCodes, c => c.Equals(rooms.GetString(), StringComparison.OrdinalIgnoreCase));
-        return index >= 0 && index < RoomCodes.Length - 1 ? index + 1 : null;
+        return RoomCountFromCode(RoomCodes, rooms.GetString());
     }
 
     public async Task<ListingDetails?> GetDetailsAsync(string url, CancellationToken cancellationToken = default)
@@ -527,16 +512,6 @@ public sealed partial class OtodomScraper : IListingScraper
             _ => value.Replace('_', ' ')
         };
     }
-
-    private static string? GetString(JsonElement element, string propertyName) =>
-        element.TryGetProperty(propertyName, out var prop) && prop.ValueKind == JsonValueKind.String
-            ? prop.GetString()
-            : null;
-
-    private static string? GetNestedName(JsonElement element, string propertyName) =>
-        element.TryGetProperty(propertyName, out var prop) && prop.ValueKind == JsonValueKind.Object
-            ? GetString(prop, "name")
-            : null;
 
     [GeneratedRegex(@"<script\s+id=""__NEXT_DATA__""\s+type=""application/json""[^>]*>(.*?)</script>", RegexOptions.Singleline)]
     private static partial Regex NextDataRegex();
