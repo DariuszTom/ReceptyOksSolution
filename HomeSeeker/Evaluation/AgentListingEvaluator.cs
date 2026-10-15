@@ -63,11 +63,15 @@ public sealed class AgentListingEvaluator : IListingEvaluator
         Pola "pros" i "cons" ZAWSZE jako tablica (nawet pusta []), nigdy null.
 
         Cenę i lokalizację oceniaj OSOBNO, żeby tania peryferia nie wygrywała samą ceną:
-        - "priceAssessment" i ocena ceny: porównuj cenę za m² z medianą DZIELNICY ogłoszenia
-          (jeśli podano "Ceny rynkowe"), a nie z ogólną średnią miasta. Tanio względem miasta,
-          ale drożej niż typowo w tej dzielnicy, to NIE jest okazja.
+        - "priceAssessment" i ocena ceny: jeśli podano "Ceny transakcyjne" (RCN), to one są
+          GŁÓWNYM punktem odniesienia - to realne ceny sprzedaży w promieniu kilkuset metrów.
+          W przeciwnym razie porównuj cenę za m² z medianą DZIELNICY ogłoszenia ("Ceny rynkowe"),
+          a nie z ogólną średnią miasta. Tanio względem miasta, ale drożej niż typowo w tej
+          okolicy, to NIE jest okazja. Ceny ofertowe są zwykle kilka procent wyższe od transakcyjnych.
         - Lokalizacja to osobne kryterium: dojazd do centrum, komunikacja, infrastruktura,
           otoczenie. Odległa lokalizacja obniża ocenę, nawet przy niskiej cenie za m².
+          Jeśli podano "Odległość od centrum", uwzględnij ją: im dalej, tym niższa ocena
+          lokalizacji (chyba że kryteria kupującego wprost preferują spokojne obrzeża).
 
         Oceniaj pod kątem (po sprawdzeniu kryteriów kupującego):
         - Lokalizacja i okolica (dostępność centrum i komunikacji)
@@ -200,7 +204,7 @@ public sealed class AgentListingEvaluator : IListingEvaluator
         sb.AppendLine("--- KONIEC DANYCH OGŁOSZENIA ---");
 
         // Computed server-side from numeric scan data only, so it is trusted context.
-        if (benchmark is not null)
+        if (benchmark is { CitySampleSize: > 0 })
         {
             var type = listing.PropertyType.ToPolish();
             sb.AppendLine();
@@ -220,6 +224,27 @@ public sealed class AgentListingEvaluator : IListingEvaluator
                 var reference = benchmark.DistrictMedianPerSqm is not null ? "dzielnicy" : "miasta";
                 sb.AppendLine($"- Cena za m² względem mediany {reference}: {ratio.ToString("+0%;-0%;0%", ci)}");
             }
+        }
+
+        if (benchmark?.Rcn is { } rcn)
+        {
+            sb.AppendLine();
+            sb.AppendLine($"Ceny transakcyjne (akty notarialne RCN, promień {rcn.RadiusKm.ToString("0.#", ci)} km, ostatnie {rcn.PeriodMonths} mies.):");
+            sb.AppendLine($"- Szacowana wartość rynkowa: {rcn.EstimatedPricePerSqm.ToString("N0", ci)} zł/m²");
+            if (rcn.MedianPricePerSqm is { } rcnMedian)
+                sb.AppendLine($"- Mediana transakcji w okolicy: {rcnMedian.ToString("N0", ci)} zł/m² ({rcn.SampleSize} transakcji)");
+            if (listing.AreaSqm > 0)
+            {
+                var ratio = listing.Price / listing.AreaSqm / rcn.EstimatedPricePerSqm - 1m;
+                sb.AppendLine($"- Cena ofertowa za m² względem wyceny transakcyjnej: {ratio.ToString("+0%;-0%;0%", ci)}");
+            }
+        }
+
+        if (benchmark?.DistanceFromCenterKm is { } distance)
+        {
+            sb.AppendLine();
+            var approx = benchmark.DistanceIsApproximate ? "ok. " : string.Empty;
+            sb.AppendLine($"Odległość od centrum miasta (w linii prostej): {approx}{distance.ToString("0.0", ci)} km");
         }
 
         sb.AppendLine();

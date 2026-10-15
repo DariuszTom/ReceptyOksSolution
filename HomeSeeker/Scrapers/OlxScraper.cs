@@ -352,7 +352,8 @@ public sealed partial class OlxScraper : IListingScraper
                 AreaSqm = area,
                 Location = location,
                 Details = BuildDetails(item),
-                Rooms = ParseRooms(item)
+                Rooms = ParseRooms(item),
+                Coordinates = ParseMap(item)
             };
         }
         catch
@@ -468,7 +469,7 @@ public sealed partial class OlxScraper : IListingScraper
         }
     }
 
-    public async Task<string?> GetDetailsAsync(string url, CancellationToken cancellationToken = default)
+    public async Task<ListingDetails?> GetDetailsAsync(string url, CancellationToken cancellationToken = default)
     {
         if (!IsOlxUrl(url))
             return null;
@@ -476,7 +477,9 @@ public sealed partial class OlxScraper : IListingScraper
         try
         {
             var html = await _httpClient.GetStringAsync(url, cancellationToken).ConfigureAwait(false);
-            return ParseDetails(html);
+            var text = ParseDetails(html);
+            var coordinates = ParseCoordinates(html);
+            return text is null && coordinates is null ? null : new ListingDetails(text, coordinates);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -521,6 +524,50 @@ public sealed partial class OlxScraper : IListingScraper
         {
             return null;
         }
+    }
+
+    /// <summary>
+    /// Reads coordinates from an OLX ad page (__PRERENDERED_STATE__ → ad.ad.map).
+    /// </summary>
+    internal static GeoPoint? ParseCoordinates(string html)
+    {
+        try
+        {
+            var match = PrerenderedStateRegex().Match(html);
+            if (!match.Success)
+                return null;
+
+            using var doc = JsonDocument.Parse(Regex.Unescape(match.Groups[1].Value));
+            return doc.RootElement.TryGetProperty("ad", out var adWrapper) &&
+                   adWrapper.ValueKind == JsonValueKind.Object &&
+                   adWrapper.TryGetProperty("ad", out var ad) &&
+                   ad.ValueKind == JsonValueKind.Object
+                ? ParseMap(ad)
+                : null;
+        }
+        catch (Exception ex) when (ex is JsonException or ArgumentException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Reads "map": { "lat", "lon", "radius" }. A positive radius means OLX shows only an
+    /// approximate area, not the exact address.
+    /// </summary>
+    internal static GeoPoint? ParseMap(JsonElement item)
+    {
+        if (!item.TryGetProperty("map", out var map) || map.ValueKind != JsonValueKind.Object ||
+            !map.TryGetProperty("lat", out var lat) || lat.ValueKind != JsonValueKind.Number ||
+            !map.TryGetProperty("lon", out var lon) || lon.ValueKind != JsonValueKind.Number)
+        {
+            return null;
+        }
+
+        var approximate = map.TryGetProperty("radius", out var radius) &&
+                          radius.ValueKind == JsonValueKind.Number && radius.GetDouble() > 0;
+        var point = new GeoPoint(lat.GetDouble(), lon.GetDouble(), approximate);
+        return point.IsValid ? point : null;
     }
 
     private static readonly string[] OlxRoomCodes = ["one", "two", "three", "four"];

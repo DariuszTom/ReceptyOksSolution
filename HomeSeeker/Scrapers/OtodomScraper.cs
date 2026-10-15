@@ -335,7 +335,7 @@ public sealed partial class OtodomScraper : IListingScraper
         return index >= 0 && index < RoomCodes.Length - 1 ? index + 1 : null;
     }
 
-    public async Task<string?> GetDetailsAsync(string url, CancellationToken cancellationToken = default)
+    public async Task<ListingDetails?> GetDetailsAsync(string url, CancellationToken cancellationToken = default)
     {
         if (!IsOtodomUrl(url))
             return null;
@@ -343,7 +343,9 @@ public sealed partial class OtodomScraper : IListingScraper
         try
         {
             var html = await _httpClient.GetStringAsync(url, cancellationToken).ConfigureAwait(false);
-            return ParseDetails(html);
+            var text = ParseDetails(html);
+            var coordinates = ParseCoordinates(html);
+            return text is null && coordinates is null ? null : new ListingDetails(text, coordinates);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -460,6 +462,44 @@ public sealed partial class OtodomScraper : IListingScraper
             }
 
             return ListingDetailsText.Build(parameters, GetString(ad, "description"));
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Reads coordinates from an Otodom ad page
+    /// (__NEXT_DATA__ → props.pageProps.ad.location.coordinates).
+    /// </summary>
+    internal static GeoPoint? ParseCoordinates(string html)
+    {
+        try
+        {
+            var match = NextDataRegex().Match(html);
+            if (!match.Success)
+                return null;
+
+            using var doc = JsonDocument.Parse(match.Groups[1].Value);
+            if (!doc.RootElement.TryGetProperty("props", out var props) ||
+                !props.TryGetProperty("pageProps", out var pageProps) ||
+                !pageProps.TryGetProperty("ad", out var ad) || ad.ValueKind != JsonValueKind.Object ||
+                !ad.TryGetProperty("location", out var location) || location.ValueKind != JsonValueKind.Object ||
+                !location.TryGetProperty("coordinates", out var coords) || coords.ValueKind != JsonValueKind.Object ||
+                !coords.TryGetProperty("latitude", out var lat) || lat.ValueKind != JsonValueKind.Number ||
+                !coords.TryGetProperty("longitude", out var lon) || lon.ValueKind != JsonValueKind.Number)
+            {
+                return null;
+            }
+
+            // Sellers can hide the exact address; Otodom then exposes a map radius.
+            var approximate = location.TryGetProperty("mapDetails", out var mapDetails) &&
+                              mapDetails.ValueKind == JsonValueKind.Object &&
+                              mapDetails.TryGetProperty("radius", out var radius) &&
+                              radius.ValueKind == JsonValueKind.Number && radius.GetDouble() > 0;
+            var point = new GeoPoint(lat.GetDouble(), lon.GetDouble(), approximate);
+            return point.IsValid ? point : null;
         }
         catch (JsonException)
         {

@@ -79,6 +79,22 @@ public sealed class HomeSeekerOptions : IValidatableObject
     public TimeSpan CleanupInterval { get; set; } = TimeSpan.FromHours(24);
 
     /// <summary>
+    /// Whether apartment candidates get a transaction-price (RCN) valuation from deweloperuch.pl
+    /// for the AI prompt. Only candidates with known coordinates are queried.
+    /// </summary>
+    public bool UseRcnValuation { get; set; } = true;
+
+    /// <summary>
+    /// Minimum interval between valuation requests.
+    /// </summary>
+    public TimeSpan RcnValuationRequestInterval { get; set; } = TimeSpan.FromSeconds(2);
+
+    /// <summary>
+    /// How long valuations stay disabled after the service answers 401/403/429.
+    /// </summary>
+    public TimeSpan RcnValuationBlockedCooldown { get; set; } = TimeSpan.FromHours(24);
+
+    /// <summary>
     /// SMTP configuration for sending email reports.
     /// </summary>
     public SmtpOptions Smtp { get; set; } = new();
@@ -101,6 +117,18 @@ public sealed class HomeSeekerOptions : IValidatableObject
         {
             yield return new ValidationResult(
                 "RequestDelay must be non-negative.", [nameof(RequestDelay)]);
+        }
+
+        if (RcnValuationRequestInterval < TimeSpan.FromSeconds(1))
+        {
+            yield return new ValidationResult(
+                "RcnValuationRequestInterval must be at least 1 second.", [nameof(RcnValuationRequestInterval)]);
+        }
+
+        if (RcnValuationBlockedCooldown < TimeSpan.Zero)
+        {
+            yield return new ValidationResult(
+                "RcnValuationBlockedCooldown must be non-negative.", [nameof(RcnValuationBlockedCooldown)]);
         }
 
         if (ListingRetention <= TimeSpan.Zero)

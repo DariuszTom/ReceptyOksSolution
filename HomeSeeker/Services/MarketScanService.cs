@@ -19,6 +19,8 @@ public sealed class MarketScanService : IMarketScanService
     private readonly IScanReportSender _reportSender;
     private readonly HomeSeekerOptions _options;
     private readonly ILogger<MarketScanService> _logger;
+    private readonly ICityCenterProvider? _cityCenterProvider;
+    private readonly IPropertyValuationProvider? _valuationProvider;
 
     public MarketScanService(
         IEnumerable<IListingScraper> scrapers,
@@ -26,7 +28,9 @@ public sealed class MarketScanService : IMarketScanService
         IListingEvaluator evaluator,
         IScanReportSender reportSender,
         IOptions<HomeSeekerOptions> options,
-        ILogger<MarketScanService> logger)
+        ILogger<MarketScanService> logger,
+        ICityCenterProvider? cityCenterProvider = null,
+        IPropertyValuationProvider? valuationProvider = null)
     {
         _scrapers = scrapers;
         _repository = repository;
@@ -34,6 +38,8 @@ public sealed class MarketScanService : IMarketScanService
         _reportSender = reportSender;
         _options = options.Value;
         _logger = logger;
+        _cityCenterProvider = cityCenterProvider;
+        _valuationProvider = valuationProvider;
     }
 
     public async Task<bool> RunScanAsync(Guid profileId, CancellationToken cancellationToken = default)
@@ -256,10 +262,13 @@ public sealed class MarketScanService : IMarketScanService
         ScanStats stats,
         CancellationToken cancellationToken)
     {
-        var scrapedDetails = scraped
-            .Where(s => !string.IsNullOrWhiteSpace(s.Details))
+        var scrapedByKey = scraped
             .GroupBy(s => (s.Portal, s.ExternalId))
-            .ToDictionary(g => g.Key, g => g.First().Details);
+            .ToDictionary(g => g.Key, g => g.First());
+
+        var cityCenter = candidates.Count > 0
+            ? await GetCityCenterAsync(profile.City, cancellationToken).ConfigureAwait(false)
+            : null;
 
         var detailRequests = 0;
         foreach (var candidate in candidates)
@@ -270,7 +279,10 @@ public sealed class MarketScanService : IMarketScanService
             var listing = candidate.Listing;
             try
             {
-                if (!scrapedDetails.TryGetValue((listing.Portal, listing.ExternalId), out var details))
+                scrapedByKey.TryGetValue((listing.Portal, listing.ExternalId), out var scrapedListing);
+                var details = scrapedListing?.Details;
+                var coordinates = scrapedListing?.Coordinates;
+                if (string.IsNullOrWhiteSpace(details))
                 {
                     var scraper = _scrapers.FirstOrDefault(s =>
                         string.Equals(s.PortalName, listing.Portal, StringComparison.OrdinalIgnoreCase));
@@ -279,14 +291,21 @@ public sealed class MarketScanService : IMarketScanService
                         if (detailRequests++ > 0)
                             await Task.Delay(_options.RequestDelay, cancellationToken).ConfigureAwait(false);
 
-                        details = await FetchDetailsAsync(scraper, listing, cancellationToken).ConfigureAwait(false);
+                        var fetched = await FetchDetailsAsync(scraper, listing, cancellationToken).ConfigureAwait(false);
+                        details = fetched?.Text;
+                        // The ad page is more precise than the search results.
+                        coordinates = fetched?.Coordinates ?? coordinates;
                         if (details is null)
                             _logger.LogDebug("No details for listing {ListingId}, evaluating without description", listing.Id);
                     }
                 }
 
+                var benchmark = await EnrichBenchmarkAsync(
+                        priceStats.GetBenchmark(listing), listing, coordinates, cityCenter, cancellationToken)
+                    .ConfigureAwait(false);
+
                 var evaluation = await _evaluator.EvaluateAsync(
-                        profile, listing, details, priceStats.GetBenchmark(listing), cancellationToken)
+                        profile, listing, details, benchmark, cancellationToken)
                     .ConfigureAwait(false);
                 if (evaluation is null)
                     continue;
@@ -444,7 +463,73 @@ public sealed class MarketScanService : IMarketScanService
         return sample.Values;
     }
 
-    private async Task<string?> FetchDetailsAsync(
+    private async Task<GeoPoint?> GetCityCenterAsync(string city, CancellationToken cancellationToken)
+    {
+        if (_cityCenterProvider is null || string.IsNullOrWhiteSpace(city))
+            return null;
+
+        try
+        {
+            return await _cityCenterProvider.GetCenterAsync(city, cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Resolving city centre failed for {City}", city);
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Adds location context the portals' own prices can't provide: distance from the centre
+    /// and, for apartments, transaction prices (RCN) around the listing. Without these, a cheap
+    /// listing on the outskirts looks like a bargain.
+    /// </summary>
+    private async Task<PriceBenchmark?> EnrichBenchmarkAsync(
+        PriceBenchmark? benchmark,
+        HouseListing listing,
+        GeoPoint? coordinates,
+        GeoPoint? cityCenter,
+        CancellationToken cancellationToken)
+    {
+        if (coordinates is not { } point)
+            return benchmark;
+
+        double? distance = cityCenter is { } center ? Math.Round(point.DistanceKmTo(center), 1) : null;
+
+        RcnValuation? rcn = null;
+        if (_valuationProvider is not null && listing.PropertyType == PropertyTypes.Apartment && listing.AreaSqm > 0)
+        {
+            try
+            {
+                rcn = await _valuationProvider.GetApartmentValuationAsync(point, listing.AreaSqm, cancellationToken)
+                    .ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "RCN valuation failed for listing {ListingId}", listing.Id);
+            }
+        }
+
+        if (distance is null && rcn is null)
+            return benchmark;
+
+        return (benchmark ?? new PriceBenchmark(null, 0, 0, 0)) with
+        {
+            DistanceFromCenterKm = distance,
+            DistanceIsApproximate = distance is not null && point.IsApproximate,
+            Rcn = rcn
+        };
+    }
+
+    private async Task<ListingDetails?> FetchDetailsAsync(
         IListingScraper scraper, HouseListing listing, CancellationToken cancellationToken)
     {
         try

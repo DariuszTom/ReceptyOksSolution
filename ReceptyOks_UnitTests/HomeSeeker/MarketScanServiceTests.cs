@@ -484,7 +484,7 @@ public sealed class MarketScanServiceTests
 
         var scraper = Mock.Get(SucceedingScraper("Otodom", "a", "old"));
         scraper.Setup(s => s.GetDetailsAsync(_upsertResults["a"].Listing.Url, It.IsAny<CancellationToken>()))
-            .ReturnsAsync("Rok budowy: 2009");
+            .ReturnsAsync(new ListingDetails("Rok budowy: 2009"));
 
         var sut = CreateSut([scraper.Object]);
 
@@ -646,14 +646,65 @@ public sealed class MarketScanServiceTests
         Assert.That(result, Is.False);
     }
 
-    private MarketScanService CreateSut(IEnumerable<IListingScraper> scrapers, int maxCandidates = 8) =>
+    [Test]
+    public async Task RunScan_AddsDistanceAndRcnValuation_ForApartmentWithCoordinates()
+    {
+        AddUpsert("a", price: 600_000, area: 50, isNew: true, type: PropertyTypes.Apartment);
+        var listingPoint = new GeoPoint(51.1, 17.0);
+        var center = new GeoPoint(51.11, 17.03);
+        var rcn = new RcnValuation(14_000, 13_800, 30, 0.5, 24);
+
+        var scraper = Mock.Get(SucceedingScraper("Otodom", "a"));
+        scraper.Setup(s => s.GetDetailsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ListingDetails("Opis", listingPoint));
+        var centers = new Mock<ICityCenterProvider>();
+        centers.Setup(c => c.GetCenterAsync("Wrocław", It.IsAny<CancellationToken>())).ReturnsAsync(center);
+        var valuations = new Mock<IPropertyValuationProvider>();
+        valuations.Setup(v => v.GetApartmentValuationAsync(listingPoint, 50, It.IsAny<CancellationToken>())).ReturnsAsync(rcn);
+
+        await CreateSut([scraper.Object], centers: centers.Object, valuations: valuations.Object).RunScanAsync(ProfileId);
+
+        var expectedKm = Math.Round(listingPoint.DistanceKmTo(center), 1);
+        _evaluator.Verify(e => e.EvaluateAsync(It.IsAny<SearchProfile>(), It.IsAny<HouseListing>(), "Opis",
+            It.Is<PriceBenchmark?>(b => b != null && b.Rcn == rcn && b.DistanceFromCenterKm == expectedKm && !b.DistanceIsApproximate),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Test]
+    public async Task RunScan_UsesSearchCoordinates_AndSkipsValuationForHouses()
+    {
+        AddUpsert("h", price: 900_000, area: 120, isNew: true);
+        var point = new GeoPoint(51.2, 17.1, IsApproximate: true);
+
+        var scraper = new Mock<IListingScraper>();
+        scraper.SetupGet(s => s.PortalName).Returns("OLX");
+        scraper.Setup(s => s.SearchAsync(It.IsAny<SearchProfile>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ScrapeResult.Success(
+                [new ScrapedListing { Portal = "Otodom", ExternalId = "h", Url = "https://x/h", Title = "h", Price = 1, AreaSqm = 1, Details = "Opis", Coordinates = point }]));
+        var centers = new Mock<ICityCenterProvider>();
+        centers.Setup(c => c.GetCenterAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(new GeoPoint(51.11, 17.03));
+        var valuations = new Mock<IPropertyValuationProvider>();
+
+        await CreateSut([scraper.Object], centers: centers.Object, valuations: valuations.Object).RunScanAsync(ProfileId);
+
+        _evaluator.Verify(e => e.EvaluateAsync(It.IsAny<SearchProfile>(), It.IsAny<HouseListing>(), "Opis",
+            It.Is<PriceBenchmark?>(b => b != null && b.DistanceFromCenterKm > 0 && b.DistanceIsApproximate && b.Rcn == null),
+            It.IsAny<CancellationToken>()), Times.Once);
+        valuations.Verify(v => v.GetApartmentValuationAsync(It.IsAny<GeoPoint>(), It.IsAny<decimal>(), It.IsAny<CancellationToken>()), Times.Never);
+        scraper.Verify(s => s.GetDetailsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    private MarketScanService CreateSut(IEnumerable<IListingScraper> scrapers, int maxCandidates = 8,
+        ICityCenterProvider? centers = null, IPropertyValuationProvider? valuations = null) =>
         new(
             scrapers,
             _repository.Object,
             _evaluator.Object,
             _sender.Object,
             Options.Create(new HomeSeekerOptions { MaxCandidatesPerScan = maxCandidates, TopListingsInReport = 5, RequestDelay = TimeSpan.Zero }),
-            NullLogger<MarketScanService>.Instance);
+            NullLogger<MarketScanService>.Instance,
+            centers,
+            valuations);
 
     private void AddUpsert(string externalId, decimal price, decimal area, bool isNew = false, bool priceDropped = false,
         PropertyTypes type = PropertyTypes.House, string? location = null)

@@ -240,6 +240,32 @@ public sealed class AgentListingEvaluatorTests
     }
 
     [Test]
+    public async Task EvaluateAsync_WithRcnAndDistance_IncludesTransactionPricesAndDistance()
+    {
+        SetupResponse(new ListingEvaluation { Score = 60 });
+
+        // Listing: 5 000 zł/m², RCN estimate 4 000 -> +25%.
+        var benchmark = new PriceBenchmark(null, 0, 0, 0)
+        {
+            DistanceFromCenterKm = 7.3,
+            DistanceIsApproximate = true,
+            Rcn = new RcnValuation(4_000m, 4_100m, 34, 0.5, 24)
+        };
+
+        await CreateSut().EvaluateAsync(Profile(), Listing(), null, benchmark);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(_capturedPrompt, Does.Not.Contain("Ceny rynkowe"), "empty scan medians are skipped");
+            Assert.That(_capturedPrompt, Does.Contain("promień 0.5 km, ostatnie 24 mies."));
+            Assert.That(_capturedPrompt, Does.Contain("Szacowana wartość rynkowa: 4,000 zł/m²"));
+            Assert.That(_capturedPrompt, Does.Contain("Mediana transakcji w okolicy: 4,100 zł/m² (34 transakcji)"));
+            Assert.That(_capturedPrompt, Does.Contain("względem wyceny transakcyjnej: +25%"));
+            Assert.That(_capturedPrompt, Does.Contain("Odległość od centrum miasta (w linii prostej): ok. 7.3 km"));
+        });
+    }
+
+    [Test]
     public async Task WriteReportHtmlAsync_DoesNotCallAgent()
     {
         await CreateSut().WriteReportHtmlAsync(Profile(), [Listing()], CreateScanRun());

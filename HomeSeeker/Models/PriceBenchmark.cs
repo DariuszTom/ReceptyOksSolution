@@ -18,4 +18,19 @@ public sealed record PriceBenchmark(
     /// The most local median available: district when reliable, otherwise city.
     /// </summary>
     public decimal ReferencePerSqm => DistrictMedianPerSqm ?? CityMedianPerSqm;
+
+    /// <summary>
+    /// Straight-line distance from the city centre, when the listing's coordinates are known.
+    /// </summary>
+    public double? DistanceFromCenterKm { get; init; }
+
+    /// <summary>
+    /// True when <see cref="DistanceFromCenterKm"/> is based on an approximate portal location.
+    /// </summary>
+    public bool DistanceIsApproximate { get; init; }
+
+    /// <summary>
+    /// Transaction-price (RCN) valuation near the listing, when available (apartments only).
+    /// </summary>
+    public RcnValuation? Rcn { get; init; }
 }
