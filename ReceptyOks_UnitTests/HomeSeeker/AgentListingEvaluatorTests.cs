@@ -135,6 +135,29 @@ public sealed class AgentListingEvaluatorTests
         });
     }
 
+    [TestCase(PropertyTypes.House, PropertyTypes.House, "Typ: dom", "- Szuka: dom")]
+    [TestCase(PropertyTypes.Apartment, PropertyTypes.All, "Typ: mieszkanie", "- Szuka: dom lub mieszkanie")]
+    public async Task EvaluateAsync_PromptIncludesListingTypeAndSearchedTypes(
+        PropertyTypes listingType, PropertyTypes searched, string expectedType, string expectedSearch)
+    {
+        SetupResponse(new ListingEvaluation { Score = 60 });
+        var profile = Profile();
+        profile.PropertyTypes = searched;
+        var listing = Listing();
+        listing.PropertyType = listingType;
+
+        await CreateSut().EvaluateAsync(profile, listing);
+
+        var dataStart = _capturedPrompt!.IndexOf("--- DANE OGŁOSZENIA", StringComparison.Ordinal);
+        var dataEnd = _capturedPrompt.IndexOf("--- KONIEC DANYCH OGŁOSZENIA", StringComparison.Ordinal);
+        var typeIndex = _capturedPrompt.IndexOf(expectedType, StringComparison.Ordinal);
+        Assert.Multiple(() =>
+        {
+            Assert.That(typeIndex, Is.GreaterThan(dataStart).And.LessThan(dataEnd), "type must be inside the data block");
+            Assert.That(_capturedPrompt, Does.Contain(expectedSearch));
+        });
+    }
+
     [Test]
     public async Task WriteReportHtmlAsync_DoesNotCallAgent()
     {

@@ -11,7 +11,7 @@
              x:DataType="vm:HomeSeekerViewModel"
              Shell.NavBarIsVisible="False"
              Background="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource BlackBrownPurpleGradient}}"
-             Title="Domy">
+             Title="Nieruchomości">
 
     <ContentPage.Resources>
         <Style x:Key="HsCard" TargetType="Border">

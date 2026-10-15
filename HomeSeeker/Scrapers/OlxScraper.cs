@@ -40,6 +40,7 @@ public sealed partial class OlxScraper : IListingScraper
         var results = new List<ScrapedListing>();
         var pagesFetched = 0;
         string? failure = null;
+        var lostTypes = new List<PropertyTypes>();
 
         try
         {
@@ -49,8 +50,12 @@ public sealed partial class OlxScraper : IListingScraper
             {
                 // Bot detection applies to the whole portal; do not hammer it with the next category.
                 if (blocked)
-                    break;
+                {
+                    lostTypes.Add(type);
+                    continue;
+                }
 
+                var pagesBefore = pagesFetched;
                 for (int page = 1; page <= _options.MaxSearchPagesPerPortal; page++)
                 {
                     if (cancellationToken.IsCancellationRequested)
@@ -99,6 +104,9 @@ public sealed partial class OlxScraper : IListingScraper
                         break;
                     }
                 }
+
+                if (pagesFetched == pagesBefore && !cancellationToken.IsCancellationRequested)
+                    lostTypes.Add(type);
             }
         }
         catch (OperationCanceledException)
@@ -122,7 +130,7 @@ public sealed partial class OlxScraper : IListingScraper
         _logger.LogInformation("OLX scraper found {Count} listings for profile {ProfileId}",
             results.Count, profile.Id);
 
-        return ScrapeResult.Success(results);
+        return ScrapeResult.Success(results, lostTypes.Select(t => $"{t.ToPolish()} - nie pobrano").ToList());
     }
 
     private static string BuildSearchUrl(SearchProfile profile, PropertyTypes type, int page)

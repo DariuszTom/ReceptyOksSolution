@@ -26,6 +26,12 @@ public sealed class ScraperSearchAsyncTests
 
     private const string EmptyPage = "<html><body></body></html>";
 
+    private const string OlxPage = """
+        <script>
+        window.__PRERENDERED_STATE__= "{\"listing\":{\"listing\":{\"ads\":[{\"id\":123,\"url\":\"https://www.olx.pl/d/oferta/x-ID123.html\",\"title\":\"Oferta\",\"price\":{\"regularPrice\":{\"value\":650000}},\"params\":[{\"key\":\"m\",\"value\":{\"key\":\"62\"}}],\"location\":{\"city\":{\"name\":\"Wroclaw\"}}}]}}}";
+        </script>
+        """;
+
     private static readonly SearchProfile Profile = new()
     {
         Id = Guid.NewGuid(),
@@ -95,6 +101,68 @@ public sealed class ScraperSearchAsyncTests
     {
         var handler = new StubHandler((HttpStatusCode.Forbidden, "blocked"));
         var sut = CreateOtodom(handler);
+
+        var result = await sut.SearchAsync(ProfileOf(PropertyTypes.All));
+
+        Assert.That(result.Succeeded, Is.False);
+        Assert.That(handler.Requests, Has.Count.EqualTo(1));
+    }
+
+    [Test]
+    public async Task Otodom_WhenApartmentsFailAfterHouses_ReturnsSuccessWithWarning()
+    {
+        var handler = new StubHandler(
+            (HttpStatusCode.OK, OtodomPage),
+            (HttpStatusCode.InternalServerError, "oops"));
+        var sut = CreateOtodom(handler, maxPages: 1);
+
+        var result = await sut.SearchAsync(ProfileOf(PropertyTypes.All));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Succeeded, Is.True);
+            Assert.That(result.Listings, Has.Count.EqualTo(2));
+            Assert.That(result.Warnings, Is.EqualTo(new[] { "mieszkanie - nie pobrano" }));
+        });
+    }
+
+    [Test]
+    public async Task Otodom_WithBothTypesSucceeding_HasNoWarnings()
+    {
+        var sut = CreateOtodom(new StubHandler((HttpStatusCode.OK, OtodomPage)), maxPages: 1);
+
+        var result = await sut.SearchAsync(ProfileOf(PropertyTypes.All));
+
+        Assert.That(result.Warnings, Is.Empty);
+    }
+
+    [Test]
+    public async Task Olx_WithBothTypes_QueriesHousesThenApartmentsAndTagsListings()
+    {
+        var handler = new StubHandler(
+            (HttpStatusCode.OK, OlxPage),
+            (HttpStatusCode.OK, OlxPage));
+        var sut = CreateOlx(handler, maxPages: 1);
+
+        var result = await sut.SearchAsync(ProfileOf(PropertyTypes.All));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Succeeded, Is.True);
+            Assert.That(handler.Requests, Has.Count.EqualTo(2));
+            Assert.That(handler.Requests[0].AbsolutePath, Does.StartWith("/nieruchomosci/domy/sprzedaz/"));
+            Assert.That(handler.Requests[1].AbsolutePath, Does.StartWith("/nieruchomosci/mieszkania/sprzedaz/"));
+            Assert.That(result.Listings.Select(l => l.PropertyType),
+                Is.EqualTo(new[] { PropertyTypes.House, PropertyTypes.Apartment }));
+            Assert.That(result.Warnings, Is.Empty);
+        });
+    }
+
+    [Test]
+    public async Task Olx_With403OnHouses_SkipsApartmentsAndFails()
+    {
+        var handler = new StubHandler((HttpStatusCode.Forbidden, "blocked"));
+        var sut = CreateOlx(handler);
 
         var result = await sut.SearchAsync(ProfileOf(PropertyTypes.All));
 

@@ -30,7 +30,8 @@ public sealed class HomeSeekerOptions : IValidatableObject
     public TimeSpan StartupDelay { get; set; } = TimeSpan.FromMinutes(1);
 
     /// <summary>
-    /// Maximum search pages to fetch per portal per scan.
+    /// Maximum search pages to fetch per portal and per selected property type per scan.
+    /// A profile searching both houses and apartments can send up to twice as many requests.
     /// </summary>
     [Range(1, 50)]
     public int MaxSearchPagesPerPortal { get; set; } = 5;
@@ -42,6 +43,7 @@ public sealed class HomeSeekerOptions : IValidatableObject
 
     /// <summary>
     /// Maximum number of candidates to evaluate with AI per scan (cost control).
+    /// Shared round-robin between the selected property types.
     /// </summary>
     [Range(1, 100)]
     public int MaxCandidatesPerScan { get; set; } = 8;

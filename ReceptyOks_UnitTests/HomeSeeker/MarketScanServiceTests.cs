@@ -122,7 +122,8 @@ public sealed class MarketScanServiceTests
 
         Assert.That(result, Is.True);
         _repository.Verify(r => r.CompleteScanRunAsync(_scanRun.Id, ScanStatus.Completed, 1, 1, 0, 1,
-            "<html>report</html>", null, It.IsAny<CancellationToken>()), Times.Once);
+            "<html>report</html>", It.Is<string>(e => e.StartsWith("Niepełny skan") && e.Contains("OLX: down")),
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Test]
@@ -148,6 +149,62 @@ public sealed class MarketScanServiceTests
         Assert.That(evaluatedIds, Is.EqualTo(new[] { "cheap", "dropped", "mid" }));
         _repository.Verify(r => r.CompleteScanRunAsync(_scanRun.Id, ScanStatus.Completed, 5, 3, 1, 3,
             It.IsAny<string>(), null, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Test]
+    public async Task RunScan_WithBothPropertyTypes_SharesCandidateSlotsBetweenTypes()
+    {
+        // Houses are cheaper per m², so a global ranking would pick only houses.
+        AddUpsert("h1", price: 200_000, area: 100, isNew: true);
+        AddUpsert("h2", price: 210_000, area: 100, isNew: true);
+        AddUpsert("h3", price: 220_000, area: 100, isNew: true);
+        AddUpsert("a1", price: 900_000, area: 100, isNew: true, type: PropertyTypes.Apartment);
+        AddUpsert("a2", price: 950_000, area: 100, isNew: true, type: PropertyTypes.Apartment);
+
+        var evaluatedIds = new List<string>();
+        _evaluator.Setup(e => e.EvaluateAsync(It.IsAny<SearchProfile>(), It.IsAny<HouseListing>(), It.IsAny<CancellationToken>()))
+            .Callback((SearchProfile _, HouseListing l, CancellationToken _) => evaluatedIds.Add(l.ExternalId))
+            .ReturnsAsync(new ListingEvaluation { Score = 50 });
+
+        var sut = CreateSut([SucceedingScraper("Otodom", "h1", "h2", "h3", "a1", "a2")], maxCandidates: 4);
+
+        await sut.RunScanAsync(ProfileId);
+
+        Assert.That(evaluatedIds, Is.EquivalentTo(new[] { "h1", "h2", "a1", "a2" }));
+    }
+
+    [Test]
+    public void SelectCandidates_WhenOneTypeHasFewListings_GivesUnusedSlotsToOtherType()
+    {
+        AddUpsert("h1", price: 200_000, area: 100, isNew: true);
+        AddUpsert("h2", price: 210_000, area: 100, isNew: true);
+        AddUpsert("h3", price: 220_000, area: 100, isNew: true);
+        AddUpsert("a1", price: 900_000, area: 100, isNew: true, type: PropertyTypes.Apartment);
+
+        var selected = MarketScanService.SelectCandidates(_upsertResults.Values, 4);
+
+        Assert.That(selected.Select(r => r.Listing.ExternalId), Is.EquivalentTo(new[] { "h1", "h2", "h3", "a1" }));
+    }
+
+    [Test]
+    public async Task RunScan_WhenScraperReportsPartialResult_CompletesAndRecordsWarning()
+    {
+        AddUpsert("a", price: 500_000, area: 100, isNew: true);
+
+        var partial = new Mock<IListingScraper>();
+        partial.SetupGet(s => s.PortalName).Returns("OLX");
+        partial.Setup(s => s.SearchAsync(It.IsAny<SearchProfile>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ScrapeResult.Success(
+                [new ScrapedListing { Portal = "OLX", ExternalId = "a", Url = "https://example.com/a", Title = "a", Price = 1, AreaSqm = 1 }],
+                ["mieszkanie - nie pobrano"]));
+
+        var sut = CreateSut([partial.Object]);
+
+        var result = await sut.RunScanAsync(ProfileId);
+
+        Assert.That(result, Is.True);
+        _repository.Verify(r => r.CompleteScanRunAsync(_scanRun.Id, ScanStatus.Completed, 1, 1, 0, 1,
+            It.IsAny<string>(), It.Is<string>(e => e.Contains("OLX: mieszkanie - nie pobrano")), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Test]
@@ -290,7 +347,8 @@ public sealed class MarketScanServiceTests
             Options.Create(new HomeSeekerOptions { MaxCandidatesPerScan = maxCandidates, TopListingsInReport = 5 }),
             NullLogger<MarketScanService>.Instance);
 
-    private void AddUpsert(string externalId, decimal price, decimal area, bool isNew = false, bool priceDropped = false)
+    private void AddUpsert(string externalId, decimal price, decimal area, bool isNew = false, bool priceDropped = false,
+        PropertyTypes type = PropertyTypes.House)
     {
         _upsertResults[externalId] = new UpsertResult
         {
@@ -303,7 +361,8 @@ public sealed class MarketScanServiceTests
                 Url = $"https://www.otodom.pl/pl/oferta/{externalId}",
                 Title = externalId,
                 Price = price,
-                AreaSqm = area
+                AreaSqm = area,
+                PropertyType = type
             },
             IsNew = isNew,
             PriceDropped = priceDropped

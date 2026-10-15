@@ -46,7 +46,7 @@
                                          Color="{StaticResource Primary}" />
                     </Button.ImageSource>
                 </Button>
-                <Button Text="HomeSeeker – Mieszkania"
+                <Button Text="HomeSeeker – Nieruchomości"
                         Command="{Binding GoToHomeSeekerCommand}"
                         StyleClass="ElevatedButton" Background="{StaticResource DarkGradient}">
                     <Button.ImageSource>

@@ -61,6 +61,7 @@ public sealed class MarketScanService : IMarketScanService
         int evaluated = 0;
         string? reportHtml = null;
         string? error = null;
+        string? warnings = null;
 
         try
         {
@@ -82,6 +83,12 @@ public sealed class MarketScanService : IMarketScanService
                     {
                         portalsSucceeded++;
                         allScraped.AddRange(result.Listings);
+                        foreach (var warning in result.Warnings)
+                        {
+                            portalErrors.Add($"{scraper.PortalName}: {warning}");
+                            _logger.LogWarning("Scraper {Portal} partial result for profile {ProfileId}: {Warning}",
+                                scraper.PortalName, profileId, warning);
+                        }
                         _logger.LogDebug("{Portal} returned {Count} listings",
                             scraper.PortalName, result.Listings.Count);
                     }
@@ -112,6 +119,11 @@ public sealed class MarketScanService : IMarketScanService
                 throw new InvalidOperationException(
                     "No portal completed successfully: " + string.Join("; ", portalErrors));
             }
+
+            // Partial failures (a whole portal or one property type) don't fail the scan,
+            // but are recorded on the run so missing data is visible in the scan history.
+            if (portalErrors.Count > 0)
+                warnings = Truncate("Niepełny skan: " + string.Join("; ", portalErrors), 2000);
 
             totalFound = allScraped.Count;
             _logger.LogInformation("Total scraped: {Count} listings from {Succeeded}/{Attempted} portals",
@@ -148,11 +160,7 @@ public sealed class MarketScanService : IMarketScanService
 
             // Phase 3: Select candidates for AI evaluation
             // Only new or price-dropped listings, sorted by price per sqm, limited by config
-            var candidates = upsertResults
-                .Where(r => r.IsNew || r.PriceDropped)
-                .OrderBy(r => r.Listing.Price / r.Listing.AreaSqm)
-                .Take(_options.MaxCandidatesPerScan)
-                .ToList();
+            var candidates = SelectCandidates(upsertResults, _options.MaxCandidatesPerScan);
 
             _logger.LogInformation("Selected {Count} candidates for AI evaluation", candidates.Count);
 
@@ -250,7 +258,7 @@ public sealed class MarketScanService : IMarketScanService
         {
             using var finalWriteCts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
             await _repository.CompleteScanRunAsync(
-                scanRun.Id, status, totalFound, newCount, priceDrops, evaluated, reportHtml, error,
+                scanRun.Id, status, totalFound, newCount, priceDrops, evaluated, reportHtml, error ?? warnings,
                 finalWriteCts.Token)
                 .ConfigureAwait(false);
             persisted = true;
@@ -269,6 +277,36 @@ public sealed class MarketScanService : IMarketScanService
         // recorded; otherwise the caller must not stamp LastScannedAt.
         return status == ScanStatus.Completed && persisted;
     }
+
+    /// <summary>
+    /// Picks new/price-dropped listings, cheapest per m² first, sharing the cap fairly
+    /// between property types (round-robin) so cheaper-per-m² houses can't crowd out
+    /// apartments. Slots a type can't use go to the other type.
+    /// </summary>
+    internal static List<UpsertResult> SelectCandidates(IEnumerable<UpsertResult> upsertResults, int max)
+    {
+        var queues = upsertResults
+            .Where(r => r.IsNew || r.PriceDropped)
+            .GroupBy(r => r.Listing.PropertyType)
+            .OrderBy(g => g.Key)
+            .Select(g => new Queue<UpsertResult>(g.OrderBy(r => PricePerSqm(r.Listing))))
+            .ToList();
+
+        var selected = new List<UpsertResult>(max);
+        while (selected.Count < max && queues.Any(q => q.Count > 0))
+        {
+            foreach (var queue in queues)
+            {
+                if (selected.Count >= max) break;
+                if (queue.Count > 0) selected.Add(queue.Dequeue());
+            }
+        }
+
+        return selected;
+    }
+
+    private static decimal PricePerSqm(HouseListing listing) =>
+        listing.AreaSqm > 0 ? listing.Price / listing.AreaSqm : decimal.MaxValue;
 
     private static string? Truncate(string? value, int maxLength)
     {
