@@ -263,6 +263,7 @@ public static class HomeSeekerExtensions
 
         // Background service
         services.AddHostedService<HomeSeekerScanService>();
+        services.AddHostedService<HomeSeekerCleaner>();
 
         return services;
     }
