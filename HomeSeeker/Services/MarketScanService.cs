@@ -4,6 +4,7 @@ using HomeSeeker.Configuration;
 using HomeSeeker.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using ReceptyOks.Shared.Misc;
 
 namespace HomeSeeker.Services;
 
@@ -97,7 +98,7 @@ public sealed class MarketScanService : IMarketScanService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Scan {ScanRunId} failed", scanRun.Id);
-            error = Truncate(ex.Message, 2000);
+            error = ex.Message.Truncate(2000);
         }
 
         return await CompleteScanRunAsync(scanRun, stats, reportHtml, error).ConfigureAwait(false);
@@ -163,7 +164,7 @@ public sealed class MarketScanService : IMarketScanService
         }
 
         if (portalErrors.Count > 0)
-            stats.Warnings = Truncate("Niepełny skan: " + string.Join("; ", portalErrors), 2000);
+            stats.Warnings = ("Niepełny skan: " + string.Join("; ", portalErrors)).Truncate(2000);
 
         _logger.LogDebug("Scraped {Count} listings from {Succeeded}/{Attempted} portals",
             allScraped.Count, portalsSucceeded, portalsAttempted);
@@ -461,9 +462,4 @@ public sealed class MarketScanService : IMarketScanService
         }
     }
 
-    private static string? Truncate(string? value, int maxLength)
-    {
-        if (string.IsNullOrEmpty(value)) return value;
-        return value.Length <= maxLength ? value : value[..maxLength];
-    }
 }

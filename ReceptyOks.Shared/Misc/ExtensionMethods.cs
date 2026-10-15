@@ -47,5 +47,10 @@ namespace ReceptyOks.Shared.Misc
             secureString.MakeReadOnly();
             return secureString;
         }
+        public static string? Truncate(this string? value, int maxLength)
+        {
+            if (string.IsNullOrEmpty(value)) return value;
+            return value.Length <= maxLength ? value : value[..maxLength];
+        }
     }    
 }
