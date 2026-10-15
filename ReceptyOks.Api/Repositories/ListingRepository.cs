@@ -105,6 +105,7 @@ public sealed class ListingRepository : IListingRepository
         profile.MaxPrice = request.MaxPrice;
         profile.MinAreaSqm = request.MinAreaSqm;
         profile.MaxAreaSqm = request.MaxAreaSqm;
+        profile.MinRooms = request.MinRooms;
         profile.ExtraCriteria = request.ExtraCriteria;
         profile.NotificationEmail = NotificationEmails.Normalize(request.NotificationEmail);
         profile.IsActive = request.IsActive;

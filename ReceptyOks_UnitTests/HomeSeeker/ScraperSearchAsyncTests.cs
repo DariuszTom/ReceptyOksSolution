@@ -300,6 +300,37 @@ public sealed class ScraperSearchAsyncTests
         Assert.That(handler.Requests[0].Host, Is.EqualTo("www.olx.pl"));
     }
 
+    [Test]
+    public async Task Otodom_WithMinRooms_AddsRoomsFilter()
+    {
+        var handler = new StubHandler((HttpStatusCode.OK, EmptyPage));
+        var profile = ProfileOf(PropertyTypes.House);
+        profile.MinRooms = 4;
+
+        await CreateOtodom(handler).SearchAsync(profile);
+
+        Assert.That(handler.Requests[0].Query, Does.Contain("roomsNumber=%5BFOUR%2CFIVE%2CSIX%2CSEVEN%2CEIGHT%2CNINE%2CTEN%2CMORE%5D"));
+    }
+
+    [Test]
+    public async Task Olx_WithMinRooms_FiltersApartmentsOnly()
+    {
+        var handler = new StubHandler((HttpStatusCode.OK, EmptyPage), (HttpStatusCode.OK, EmptyPage));
+        var profile = ProfileOf(PropertyTypes.All);
+        profile.MinRooms = 3;
+
+        await CreateOlx(handler).SearchAsync(profile);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Uri.UnescapeDataString(handler.Requests[0].Query), Does.Not.Contain("filter_enum_rooms"));
+            var apartments = Uri.UnescapeDataString(handler.Requests[1].Query);
+            Assert.That(apartments, Does.Contain("search[filter_enum_rooms][0]=three"));
+            Assert.That(apartments, Does.Contain("search[filter_enum_rooms][1]=four"));
+            Assert.That(apartments, Does.Not.Contain("=two"));
+        });
+    }
+
     private static SearchProfile ProfileOf(PropertyTypes types) => new()
     {
         Id = Profile.Id,

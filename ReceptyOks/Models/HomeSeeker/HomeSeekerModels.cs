@@ -23,6 +23,7 @@ public sealed class HomeSeekerProfile
     public decimal? MaxPrice { get; set; }
     public decimal? MinAreaSqm { get; set; }
     public decimal? MaxAreaSqm { get; set; }
+    public int? MinRooms { get; set; }
     public string? ExtraCriteria { get; set; }
     public string NotificationEmail { get; set; } = string.Empty;
     public bool IsActive { get; set; } = true;
@@ -42,6 +43,7 @@ public sealed class HomeSeekerProfileRequest
     public decimal? MaxPrice { get; set; }
     public decimal? MinAreaSqm { get; set; }
     public decimal? MaxAreaSqm { get; set; }
+    public int? MinRooms { get; set; }
     public string? ExtraCriteria { get; set; }
     public string NotificationEmail { get; set; } = string.Empty;
     public bool IsActive { get; set; } = true;

@@ -53,6 +53,12 @@ public class SearchProfile
     public decimal? MaxAreaSqm { get; set; }
 
     /// <summary>
+    /// Minimum number of rooms. Hard filter: listings with a known, lower room count
+    /// are dropped before AI evaluation.
+    /// </summary>
+    public int? MinRooms { get; set; }
+
+    /// <summary>
     /// Free-text criteria for the AI agent to consider during evaluation.
     /// </summary>
     public string? ExtraCriteria { get; set; }

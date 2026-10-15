@@ -46,6 +46,11 @@ public sealed record ScrapedListing
     public PropertyTypes PropertyType { get; init; } = PropertyTypes.House;
 
     /// <summary>
+    /// Number of rooms when the search page provides it; null when unknown.
+    /// </summary>
+    public int? Rooms { get; init; }
+
+    /// <summary>
     /// Plain-text parameters and description, when the search page already provides them
     /// (OLX). Not persisted; only passed to the AI evaluator.
     /// </summary>

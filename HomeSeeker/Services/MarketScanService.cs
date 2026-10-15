@@ -431,8 +431,8 @@ public sealed class MarketScanService : IMarketScanService
     }
 
     /// <summary>
-    /// True when the listing's price and area fall within the profile's ranges. Unknown values
-    /// (0, e.g. "zapytaj o cenę") are kept, since they can't be ruled out.
+    /// True when the listing's price, area and room count fall within the profile's ranges.
+    /// Unknown values (0 / null, e.g. "zapytaj o cenę") are kept, since they can't be ruled out.
     /// </summary>
     internal static bool MatchesCriteria(SearchProfile profile, ScrapedListing listing)
     {
@@ -447,6 +447,9 @@ public sealed class MarketScanService : IMarketScanService
             if (profile.MinAreaSqm is { } minArea && listing.AreaSqm < minArea) return false;
             if (profile.MaxAreaSqm is { } maxArea && listing.AreaSqm > maxArea) return false;
         }
+
+        if (profile.MinRooms is { } minRooms && listing.Rooms is { } rooms && rooms < minRooms)
+            return false;
 
         return true;
     }

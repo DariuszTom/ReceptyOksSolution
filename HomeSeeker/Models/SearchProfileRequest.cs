@@ -43,6 +43,11 @@ public sealed record SearchProfileRequest
     public decimal? MaxAreaSqm { get; init; }
 
     /// <summary>
+    /// Minimum number of rooms.
+    /// </summary>
+    public int? MinRooms { get; init; }
+
+    /// <summary>
     /// Free-text criteria for AI evaluation.
     /// </summary>
     public string? ExtraCriteria { get; init; }

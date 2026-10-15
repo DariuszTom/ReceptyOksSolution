@@ -90,6 +90,12 @@ public partial class HomeSeekerViewModel(IHomeSeekerService service, ILogger<Hom
     [ObservableProperty] private string? maxPrice;
     [ObservableProperty] private string? minArea;
     [ObservableProperty] private string? maxArea;
+    /// <summary>0 = no minimum.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(MinRoomsText))]
+    private int minRooms;
+
+    public string MinRoomsText => MinRooms > 0 ? $"{MinRooms}+" : "dowolna";
     [ObservableProperty] private string? extraCriteria;
     [ObservableProperty] private string notificationEmail = string.Empty;
     [ObservableProperty] private bool isActive = true;
@@ -257,6 +263,7 @@ public partial class HomeSeekerViewModel(IHomeSeekerService service, ILogger<Hom
             MaxPrice = ParseDecimal(MaxPrice, "Cena max", errors),
             MinAreaSqm = ParseDecimal(MinArea, "Metraż min", errors),
             MaxAreaSqm = ParseDecimal(MaxArea, "Metraż max", errors),
+            MinRooms = MinRooms > 0 ? MinRooms : null,
             ExtraCriteria = string.IsNullOrWhiteSpace(ExtraCriteria) ? null : ExtraCriteria.Trim(),
             NotificationEmail = NotificationEmail.Trim(),
             IsActive = IsActive
@@ -396,6 +403,7 @@ public partial class HomeSeekerViewModel(IHomeSeekerService service, ILogger<Hom
         MaxPrice = FormatDecimal(profile.MaxPrice);
         MinArea = FormatDecimal(profile.MinAreaSqm);
         MaxArea = FormatDecimal(profile.MaxAreaSqm);
+        MinRooms = profile.MinRooms ?? 0;
         ExtraCriteria = profile.ExtraCriteria;
         NotificationEmail = profile.NotificationEmail;
         IsActive = profile.IsActive;

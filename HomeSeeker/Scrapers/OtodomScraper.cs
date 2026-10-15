@@ -148,6 +148,8 @@ public sealed partial class OtodomScraper : IListingScraper
             url += $"&areaMin={profile.MinAreaSqm.Value:F0}";
         if (profile.MaxAreaSqm.HasValue)
             url += $"&areaMax={profile.MaxAreaSqm.Value:F0}";
+        if (profile.MinRooms is > 1 and var minRooms)
+            url += $"&roomsNumber=%5B{string.Join("%2C", RoomCodes.Skip(Math.Min(minRooms, RoomCodes.Length) - 1))}%5D";
 
         return url;
     }
@@ -303,13 +305,33 @@ public sealed partial class OtodomScraper : IListingScraper
                 Title = title,
                 Price = price,
                 AreaSqm = area,
-                Location = location
+                Location = location,
+                Rooms = ParseRooms(item)
             };
         }
         catch
         {
             return null;
         }
+    }
+
+    // Otodom's roomsNumber enum; "MORE" means more than ten.
+    private static readonly string[] RoomCodes =
+        ["ONE", "TWO", "THREE", "FOUR", "FIVE", "SIX", "SEVEN", "EIGHT", "NINE", "TEN", "MORE"];
+
+    private static int? ParseRooms(JsonElement item)
+    {
+        if (!item.TryGetProperty("roomsNumber", out var rooms))
+            return null;
+
+        if (rooms.ValueKind == JsonValueKind.Number && rooms.TryGetInt32(out var number))
+            return number > 0 ? number : null;
+
+        if (rooms.ValueKind != JsonValueKind.String)
+            return null;
+
+        var index = Array.FindIndex(RoomCodes, c => c.Equals(rooms.GetString(), StringComparison.OrdinalIgnoreCase));
+        return index >= 0 ? index + 1 : null;
     }
 
     public async Task<string?> GetDetailsAsync(string url, CancellationToken cancellationToken = default)

@@ -157,6 +157,14 @@ public sealed partial class OlxScraper : IListingScraper
         if (profile.MaxAreaSqm.HasValue)
             url += $"&search[filter_float_m:to]={profile.MaxAreaSqm.Value:F0}";
 
+        // OLX has a room filter only for apartments; its last option "four" means "4 i więcej".
+        if (type == PropertyTypes.Apartment && profile.MinRooms is > 1 and var minRooms)
+        {
+            var codes = OlxRoomCodes.Skip(Math.Min(minRooms, OlxRoomCodes.Length) - 1).ToList();
+            for (var i = 0; i < codes.Count; i++)
+                url += $"&search[filter_enum_rooms][{i}]={codes[i]}";
+        }
+
         return url;
     }
 
@@ -343,7 +351,8 @@ public sealed partial class OlxScraper : IListingScraper
                 Price = price,
                 AreaSqm = area,
                 Location = location,
-                Details = BuildDetails(item)
+                Details = BuildDetails(item),
+                Rooms = ParseRooms(item)
             };
         }
         catch
@@ -514,6 +523,51 @@ public sealed partial class OlxScraper : IListingScraper
         }
     }
 
+    private static readonly string[] OlxRoomCodes = ["one", "two", "three", "four"];
+
+    /// <summary>
+    /// Reads the "rooms" param. OLX's top option ("four" / "4 i więcej") is open-ended,
+    /// so it is reported as unknown rather than exactly 4; the URL filter handles it.
+    /// </summary>
+    internal static int? ParseRooms(JsonElement item)
+    {
+        if (!item.TryGetProperty("params", out var paramsProp) || paramsProp.ValueKind != JsonValueKind.Array)
+            return null;
+
+        foreach (var param in paramsProp.EnumerateArray())
+        {
+            if (param.ValueKind != JsonValueKind.Object || GetString(param, "key") != "rooms")
+                continue;
+
+            var code = GetString(param, "normalizedValue");
+            string? text = null;
+            if (param.TryGetProperty("value", out var valueProp))
+            {
+                if (valueProp.ValueKind == JsonValueKind.Object)
+                {
+                    code ??= GetString(valueProp, "key");
+                    text = GetString(valueProp, "label");
+                }
+                else if (valueProp.ValueKind == JsonValueKind.String)
+                {
+                    text = valueProp.GetString();
+                }
+            }
+
+            if (text is not null && text.Contains("więcej", StringComparison.OrdinalIgnoreCase))
+                return null;
+
+            var index = Array.FindIndex(OlxRoomCodes, c => c.Equals(code, StringComparison.OrdinalIgnoreCase));
+            if (index >= 0)
+                return index == OlxRoomCodes.Length - 1 ? null : index + 1;
+
+            var digits = RoomsDigitsRegex().Match(text ?? code ?? string.Empty);
+            return digits.Success && int.TryParse(digits.Value, out var rooms) && rooms > 0 ? rooms : null;
+        }
+
+        return null;
+    }
+
     private static string? BuildDetails(JsonElement ad)
     {
         var parameters = new List<(string, string)>();
@@ -593,4 +647,7 @@ public sealed partial class OlxScraper : IListingScraper
 
     [GeneratedRegex(@"[^\d.]")]
     private static partial Regex PriceCleanRegex();
+
+    [GeneratedRegex(@"\d+")]
+    private static partial Regex RoomsDigitsRegex();
 }

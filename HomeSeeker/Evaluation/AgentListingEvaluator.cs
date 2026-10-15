@@ -250,6 +250,9 @@ public sealed class AgentListingEvaluator : IListingEvaluator
             sb.AppendLine($"- Powierzchnia: {areaRange}");
         }
 
+        if (profile.MinRooms.HasValue)
+            sb.AppendLine($"- Liczba pokoi: minimum {profile.MinRooms.Value} (WYMAGANIE)");
+
         if (!string.IsNullOrWhiteSpace(profile.ExtraCriteria))
         {
             sb.AppendLine();

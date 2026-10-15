@@ -202,6 +202,19 @@ public sealed class MarketScanServiceTests
         Assert.That(MarketScanService.MatchesCriteria(profile, listing), Is.EqualTo(expected));
     }
 
+    [TestCase(4, 4, true)]
+    [TestCase(4, 5, true)]
+    [TestCase(4, 3, false)]
+    [TestCase(4, null, true)]   // rooms unknown - keep
+    [TestCase(null, 1, true)]   // no requirement
+    public void MatchesCriteria_EnforcesMinRooms(int? minRooms, int? rooms, bool expected)
+    {
+        var profile = new SearchProfile { City = "Kraków", MinRooms = minRooms };
+        var listing = new ScrapedListing { Portal = "Otodom", ExternalId = "x", Url = "https://x", Title = "x", Price = 1, AreaSqm = 1, Rooms = rooms };
+
+        Assert.That(MarketScanService.MatchesCriteria(profile, listing), Is.EqualTo(expected));
+    }
+
     [Test]
     public async Task RunScan_DropsListingsOutsideProfileRangeBeforeStoring()
     {

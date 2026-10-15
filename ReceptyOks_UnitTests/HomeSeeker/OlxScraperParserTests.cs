@@ -136,6 +136,18 @@ public sealed class OlxScraperParserTests
         Assert.That(results, Is.Empty);
     }
 
+    [TestCase("""{"params":[{"key":"rooms","value":"3 pokoje","normalizedValue":"three"}]}""", 3)]
+    [TestCase("""{"params":[{"key":"rooms","value":{"key":"two","label":"2 pokoje"}}]}""", 2)]
+    [TestCase("""{"params":[{"key":"rooms","value":"4 i więcej","normalizedValue":"four"}]}""", null)]
+    [TestCase("""{"params":[{"key":"rooms","value":"5 pokoi"}]}""", 5)]
+    [TestCase("""{"params":[{"key":"m","normalizedValue":"50"}]}""", null)]
+    public void ParseRooms_ReadsRoomsParam(string json, int? expected)
+    {
+        using var doc = System.Text.Json.JsonDocument.Parse(json);
+
+        Assert.That(OlxScraper.ParseRooms(doc.RootElement), Is.EqualTo(expected));
+    }
+
     #endregion
 
     #region ParseHtmlFallback

@@ -120,4 +120,22 @@ public sealed class OtodomScraperParserTests
         Assert.That(listings, Has.Count.EqualTo(1));
         Assert.That(listings[0].ExternalId, Is.EqualTo("3"));
     }
+
+    [Test]
+    public void ParseNextData_ReadsRoomsNumber()
+    {
+        const string html = """
+            <script id="__NEXT_DATA__" type="application/json">
+            {"props":{"pageProps":{"data":{"searchAds":{"items":[
+              {"id":1,"slug":"a","title":"A","totalPrice":{"value":1},"areaInSquareMeters":1,"roomsNumber":"FOUR"},
+              {"id":2,"slug":"b","title":"B","totalPrice":{"value":1},"areaInSquareMeters":1,"roomsNumber":3},
+              {"id":3,"slug":"c","title":"C","totalPrice":{"value":1},"areaInSquareMeters":1}
+            ]}}}}}
+            </script>
+            """;
+
+        var listings = OtodomScraper.ParseNextData(html);
+
+        Assert.That(listings.Select(l => l.Rooms), Is.EqualTo(new int?[] { 4, 3, null }));
+    }
 }

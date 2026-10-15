@@ -404,6 +404,14 @@
                                                             AccentColor="{StaticResource Primary}"/>
                                     </Grid>
 
+                                    <HorizontalStackLayout Spacing="12">
+                                        <Label Text="Min. liczba pokoi" Style="{StaticResource HsText}" VerticalOptions="Center"/>
+                                        <Stepper Minimum="0" Maximum="20" Increment="1"
+                                                 Value="{Binding MinRooms}" VerticalOptions="Center"/>
+                                        <Label Text="{Binding MinRoomsText}" Style="{StaticResource HsText}"
+                                               FontAttributes="Bold" VerticalOptions="Center"/>
+                                    </HorizontalStackLayout>
+
                                     <material:EditorField Title="Dodatkowe kryteria (dla AI)" Text="{Binding ExtraCriteria}"
                                                           MinimumHeightRequest="100"
                                                           AccentColor="{StaticResource Primary}"/>
