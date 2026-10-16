@@ -453,13 +453,16 @@
                                                             AccentColor="{StaticResource Primary}"/>
                                     </Grid>
 
-                                    <HorizontalStackLayout Spacing="12">
-                                        <Label Text="Min. liczba pokoi" Style="{StaticResource HsText}" VerticalOptions="Center"/>
-                                        <Stepper Minimum="0" Maximum="20" Increment="1"
-                                                 Value="{Binding MinRooms}" VerticalOptions="Center"/>
-                                        <Label Text="{Binding MinRoomsText}" Style="{StaticResource HsText}"
-                                               FontAttributes="Bold" VerticalOptions="Center"/>
-                                    </HorizontalStackLayout>
+                                    <!-- Grid (not HorizontalStackLayout) so the Android Stepper cannot take the whole row. -->
+                                    <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="12">
+                                        <Label Text="Min. liczba pokoi" Style="{StaticResource HsText}" VerticalOptions="Center"
+                                               LineBreakMode="WordWrap"/>
+                                        <Label Grid.Column="1" Text="{Binding MinRoomsText}" Style="{StaticResource HsText}"
+                                               FontAttributes="Bold" VerticalOptions="Center" MinimumWidthRequest="28"/>
+                                        <Stepper Grid.Column="2" Minimum="0" Maximum="20" Increment="1"
+                                                 Value="{Binding MinRooms}" VerticalOptions="Center"
+                                                 MaximumWidthRequest="140"/>
+                                    </Grid>
 
                                     <material:EditorField Title="Dodatkowe kryteria (dla AI)" Text="{Binding ExtraCriteria}"
                                                           MinimumHeightRequest="100"
