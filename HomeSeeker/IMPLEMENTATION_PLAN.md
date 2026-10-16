@@ -202,6 +202,52 @@ GET    /scans/{id}/report           Results.Content(ReportHtml, "text/html") + r
 - **Raport:** `HomeSeekerReportPage` = WebView z HTML z `/scans/{id}/report` i wstrzykniętym meta-CSP (`default-src 'none'`). Nawigacja http(s) w WebView jest anulowana, a link otwierany w przeglądarce systemowej.
 - **Testy:** `HomeSeekerClientServiceTests` (24) — mapowanie statusów (404/400/401/błąd sieci), refresh + retry JWT, budowa query, zgodność DTO z modelami serwera, `ParseList`, `HasHttpUrl`, `ParseDecimal`, wstrzykiwanie CSP.
 
+### Faza 9 — mapa ofert i „nasza lokalizacja” 📝 zaplanowana
+
+**Cel:** zakładka „Mapa” w `HomeSeekerPage` z pinezkami ocenionych ofert (domyślnie top 50 wg `AiScore`)
+oraz punktem „nasza lokalizacja”, który zastępuje centrum miasta przy liczeniu odległości i w ocenie AI.
+
+**Decyzje:**
+- Mapa: **Mapsui.Maui** (OpenStreetMap, bez kluczy; pakiet ma `net10.0-android`/`net10.0-windows`).
+  `CommunityToolkit.Maui.Maps` odpada (tylko Windows + przestarzałe klucze Bing).
+- Tylko ocenione oferty — każda przeszła przez stronę szczegółów, więc współrzędne są dostępne
+  bez dodatkowego geokodowania (Otodom dokładne, OLX przybliżone).
+- Mapa używa tych samych filtrów co lista (typ, min. ocena, portal, odległość, obniżka) + `limit` (domyślnie 50, max 200).
+- Lokalizację ustawia się long-pressem na mapie lub przyciskiem GPS.
+- Starsze ocenione oferty bez współrzędnych — jednorazowy, stopniowy backfill w tle.
+
+**Backend:**
+1. **Model + schemat** (`EnsureColumn` w `HomeSeekerExtensions`):
+   - `HouseListing`: `Latitude`, `Longitude` (`double?`), `CoordinatesApproximate` (`bool`).
+   - `SearchProfile`: `HomeLatitude`, `HomeLongitude` (`double?`), `HomeLabel` (`string?`);
+     `SearchProfileRequest` + walidator (zakresy lat/lon, oba albo żaden).
+2. **Zapis współrzędnych** w `MarketScanService.EvaluateCandidatesAsync` — nowa metoda repozytorium
+   `SaveCoordinatesAsync`; dokładne nadpisują przybliżone, nigdy odwrotnie.
+3. **Punkt odniesienia:** `profile.Home ?? cityCenter` w `UpdateDistancesAsync`/`EnrichBenchmarkAsync`;
+   prompt AI mówi o odległości „od wskazanej lokalizacji” zamiast „od centrum”, gdy Home ustawiony.
+   Zmiana Home w `PUT /profile` przelicza `DistanceFromCenterKm` dla ofert z zapisanymi współrzędnymi (bez ponownej oceny AI).
+4. **Backfill:** ocenione oferty bez współrzędnych, partiami, z `RequestDelay`; pomijany, gdy trwa lease skanu.
+5. **Endpoint** `GET /map?limit=50&minScore=&propertyType=&portal=&maxDistanceKm=&priceDropOnly=` →
+   lekkie DTO (Id, Title, Url, Price, AreaSqm, AiScore, Lat, Lon, Approx, Distance, PropertyType, Portal);
+   tylko oceniane z współrzędnymi, z limitem na inwestycję jak w liście (`ListingGroups.CapPerGroup`).
+
+**MAUI:**
+1. `Mapsui.Maui` + inicjalizacja w `MauiProgram`; nowy `TabItem "Mapa"` z `MapControl` i osobnym
+   `HomeSeekerMapViewModel` (ładowanie przy pierwszym wejściu w zakładkę, odświeżanie po zmianie filtrów).
+2. Warstwa OSM z poprawnym User-Agent (zgodnie z tile usage policy) i atrybucją.
+3. Pinezki: kolor wg oceny (≥75 zielony, 50–74 żółty, <50 szary); lokalizacje przybliżone jako półprzezroczyste kółko.
+4. **Rozsuwanie nakładających się pinezek:** oferty o (prawie) tych samych współrzędnych (~10 m) są grupowane
+   i rozkładane po okręgu wokół wspólnego punktu (offset w pikselach, `SymbolStyle.Offset`), więc rozsunięcie
+   działa przy każdym zoomie; środek grupy oznaczony kropką. Algorytm jako czysta, testowalna funkcja.
+5. Tap w pinezkę → karta na dole (tytuł, cena, m², ocena, odległość, „Otwórz ofertę”).
+6. Nasza lokalizacja: long-press → potwierdzenie → `PUT /profile`; przycisk GPS (`Geolocation`,
+   uprawnienie lokalizacji w manifeście Android); wyróżniona pinezka domu.
+7. `HomeSeekerService`: `GetMapListingsAsync`, profil z polami Home; DTO w `HomeSeekerModels.cs` + testy kontraktowe.
+
+**Testy:** zapis współrzędnych (dokładne > przybliżone), wybór punktu odniesienia Home vs centrum,
+przeliczenie odległości po zmianie Home, endpoint mapy (filtry, limit, tylko z współrzędnymi),
+walidator Home, backfill (pomija przy lease / bez scrapera), algorytm rozsuwania pinezek, DTO klienta.
+
 ## 5. Model danych
 
 ```
@@ -242,6 +288,8 @@ SearchProfile 1 ──── * HouseListing      (unikalny: SearchProfileId+Port
 | 6. Konfiguracja | ✅ appsettings, CI, sekrety SMTP w Key Vault; `main.bicep` celowo bez zmian |
 | 7. Testy | ✅ 70 jednostkowych HomeSeeker (parsery, `NotificationEmails`, `SearchAsync`, `MarketScanService`, `AgentListingEvaluator`, `HomeSeekerScanService`) + 18 integracyjnych endpointów |
 | 8. Klient MAUI | ✅ `HomeSeekerPage` + `HomeSeekerReportPage`, JWT refresh/retry, 24 testy klienta |
+| 9. Mapa ofert + nasza lokalizacja | 📝 zaplanowana (Mapsui, współrzędne, `/map`, backfill) |
+
 ### Pozostało do zrobienia
 
 1. Job rekoncyliacyjny oznaczający przeterminowane `Running` jako `Failed`.
