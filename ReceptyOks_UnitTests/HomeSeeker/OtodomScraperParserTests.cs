@@ -20,6 +20,17 @@ public sealed class OtodomScraperParserTests
         </head><body></body></html>
         """;
 
+    [TestCase("""{"developmentId":68291776}""", "otodom:68291776")]
+    [TestCase("""{"developmentId":0}""", null)]
+    [TestCase("""{"developmentId":null}""", null)]
+    [TestCase("""{}""", null)]
+    public void ParseDevelopmentKey_ReadsPositiveDevelopmentId(string json, string? expected)
+    {
+        using var doc = System.Text.Json.JsonDocument.Parse(json);
+
+        Assert.That(OtodomScraper.ParseDevelopmentKey(doc.RootElement), Is.EqualTo(expected));
+    }
+
     [Test]
     public void ParseNextData_WithValidFixture_ReturnsListingsWithParsedFields()
     {

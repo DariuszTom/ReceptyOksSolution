@@ -55,6 +55,8 @@ public class HomeSeekerService(HttpClient httpClient, IAccessTokenRefresher toke
             parameters.Add($"maxDistanceKm={maxDistance.ToString(CultureInfo.InvariantCulture)}");
         if (query.PriceDropOnly)
             parameters.Add("priceDropOnly=true");
+        if (query.EvaluatedOnly)
+            parameters.Add("evaluatedOnly=true");
 
         var url = $"{BasePath}/listings?{string.Join('&', parameters)}";
 

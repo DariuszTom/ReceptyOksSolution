@@ -256,6 +256,7 @@ public sealed class ListingRepository : IListingRepository
             existing.Url = scraped.Url;
             existing.Location = scraped.Location;
             existing.PropertyType = scraped.PropertyType;
+            existing.DevelopmentKey = scraped.DevelopmentKey ?? existing.DevelopmentKey;
             existing.LastSeenAt = now;
             existing.UpdatedAt = now;
             // Seen again within the criteria: restore a listing hidden as stale or out of range.
@@ -284,6 +285,7 @@ public sealed class ListingRepository : IListingRepository
             AreaSqm = scraped.AreaSqm,
             Location = scraped.Location,
             PropertyType = scraped.PropertyType,
+            DevelopmentKey = scraped.DevelopmentKey,
             FirstSeenAt = now,
             LastSeenAt = now,
             CreatedAt = now,
@@ -379,7 +381,28 @@ public sealed class ListingRepository : IListingRepository
                 PropertyType = l.PropertyType,
                 Price = l.Price,
                 AreaSqm = l.AreaSqm,
-                Location = l.Location
+                Location = l.Location,
+                DevelopmentKey = l.DevelopmentKey
+            })
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    public async Task<IReadOnlyList<HouseListing>> GetGroupingSampleAsync(
+        Guid profileId,
+        CancellationToken cancellationToken = default)
+    {
+        return await _db.HouseListings
+            .AsNoTracking()
+            .Where(l => l.SearchProfileId == profileId && !l.IsDeleted)
+            .Select(l => new HouseListing
+            {
+                Id = l.Id,
+                PropertyType = l.PropertyType,
+                Price = l.Price,
+                AreaSqm = l.AreaSqm,
+                DevelopmentKey = l.DevelopmentKey,
+                AiScore = l.AiScore
             })
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
@@ -417,6 +440,9 @@ public sealed class ListingRepository : IListingRepository
 
         if (filter.MinScore is { } minScore)
             query = query.Where(l => l.AiScore >= minScore);
+
+        if (filter.EvaluatedOnly)
+            query = query.Where(l => l.AiScore != null);
 
         if (filter.PropertyType is { } propertyType)
             query = query.Where(l => l.PropertyType == propertyType);

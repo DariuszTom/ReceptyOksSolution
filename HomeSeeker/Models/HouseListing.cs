@@ -58,6 +58,11 @@ public class HouseListing
     public PropertyTypes PropertyType { get; set; } = PropertyTypes.House;
 
     /// <summary>
+    /// Identifies the developer's investment the unit belongs to (e.g. "otodom:68291776"); null when unknown.
+    /// </summary>
+    public string? DevelopmentKey { get; set; }
+
+    /// <summary>
     /// Distance from the city centre in kilometres, set when the listing is evaluated
     /// and its coordinates are known; null otherwise.
     /// </summary>

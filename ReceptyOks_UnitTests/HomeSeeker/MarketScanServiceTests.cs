@@ -299,6 +299,193 @@ public sealed class MarketScanServiceTests
     }
 
     [Test]
+    public void SelectCandidates_LimitsUnitsOfOneDevelopment_KeepingCheapest()
+    {
+        AddUpsert("dev-1", price: 700_000, area: 100, isNew: true, developmentKey: "otodom:1");
+        AddUpsert("dev-2", price: 710_000, area: 100, isNew: true, developmentKey: "otodom:1");
+        AddUpsert("dev-3", price: 720_000, area: 100, isNew: true, developmentKey: "otodom:1");
+        AddUpsert("other", price: 900_000, area: 100, isNew: true);
+
+        var selected = ListingSelection.SelectCandidates(_upsertResults.Values, 8, maxPerGroup: 2);
+
+        Assert.That(selected.Select(r => r.Listing.ExternalId), Is.EquivalentTo(new[] { "dev-1", "dev-2", "other" }));
+    }
+
+    [Test]
+    public void SelectCandidates_TreatsSamePriceAndAreaAsOneOffer_AcrossPortals()
+    {
+        AddUpsert("otodom-copy", price: 799_000, area: 83.95m, isNew: true, developmentKey: "otodom:1");
+        AddUpsert("olx-copy", price: 799_000, area: 83.95m, isNew: true);
+        AddUpsert("otodom-sibling", price: 750_000, area: 80, isNew: true, developmentKey: "otodom:1");
+
+        var selected = ListingSelection.SelectCandidates(_upsertResults.Values, 8, maxPerGroup: 2);
+
+        // The OLX copy joins the development through its price/area, so only 2 of 3 are evaluated.
+        Assert.That(selected, Has.Count.EqualTo(2));
+        Assert.That(selected.Select(r => r.Listing.ExternalId), Does.Contain("otodom-sibling"));
+    }
+
+    [Test]
+    public void SelectCandidates_CountsAlreadyScoredUnitsTowardsDevelopmentLimit()
+    {
+        AddUpsert("scored-1", price: 700_000, area: 100, developmentKey: "otodom:1");
+        AddUpsert("scored-2", price: 710_000, area: 100, developmentKey: "otodom:1");
+        _upsertResults["scored-1"].Listing.AiScore = 70;
+        _upsertResults["scored-2"].Listing.AiScore = 72;
+        AddUpsert("new-unit", price: 720_000, area: 100, isNew: true, developmentKey: "otodom:1");
+        AddUpsert("backlog-unit", price: 690_000, area: 100, developmentKey: "otodom:1");
+
+        var selected = ListingSelection.SelectCandidates(_upsertResults.Values, 8, maxPerGroup: 2);
+
+        Assert.That(selected, Is.Empty);
+    }
+
+    [Test]
+    public void CapPerGroup_KeepsBestUnitsOfEachDevelopmentInOrder()
+    {
+        var listings = new[]
+        {
+            Listing(price: 700_000, area: 70, developmentKey: "otodom:1"),
+            Listing(price: 710_000, area: 71, developmentKey: "otodom:1"),
+            Listing(price: 720_000, area: 72, developmentKey: "otodom:1"),
+            Listing(price: 900_000, area: 90),
+            Listing(price: 900_000, area: 90),
+            Listing(price: 900_000, area: 90),
+            Listing(price: 0, area: 0),
+            Listing(price: 0, area: 0),
+            Listing(price: 0, area: 0)
+        };
+
+        var capped = ListingGroups.CapPerGroup(listings, 2);
+
+        Assert.That(capped, Is.EqualTo(new[] { listings[0], listings[1], listings[3], listings[4], listings[6], listings[7], listings[8] }));
+    }
+
+    [Test]
+    public async Task RunScan_ReportLimitsUnitsOfOneDevelopment()
+    {
+        var ranked = Enumerable.Range(0, 6)
+            .Select(i => Listing(price: 700_000 + i, area: 70, developmentKey: "otodom:1"))
+            .Append(Listing(price: 900_000, area: 90))
+            .ToList();
+        _repository.Setup(r => r.GetTopListingsAsync(ProfileId, It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ranked);
+        IReadOnlyList<HouseListing>? reported = null;
+        _evaluator.Setup(e => e.WriteReportHtmlAsync(It.IsAny<SearchProfile>(), It.IsAny<IReadOnlyList<HouseListing>>(),
+                It.IsAny<ScanRun>(), It.IsAny<CancellationToken>()))
+            .Callback((SearchProfile _, IReadOnlyList<HouseListing> l, ScanRun _, CancellationToken _) => reported = l)
+            .ReturnsAsync("<html>report</html>");
+        AddUpsert("n1", price: 1, area: 1, isNew: true);
+
+        await CreateSut([SucceedingScraper("Otodom", "n1")]).RunScanAsync(ProfileId);
+
+        Assert.That(reported, Is.EqualTo(new[] { ranked[0], ranked[1], ranked[6] }));
+    }
+
+    [Test]
+    public void ListingGroups_IgnoresDecimalScale()
+    {
+        var a = Listing(price: 800_000m, area: 80m);
+        var b = Listing(price: 800_000.00m, area: 80.0m);
+
+        var groups = new ListingGroups([a, b]);
+
+        Assert.That(groups.GroupOf(a), Is.EqualTo(groups.GroupOf(b)));
+    }
+
+    [Test]
+    public void SelectCandidates_CountsStoredScoredUnitsNotSeenInThisScan()
+    {
+        AddUpsert("new-unit", price: 720_000, area: 100, isNew: true, developmentKey: "otodom:1");
+        var stored = new[]
+        {
+            Listing(price: 700_000, area: 100, developmentKey: "otodom:1"),
+            Listing(price: 710_000, area: 100, developmentKey: "otodom:1")
+        };
+
+        var selected = ListingSelection.SelectCandidates(_upsertResults.Values, 8, maxPerGroup: 2, groupingContext: stored);
+
+        Assert.That(selected, Is.Empty);
+    }
+
+    [Test]
+    public void SelectCandidates_PriceDroppedScoredUnitKeepsItsSlotAndBlocksOthers()
+    {
+        AddUpsert("scored", price: 700_000, area: 100, developmentKey: "otodom:1");
+        AddUpsert("dropped", price: 690_000, area: 100, priceDropped: true, developmentKey: "otodom:1");
+        _upsertResults["scored"].Listing.AiScore = 70;
+        _upsertResults["dropped"].Listing.AiScore = 60;
+        AddUpsert("new-unit", price: 650_000, area: 100, isNew: true, developmentKey: "otodom:1");
+
+        var selected = ListingSelection.SelectCandidates(_upsertResults.Values, 8, maxPerGroup: 2);
+
+        Assert.That(selected.Select(r => r.Listing.ExternalId), Is.EqualTo(new[] { "dropped" }));
+    }
+
+    [Test]
+    public async Task RunScan_ReportFetchesMoreWhenCappedReportIsShort()
+    {
+        // 30 units of one development first, then distinct offers: the first fetch (5 * 5 = 25)
+        // yields only 2 distinct report rows, so the service must fetch more.
+        var ranked = Enumerable.Range(0, 30)
+            .Select(i => Listing(price: 700_000 + i, area: 70, developmentKey: "otodom:1"))
+            .Concat(Enumerable.Range(0, 5).Select(i => Listing(price: 900_000 + i, area: 90)))
+            .ToList();
+        _repository.Setup(r => r.GetTopListingsAsync(ProfileId, It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Guid _, int count, CancellationToken _) => ranked.Take(count).ToList());
+        IReadOnlyList<HouseListing>? reported = null;
+        _evaluator.Setup(e => e.WriteReportHtmlAsync(It.IsAny<SearchProfile>(), It.IsAny<IReadOnlyList<HouseListing>>(),
+                It.IsAny<ScanRun>(), It.IsAny<CancellationToken>()))
+            .Callback((SearchProfile _, IReadOnlyList<HouseListing> l, ScanRun _, CancellationToken _) => reported = l)
+            .ReturnsAsync("<html>report</html>");
+        AddUpsert("n1", price: 1, area: 1, isNew: true);
+
+        await CreateSut([SucceedingScraper("Otodom", "n1")]).RunScanAsync(ProfileId);
+
+        Assert.That(reported, Is.EqualTo(new[] { ranked[0], ranked[1], ranked[30], ranked[31], ranked[32] }));
+    }
+
+    [Test]
+    public async Task RunScan_ReportGroupsThroughUnscoredBridgeListing()
+    {
+        var withDev = Listing(price: 700_000, area: 70, developmentKey: "otodom:1");
+        var withDev2 = Listing(price: 710_000, area: 71, developmentKey: "otodom:1");
+        var olxCopy = Listing(price: 799_000, area: 83.9m);
+        var other = Listing(price: 900_000, area: 90);
+        var bridge = Listing(price: 799_000, area: 83.9m, developmentKey: "otodom:1");
+        bridge.AiScore = null;
+        var ranked = new List<HouseListing> { withDev, withDev2, olxCopy, other };
+        _repository.Setup(r => r.GetTopListingsAsync(ProfileId, It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ranked);
+        _repository.Setup(r => r.GetGroupingSampleAsync(ProfileId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync([withDev, withDev2, olxCopy, other, bridge]);
+        IReadOnlyList<HouseListing>? reported = null;
+        _evaluator.Setup(e => e.WriteReportHtmlAsync(It.IsAny<SearchProfile>(), It.IsAny<IReadOnlyList<HouseListing>>(),
+                It.IsAny<ScanRun>(), It.IsAny<CancellationToken>()))
+            .Callback((SearchProfile _, IReadOnlyList<HouseListing> l, ScanRun _, CancellationToken _) => reported = l)
+            .ReturnsAsync("<html>report</html>");
+        AddUpsert("n1", price: 1, area: 1, isNew: true);
+
+        await CreateSut([SucceedingScraper("Otodom", "n1")]).RunScanAsync(ProfileId);
+
+        Assert.That(reported, Is.EqualTo(new[] { withDev, withDev2, other }));
+    }
+
+    private static HouseListing Listing(decimal price, decimal area, string? developmentKey = null) => new()
+    {
+        Id = Guid.NewGuid(),
+        SearchProfileId = ProfileId,
+        Portal = "Otodom",
+        ExternalId = Guid.NewGuid().ToString(),
+        Url = "https://x",
+        Title = "x",
+        Price = price,
+        AreaSqm = area,
+        AiScore = 70,
+        DevelopmentKey = developmentKey
+    };
+
+    [Test]
     public async Task RunScan_PassesDistrictBenchmarkToEvaluator()
     {
         for (var i = 0; i < 5; i++)
@@ -830,12 +1017,13 @@ public sealed class MarketScanServiceTests
             valuations);
 
     private void AddUpsert(string externalId, decimal price, decimal area, bool isNew = false, bool priceDropped = false,
-        PropertyTypes type = PropertyTypes.House, string? location = null)
+        PropertyTypes type = PropertyTypes.House, string? location = null, string? developmentKey = null)
     {
         _upsertResults[externalId] = new UpsertResult
         {
             Listing = new HouseListing
             {
+                DevelopmentKey = developmentKey,
                 Id = Guid.NewGuid(),
                 SearchProfileId = ProfileId,
                 Portal = "Otodom",

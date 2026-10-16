@@ -40,9 +40,19 @@ internal static class ListingSelection
     /// can't use go to the other type. Slots left over go to listings still on the market that
     /// were never evaluated (they didn't fit the cap in earlier scans), so the backlog drains
     /// over time instead of staying unscored forever.
+    /// Units of one development and copies of one offer on several portals (see
+    /// <see cref="ListingGroups"/>) take at most <paramref name="maxPerGroup"/> evaluations in
+    /// total, counting ones already scored, since near-identical units would get near-identical
+    /// scores and crowd the report. <paramref name="groupingContext"/> (the profile's active
+    /// stored listings) lets groups and already-scored counts include listings not seen in this
+    /// scan; candidates are still taken only from <paramref name="upsertResults"/>.
     /// </summary>
     public static List<UpsertResult> SelectCandidates(
-        IReadOnlyCollection<UpsertResult> upsertResults, int max, MarketPriceStats? priceStats = null)
+        IReadOnlyCollection<UpsertResult> upsertResults,
+        int max,
+        MarketPriceStats? priceStats = null,
+        int maxPerGroup = int.MaxValue,
+        IEnumerable<HouseListing>? groupingContext = null)
     {
         // A listing repeated in search results is upserted twice (new, then unchanged); keep one
         // occurrence, preferring the new/price-dropped one, so it can't take two paid slots.
@@ -53,18 +63,47 @@ internal static class ListingSelection
 
         priceStats ??= new MarketPriceStats(unique.Select(r => r.Listing));
 
-        var selected = RoundRobin(unique.Where(r => r.IsNew || r.PriceDropped), max, priceStats);
+        // This scan's listings first: they carry current price/area and win over stored copies.
+        var allListings = unique.Select(r => r.Listing)
+            .Concat(groupingContext ?? [])
+            .DistinctBy(l => l.Id)
+            .ToList();
+        var groups = new ListingGroups(allListings);
+
+        // Every listing that already has a score holds a slot in its group, including
+        // price-dropped ones about to be re-evaluated.
+        var groupCounts = new Dictionary<object, int>();
+        foreach (var scored in allListings.Where(l => l.AiScore is not null))
+        {
+            var group = groups.GroupOf(scored);
+            groupCounts[group] = groupCounts.GetValueOrDefault(group) + 1;
+        }
+
+        bool TryTakeGroupSlot(UpsertResult result)
+        {
+            // A re-evaluation reuses the listing's own (already counted) slot.
+            if (result.Listing.AiScore is not null) return true;
+
+            var group = groups.GroupOf(result.Listing);
+            var count = groupCounts.GetValueOrDefault(group);
+            if (count >= maxPerGroup) return false;
+            groupCounts[group] = count + 1;
+            return true;
+        }
+
+        var selected = RoundRobin(unique.Where(r => r.IsNew || r.PriceDropped), max, priceStats, TryTakeGroupSlot);
         if (selected.Count < max)
         {
             var backlog = unique.Where(r => !r.IsNew && !r.PriceDropped && r.Listing.AiScore is null);
-            selected.AddRange(RoundRobin(backlog, max - selected.Count, priceStats));
+            selected.AddRange(RoundRobin(backlog, max - selected.Count, priceStats, TryTakeGroupSlot));
         }
 
         return selected;
     }
 
     private static List<UpsertResult> RoundRobin(
-        IEnumerable<UpsertResult> results, int max, MarketPriceStats priceStats)
+        IEnumerable<UpsertResult> results, int max, MarketPriceStats priceStats,
+        Func<UpsertResult, bool> tryTakeGroupSlot)
     {
         var queues = results
             .GroupBy(r => r.Listing.PropertyType)
@@ -80,7 +119,14 @@ internal static class ListingSelection
             foreach (var queue in queues)
             {
                 if (selected.Count >= max) break;
-                if (queue.Count > 0) selected.Add(queue.Dequeue());
+                // Skip listings whose group is full so the type's turn goes to its next listing.
+                while (queue.Count > 0)
+                {
+                    var next = queue.Dequeue();
+                    if (!tryTakeGroupSlot(next)) continue;
+                    selected.Add(next);
+                    break;
+                }
             }
         }
 

@@ -51,6 +51,12 @@ public sealed record ScrapedListing
     public int? Rooms { get; init; }
 
     /// <summary>
+    /// Identifies the developer's investment the unit belongs to (e.g. Otodom developmentId),
+    /// so units of one development can be limited in AI evaluation and reports; null when unknown.
+    /// </summary>
+    public string? DevelopmentKey { get; init; }
+
+    /// <summary>
     /// Plain-text parameters and description, when the search page already provides them
     /// (OLX). Not persisted; only passed to the AI evaluator.
     /// </summary>

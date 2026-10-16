@@ -118,6 +118,15 @@ public interface IListingRepository
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets all active listings of a profile with only the fields needed to group units of one
+    /// development / cross-portal copies: <c>Id</c>, <c>PropertyType</c>, <c>Price</c>, <c>AreaSqm</c>,
+    /// <c>DevelopmentKey</c> and <c>AiScore</c>.
+    /// </summary>
+    Task<IReadOnlyList<HouseListing>> GetGroupingSampleAsync(
+        Guid profileId,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Gets top-rated listings for a profile.
     /// </summary>
     Task<IReadOnlyList<HouseListing>> GetTopListingsAsync(

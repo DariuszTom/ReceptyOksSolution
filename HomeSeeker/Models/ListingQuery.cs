@@ -25,4 +25,7 @@ public sealed record ListingQuery
 
     /// <summary>Only listings whose price dropped.</summary>
     public bool PriceDropOnly { get; init; }
+
+    /// <summary>Only listings already evaluated by AI (with a score).</summary>
+    public bool EvaluatedOnly { get; init; }
 }

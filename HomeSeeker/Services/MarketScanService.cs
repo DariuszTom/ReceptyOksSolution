@@ -13,6 +13,8 @@ namespace HomeSeeker.Services;
 /// </summary>
 public sealed class MarketScanService : IMarketScanService
 {
+    private const int ReportOverFetchFactor = 5;
+
     private readonly IEnumerable<IListingScraper> _scrapers;
     private readonly IListingRepository _repository;
     private readonly IListingEvaluator _evaluator;
@@ -83,7 +85,10 @@ public sealed class MarketScanService : IMarketScanService
             // relative to the local (district) median, limited by config.
             var priceStats = new MarketPriceStats(
                 await GetMarketSampleAsync(profileId, upsertResults, cancellationToken).ConfigureAwait(false));
-            var candidates = ListingSelection.SelectCandidates(upsertResults, _options.MaxCandidatesPerScan, priceStats);
+            var groupingSample = await GetGroupingSampleAsync(profileId, cancellationToken).ConfigureAwait(false);
+            var candidates = ListingSelection.SelectCandidates(
+                upsertResults, _options.MaxCandidatesPerScan, priceStats, _options.MaxListingsPerDevelopment,
+                groupingSample);
             _logger.LogInformation("Selected {Count} candidates for AI evaluation", candidates.Count);
 
             var cityCenter = upsertResults.Count > 0
@@ -96,7 +101,8 @@ public sealed class MarketScanService : IMarketScanService
             await EvaluateCandidatesAsync(profile, candidates, scraped, priceStats, cityCenter, stats, cancellationToken)
                 .ConfigureAwait(false);
 
-            reportHtml = await WriteReportAsync(profile, scanRun, stats, cancellationToken).ConfigureAwait(false);
+            reportHtml = await WriteReportAsync(profile, scanRun, stats, groupingSample, cancellationToken)
+                .ConfigureAwait(false);
             await SendReportAsync(profile, scanRun, stats, reportHtml, cancellationToken).ConfigureAwait(false);
 
             _logger.LogInformation(
@@ -336,10 +342,30 @@ public sealed class MarketScanService : IMarketScanService
     /// Phase 4: renders the HTML report of the profile's top listings.
     /// </summary>
     private async Task<string> WriteReportAsync(
-        SearchProfile profile, ScanRun scanRun, ScanStats stats, CancellationToken cancellationToken)
+        SearchProfile profile, ScanRun scanRun, ScanStats stats,
+        IReadOnlyCollection<HouseListing> groupingSample, CancellationToken cancellationToken)
     {
-        var topListings = await _repository.GetTopListingsAsync(
-            profile.Id, _options.TopListingsInReport, cancellationToken).ConfigureAwait(false);
+        // Over-fetch so that, after limiting units of one development / cross-portal copies,
+        // the report can still be filled with distinct offers; grow the fetch while the capped
+        // report is short and more scored listings exist.
+        var reportSize = _options.TopListingsInReport;
+        var fetch = reportSize * ReportOverFetchFactor;
+        List<HouseListing> topListings;
+        while (true)
+        {
+            var ranked = await _repository.GetTopListingsAsync(profile.Id, fetch, cancellationToken)
+                .ConfigureAwait(false);
+
+            // Groups also span unscored active listings, which may bridge scored ones.
+            var groups = new ListingGroups(ranked.Concat(groupingSample));
+            topListings = ListingGroups.CapPerGroup(ranked, _options.MaxListingsPerDevelopment, groups)
+                .Take(reportSize)
+                .ToList();
+
+            if (topListings.Count >= reportSize || ranked.Count < fetch || fetch > int.MaxValue / 2)
+                break;
+            fetch *= 2;
+        }
 
         // The report shows this run's counts.
         scanRun.ListingsFoundCount = stats.Found;
@@ -467,6 +493,30 @@ public sealed class MarketScanService : IMarketScanService
         _logger.LogDebug("Market sample for price medians: {Count} listings ({Current} from this scan)",
             sample.Count, upsertResults.Count);
         return sample.Values;
+    }
+
+    /// <summary>
+    /// Loads the profile's active stored listings used to group units of one development /
+    /// cross-portal copies beyond this scan; empty (groups from this scan only) when it fails.
+    /// </summary>
+    private async Task<IReadOnlyCollection<HouseListing>> GetGroupingSampleAsync(
+        Guid profileId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await _repository.GetGroupingSampleAsync(profileId, cancellationToken).ConfigureAwait(false)
+                ?? [];
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Loading grouping sample failed for profile {ProfileId}; using current scan only", profileId);
+            _repository.ResetTracking();
+            return [];
+        }
     }
 
     private async Task<GeoPoint?> GetCityCenterAsync(string city, CancellationToken cancellationToken)
