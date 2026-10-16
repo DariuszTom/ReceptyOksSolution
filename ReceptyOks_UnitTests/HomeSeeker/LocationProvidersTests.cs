@@ -127,12 +127,107 @@ public sealed class LocationProvidersTests
         });
     }
 
+    [TestCase("[]", true)]
+    [TestCase("{broken", false)]
+    [TestCase("""{"error":"x"}""", false)]
+    [TestCase("""[{"lat":"x","lon":"19.9"}]""", false)]
+    [TestCase("""[{"lat":"50.06","lon":"19.94"}]""", true)]
+    public void Nominatim_TryParseSearchResponse_DistinguishesDefinitiveResults(string json, bool definitive)
+    {
+        Assert.That(NominatimCityCenterProvider.TryParseSearchResponse(json, out _), Is.EqualTo(definitive));
+    }
+
+    [Test]
+    public async Task Nominatim_MalformedResponse_IsNotCached()
+    {
+        var responses = new Queue<string>(["{broken", """[{"lat":"50.06","lon":"19.94"}]"""]);
+        var handler = new StubHandler(_ => Json(responses.Dequeue()));
+        var sut = new NominatimCityCenterProvider(Factory(handler), NullLogger<NominatimCityCenterProvider>.Instance);
+
+        var first = await sut.GetCenterAsync("Kraków");
+        var second = await sut.GetCenterAsync("Kraków");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(first, Is.Null);
+            Assert.That(second, Is.EqualTo(new GeoPoint(50.06, 19.94)));
+            Assert.That(handler.Requests, Has.Count.EqualTo(2));
+        });
+    }
+
+    [Test]
+    public async Task Nominatim_EmptyResult_IsCached()
+    {
+        var handler = new StubHandler(_ => Json("[]"));
+        var sut = new NominatimCityCenterProvider(Factory(handler), NullLogger<NominatimCityCenterProvider>.Instance);
+
+        await sut.GetCenterAsync("Nibylandia");
+        await sut.GetCenterAsync("Nibylandia");
+
+        Assert.That(handler.Requests, Has.Count.EqualTo(1));
+    }
+
+    [Test]
+    public async Task Deweloperuch_MalformedResponse_IsNotCached()
+    {
+        var responses = new Queue<string>(["{broken", """{"estimatedPricePerSqm":15000}"""]);
+        var handler = new StubHandler(_ => Json(responses.Dequeue()));
+        var sut = CreateValuation(handler);
+
+        var first = await sut.GetApartmentValuationAsync(Krakow, 50);
+        var second = await sut.GetApartmentValuationAsync(Krakow, 50);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(first, Is.Null);
+            Assert.That(second?.EstimatedPricePerSqm, Is.EqualTo(15000m));
+            Assert.That(handler.Requests, Has.Count.EqualTo(2));
+        });
+    }
+
+    [Test, CancelAfter(10_000)]
+    public async Task Deweloperuch_StalledBody_TimesOutAndReturnsNull()
+    {
+        var handler = new StubHandler(_ => new HttpResponseMessage(HttpStatusCode.OK) { Content = new StreamContent(new StalledStream()) });
+        var sut = new DeweloperuchValuationProvider(
+            Factory(handler), Options.Create(new HomeSeekerOptions()), NullLogger<DeweloperuchValuationProvider>.Instance)
+        {
+            BodyReadTimeout = TimeSpan.FromMilliseconds(100)
+        };
+
+        Assert.That(await sut.GetApartmentValuationAsync(Krakow, 50), Is.Null);
+    }
+
     private static DeweloperuchValuationProvider CreateValuation(StubHandler handler, Action<HomeSeekerOptions>? configure = null)
     {
         var options = new HomeSeekerOptions();
         configure?.Invoke(options);
         return new DeweloperuchValuationProvider(
             Factory(handler), Options.Create(options), NullLogger<DeweloperuchValuationProvider>.Instance);
+    }
+
+    /// <summary>A response body that never delivers data until cancelled.</summary>
+    private sealed class StalledStream : Stream
+    {
+        public override bool CanRead => true;
+        public override bool CanSeek => false;
+        public override bool CanWrite => false;
+        public override long Length => throw new NotSupportedException();
+        public override long Position { get => 0; set => throw new NotSupportedException(); }
+        public override void Flush() { }
+        public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+
+        public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
+        {
+            await Task.Delay(Timeout.Infinite, cancellationToken);
+            return 0;
+        }
+
+        public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) =>
+            ReadAsync(buffer.AsMemory(offset, count), cancellationToken).AsTask();
     }
 
     private static IHttpClientFactory Factory(HttpMessageHandler handler)

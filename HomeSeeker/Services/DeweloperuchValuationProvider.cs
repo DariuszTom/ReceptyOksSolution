@@ -32,6 +32,8 @@ public sealed class DeweloperuchValuationProvider : IPropertyValuationProvider
     private readonly ConcurrentDictionary<string, RcnValuation?> _cache = new();
     private DateTimeOffset _blockedUntil = DateTimeOffset.MinValue;
 
+    internal TimeSpan BodyReadTimeout { get; init; } = TimeSpan.FromSeconds(60);
+
     public DeweloperuchValuationProvider(
         IHttpClientFactory httpClientFactory,
         IOptions<HomeSeekerOptions> options,
@@ -90,9 +92,15 @@ public sealed class DeweloperuchValuationProvider : IPropertyValuationProvider
                 return null;
             }
 
-            await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
-            var valuation = await ParseResponseAsync(stream, cancellationToken).ConfigureAwait(false);
-            _cache[key] = valuation;
+            // With ResponseHeadersRead, HttpClient.Timeout no longer covers the body, so bound it here.
+            using var bodyCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            bodyCts.CancelAfter(BodyReadTimeout);
+            await using var stream = await response.Content.ReadAsStreamAsync(bodyCts.Token).ConfigureAwait(false);
+            var valuation = await ParseResponseAsync(stream, bodyCts.Token).ConfigureAwait(false);
+
+            // A malformed body may be transient; only cache a real valuation.
+            if (valuation is not null)
+                _cache[key] = valuation;
             return valuation;
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)

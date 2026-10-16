@@ -49,6 +49,14 @@ public sealed class HomeSeekerOptions : IValidatableObject
     public int MaxCandidatesPerScan { get; set; } = 8;
 
     /// <summary>
+    /// Maximum number of non-candidate listings per scan whose ad page is fetched only to
+    /// resolve a missing distance from the centre (search results without coordinates, e.g. Otodom).
+    /// 0 disables the backfill.
+    /// </summary>
+    [Range(0, 50)]
+    public int MaxDistanceBackfillPerScan { get; set; } = 5;
+
+    /// <summary>
     /// Number of top listings to include in the email report.
     /// </summary>
     [Range(1, 50)]

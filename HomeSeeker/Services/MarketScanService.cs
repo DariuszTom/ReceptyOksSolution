@@ -544,7 +544,9 @@ public sealed class MarketScanService : IMarketScanService
     /// <summary>
     /// Stores the distance for every scraped listing whose search result has coordinates, not only
     /// for AI candidates, so the distance filter covers the whole list. Candidates are skipped:
-    /// they get a more precise distance from the ad page during evaluation.
+    /// they get a more precise distance from the ad page during evaluation. Listings still without
+    /// a distance and without search coordinates (Otodom) get a few ad-page fetches per scan,
+    /// limited by <see cref="HomeSeekerOptions.MaxDistanceBackfillPerScan"/>.
     /// </summary>
     private async Task UpdateDistancesAsync(
         IReadOnlyList<UpsertResult> upsertResults,
@@ -558,16 +560,27 @@ public sealed class MarketScanService : IMarketScanService
 
         var scrapedByKey = ToScrapedLookup(scraped);
         var candidateIds = candidates.Select(c => c.Listing.Id).ToHashSet();
+        var missingDistance = new List<HouseListing>();
 
         foreach (var result in upsertResults)
         {
             var listing = result.Listing;
             if (candidateIds.Contains(listing.Id) ||
-                !scrapedByKey.TryGetValue((listing.Portal, listing.ExternalId), out var scrapedListing) ||
-                scrapedListing.Coordinates is not { } point)
+                !scrapedByKey.TryGetValue((listing.Portal, listing.ExternalId), out var scrapedListing))
             {
                 continue;
             }
+
+            if (scrapedListing.Coordinates is not { } point)
+            {
+                if (listing.DistanceFromCenterKm is null)
+                    missingDistance.Add(listing);
+                continue;
+            }
+
+            // Never replace an exact distance (from the ad page) with an approximate one.
+            if (point.IsApproximate && listing.DistanceFromCenterKm is not null && !listing.DistanceIsApproximate)
+                continue;
 
             var distanceKm = Math.Round(point.DistanceKmTo(center), 1);
             if (listing.DistanceFromCenterKm == distanceKm && listing.DistanceIsApproximate == point.IsApproximate)
@@ -575,6 +588,38 @@ public sealed class MarketScanService : IMarketScanService
 
             await SaveDistanceAsync(listing, distanceKm, point.IsApproximate, cancellationToken).ConfigureAwait(false);
         }
+
+        await BackfillDistancesAsync(missingDistance, center, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task BackfillDistancesAsync(
+        IReadOnlyList<HouseListing> listings, GeoPoint center, CancellationToken cancellationToken)
+    {
+        var requests = 0;
+        foreach (var listing in listings)
+        {
+            if (requests >= _options.MaxDistanceBackfillPerScan)
+                break;
+
+            var scraper = _scrapers.FirstOrDefault(s =>
+                string.Equals(s.PortalName, listing.Portal, StringComparison.OrdinalIgnoreCase));
+            if (scraper is null)
+                continue;
+
+            // Delay before every request: these follow the search pages and precede the candidates' ad pages.
+            requests++;
+            await Task.Delay(_options.RequestDelay, cancellationToken).ConfigureAwait(false);
+
+            var details = await FetchDetailsAsync(scraper, listing, cancellationToken).ConfigureAwait(false);
+            if (details?.Coordinates is not { } point)
+                continue;
+
+            var distanceKm = Math.Round(point.DistanceKmTo(center), 1);
+            await SaveDistanceAsync(listing, distanceKm, point.IsApproximate, cancellationToken).ConfigureAwait(false);
+        }
+
+        if (requests > 0)
+            _logger.LogDebug("Distance backfill fetched {Count} ad pages", requests);
     }
 
     /// <summary>

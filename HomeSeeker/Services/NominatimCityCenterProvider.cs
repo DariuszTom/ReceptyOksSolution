@@ -50,9 +50,9 @@ public sealed class NominatimCityCenterProvider : ICityCenterProvider
             }
 
             var json = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
-            var point = ParseSearchResponse(json);
-            // A definitive "not found" is cached too; transient failures are retried next time.
-            _cache[key] = point;
+            // A definitive "not found" (empty array) is cached too; malformed responses are retried next time.
+            if (TryParseSearchResponse(json, out var point))
+                _cache[key] = point;
 
             if (point is null)
                 _logger.LogInformation("City centre not resolved for {City}; distances will be skipped", key);
@@ -71,22 +71,39 @@ public sealed class NominatimCityCenterProvider : ICityCenterProvider
 
     internal static GeoPoint? ParseSearchResponse(string json)
     {
+        TryParseSearchResponse(json, out var point);
+        return point;
+    }
+
+    /// <summary>
+    /// Returns <c>true</c> when the response is definitive: a valid point, or an empty result
+    /// array meaning the city was not found. Malformed JSON or invalid coordinates return <c>false</c>.
+    /// </summary>
+    internal static bool TryParseSearchResponse(string json, out GeoPoint? point)
+    {
+        point = null;
         try
         {
             using var doc = JsonDocument.Parse(json);
-            if (doc.RootElement.ValueKind != JsonValueKind.Array || doc.RootElement.GetArrayLength() == 0)
-                return null;
+            if (doc.RootElement.ValueKind != JsonValueKind.Array)
+                return false;
+            if (doc.RootElement.GetArrayLength() == 0)
+                return true;
 
             var first = doc.RootElement[0];
             if (!TryGetCoordinate(first, "lat", out var lat) || !TryGetCoordinate(first, "lon", out var lon))
-                return null;
+                return false;
 
-            var point = new GeoPoint(lat, lon);
-            return point.IsValid ? point : null;
+            var candidate = new GeoPoint(lat, lon);
+            if (!candidate.IsValid)
+                return false;
+
+            point = candidate;
+            return true;
         }
         catch (JsonException)
         {
-            return null;
+            return false;
         }
     }
 
