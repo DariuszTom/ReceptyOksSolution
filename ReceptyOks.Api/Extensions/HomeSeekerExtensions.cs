@@ -6,6 +6,11 @@ using HomeSeeker.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.Extensions.Http.Resilience;
+using Microsoft.Extensions.Options;
+using Polly;
+using System.Net;
+using System.Threading.RateLimiting;
 using ReceptyOks.Api.DbUtility;
 using ReceptyOks.Api.Middleware;
 using ReceptyOks.Api.Repositories;
@@ -120,6 +125,10 @@ public static class HomeSeekerExtensions
                 sqliteType: "INTEGER NOT NULL DEFAULT 1", sqlServerType: "INT NOT NULL DEFAULT 1");
             EnsureColumn(db, logger, "SearchProfiles", "MinRooms",
                 sqliteType: "INTEGER NULL", sqlServerType: "INT NULL");
+            EnsureColumn(db, logger, "HouseListings", "DistanceFromCenterKm",
+                sqliteType: "REAL NULL", sqlServerType: "FLOAT NULL");
+            EnsureColumn(db, logger, "HouseListings", "DistanceIsApproximate",
+                sqliteType: "INTEGER NOT NULL DEFAULT 0", sqlServerType: "BIT NOT NULL DEFAULT 0");
         }
         catch (Exception ex)
         {
@@ -244,6 +253,34 @@ public static class HomeSeekerExtensions
             client.Timeout = TimeSpan.FromSeconds(30);
         });
 
+        // Public APIs identify the app honestly (Nominatim usage policy requires it).
+        const string apiUserAgent = "ReceptyOks-HomeSeeker/1.0 (+https://github.com/DariuszTom/ReceptyOksSolution)";
+        // RemoveAllResilienceHandlers drops the standard handler added by ServiceDefaults (it retries 429).
+#pragma warning disable EXTEXP0001
+        services.AddHttpClient(NominatimCityCenterProvider.HttpClientName, client =>
+            {
+                client.DefaultRequestHeaders.Add("User-Agent", apiUserAgent);
+                client.DefaultRequestHeaders.Add("Accept", "application/json");
+                client.DefaultRequestHeaders.Add("Accept-Language", "pl");
+                client.Timeout = ApiClientTimeout;
+            })
+            .RemoveAllResilienceHandlers()
+            .AddResilienceHandler("nominatim", (builder, _) =>
+                AddPoliteApiPipeline(builder, NominatimRequestInterval));
+        services.AddHttpClient(DeweloperuchValuationProvider.HttpClientName, client =>
+            {
+                client.DefaultRequestHeaders.Add("User-Agent", apiUserAgent);
+                client.DefaultRequestHeaders.Add("Accept", "application/json");
+                client.Timeout = ApiClientTimeout;
+            })
+            .RemoveAllResilienceHandlers()
+            .AddResilienceHandler("deweloperuch", (builder, context) =>
+                AddPoliteApiPipeline(builder, context.ServiceProvider
+                    .GetRequiredService<IOptions<HomeSeekerOptions>>().Value.RcnValuationRequestInterval));
+#pragma warning restore EXTEXP0001
+        services.AddSingleton<ICityCenterProvider, NominatimCityCenterProvider>();
+        services.AddSingleton<IPropertyValuationProvider, DeweloperuchValuationProvider>();
+
         // Scrapers
         services.AddSingleton<IListingScraper, OtodomScraper>();
         services.AddSingleton<IListingScraper, OlxScraper>();
@@ -268,5 +305,41 @@ public static class HomeSeekerExtensions
         services.AddHostedService<HomeSeekerCleaner>();
 
         return services;
+    }
+
+    // Nominatim usage policy: at most 1 request per second; the margin covers the limiter's segment granularity.
+    private static readonly TimeSpan NominatimRequestInterval = TimeSpan.FromSeconds(1.2);
+
+    // HttpClient.Timeout also covers waiting in the rate limiter queue; per-attempt timeout lives in the pipeline.
+    private static readonly TimeSpan ApiClientTimeout = TimeSpan.FromMinutes(5);
+
+    /// <summary>
+    /// Pipeline for free third-party APIs, replacing the standard handler from ServiceDefaults:
+    /// every attempt (retries included) goes through a rate limiter, and refusals
+    /// (401/403/429) are never retried so a blocked service is not hammered.
+    /// </summary>
+    public static void AddPoliteApiPipeline(ResiliencePipelineBuilder<HttpResponseMessage> builder, TimeSpan minInterval)
+    {
+        builder.AddRetry(new HttpRetryStrategyOptions
+        {
+            MaxRetryAttempts = 1,
+            Delay = minInterval,
+            ShouldHandle = args => ValueTask.FromResult(
+                HttpClientResiliencePredicates.IsTransient(args.Outcome) &&
+                args.Outcome.Result?.StatusCode is not (HttpStatusCode.TooManyRequests
+                    or HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden))
+        });
+
+        // One permit per window; with 10 segments consecutive requests are at least 0.9 × window apart.
+        builder.AddRateLimiter(new SlidingWindowRateLimiter(new SlidingWindowRateLimiterOptions
+        {
+            PermitLimit = 1,
+            Window = minInterval,
+            SegmentsPerWindow = 10,
+            QueueLimit = 100,
+            QueueProcessingOrder = QueueProcessingOrder.OldestFirst
+        }));
+
+        builder.AddTimeout(TimeSpan.FromSeconds(10));
     }
 }

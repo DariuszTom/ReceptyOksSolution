@@ -13,9 +13,8 @@ public interface IHomeSeekerService
 
     Task<HomeSeekerResult<HomeSeekerProfile>> SaveProfileAsync(HomeSeekerProfileRequest request, CancellationToken cancellationToken = default);
 
-    /// <param name="sort"><c>null</c> (AI score), <c>"price"</c> or <c>"firstseen"</c>.</param>
     Task<HomeSeekerResult<HomeSeekerPagedResult<HomeSeekerListing>>> GetListingsAsync(
-        int pageNumber = 1, int pageSize = 20, int? minScore = null, string? sort = null, CancellationToken cancellationToken = default);
+        int pageNumber, int pageSize, HomeSeekerListingQuery query, CancellationToken cancellationToken = default);
 
     Task<HomeSeekerResult<List<HomeSeekerScanRun>>> GetScansAsync(int count = 20, CancellationToken cancellationToken = default);
 

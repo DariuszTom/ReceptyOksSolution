@@ -55,4 +55,10 @@ public sealed record ScrapedListing
     /// (OLX). Not persisted; only passed to the AI evaluator.
     /// </summary>
     public string? Details { get; init; }
+
+    /// <summary>
+    /// Coordinates when the search page provides them (OLX, possibly approximate).
+    /// Not persisted; only used during the scan.
+    /// </summary>
+    public GeoPoint? Coordinates { get; init; }
 }

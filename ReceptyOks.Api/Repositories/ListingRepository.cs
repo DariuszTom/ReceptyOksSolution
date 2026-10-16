@@ -323,6 +323,21 @@ public sealed class ListingRepository : IListingRepository
 
     public void ResetTracking() => _db.ChangeTracker.Clear();
 
+    public async Task SaveDistanceAsync(
+        Guid listingId,
+        double distanceFromCenterKm,
+        bool isApproximate,
+        CancellationToken cancellationToken = default)
+    {
+        await _db.HouseListings
+            .Where(l => l.Id == listingId)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(l => l.DistanceFromCenterKm, distanceFromCenterKm)
+                .SetProperty(l => l.DistanceIsApproximate, isApproximate),
+                cancellationToken)
+            .ConfigureAwait(false);
+    }
+
     public async Task SaveEvaluationAsync(
         Guid listingId,
         ListingEvaluation evaluation,
@@ -391,26 +406,50 @@ public sealed class ListingRepository : IListingRepository
         Guid profileId,
         int pageNumber,
         int pageSize,
-        int? minScore,
-        string? sortBy,
+        ListingQuery filter,
         CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(filter);
+
         var query = _db.HouseListings
             .AsNoTracking()
             .Where(l => l.SearchProfileId == profileId && !l.IsDeleted);
 
-        if (minScore.HasValue)
+        if (filter.MinScore is { } minScore)
+            query = query.Where(l => l.AiScore >= minScore);
+
+        if (filter.PropertyType is { } propertyType)
+            query = query.Where(l => l.PropertyType == propertyType);
+
+        if (!string.IsNullOrWhiteSpace(filter.Portal))
         {
-            query = query.Where(l => l.AiScore >= minScore.Value);
+            var portal = filter.Portal.Trim().ToLower();
+            query = query.Where(l => l.Portal.ToLower() == portal);
         }
+
+        if (filter.MaxDistanceKm is { } maxDistance)
+            query = query.Where(l => l.DistanceFromCenterKm != null && l.DistanceFromCenterKm <= maxDistance);
+
+        if (filter.PriceDropOnly)
+            query = query.Where(l => l.PreviousPrice != null && (double)l.PreviousPrice.Value > (double)l.Price);
 
         var totalCount = await query.CountAsync(cancellationToken).ConfigureAwait(false);
 
+        // Decimals are ordered as doubles because SQLite cannot ORDER BY decimal.
         // Every ordering ends with the unique Id so ties are stable across pages;
         // otherwise SQL may return tied rows in a different order per request.
-        var ordered = sortBy?.ToLowerInvariant() switch
+        var ordered = filter.Sort?.ToLowerInvariant() switch
         {
             "price" => query.OrderBy(l => (double)l.Price),
+            "price_desc" => query.OrderByDescending(l => (double)l.Price),
+            "pricesqm" => query
+                .OrderBy(l => (double)l.AreaSqm <= 0)
+                .ThenBy(l => (double)l.AreaSqm > 0 ? (double)l.Price / (double)l.AreaSqm : 0),
+            "area_desc" => query.OrderByDescending(l => (double)l.AreaSqm),
+            // Unknown distance goes last.
+            "distance" => query
+                .OrderBy(l => l.DistanceFromCenterKm == null)
+                .ThenBy(l => l.DistanceFromCenterKm),
             "firstseen" => query.OrderByDescending(l => l.FirstSeenAt),
             _ => query.OrderByDescending(l => l.AiScore ?? 0)
         };

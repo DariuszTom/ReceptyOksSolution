@@ -91,6 +91,15 @@ public interface IListingRepository
     void ResetTracking();
 
     /// <summary>
+    /// Stores the listing's distance from the city centre.
+    /// </summary>
+    Task SaveDistanceAsync(
+        Guid listingId,
+        double distanceFromCenterKm,
+        bool isApproximate,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Saves AI evaluation results for a listing.
     /// </summary>
     Task SaveEvaluationAsync(
@@ -117,14 +126,13 @@ public interface IListingRepository
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Gets listings for a profile with pagination and filtering.
+    /// Gets listings for a profile with pagination, filtering and sorting.
     /// </summary>
     Task<(IReadOnlyList<HouseListing> Listings, int TotalCount)> GetListingsAsync(
         Guid profileId,
         int pageNumber,
         int pageSize,
-        int? minScore,
-        string? sortBy,
+        ListingQuery query,
         CancellationToken cancellationToken = default);
 
     /// <summary>

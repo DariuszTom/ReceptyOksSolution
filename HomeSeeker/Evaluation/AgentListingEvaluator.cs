@@ -63,11 +63,15 @@ public sealed class AgentListingEvaluator : IListingEvaluator
         Pola "pros" i "cons" ZAWSZE jako tablica (nawet pusta []), nigdy null.
 
         Cenę i lokalizację oceniaj OSOBNO, żeby tania peryferia nie wygrywała samą ceną:
-        - "priceAssessment" i ocena ceny: porównuj cenę za m² z medianą DZIELNICY ogłoszenia
-          (jeśli podano "Ceny rynkowe"), a nie z ogólną średnią miasta. Tanio względem miasta,
-          ale drożej niż typowo w tej dzielnicy, to NIE jest okazja.
+        - "priceAssessment" i ocena ceny: jeśli podano "Ceny transakcyjne" (RCN), to one są
+          GŁÓWNYM punktem odniesienia - to realne ceny sprzedaży w promieniu kilkuset metrów.
+          W przeciwnym razie porównuj cenę za m² z medianą DZIELNICY ogłoszenia ("Ceny rynkowe"),
+          a nie z ogólną średnią miasta. Tanio względem miasta, ale drożej niż typowo w tej
+          okolicy, to NIE jest okazja. Ceny ofertowe są zwykle kilka procent wyższe od transakcyjnych.
         - Lokalizacja to osobne kryterium: dojazd do centrum, komunikacja, infrastruktura,
           otoczenie. Odległa lokalizacja obniża ocenę, nawet przy niskiej cenie za m².
+          Jeśli podano "Odległość od centrum", uwzględnij ją: im dalej, tym niższa ocena
+          lokalizacji (chyba że kryteria kupującego wprost preferują spokojne obrzeża).
 
         Oceniaj pod kątem (po sprawdzeniu kryteriów kupującego):
         - Lokalizacja i okolica (dostępność centrum i komunikacji)
@@ -200,7 +204,7 @@ public sealed class AgentListingEvaluator : IListingEvaluator
         sb.AppendLine("--- KONIEC DANYCH OGŁOSZENIA ---");
 
         // Computed server-side from numeric scan data only, so it is trusted context.
-        if (benchmark is not null)
+        if (benchmark is { CitySampleSize: > 0 })
         {
             var type = listing.PropertyType.ToPolish();
             sb.AppendLine();
@@ -220,6 +224,27 @@ public sealed class AgentListingEvaluator : IListingEvaluator
                 var reference = benchmark.DistrictMedianPerSqm is not null ? "dzielnicy" : "miasta";
                 sb.AppendLine($"- Cena za m² względem mediany {reference}: {ratio.ToString("+0%;-0%;0%", ci)}");
             }
+        }
+
+        if (benchmark?.Rcn is { } rcn)
+        {
+            sb.AppendLine();
+            sb.AppendLine($"Ceny transakcyjne (akty notarialne RCN, promień {rcn.RadiusKm.ToString("0.#", ci)} km, ostatnie {rcn.PeriodMonths} mies.):");
+            sb.AppendLine($"- Szacowana wartość rynkowa: {rcn.EstimatedPricePerSqm.ToString("N0", ci)} zł/m²");
+            if (rcn.MedianPricePerSqm is { } rcnMedian)
+                sb.AppendLine($"- Mediana transakcji w okolicy: {rcnMedian.ToString("N0", ci)} zł/m² ({rcn.SampleSize} transakcji)");
+            if (listing.AreaSqm > 0)
+            {
+                var ratio = listing.Price / listing.AreaSqm / rcn.EstimatedPricePerSqm - 1m;
+                sb.AppendLine($"- Cena ofertowa za m² względem wyceny transakcyjnej: {ratio.ToString("+0%;-0%;0%", ci)}");
+            }
+        }
+
+        if (benchmark?.DistanceFromCenterKm is { } distance)
+        {
+            sb.AppendLine();
+            var approx = benchmark.DistanceIsApproximate ? "ok. " : string.Empty;
+            sb.AppendLine($"Odległość od centrum miasta (w linii prostej): {approx}{distance.ToString("0.0", ci)} km");
         }
 
         sb.AppendLine();
@@ -347,7 +372,7 @@ public sealed class AgentListingEvaluator : IListingEvaluator
                 var titleEncoded = System.Net.WebUtility.HtmlEncode(listing.Title ?? string.Empty);
                 var titleCell = (TryBuildSafeLink(listing.Url, titleEncoded)
                     ?? titleEncoded) // Fallback to plain text when the URL is unsafe.
-                    + $"<br><span style=\"color: #7f8c8d; font-size: 12px;\">{(listing.PropertyType == PropertyTypes.Apartment ? "🏢 Mieszkanie" : "🏠 Dom")}</span>";
+                    + $"<br><span style=\"color: #7f8c8d; font-size: 12px;\">{(listing.PropertyType == PropertyTypes.Apartment ? "🏢 Mieszkanie" : "🏠 Dom")}{FormatDistance(listing)}</span>";
                 var priceCell = listing.Price.ToString("N0", System.Globalization.CultureInfo.InvariantCulture);
                 var areaCell = listing.AreaSqm.ToString("N0", System.Globalization.CultureInfo.InvariantCulture);
                 var discountBadge = listing.PreviousPrice.HasValue && listing.PreviousPrice > listing.Price
@@ -371,13 +396,14 @@ public sealed class AgentListingEvaluator : IListingEvaluator
                             </tr>
                 """);
 
-                if (!string.IsNullOrWhiteSpace(listing.AiSummary))
+                var details = BuildDetailsCell(listing);
+                if (details.Length > 0)
                 {
                     sb.AppendLine($"""
                             <tr style="background-color: {bgColor};">
                                 <td></td>
-                                <td colspan="4" style="padding: 0 12px 12px 12px; color: #7f8c8d; font-size: 13px;">
-                                    {System.Net.WebUtility.HtmlEncode(listing.AiSummary)}
+                                <td colspan="4" style="padding: 0 12px 12px 12px; font-size: 13px;">
+                                    {details}
                                 </td>
                             </tr>
                     """);
@@ -400,6 +426,61 @@ public sealed class AgentListingEvaluator : IListingEvaluator
         """);
 
         return sb.ToString();
+    }
+
+    private static string FormatDistance(HouseListing listing)
+    {
+        if (listing.DistanceFromCenterKm is not { } km)
+            return string.Empty;
+
+        var prefix = listing.DistanceIsApproximate ? "ok. " : string.Empty;
+        return $" · 📍 {prefix}{km.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture).Replace('.', ',')} km do centrum";
+    }
+
+    /// <summary>
+    /// AI summary plus pros/cons lists; every piece of AI/scraped text is HTML-encoded.
+    /// </summary>
+    private static string BuildDetailsCell(HouseListing listing)
+    {
+        var sb = new StringBuilder();
+
+        if (!string.IsNullOrWhiteSpace(listing.AiSummary))
+            sb.Append($"<div style=\"color: #7f8c8d;\">{System.Net.WebUtility.HtmlEncode(listing.AiSummary)}</div>");
+
+        AppendPointList(sb, ParseStringList(listing.AiProsJson), "+", "#27ae60");
+        AppendPointList(sb, ParseStringList(listing.AiConsJson), "−", "#e74c3c");
+
+        return sb.ToString();
+    }
+
+    private static void AppendPointList(StringBuilder sb, IReadOnlyList<string> items, string marker, string color)
+    {
+        if (items.Count == 0)
+            return;
+
+        sb.Append("<ul style=\"list-style: none; padding: 0; margin: 6px 0 0 0;\">");
+        foreach (var item in items)
+        {
+            sb.Append($"<li style=\"color: {color}; margin: 2px 0;\">{marker} {System.Net.WebUtility.HtmlEncode(item)}</li>");
+        }
+        sb.Append("</ul>");
+    }
+
+    private static IReadOnlyList<string> ParseStringList(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+            return [];
+
+        try
+        {
+            return JsonSerializer.Deserialize<List<string>>(json)?
+                .Where(s => !string.IsNullOrWhiteSpace(s))
+                .ToList() ?? [];
+        }
+        catch (JsonException)
+        {
+            return [];
+        }
     }
 
     /// <summary>

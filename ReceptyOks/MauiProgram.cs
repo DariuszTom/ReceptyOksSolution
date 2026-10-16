@@ -1,6 +1,7 @@
 using CommunityToolkit.Maui;
 using Microsoft.Extensions.Configuration;
 using ReceptyOks.Configuration;
+using ReceptyOks.Handlers;
 using System.Reflection;
 using UraniumUI;
 
@@ -35,7 +36,8 @@ public static class MauiProgram
                 fonts.AddFont("MaterialSymbolsSharp.ttf", "MaterialSymbolsSharp");
                 fonts.AddFont("MaterialSymbolsSharpFilled.ttf", "MaterialSymbolsSharpFilled");
                 fonts.AddMaterialSymbolsFonts();
-            });
+            })
+            .ConfigureMauiHandlers(handlers => handlers.AddHandler<Button, SafeStatefulButtonHandler>());
 
         // Add Blazor WebView services
         builder.AddBlazorServices();

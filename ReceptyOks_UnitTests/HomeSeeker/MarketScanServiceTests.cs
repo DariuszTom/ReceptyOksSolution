@@ -484,7 +484,7 @@ public sealed class MarketScanServiceTests
 
         var scraper = Mock.Get(SucceedingScraper("Otodom", "a", "old"));
         scraper.Setup(s => s.GetDetailsAsync(_upsertResults["a"].Listing.Url, It.IsAny<CancellationToken>()))
-            .ReturnsAsync("Rok budowy: 2009");
+            .ReturnsAsync(new ListingDetails("Rok budowy: 2009"));
 
         var sut = CreateSut([scraper.Object]);
 
@@ -646,14 +646,188 @@ public sealed class MarketScanServiceTests
         Assert.That(result, Is.False);
     }
 
-    private MarketScanService CreateSut(IEnumerable<IListingScraper> scrapers, int maxCandidates = 8) =>
+    [Test]
+    public async Task RunScan_AddsDistanceAndRcnValuation_ForApartmentWithCoordinates()
+    {
+        AddUpsert("a", price: 600_000, area: 50, isNew: true, type: PropertyTypes.Apartment);
+        var listingPoint = new GeoPoint(51.1, 17.0);
+        var center = new GeoPoint(51.11, 17.03);
+        var rcn = new RcnValuation(14_000, 13_800, 30, 0.5, 24);
+
+        var scraper = Mock.Get(SucceedingScraper("Otodom", "a"));
+        scraper.Setup(s => s.GetDetailsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ListingDetails("Opis", listingPoint));
+        var centers = new Mock<ICityCenterProvider>();
+        centers.Setup(c => c.GetCenterAsync("Wrocław", It.IsAny<CancellationToken>())).ReturnsAsync(center);
+        var valuations = new Mock<IPropertyValuationProvider>();
+        valuations.Setup(v => v.GetApartmentValuationAsync(listingPoint, 50, It.IsAny<CancellationToken>())).ReturnsAsync(rcn);
+
+        await CreateSut([scraper.Object], centers: centers.Object, valuations: valuations.Object).RunScanAsync(ProfileId);
+
+        var expectedKm = Math.Round(listingPoint.DistanceKmTo(center), 1);
+        _evaluator.Verify(e => e.EvaluateAsync(It.IsAny<SearchProfile>(), It.IsAny<HouseListing>(), "Opis",
+            It.Is<PriceBenchmark?>(b => b != null && b.Rcn == rcn && b.DistanceFromCenterKm == expectedKm && !b.DistanceIsApproximate),
+            It.IsAny<CancellationToken>()), Times.Once);
+        _repository.Verify(r => r.SaveDistanceAsync(It.IsAny<Guid>(), expectedKm, false, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Test]
+    public async Task RunScan_WhenSavingDistanceFails_StillEvaluates()
+    {
+        AddUpsert("h", price: 900_000, area: 120, isNew: true);
+        var scraper = new Mock<IListingScraper>();
+        scraper.SetupGet(s => s.PortalName).Returns("Otodom");
+        scraper.Setup(s => s.SearchAsync(It.IsAny<SearchProfile>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ScrapeResult.Success(
+                [new ScrapedListing { Portal = "Otodom", ExternalId = "h", Url = "https://x/h", Title = "h", Price = 1, AreaSqm = 1, Details = "Opis", Coordinates = new GeoPoint(51.2, 17.1) }]));
+        var centers = new Mock<ICityCenterProvider>();
+        centers.Setup(c => c.GetCenterAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(new GeoPoint(51.11, 17.03));
+        _repository.Setup(r => r.SaveDistanceAsync(It.IsAny<Guid>(), It.IsAny<double>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("db locked"));
+
+        await CreateSut([scraper.Object], centers: centers.Object).RunScanAsync(ProfileId);
+
+        _evaluator.Verify(e => e.EvaluateAsync(It.IsAny<SearchProfile>(), It.IsAny<HouseListing>(), It.IsAny<string?>(),
+            It.IsAny<PriceBenchmark?>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Test]
+    public async Task RunScan_UsesSearchCoordinates_AndSkipsValuationForHouses()
+    {
+        AddUpsert("h", price: 900_000, area: 120, isNew: true);
+        var point = new GeoPoint(51.2, 17.1, IsApproximate: true);
+
+        var scraper = new Mock<IListingScraper>();
+        scraper.SetupGet(s => s.PortalName).Returns("OLX");
+        scraper.Setup(s => s.SearchAsync(It.IsAny<SearchProfile>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ScrapeResult.Success(
+                [new ScrapedListing { Portal = "Otodom", ExternalId = "h", Url = "https://x/h", Title = "h", Price = 1, AreaSqm = 1, Details = "Opis", Coordinates = point }]));
+        var centers = new Mock<ICityCenterProvider>();
+        centers.Setup(c => c.GetCenterAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(new GeoPoint(51.11, 17.03));
+        var valuations = new Mock<IPropertyValuationProvider>();
+
+        await CreateSut([scraper.Object], centers: centers.Object, valuations: valuations.Object).RunScanAsync(ProfileId);
+
+        _evaluator.Verify(e => e.EvaluateAsync(It.IsAny<SearchProfile>(), It.IsAny<HouseListing>(), "Opis",
+            It.Is<PriceBenchmark?>(b => b != null && b.DistanceFromCenterKm > 0 && b.DistanceIsApproximate && b.Rcn == null),
+            It.IsAny<CancellationToken>()), Times.Once);
+        valuations.Verify(v => v.GetApartmentValuationAsync(It.IsAny<GeoPoint>(), It.IsAny<decimal>(), It.IsAny<CancellationToken>()), Times.Never);
+        scraper.Verify(s => s.GetDetailsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Test]
+    public async Task RunScan_SavesDistance_ForNonCandidatesWithSearchCoordinates()
+    {
+        AddUpsert("c", price: 500_000, area: 50, isNew: true);
+        AddUpsert("n", price: 900_000, area: 50);
+        var center = new GeoPoint(51.11, 17.03);
+        var point = new GeoPoint(51.2, 17.1, IsApproximate: true);
+
+        var scraper = new Mock<IListingScraper>();
+        scraper.SetupGet(s => s.PortalName).Returns("OLX");
+        scraper.Setup(s => s.SearchAsync(It.IsAny<SearchProfile>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ScrapeResult.Success(
+            [
+                new ScrapedListing { Portal = "Otodom", ExternalId = "c", Url = "https://x/c", Title = "c", Price = 1, AreaSqm = 1, Details = "Opis" },
+                new ScrapedListing { Portal = "Otodom", ExternalId = "n", Url = "https://x/n", Title = "n", Price = 1, AreaSqm = 1, Coordinates = point }
+            ]));
+        var centers = new Mock<ICityCenterProvider>();
+        centers.Setup(c => c.GetCenterAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(center);
+
+        await CreateSut([scraper.Object], maxCandidates: 1, centers: centers.Object).RunScanAsync(ProfileId);
+
+        var expectedKm = Math.Round(point.DistanceKmTo(center), 1);
+        _repository.Verify(r => r.SaveDistanceAsync(It.IsAny<Guid>(), expectedKm, true, It.IsAny<CancellationToken>()), Times.Once);
+        _evaluator.Verify(e => e.EvaluateAsync(It.IsAny<SearchProfile>(), It.Is<HouseListing>(l => l.ExternalId == "c"),
+            It.IsAny<string?>(), It.IsAny<PriceBenchmark?>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Test]
+    public async Task RunScan_ApproximateSearchDistance_DoesNotOverwriteExactDistance()
+    {
+        AddUpsert("c", price: 500_000, area: 50, isNew: true);
+        AddUpsert("n", price: 900_000, area: 50);
+        _upsertResults["n"].Listing.DistanceFromCenterKm = 3.2;
+        _upsertResults["n"].Listing.DistanceIsApproximate = false;
+
+        var scraper = new Mock<IListingScraper>();
+        scraper.SetupGet(s => s.PortalName).Returns("OLX");
+        scraper.Setup(s => s.SearchAsync(It.IsAny<SearchProfile>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ScrapeResult.Success(
+            [
+                new ScrapedListing { Portal = "Otodom", ExternalId = "c", Url = "https://x/c", Title = "c", Price = 1, AreaSqm = 1, Details = "Opis" },
+                new ScrapedListing { Portal = "Otodom", ExternalId = "n", Url = "https://x/n", Title = "n", Price = 1, AreaSqm = 1, Coordinates = new GeoPoint(51.2, 17.1, IsApproximate: true) }
+            ]));
+        var centers = new Mock<ICityCenterProvider>();
+        centers.Setup(c => c.GetCenterAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(new GeoPoint(51.11, 17.03));
+
+        await CreateSut([scraper.Object], maxCandidates: 1, centers: centers.Object).RunScanAsync(ProfileId);
+
+        _repository.Verify(r => r.SaveDistanceAsync(_upsertResults["n"].Listing.Id, It.IsAny<double>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()), Times.Never);
+        Assert.That(_upsertResults["n"].Listing.DistanceFromCenterKm, Is.EqualTo(3.2));
+    }
+
+    [Test]
+    public async Task RunScan_BackfillsMissingDistance_FromAdPage_UpToLimit()
+    {
+        AddUpsert("c", price: 500_000, area: 50, isNew: true);
+        AddUpsert("n1", price: 900_000, area: 50);
+        AddUpsert("n2", price: 910_000, area: 50);
+        AddUpsert("n3", price: 920_000, area: 50);
+        AddUpsert("known", price: 930_000, area: 50);
+        _upsertResults["known"].Listing.DistanceFromCenterKm = 4.0;
+        var center = new GeoPoint(51.11, 17.03);
+        var point = new GeoPoint(51.2, 17.1);
+
+        var scraper = Mock.Get(SucceedingScraper("Otodom", "c", "n1", "n2", "n3", "known"));
+        scraper.Setup(s => s.GetDetailsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ListingDetails("Opis", point));
+        var centers = new Mock<ICityCenterProvider>();
+        centers.Setup(c => c.GetCenterAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(center);
+
+        await CreateSut([scraper.Object], maxCandidates: 1, centers: centers.Object, maxDistanceBackfill: 2).RunScanAsync(ProfileId);
+
+        var expectedKm = Math.Round(point.DistanceKmTo(center), 1);
+        // 1 candidate + 2 backfilled non-candidates; "known" already has a distance.
+        scraper.Verify(s => s.GetDetailsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Exactly(3));
+        _repository.Verify(r => r.SaveDistanceAsync(It.IsAny<Guid>(), expectedKm, false, It.IsAny<CancellationToken>()), Times.Exactly(3));
+        _repository.Verify(r => r.SaveDistanceAsync(_upsertResults["known"].Listing.Id, It.IsAny<double>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Test]
+    public async Task RunScan_DistanceBackfillDisabled_DoesNotFetchNonCandidates()
+    {
+        AddUpsert("c", price: 500_000, area: 50, isNew: true);
+        AddUpsert("n", price: 900_000, area: 50);
+
+        var scraper = Mock.Get(SucceedingScraper("Otodom", "c", "n"));
+        scraper.Setup(s => s.GetDetailsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ListingDetails("Opis", new GeoPoint(51.2, 17.1)));
+        var centers = new Mock<ICityCenterProvider>();
+        centers.Setup(c => c.GetCenterAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(new GeoPoint(51.11, 17.03));
+
+        await CreateSut([scraper.Object], maxCandidates: 1, centers: centers.Object, maxDistanceBackfill: 0).RunScanAsync(ProfileId);
+
+        scraper.Verify(s => s.GetDetailsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    private MarketScanService CreateSut(IEnumerable<IListingScraper> scrapers, int maxCandidates = 8,
+        ICityCenterProvider? centers = null, IPropertyValuationProvider? valuations = null, int maxDistanceBackfill = 5) =>
         new(
             scrapers,
             _repository.Object,
             _evaluator.Object,
             _sender.Object,
-            Options.Create(new HomeSeekerOptions { MaxCandidatesPerScan = maxCandidates, TopListingsInReport = 5, RequestDelay = TimeSpan.Zero }),
-            NullLogger<MarketScanService>.Instance);
+            Options.Create(new HomeSeekerOptions
+            {
+                MaxCandidatesPerScan = maxCandidates,
+                MaxDistanceBackfillPerScan = maxDistanceBackfill,
+                TopListingsInReport = 5,
+                RequestDelay = TimeSpan.Zero
+            }),
+            NullLogger<MarketScanService>.Instance,
+            centers,
+            valuations);
 
     private void AddUpsert(string externalId, decimal price, decimal area, bool isNew = false, bool priceDropped = false,
         PropertyTypes type = PropertyTypes.House, string? location = null)

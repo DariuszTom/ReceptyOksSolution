@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Logging.Abstractions;
+﻿using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using ReceptyOks.Models.HomeSeeker;
 using ReceptyOks.Services;
@@ -26,9 +26,9 @@ public sealed class HomeSeekerViewModelTests
     {
         var page2 = new TaskCompletionSource<HomeSeekerResult<HomeSeekerPagedResult<HomeSeekerListing>>>();
         var firstPageCalls = 0;
-        _service.Setup(s => s.GetListingsAsync(1, It.IsAny<int>(), It.IsAny<int?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+        _service.Setup(s => s.GetListingsAsync(1, It.IsAny<int>(), It.IsAny<HomeSeekerListingQuery>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(() => Page(1, totalPages: 3, firstPageCalls++ == 0 ? "old-1" : "new-1"));
-        _service.Setup(s => s.GetListingsAsync(2, It.IsAny<int>(), It.IsAny<int?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+        _service.Setup(s => s.GetListingsAsync(2, It.IsAny<int>(), It.IsAny<HomeSeekerListingQuery>(), It.IsAny<CancellationToken>()))
             .Returns(page2.Task);
 
         var vm = CreateViewModel();
@@ -42,7 +42,7 @@ public sealed class HomeSeekerViewModelTests
         Assert.That(vm.Listings.Select(l => l.Title), Is.EqualTo(new[] { "new-1" }));
 
         // Pagination state still points at the refreshed first page.
-        _service.Setup(s => s.GetListingsAsync(2, It.IsAny<int>(), It.IsAny<int?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+        _service.Setup(s => s.GetListingsAsync(2, It.IsAny<int>(), It.IsAny<HomeSeekerListingQuery>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Page(2, totalPages: 3, "new-2"));
         await vm.LoadMoreListingsCommand.ExecuteAsync(null);
         Assert.That(vm.Listings.Select(l => l.Title), Is.EqualTo(new[] { "new-1", "new-2" }));
@@ -52,9 +52,9 @@ public sealed class HomeSeekerViewModelTests
     public async Task OlderReload_CompletingAfterNewerReload_IsDiscarded()
     {
         var slow = new TaskCompletionSource<HomeSeekerResult<HomeSeekerPagedResult<HomeSeekerListing>>>();
-        _service.Setup(s => s.GetListingsAsync(1, It.IsAny<int>(), It.IsAny<int?>(), null, It.IsAny<CancellationToken>()))
+        _service.Setup(s => s.GetListingsAsync(1, It.IsAny<int>(), It.Is<HomeSeekerListingQuery>(q => q.Sort == null), It.IsAny<CancellationToken>()))
             .Returns(slow.Task);
-        _service.Setup(s => s.GetListingsAsync(1, It.IsAny<int>(), It.IsAny<int?>(), "price", It.IsAny<CancellationToken>()))
+        _service.Setup(s => s.GetListingsAsync(1, It.IsAny<int>(), It.Is<HomeSeekerListingQuery>(q => q.Sort == "price"), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Page(1, totalPages: 1, "by-price"));
 
         var vm = CreateViewModel();
@@ -73,11 +73,11 @@ public sealed class HomeSeekerViewModelTests
     {
         var initial = new TaskCompletionSource<HomeSeekerResult<HomeSeekerPagedResult<HomeSeekerListing>>>();
         var replay = new TaskCompletionSource<HomeSeekerResult<HomeSeekerPagedResult<HomeSeekerListing>>>();
-        _service.Setup(s => s.GetListingsAsync(1, It.IsAny<int>(), It.IsAny<int?>(), null, It.IsAny<CancellationToken>()))
+        _service.Setup(s => s.GetListingsAsync(1, It.IsAny<int>(), It.Is<HomeSeekerListingQuery>(q => q.Sort == null), It.IsAny<CancellationToken>()))
             .Returns(initial.Task);
-        _service.Setup(s => s.GetListingsAsync(1, It.IsAny<int>(), It.IsAny<int?>(), "price", It.IsAny<CancellationToken>()))
+        _service.Setup(s => s.GetListingsAsync(1, It.IsAny<int>(), It.Is<HomeSeekerListingQuery>(q => q.Sort == "price"), It.IsAny<CancellationToken>()))
             .Returns(replay.Task);
-        _service.Setup(s => s.GetListingsAsync(1, It.IsAny<int>(), It.IsAny<int?>(), "firstseen", It.IsAny<CancellationToken>()))
+        _service.Setup(s => s.GetListingsAsync(1, It.IsAny<int>(), It.Is<HomeSeekerListingQuery>(q => q.Sort == "firstseen"), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Page(1, totalPages: 1, "newest"));
 
         var vm = CreateViewModel();
@@ -92,15 +92,52 @@ public sealed class HomeSeekerViewModelTests
     }
 
     [Test]
+    public async Task FilterOptions_AreMappedToQuery_AndCounted()
+    {
+        HomeSeekerListingQuery? lastQuery = null;
+        _service.Setup(s => s.GetListingsAsync(1, It.IsAny<int>(), It.IsAny<HomeSeekerListingQuery>(), It.IsAny<CancellationToken>()))
+            .Callback<int, int, HomeSeekerListingQuery, CancellationToken>((_, _, q, _) => lastQuery = q)
+            .ReturnsAsync(Page(1, totalPages: 1, "x"));
+
+        var vm = CreateViewModel();
+        await vm.LoadCommand.ExecuteAsync(null);
+        Assert.That(vm.FiltersHeaderText, Is.EqualTo("Filtry"));
+
+        vm.SelectedSortOption = "Najbliżej centrum";
+        vm.SelectedPropertyTypeOption = "Mieszkania";
+        vm.SelectedPortalOption = "OLX";
+        vm.SelectedMaxDistanceOption = "≤ 5 km od centrum";
+        vm.PriceDropOnly = true;
+        await vm.LoadListingsCommand.ExecuteAsync(null);
+
+        Assert.That(lastQuery, Is.EqualTo(new HomeSeekerListingQuery
+        {
+            Sort = "distance",
+            PropertyType = HomeSeekerPropertyTypes.Apartment,
+            Portal = "OLX",
+            MaxDistanceKm = 5,
+            PriceDropOnly = true
+        }));
+        Assert.That(vm.ActiveFiltersCount, Is.EqualTo(4));
+        Assert.That(vm.FiltersHeaderText, Is.EqualTo("Filtry (4)"));
+
+        vm.ClearFiltersCommand.Execute(null);
+        await vm.LoadListingsCommand.ExecuteAsync(null);
+
+        Assert.That(lastQuery, Is.EqualTo(new HomeSeekerListingQuery { Sort = "distance" }));
+        Assert.That(vm.ActiveFiltersCount, Is.Zero);
+    }
+
+    [Test]
     public async Task SupersededReload_CancellationIsSwallowed()
     {
-        _service.Setup(s => s.GetListingsAsync(1, It.IsAny<int>(), It.IsAny<int?>(), null, It.IsAny<CancellationToken>()))
-            .Returns<int, int, int?, string?, CancellationToken>(async (_, _, _, _, ct) =>
+        _service.Setup(s => s.GetListingsAsync(1, It.IsAny<int>(), It.Is<HomeSeekerListingQuery>(q => q.Sort == null), It.IsAny<CancellationToken>()))
+            .Returns<int, int, HomeSeekerListingQuery, CancellationToken>(async (_, _, _, ct) =>
             {
                 await Task.Delay(Timeout.Infinite, ct);
                 return Page(1, 1, "never");
             });
-        _service.Setup(s => s.GetListingsAsync(1, It.IsAny<int>(), It.IsAny<int?>(), "price", It.IsAny<CancellationToken>()))
+        _service.Setup(s => s.GetListingsAsync(1, It.IsAny<int>(), It.Is<HomeSeekerListingQuery>(q => q.Sort == "price"), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Page(1, totalPages: 1, "by-price"));
 
         var vm = CreateViewModel();
@@ -114,9 +151,9 @@ public sealed class HomeSeekerViewModelTests
     [Test]
     public async Task FailedReload_DisablesLoadMoreForOldResults()
     {
-        _service.Setup(s => s.GetListingsAsync(1, It.IsAny<int>(), It.IsAny<int?>(), null, It.IsAny<CancellationToken>()))
+        _service.Setup(s => s.GetListingsAsync(1, It.IsAny<int>(), It.Is<HomeSeekerListingQuery>(q => q.Sort == null), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Page(1, totalPages: 3, "old-1"));
-        _service.Setup(s => s.GetListingsAsync(1, It.IsAny<int>(), It.IsAny<int?>(), "price", It.IsAny<CancellationToken>()))
+        _service.Setup(s => s.GetListingsAsync(1, It.IsAny<int>(), It.Is<HomeSeekerListingQuery>(q => q.Sort == "price"), It.IsAny<CancellationToken>()))
             .ReturnsAsync(HomeSeekerResult<HomeSeekerPagedResult<HomeSeekerListing>>.Fail(HomeSeekerCallStatus.Error, "boom"));
 
         var vm = CreateViewModel();
@@ -125,16 +162,16 @@ public sealed class HomeSeekerViewModelTests
         await vm.LoadListingsCommand.ExecuteAsync(null);
         await vm.LoadMoreListingsCommand.ExecuteAsync(null);
 
-        _service.Verify(s => s.GetListingsAsync(2, It.IsAny<int>(), It.IsAny<int?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Never);
+        _service.Verify(s => s.GetListingsAsync(2, It.IsAny<int>(), It.IsAny<HomeSeekerListingQuery>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Test]
     public async Task FilterChangeDuringInitialLoad_ReloadsWithLatestFilter()
     {
         var slow = new TaskCompletionSource<HomeSeekerResult<HomeSeekerPagedResult<HomeSeekerListing>>>();
-        _service.Setup(s => s.GetListingsAsync(1, It.IsAny<int>(), It.IsAny<int?>(), null, It.IsAny<CancellationToken>()))
+        _service.Setup(s => s.GetListingsAsync(1, It.IsAny<int>(), It.Is<HomeSeekerListingQuery>(q => q.Sort == null), It.IsAny<CancellationToken>()))
             .Returns(slow.Task);
-        _service.Setup(s => s.GetListingsAsync(1, It.IsAny<int>(), It.IsAny<int?>(), "price", It.IsAny<CancellationToken>()))
+        _service.Setup(s => s.GetListingsAsync(1, It.IsAny<int>(), It.Is<HomeSeekerListingQuery>(q => q.Sort == "price"), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Page(1, totalPages: 1, "by-price"));
 
         var vm = CreateViewModel();
@@ -152,7 +189,7 @@ public sealed class HomeSeekerViewModelTests
     {
         var slow = new TaskCompletionSource<HomeSeekerResult<HomeSeekerPagedResult<HomeSeekerListing>>>();
         var calls = 0;
-        _service.Setup(s => s.GetListingsAsync(1, It.IsAny<int>(), It.IsAny<int?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+        _service.Setup(s => s.GetListingsAsync(1, It.IsAny<int>(), It.IsAny<HomeSeekerListingQuery>(), It.IsAny<CancellationToken>()))
             .Returns(() => calls++ == 0 ? slow.Task : Task.FromResult(Page(1, totalPages: 1, "refreshed")));
 
         var vm = CreateViewModel();

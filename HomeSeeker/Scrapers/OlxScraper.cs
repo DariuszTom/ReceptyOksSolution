@@ -8,6 +8,7 @@ using HomeSeeker.Configuration;
 using HomeSeeker.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using static HomeSeeker.Scrapers.ScraperHelper;
 
 namespace HomeSeeker.Scrapers;
 
@@ -144,7 +145,7 @@ public sealed partial class OlxScraper : IListingScraper
 
     private static string BuildSearchUrl(SearchProfile profile, PropertyTypes type, int page)
     {
-        var city = NormalizeCity(profile.City);
+        var city = ScraperHelper.NormalizeCity(profile.City);
         var category = type == PropertyTypes.Apartment ? "mieszkania" : "domy";
         var url = $"https://www.olx.pl/nieruchomosci/{category}/sprzedaz/{city}/?page={page}";
 
@@ -160,27 +161,12 @@ public sealed partial class OlxScraper : IListingScraper
         // OLX has a room filter only for apartments; its last option "four" means "4 i więcej".
         if (type == PropertyTypes.Apartment && profile.MinRooms is > 1 and var minRooms)
         {
-            var codes = OlxRoomCodes.Skip(Math.Min(minRooms, OlxRoomCodes.Length) - 1).ToList();
+            var codes = RoomCodesFrom(OlxRoomCodes, minRooms).ToList();
             for (var i = 0; i < codes.Count; i++)
                 url += $"&search[filter_enum_rooms][{i}]={codes[i]}";
         }
 
         return url;
-    }
-
-    private static string NormalizeCity(string city)
-    {
-        return city.ToLowerInvariant()
-            .Replace("ą", "a")
-            .Replace("ć", "c")
-            .Replace("ę", "e")
-            .Replace("ł", "l")
-            .Replace("ń", "n")
-            .Replace("ó", "o")
-            .Replace("ś", "s")
-            .Replace("ź", "z")
-            .Replace("ż", "z")
-            .Replace(" ", "-");
     }
 
     /// <summary>
@@ -352,7 +338,8 @@ public sealed partial class OlxScraper : IListingScraper
                 AreaSqm = area,
                 Location = location,
                 Details = BuildDetails(item),
-                Rooms = ParseRooms(item)
+                Rooms = ParseRooms(item),
+                Coordinates = ParseMap(item)
             };
         }
         catch
@@ -468,7 +455,7 @@ public sealed partial class OlxScraper : IListingScraper
         }
     }
 
-    public async Task<string?> GetDetailsAsync(string url, CancellationToken cancellationToken = default)
+    public async Task<ListingDetails?> GetDetailsAsync(string url, CancellationToken cancellationToken = default)
     {
         if (!IsOlxUrl(url))
             return null;
@@ -476,7 +463,9 @@ public sealed partial class OlxScraper : IListingScraper
         try
         {
             var html = await _httpClient.GetStringAsync(url, cancellationToken).ConfigureAwait(false);
-            return ParseDetails(html);
+            var text = ParseDetails(html);
+            var coordinates = ParseCoordinates(html);
+            return text is null && coordinates is null ? null : new ListingDetails(text, coordinates);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -523,6 +512,50 @@ public sealed partial class OlxScraper : IListingScraper
         }
     }
 
+    /// <summary>
+    /// Reads coordinates from an OLX ad page (__PRERENDERED_STATE__ → ad.ad.map).
+    /// </summary>
+    internal static GeoPoint? ParseCoordinates(string html)
+    {
+        try
+        {
+            var match = PrerenderedStateRegex().Match(html);
+            if (!match.Success)
+                return null;
+
+            using var doc = JsonDocument.Parse(Regex.Unescape(match.Groups[1].Value));
+            return doc.RootElement.TryGetProperty("ad", out var adWrapper) &&
+                   adWrapper.ValueKind == JsonValueKind.Object &&
+                   adWrapper.TryGetProperty("ad", out var ad) &&
+                   ad.ValueKind == JsonValueKind.Object
+                ? ParseMap(ad)
+                : null;
+        }
+        catch (Exception ex) when (ex is JsonException or ArgumentException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Reads "map": { "lat", "lon", "radius" }. A positive radius means OLX shows only an
+    /// approximate area, not the exact address.
+    /// </summary>
+    internal static GeoPoint? ParseMap(JsonElement item)
+    {
+        if (!item.TryGetProperty("map", out var map) || map.ValueKind != JsonValueKind.Object ||
+            !map.TryGetProperty("lat", out var lat) || lat.ValueKind != JsonValueKind.Number ||
+            !map.TryGetProperty("lon", out var lon) || lon.ValueKind != JsonValueKind.Number)
+        {
+            return null;
+        }
+
+        var approximate = map.TryGetProperty("radius", out var radius) &&
+                          radius.ValueKind == JsonValueKind.Number && radius.GetDouble() > 0;
+        var point = new GeoPoint(lat.GetDouble(), lon.GetDouble(), approximate);
+        return point.IsValid ? point : null;
+    }
+
     private static readonly string[] OlxRoomCodes = ["one", "two", "three", "four"];
 
     /// <summary>
@@ -557,9 +590,8 @@ public sealed partial class OlxScraper : IListingScraper
             if (text is not null && text.Contains("więcej", StringComparison.OrdinalIgnoreCase))
                 return null;
 
-            var index = Array.FindIndex(OlxRoomCodes, c => c.Equals(code, StringComparison.OrdinalIgnoreCase));
-            if (index >= 0)
-                return index == OlxRoomCodes.Length - 1 ? null : index + 1;
+            if (Array.Exists(OlxRoomCodes, c => c.Equals(code, StringComparison.OrdinalIgnoreCase)))
+                return RoomCountFromCode(OlxRoomCodes, code);
 
             var digits = RoomsDigitsRegex().Match(text ?? code ?? string.Empty);
             return digits.Success && int.TryParse(digits.Value, out var rooms) && rooms > 0 ? rooms : null;
@@ -587,16 +619,6 @@ public sealed partial class OlxScraper : IListingScraper
 
         return ListingDetailsText.Build(parameters, GetString(ad, "description"));
     }
-
-    private static string? GetString(JsonElement element, string propertyName) =>
-        element.TryGetProperty(propertyName, out var prop) && prop.ValueKind == JsonValueKind.String
-            ? prop.GetString()
-            : null;
-
-    private static string? GetNestedName(JsonElement element, string propertyName) =>
-        element.TryGetProperty(propertyName, out var prop) && prop.ValueKind == JsonValueKind.Object
-            ? GetString(prop, "name")
-            : null;
 
     private static decimal ParseDecimalInvariant(string value)
     {

@@ -240,6 +240,32 @@ public sealed class AgentListingEvaluatorTests
     }
 
     [Test]
+    public async Task EvaluateAsync_WithRcnAndDistance_IncludesTransactionPricesAndDistance()
+    {
+        SetupResponse(new ListingEvaluation { Score = 60 });
+
+        // Listing: 5 000 zł/m², RCN estimate 4 000 -> +25%.
+        var benchmark = new PriceBenchmark(null, 0, 0, 0)
+        {
+            DistanceFromCenterKm = 7.3,
+            DistanceIsApproximate = true,
+            Rcn = new RcnValuation(4_000m, 4_100m, 34, 0.5, 24)
+        };
+
+        await CreateSut().EvaluateAsync(Profile(), Listing(), null, benchmark);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(_capturedPrompt, Does.Not.Contain("Ceny rynkowe"), "empty scan medians are skipped");
+            Assert.That(_capturedPrompt, Does.Contain("promień 0.5 km, ostatnie 24 mies."));
+            Assert.That(_capturedPrompt, Does.Contain("Szacowana wartość rynkowa: 4,000 zł/m²"));
+            Assert.That(_capturedPrompt, Does.Contain("Mediana transakcji w okolicy: 4,100 zł/m² (34 transakcji)"));
+            Assert.That(_capturedPrompt, Does.Contain("względem wyceny transakcyjnej: +25%"));
+            Assert.That(_capturedPrompt, Does.Contain("Odległość od centrum miasta (w linii prostej): ok. 7.3 km"));
+        });
+    }
+
+    [Test]
     public async Task WriteReportHtmlAsync_DoesNotCallAgent()
     {
         await CreateSut().WriteReportHtmlAsync(Profile(), [Listing()], CreateScanRun());
@@ -291,6 +317,39 @@ public sealed class AgentListingEvaluatorTests
         Assert.That(html, Does.Contain("<a "));
         Assert.That(html, Does.Contain("https://www.otodom.pl/pl/oferta/dom-1"));
         Assert.That(html, Does.Contain("Obniżka"));
+    }
+
+    [Test]
+    public async Task WriteReportHtmlAsync_RendersEncodedProsConsAndDistance()
+    {
+        var listing = Listing();
+        listing.AiProsJson = """["Duży taras","<b>cisza</b>"]""";
+        listing.AiConsJson = """["Do remontu"]""";
+        listing.DistanceFromCenterKm = 3.24;
+        listing.DistanceIsApproximate = true;
+
+        var html = await CreateSut().WriteReportHtmlAsync(Profile(), [listing], CreateScanRun());
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(html, Does.Contain("+ Duży taras"));
+            Assert.That(html, Does.Contain("+ &lt;b&gt;cisza&lt;/b&gt;"));
+            Assert.That(html, Does.Not.Contain("<b>cisza</b>"));
+            Assert.That(html, Does.Contain("− Do remontu"));
+            Assert.That(html, Does.Contain("ok. 3,2 km do centrum"));
+        });
+    }
+
+    [Test]
+    public async Task WriteReportHtmlAsync_WithMalformedProsJson_SkipsList()
+    {
+        var listing = Listing();
+        listing.AiProsJson = "not json";
+
+        var html = await CreateSut().WriteReportHtmlAsync(Profile(), [listing], CreateScanRun());
+
+        Assert.That(html, Does.Not.Contain("<ul"));
+        Assert.That(html, Does.Not.Contain("km do centrum"));
     }
 
     [Test]

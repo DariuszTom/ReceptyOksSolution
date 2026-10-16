@@ -49,6 +49,20 @@ public sealed class HomeSeekerProfileRequest
     public bool IsActive { get; set; } = true;
 }
 
+/// <summary>Filters and sort for <c>GET /api/homeseeker/listings</c>; null members are not sent.</summary>
+public sealed record HomeSeekerListingQuery
+{
+    public int? MinScore { get; init; }
+
+    /// <summary>score (default), price, price_desc, pricesqm, area_desc, distance, firstseen.</summary>
+    public string? Sort { get; init; }
+
+    public HomeSeekerPropertyTypes? PropertyType { get; init; }
+    public string? Portal { get; init; }
+    public double? MaxDistanceKm { get; init; }
+    public bool PriceDropOnly { get; init; }
+}
+
 public sealed class HomeSeekerListing
 {
     public Guid Id { get; set; }
@@ -68,6 +82,12 @@ public sealed class HomeSeekerListing
     public string? AiConsJson { get; set; }
     public string? AiPriceAssessment { get; set; }
     public DateTime? EvaluatedAt { get; set; }
+    public double? DistanceFromCenterKm { get; set; }
+    public bool DistanceIsApproximate { get; set; }
+
+    public string? DistanceText => DistanceFromCenterKm is { } km
+        ? $"{(DistanceIsApproximate ? "ok. " : string.Empty)}{km.ToString("0.0", System.Globalization.CultureInfo.CurrentCulture)} km do centrum"
+        : null;
 
     public DateTime FirstSeenAtLocal => HomeSeekerTime.ToLocal(FirstSeenAt);
 

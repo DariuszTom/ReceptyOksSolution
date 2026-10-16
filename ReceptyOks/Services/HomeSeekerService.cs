@@ -34,19 +34,29 @@ public class HomeSeekerService(HttpClient httpClient, IAccessTokenRefresher toke
     }
 
     public async Task<HomeSeekerResult<HomeSeekerPagedResult<HomeSeekerListing>>> GetListingsAsync(
-        int pageNumber = 1, int pageSize = 20, int? minScore = null, string? sort = null, CancellationToken cancellationToken = default)
+        int pageNumber, int pageSize, HomeSeekerListingQuery query, CancellationToken cancellationToken = default)
     {
-        var query = new List<string>
+        ArgumentNullException.ThrowIfNull(query);
+
+        var parameters = new List<string>
         {
             $"pageNumber={pageNumber.ToString(CultureInfo.InvariantCulture)}",
             $"pageSize={pageSize.ToString(CultureInfo.InvariantCulture)}"
         };
-        if (minScore is { } score)
-            query.Add($"minScore={score.ToString(CultureInfo.InvariantCulture)}");
-        if (!string.IsNullOrWhiteSpace(sort))
-            query.Add($"sort={Uri.EscapeDataString(sort)}");
+        if (query.MinScore is { } score)
+            parameters.Add($"minScore={score.ToString(CultureInfo.InvariantCulture)}");
+        if (!string.IsNullOrWhiteSpace(query.Sort))
+            parameters.Add($"sort={Uri.EscapeDataString(query.Sort)}");
+        if (query.PropertyType is { } propertyType)
+            parameters.Add($"propertyType={((int)propertyType).ToString(CultureInfo.InvariantCulture)}");
+        if (!string.IsNullOrWhiteSpace(query.Portal))
+            parameters.Add($"portal={Uri.EscapeDataString(query.Portal)}");
+        if (query.MaxDistanceKm is { } maxDistance)
+            parameters.Add($"maxDistanceKm={maxDistance.ToString(CultureInfo.InvariantCulture)}");
+        if (query.PriceDropOnly)
+            parameters.Add("priceDropOnly=true");
 
-        var url = $"{BasePath}/listings?{string.Join('&', query)}";
+        var url = $"{BasePath}/listings?{string.Join('&', parameters)}";
 
         return await ExecuteAsync(
             ct => httpClient.GetAsync(url, ct),

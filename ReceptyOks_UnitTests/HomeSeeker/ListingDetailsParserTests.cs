@@ -1,3 +1,4 @@
+using HomeSeeker.Models;
 using HomeSeeker.Scrapers;
 
 namespace ReceptyOks_UnitTests.HomeSeeker;
@@ -81,6 +82,53 @@ public sealed class ListingDetailsParserTests
         var listing = OlxScraper.ParsePrerenderedState(html).Single();
 
         Assert.That(listing.Details, Does.Contain("Opis z listy").And.Contain("- Powierzchnia: 50 m²"));
+    }
+
+    [Test]
+    public void Otodom_ParseCoordinates_ReadsAdLocation()
+    {
+        const string html = """
+            <script id="__NEXT_DATA__" type="application/json">{"props":{"pageProps":{"ad":{"location":{"coordinates":{"latitude":50.035954,"longitude":19.936972},"mapDetails":{"radius":0}}}}}}</script>
+            """;
+
+        var point = OtodomScraper.ParseCoordinates(html);
+
+        Assert.That(point, Is.EqualTo(new GeoPoint(50.035954, 19.936972)));
+    }
+
+    [Test]
+    public void Otodom_ParseCoordinates_WithoutCoordinates_ReturnsNull()
+    {
+        Assert.That(OtodomScraper.ParseCoordinates(OtodomAdPage), Is.Null);
+    }
+
+    [Test]
+    public void Olx_ParsePrerenderedState_ReadsApproximateMapCoordinates()
+    {
+        const string html = """
+            <script>window.__PRERENDERED_STATE__= "{\"listing\":{\"listing\":{\"ads\":[{\"id\":1,\"url\":\"https://www.olx.pl/d/oferta/x-ID1.html\",\"title\":\"X\",\"price\":{\"regularPrice\":{\"value\":500000}},\"map\":{\"lat\":50.094364,\"lon\":19.925657,\"radius\":1},\"params\":[{\"key\":\"m\",\"normalizedValue\":\"50\"}]}]}}}";</script>
+            """;
+
+        var listing = OlxScraper.ParsePrerenderedState(html).Single();
+
+        Assert.That(listing.Coordinates, Is.EqualTo(new GeoPoint(50.094364, 19.925657, IsApproximate: true)));
+    }
+
+    [Test]
+    public void GeoPoint_DistanceKmTo_MatchesKnownDistance()
+    {
+        // 0.1° of longitude (≈ 7.1 km at 50°N) plus 0.01° of latitude (≈ 1.1 km).
+        var distance = new GeoPoint(50.0617, 19.9373).DistanceKmTo(new GeoPoint(50.0717, 20.0373));
+
+        Assert.That(distance, Is.EqualTo(7.2).Within(0.3));
+    }
+
+    [Test]
+    public void GeoPoint_DistanceKmTo_SamePoint_IsZero()
+    {
+        var point = new GeoPoint(50.0617, 19.9373);
+
+        Assert.That(point.DistanceKmTo(point), Is.EqualTo(0).Within(1e-9));
     }
 
     [TestCase("<html>no data</html>")]
