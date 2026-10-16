@@ -56,6 +56,7 @@ public class HomeSeekerDbContext(DbContextOptions<HomeSeekerDbContext> options) 
             entity.Property(l => l.Url).IsRequired().HasMaxLength(1000);
             entity.Property(l => l.Title).IsRequired().HasMaxLength(500);
             entity.Property(l => l.Location).HasMaxLength(300);
+            entity.Property(l => l.DevelopmentKey).HasMaxLength(100);
 
             // Decimal precision
             entity.Property(l => l.Price).HasPrecision(18, 2);

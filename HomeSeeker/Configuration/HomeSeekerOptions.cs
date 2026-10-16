@@ -63,6 +63,13 @@ public sealed class HomeSeekerOptions : IValidatableObject
     public int TopListingsInReport { get; set; } = 5;
 
     /// <summary>
+    /// Maximum listings from one development (or copies of the same offer across portals)
+    /// that are evaluated by AI and shown in the report. The rest stay in the database.
+    /// </summary>
+    [Range(1, 50)]
+    public int MaxListingsPerDevelopment { get; set; } = 2;
+
+    /// <summary>
     /// AI model to use for evaluation. Defaults to a cheaper model for cost
     /// control; override via configuration when more capability is needed.
     /// </summary>

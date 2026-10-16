@@ -292,7 +292,8 @@ public sealed partial class OtodomScraper : IListingScraper
                 Price = price,
                 AreaSqm = area,
                 Location = location,
-                Rooms = ParseRooms(item)
+                Rooms = ParseRooms(item),
+                DevelopmentKey = ParseDevelopmentKey(item)
             };
         }
         catch
@@ -304,6 +305,14 @@ public sealed partial class OtodomScraper : IListingScraper
     // Otodom's roomsNumber enum; "MORE" means more than ten.
     private static readonly string[] RoomCodes =
         ["ONE", "TWO", "THREE", "FOUR", "FIVE", "SIX", "SEVEN", "EIGHT", "NINE", "TEN", "MORE"];
+
+    // Units of a developer's investment share "developmentId"; 0 means a standalone offer.
+    internal static string? ParseDevelopmentKey(JsonElement item) =>
+        item.TryGetProperty("developmentId", out var id) &&
+        id.ValueKind == JsonValueKind.Number &&
+        id.TryGetInt64(out var value) && value > 0
+            ? $"otodom:{value}"
+            : null;
 
     private static int? ParseRooms(JsonElement item)
     {

@@ -13,6 +13,8 @@ namespace HomeSeeker.Services;
 /// </summary>
 public sealed class MarketScanService : IMarketScanService
 {
+    private const int ReportOverFetchFactor = 5;
+
     private readonly IEnumerable<IListingScraper> _scrapers;
     private readonly IListingRepository _repository;
     private readonly IListingEvaluator _evaluator;
@@ -83,7 +85,8 @@ public sealed class MarketScanService : IMarketScanService
             // relative to the local (district) median, limited by config.
             var priceStats = new MarketPriceStats(
                 await GetMarketSampleAsync(profileId, upsertResults, cancellationToken).ConfigureAwait(false));
-            var candidates = ListingSelection.SelectCandidates(upsertResults, _options.MaxCandidatesPerScan, priceStats);
+            var candidates = ListingSelection.SelectCandidates(
+                upsertResults, _options.MaxCandidatesPerScan, priceStats, _options.MaxListingsPerDevelopment);
             _logger.LogInformation("Selected {Count} candidates for AI evaluation", candidates.Count);
 
             var cityCenter = upsertResults.Count > 0
@@ -338,8 +341,13 @@ public sealed class MarketScanService : IMarketScanService
     private async Task<string> WriteReportAsync(
         SearchProfile profile, ScanRun scanRun, ScanStats stats, CancellationToken cancellationToken)
     {
-        var topListings = await _repository.GetTopListingsAsync(
-            profile.Id, _options.TopListingsInReport, cancellationToken).ConfigureAwait(false);
+        // Over-fetch so that, after limiting units of one development / cross-portal copies,
+        // the report can still be filled with distinct offers.
+        var ranked = await _repository.GetTopListingsAsync(
+            profile.Id, _options.TopListingsInReport * ReportOverFetchFactor, cancellationToken).ConfigureAwait(false);
+        var topListings = ListingGroups.CapPerGroup(ranked, _options.MaxListingsPerDevelopment)
+            .Take(_options.TopListingsInReport)
+            .ToList();
 
         // The report shows this run's counts.
         scanRun.ListingsFoundCount = stats.Found;

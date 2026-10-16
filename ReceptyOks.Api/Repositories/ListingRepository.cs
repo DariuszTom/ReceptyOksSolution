@@ -256,6 +256,7 @@ public sealed class ListingRepository : IListingRepository
             existing.Url = scraped.Url;
             existing.Location = scraped.Location;
             existing.PropertyType = scraped.PropertyType;
+            existing.DevelopmentKey = scraped.DevelopmentKey ?? existing.DevelopmentKey;
             existing.LastSeenAt = now;
             existing.UpdatedAt = now;
             // Seen again within the criteria: restore a listing hidden as stale or out of range.
@@ -284,6 +285,7 @@ public sealed class ListingRepository : IListingRepository
             AreaSqm = scraped.AreaSqm,
             Location = scraped.Location,
             PropertyType = scraped.PropertyType,
+            DevelopmentKey = scraped.DevelopmentKey,
             FirstSeenAt = now,
             LastSeenAt = now,
             CreatedAt = now,
@@ -379,7 +381,8 @@ public sealed class ListingRepository : IListingRepository
                 PropertyType = l.PropertyType,
                 Price = l.Price,
                 AreaSqm = l.AreaSqm,
-                Location = l.Location
+                Location = l.Location,
+                DevelopmentKey = l.DevelopmentKey
             })
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
