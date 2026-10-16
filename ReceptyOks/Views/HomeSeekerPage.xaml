@@ -182,7 +182,7 @@
                             </Grid>
 
                             <Border Style="{StaticResource HsCard}" IsVisible="{Binding AreFiltersExpanded}">
-                                <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="6">
+                                <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="6">
                                     <material:PickerField Grid.Row="0" Grid.Column="0" Title="Ocena AI"
                                                           ItemsSource="{Binding MinScoreOptions}"
                                                           SelectedItem="{Binding SelectedMinScoreOption}"
@@ -203,11 +203,15 @@
                                                           SelectedItem="{Binding SelectedMaxDistanceOption}"
                                                           AllowClear="False"
                                                           AccentColor="{StaticResource Primary}"/>
-                                    <HorizontalStackLayout Grid.Row="2" Grid.Column="0" Spacing="8" VerticalOptions="Center">
+                                    <HorizontalStackLayout Grid.Row="2" Grid.Column="0" Spacing="4" VerticalOptions="Center">
+                                        <CheckBox IsChecked="{Binding EvaluatedOnly}" Color="{StaticResource Primary}" VerticalOptions="Center"/>
+                                        <Label Text="Tylko ocenione" Style="{StaticResource HsText}" VerticalOptions="Center"/>
+                                    </HorizontalStackLayout>
+                                    <HorizontalStackLayout Grid.Row="2" Grid.Column="1" Spacing="8" VerticalOptions="Center">
                                         <Switch IsToggled="{Binding PriceDropOnly}" OnColor="{StaticResource Primary}" VerticalOptions="Center"/>
                                         <Label Text="Tylko z obniżką" Style="{StaticResource HsText}" VerticalOptions="Center"/>
                                     </HorizontalStackLayout>
-                                    <Button Grid.Row="2" Grid.Column="1" Text="Wyczyść filtry" FontSize="12" Padding="12,4"
+                                    <Button Grid.Row="3" Grid.Column="1" Text="Wyczyść filtry" FontSize="12" Padding="12,4"
                                             CornerRadius="16" HeightRequest="34" HorizontalOptions="End" VerticalOptions="Center"
                                             BackgroundColor="Transparent"
                                             TextColor="{StaticResource Primary}"

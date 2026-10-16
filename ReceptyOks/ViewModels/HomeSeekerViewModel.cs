@@ -108,6 +108,10 @@ public partial class HomeSeekerViewModel(IHomeSeekerService service, ILogger<Hom
     [NotifyPropertyChangedFor(nameof(ActiveFiltersCount), nameof(FiltersHeaderText))]
     private bool priceDropOnly;
 
+    /// <summary>Unevaluated listings are hidden by default; turning this off is not counted as an active filter.</summary>
+    [ObservableProperty]
+    private bool evaluatedOnly = true;
+
     [ObservableProperty]
     private bool areFiltersExpanded;
 
@@ -157,6 +161,8 @@ public partial class HomeSeekerViewModel(IHomeSeekerService service, ILogger<Hom
 
     partial void OnPriceDropOnlyChanged(bool value) => ReloadListingsForFilterChange();
 
+    partial void OnEvaluatedOnlyChanged(bool value) => ReloadListingsForFilterChange();
+
     [RelayCommand]
     private void ToggleFilters() => AreFiltersExpanded = !AreFiltersExpanded;
 
@@ -169,6 +175,7 @@ public partial class HomeSeekerViewModel(IHomeSeekerService service, ILogger<Hom
         SelectedPortalOption = PortalOptions[0];
         SelectedMaxDistanceOption = MaxDistanceOptions[0];
         PriceDropOnly = false;
+        EvaluatedOnly = true;
     }
 
     private void ReloadListingsForFilterChange()
@@ -413,7 +420,8 @@ public partial class HomeSeekerViewModel(IHomeSeekerService service, ILogger<Hom
         PropertyType = CurrentPropertyType,
         Portal = CurrentPortal,
         MaxDistanceKm = CurrentMaxDistance,
-        PriceDropOnly = PriceDropOnly
+        PriceDropOnly = PriceDropOnly,
+        EvaluatedOnly = EvaluatedOnly
     };
 
     private static int IndexOf(IReadOnlyList<string> options, string? value) =>

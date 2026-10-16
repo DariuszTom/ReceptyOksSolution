@@ -62,6 +62,7 @@ public static class HomeSeekerEndpoints
             string? portal = null,
             double? maxDistanceKm = null,
             bool priceDropOnly = false,
+            bool evaluatedOnly = false,
             IListingRepository repository = default!,
             CancellationToken ct = default) =>
         {
@@ -90,7 +91,8 @@ public static class HomeSeekerEndpoints
                 PropertyType = propertyType is PropertyTypes.House or PropertyTypes.Apartment ? propertyType : null,
                 Portal = portal,
                 MaxDistanceKm = maxDistanceKm is > 0 ? maxDistanceKm : null,
-                PriceDropOnly = priceDropOnly
+                PriceDropOnly = priceDropOnly,
+                EvaluatedOnly = evaluatedOnly
             };
             var (listings, totalCount) = await repository.GetListingsAsync(
                 profile.Id, pageNumber, pageSize, query, ct).ConfigureAwait(false);

@@ -232,11 +232,12 @@ public sealed class HomeSeekerClientServiceTests
             PropertyType = HomeSeekerPropertyTypes.Apartment,
             Portal = "OLX",
             MaxDistanceKm = 5,
-            PriceDropOnly = true
+            PriceDropOnly = true,
+            EvaluatedOnly = true
         });
 
         Assert.That(handler.Requests.Single().RequestUri!.PathAndQuery,
-            Is.EqualTo("/api/homeseeker/listings?pageNumber=1&pageSize=20&sort=distance&propertyType=2&portal=OLX&maxDistanceKm=5&priceDropOnly=true"));
+            Is.EqualTo("/api/homeseeker/listings?pageNumber=1&pageSize=20&sort=distance&propertyType=2&portal=OLX&maxDistanceKm=5&priceDropOnly=true&evaluatedOnly=true"));
     }
 
     [Test]

@@ -108,6 +108,7 @@ public sealed class HomeSeekerViewModelTests
         vm.SelectedPortalOption = "OLX";
         vm.SelectedMaxDistanceOption = "≤ 5 km od centrum";
         vm.PriceDropOnly = true;
+        vm.EvaluatedOnly = false;
         await vm.LoadListingsCommand.ExecuteAsync(null);
 
         Assert.That(lastQuery, Is.EqualTo(new HomeSeekerListingQuery
@@ -116,7 +117,8 @@ public sealed class HomeSeekerViewModelTests
             PropertyType = HomeSeekerPropertyTypes.Apartment,
             Portal = "OLX",
             MaxDistanceKm = 5,
-            PriceDropOnly = true
+            PriceDropOnly = true,
+            EvaluatedOnly = false
         }));
         Assert.That(vm.ActiveFiltersCount, Is.EqualTo(4));
         Assert.That(vm.FiltersHeaderText, Is.EqualTo("Filtry (4)"));
@@ -124,8 +126,23 @@ public sealed class HomeSeekerViewModelTests
         vm.ClearFiltersCommand.Execute(null);
         await vm.LoadListingsCommand.ExecuteAsync(null);
 
-        Assert.That(lastQuery, Is.EqualTo(new HomeSeekerListingQuery { Sort = "distance" }));
+        Assert.That(lastQuery, Is.EqualTo(new HomeSeekerListingQuery { Sort = "distance", EvaluatedOnly = true }));
         Assert.That(vm.ActiveFiltersCount, Is.Zero);
+    }
+
+    [Test]
+    public async Task EvaluatedOnly_IsOnByDefault()
+    {
+        HomeSeekerListingQuery? lastQuery = null;
+        _service.Setup(s => s.GetListingsAsync(1, It.IsAny<int>(), It.IsAny<HomeSeekerListingQuery>(), It.IsAny<CancellationToken>()))
+            .Callback<int, int, HomeSeekerListingQuery, CancellationToken>((_, _, q, _) => lastQuery = q)
+            .ReturnsAsync(Page(1, totalPages: 1, "x"));
+
+        var vm = CreateViewModel();
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.That(vm.EvaluatedOnly, Is.True);
+        Assert.That(lastQuery?.EvaluatedOnly, Is.True);
     }
 
     [Test]

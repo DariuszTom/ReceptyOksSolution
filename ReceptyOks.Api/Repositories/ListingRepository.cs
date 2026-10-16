@@ -421,6 +421,9 @@ public sealed class ListingRepository : IListingRepository
         if (filter.MinScore is { } minScore)
             query = query.Where(l => l.AiScore >= minScore);
 
+        if (filter.EvaluatedOnly)
+            query = query.Where(l => l.AiScore != null);
+
         if (filter.PropertyType is { } propertyType)
             query = query.Where(l => l.PropertyType == propertyType);
 

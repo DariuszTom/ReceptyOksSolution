@@ -61,6 +61,9 @@ public sealed record HomeSeekerListingQuery
     public string? Portal { get; init; }
     public double? MaxDistanceKm { get; init; }
     public bool PriceDropOnly { get; init; }
+
+    /// <summary>Only listings already evaluated by AI.</summary>
+    public bool EvaluatedOnly { get; init; }
 }
 
 public sealed class HomeSeekerListing
