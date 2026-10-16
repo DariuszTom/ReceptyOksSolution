@@ -48,10 +48,15 @@ public sealed class ListingGroups
     /// Keeps at most <paramref name="maxPerGroup"/> listings from each group, preserving the
     /// input order (so pass listings best-first).
     /// </summary>
-    public static List<HouseListing> CapPerGroup(IEnumerable<HouseListing> orderedBestFirst, int maxPerGroup)
+    /// <param name="groups">
+    /// Optional precomputed groups (e.g. built from all active listings, so unscored "bridge"
+    /// listings still join their scored relatives); built from the input when null.
+    /// </param>
+    public static List<HouseListing> CapPerGroup(
+        IEnumerable<HouseListing> orderedBestFirst, int maxPerGroup, ListingGroups? groups = null)
     {
         var list = orderedBestFirst.ToList();
-        var groups = new ListingGroups(list);
+        groups ??= new ListingGroups(list);
         var counts = new Dictionary<object, int>();
         var result = new List<HouseListing>(list.Count);
 
@@ -73,9 +78,10 @@ public sealed class ListingGroups
             yield return "dev:" + listing.DevelopmentKey;
 
         // Unknown price/area ("zapytaj o cenę") would lump unrelated offers together.
+        // Fixed-precision formats so 80m and 80.0m (different decimal scale) produce the same key.
         if (listing.Price > 0 && listing.AreaSqm > 0)
             yield return FormattableString.Invariant(
-                $"dup:{listing.PropertyType}|{decimal.Round(listing.Price)}|{decimal.Round(listing.AreaSqm, 1)}");
+                $"dup:{listing.PropertyType}|{decimal.Round(listing.Price):F0}|{decimal.Round(listing.AreaSqm, 1):F1}");
     }
 
     private static int Find(List<int> roots, int node)

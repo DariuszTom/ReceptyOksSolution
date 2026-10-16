@@ -43,13 +43,16 @@ internal static class ListingSelection
     /// Units of one development and copies of one offer on several portals (see
     /// <see cref="ListingGroups"/>) take at most <paramref name="maxPerGroup"/> evaluations in
     /// total, counting ones already scored, since near-identical units would get near-identical
-    /// scores and crowd the report.
+    /// scores and crowd the report. <paramref name="groupingContext"/> (the profile's active
+    /// stored listings) lets groups and already-scored counts include listings not seen in this
+    /// scan; candidates are still taken only from <paramref name="upsertResults"/>.
     /// </summary>
     public static List<UpsertResult> SelectCandidates(
         IReadOnlyCollection<UpsertResult> upsertResults,
         int max,
         MarketPriceStats? priceStats = null,
-        int maxPerGroup = int.MaxValue)
+        int maxPerGroup = int.MaxValue,
+        IEnumerable<HouseListing>? groupingContext = null)
     {
         // A listing repeated in search results is upserted twice (new, then unchanged); keep one
         // occurrence, preferring the new/price-dropped one, so it can't take two paid slots.
@@ -60,16 +63,27 @@ internal static class ListingSelection
 
         priceStats ??= new MarketPriceStats(unique.Select(r => r.Listing));
 
-        var groups = new ListingGroups(unique.Select(r => r.Listing));
+        // This scan's listings first: they carry current price/area and win over stored copies.
+        var allListings = unique.Select(r => r.Listing)
+            .Concat(groupingContext ?? [])
+            .DistinctBy(l => l.Id)
+            .ToList();
+        var groups = new ListingGroups(allListings);
+
+        // Every listing that already has a score holds a slot in its group, including
+        // price-dropped ones about to be re-evaluated.
         var groupCounts = new Dictionary<object, int>();
-        foreach (var scored in unique.Where(r => !r.IsNew && !r.PriceDropped && r.Listing.AiScore is not null))
+        foreach (var scored in allListings.Where(l => l.AiScore is not null))
         {
-            var group = groups.GroupOf(scored.Listing);
+            var group = groups.GroupOf(scored);
             groupCounts[group] = groupCounts.GetValueOrDefault(group) + 1;
         }
 
         bool TryTakeGroupSlot(UpsertResult result)
         {
+            // A re-evaluation reuses the listing's own (already counted) slot.
+            if (result.Listing.AiScore is not null) return true;
+
             var group = groups.GroupOf(result.Listing);
             var count = groupCounts.GetValueOrDefault(group);
             if (count >= maxPerGroup) return false;
