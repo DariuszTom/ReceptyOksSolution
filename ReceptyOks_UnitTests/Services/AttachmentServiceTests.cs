@@ -158,7 +158,7 @@ public class AttachmentServiceTests
     }
 
     [Test]
-    public void MaterializeAsync_NullData_ThrowsArgumentNullException()
+    public async Task MaterializeAsync_NullData_ThrowsArgumentNullException()
     {
         // Arrange
         var service = new AttachmentService(_loggerMock.Object);
@@ -167,7 +167,7 @@ public class AttachmentServiceTests
         async Task Act() => await service.MaterializeAsync(null!, "image/png");
 
         // Assert
-        Assert.ThrowsAsync<ArgumentNullException>(Act);
+        await Assert.ThrowsAsync<ArgumentNullException>(Act);
     }
 
     [Test]

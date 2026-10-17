@@ -256,7 +256,7 @@ public class PeriodicSyncServiceTests
         await Task.Delay(TimeSpan.FromMilliseconds(200));
         cts.Cancel();
 
-        Assert.DoesNotThrowAsync(async () => await task);
+        await Assert.DoesNotThrowAsync(async () => await task);
     }
 
     private PeriodicSyncService CreateService(PeriodicSyncOptions? options = null)

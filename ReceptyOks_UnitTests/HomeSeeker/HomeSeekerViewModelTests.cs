@@ -161,7 +161,7 @@ public sealed class HomeSeekerViewModelTests
         var first = vm.LoadListingsCommand.ExecuteAsync(null);
         vm.SelectedSortOption = "Cena";
 
-        Assert.DoesNotThrowAsync(async () => await first);
+        await Assert.DoesNotThrowAsync(async () => await first);
         Assert.That(vm.Listings.Select(l => l.Title), Is.EqualTo(new[] { "by-price" }));
     }
 

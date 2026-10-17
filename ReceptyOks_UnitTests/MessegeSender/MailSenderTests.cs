@@ -20,11 +20,11 @@ public sealed class MailSenderTests
     }
 
     [Test]
-    public void MailConfig_InvalidLogin_ThrowsArgumentException()
+    public async Task MailConfig_InvalidLogin_ThrowsArgumentException()
     {
         using var sut = new MailSender();
 
-        var ex = Assert.ThrowsAsync<ArgumentException>(() => sut.MailConfig("localhost", 25, Password(), "not-an-email"));
+        var ex = await Assert.ThrowsAsync<ArgumentException>(() => sut.MailConfig("localhost", 25, Password(), "not-an-email"));
         Assert.That(ex!.ParamName, Is.EqualTo("login"));
     }
 
@@ -37,11 +37,11 @@ public sealed class MailSenderTests
     }
 
     [Test]
-    public void SendMail_WithoutConfig_ThrowsInvalidOperationException()
+    public async Task SendMail_WithoutConfig_ThrowsInvalidOperationException()
     {
         using var sut = new MailSender();
 
-        Assert.ThrowsAsync<InvalidOperationException>(() => sut.SendMail(["a@example.com"]));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => sut.SendMail(["a@example.com"]));
     }
 
     [Test]
@@ -50,7 +50,7 @@ public sealed class MailSenderTests
         using var sut = new MailSender();
         await sut.MailConfig("localhost", 25, Password(), Login);
 
-        Assert.ThrowsAsync<InvalidOperationException>(() => sut.SendMail(["a@example.com"]));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => sut.SendMail(["a@example.com"]));
     }
 
     [Test]
@@ -115,7 +115,7 @@ public sealed class MailSenderTests
         await sut.MailConfig("127.0.0.1", server.Port, Password(), Login);
         sut.CreateMail("s", new StringBuilder("b"));
 
-        Assert.ThrowsAsync<InvalidOperationException>(() => sut.SendMail(["nope"]));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => sut.SendMail(["nope"]));
     }
 
     [Test]
@@ -127,7 +127,7 @@ public sealed class MailSenderTests
         sut.CreateMail("s", new StringBuilder("b"));
         await sut.SendMail(["to@example.com"]);
 
-        Assert.ThrowsAsync<InvalidOperationException>(() => sut.SendMail(["to@example.com"]));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => sut.SendMail(["to@example.com"]));
     }
 
     [Test]
@@ -145,7 +145,7 @@ public sealed class MailSenderTests
         await sut.MailConfig("127.0.0.1", freePort, Password(), Login);
         sut.CreateMail("s", new StringBuilder("b"));
 
-        Assert.ThrowsAsync<SocketException>(() => sut.SendMail(["to@example.com"]));
+        await Assert.ThrowsAsync<SocketException>(() => sut.SendMail(["to@example.com"]));
     }
 
     /// <summary>Minimal single-session plaintext SMTP server supporting EHLO, AUTH PLAIN, MAIL, RCPT, DATA, QUIT.</summary>

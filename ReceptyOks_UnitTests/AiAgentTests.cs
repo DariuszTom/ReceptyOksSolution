@@ -1273,14 +1273,14 @@ public sealed partial class AiAgentTests
     /// This validates that empty strings are rejected during input validation.
     /// </summary>
     [Test]
-    public void ChatAsync_EmptyUserMessage_ThrowsArgumentException()
+    public async Task ChatAsync_EmptyUserMessage_ThrowsArgumentException()
     {
         // Arrange
         var mockChatClient = new Mock<IChatClient>();
         var aiAgent = new AiAgent(mockChatClient.Object, "Test system prompt");
         var userMessage = string.Empty;
         // Act & Assert
-        Assert.ThrowsAsync<ArgumentException>(async () => await aiAgent.ChatAsync(userMessage, cancellationToken: CancellationToken.None));
+        await Assert.ThrowsAsync<ArgumentException>(async () => await aiAgent.ChatAsync(userMessage, cancellationToken: CancellationToken.None));
     }
 
     /// <summary>
@@ -1293,13 +1293,13 @@ public sealed partial class AiAgentTests
     [TestCase("\n")]
     [TestCase("\r\n")]
     [TestCase("   \t  \n  ")]
-    public void ChatAsync_WhitespaceUserMessage_ThrowsArgumentException(string userMessage)
+    public async Task ChatAsync_WhitespaceUserMessage_ThrowsArgumentException(string userMessage)
     {
         // Arrange
         var mockChatClient = new Mock<IChatClient>();
         var aiAgent = new AiAgent(mockChatClient.Object, "Test system prompt");
         // Act & Assert
-        Assert.ThrowsAsync<ArgumentException>(async () => await aiAgent.ChatAsync(userMessage, cancellationToken: CancellationToken.None));
+        await Assert.ThrowsAsync<ArgumentException>(async () => await aiAgent.ChatAsync(userMessage, cancellationToken: CancellationToken.None));
     }
 
 
@@ -1307,7 +1307,7 @@ public sealed partial class AiAgentTests
     /// Tests that ChatStreamAsync throws ArgumentException when userMessage is empty.
     /// </summary>
     [Test]
-    public void ChatStreamAsync_EmptyUserMessage_ThrowsArgumentException()
+    public async Task ChatStreamAsync_EmptyUserMessage_ThrowsArgumentException()
     {
         // Arrange
         var mockChatClient = new Mock<IChatClient>();
@@ -1316,7 +1316,7 @@ public sealed partial class AiAgentTests
         {
         };
         // Act & Assert
-        Assert.ThrowsAsync<ArgumentException>(async () => await agent.ChatStreamAsync(string.Empty, callback, CancellationToken.None));
+        await Assert.ThrowsAsync<ArgumentException>(async () => await agent.ChatStreamAsync(string.Empty, callback, CancellationToken.None));
     }
 
     /// <summary>
@@ -1329,7 +1329,7 @@ public sealed partial class AiAgentTests
     [TestCase("\n")]
     [TestCase("\r\n")]
     [TestCase(" \t \n ")]
-    public void ChatStreamAsync_WhitespaceUserMessage_ThrowsArgumentException(string whitespaceMessage)
+    public async Task ChatStreamAsync_WhitespaceUserMessage_ThrowsArgumentException(string whitespaceMessage)
     {
         // Arrange
         var mockChatClient = new Mock<IChatClient>();
@@ -1338,20 +1338,20 @@ public sealed partial class AiAgentTests
         {
         };
         // Act & Assert
-        Assert.ThrowsAsync<ArgumentException>(async () => await agent.ChatStreamAsync(whitespaceMessage, callback, CancellationToken.None));
+        await Assert.ThrowsAsync<ArgumentException>(async () => await agent.ChatStreamAsync(whitespaceMessage, callback, CancellationToken.None));
     }
 
     /// <summary>
     /// Tests that ChatStreamAsync throws ArgumentNullException when onTextReceived callback is null.
     /// </summary>
     [Test]
-    public void ChatStreamAsync_NullCallback_ThrowsArgumentNullException()
+    public async Task ChatStreamAsync_NullCallback_ThrowsArgumentNullException()
     {
         // Arrange
         var mockChatClient = new Mock<IChatClient>();
         var agent = new AiAgent(mockChatClient.Object);
         // Act & Assert
-        Assert.ThrowsAsync<ArgumentNullException>(async () => await agent.ChatStreamAsync("test message", null!, CancellationToken.None));
+        await Assert.ThrowsAsync<ArgumentNullException>(async () => await agent.ChatStreamAsync("test message", null!, CancellationToken.None));
     }
 
     /// <summary>
@@ -1395,13 +1395,13 @@ public sealed partial class AiAgentTests
     /// This verifies the null check guard clause at the beginning of the method.
     /// </summary>
     [Test]
-    public void SaveConversationAsync_WhenThreadIsNull_ThrowsInvalidOperationException()
+    public async Task SaveConversationAsync_WhenThreadIsNull_ThrowsInvalidOperationException()
     {
         // Arrange
         var mockChatClient = new Mock<IChatClient>();
         var agent = new AiAgent(mockChatClient.Object);
         // Act & Assert
-        var exception = Assert.ThrowsAsync<InvalidOperationException>(async () => await agent.SaveConversationAsync());
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () => await agent.SaveConversationAsync());
         Assert.That(exception, Is.Not.Null);
         Assert.That(exception!.Message, Does.Contain("No active conversation to save"));
         Assert.That(exception.Message, Does.Contain("Start a conversation first by calling ChatAsync or ChatStreamAsync"));
@@ -1413,7 +1413,7 @@ public sealed partial class AiAgentTests
     /// Note: The cancellationToken parameter is not actually used in the method implementation.
     /// </summary>
     [Test]
-    public void SaveConversationAsync_WithCancelledToken_ThrowsInvalidOperationExceptionWhenThreadIsNull()
+    public async Task SaveConversationAsync_WithCancelledToken_ThrowsInvalidOperationExceptionWhenThreadIsNull()
     {
         // Arrange
         var mockChatClient = new Mock<IChatClient>();
@@ -1421,7 +1421,7 @@ public sealed partial class AiAgentTests
         var cts = new CancellationTokenSource();
         cts.Cancel();
         // Act & Assert
-        var exception = Assert.ThrowsAsync<InvalidOperationException>(async () => await agent.SaveConversationAsync(cts.Token));
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () => await agent.SaveConversationAsync(cts.Token));
         Assert.That(exception, Is.Not.Null);
         Assert.That(exception!.Message, Does.Contain("No active conversation to save"));
     }
@@ -1431,13 +1431,13 @@ public sealed partial class AiAgentTests
     /// when thread is null. This verifies the exception behavior with the default parameter value.
     /// </summary>
     [Test]
-    public void SaveConversationAsync_WithDefaultCancellationToken_ThrowsInvalidOperationExceptionWhenThreadIsNull()
+    public async Task SaveConversationAsync_WithDefaultCancellationToken_ThrowsInvalidOperationExceptionWhenThreadIsNull()
     {
         // Arrange
         var mockChatClient = new Mock<IChatClient>();
         var agent = new AiAgent(mockChatClient.Object);
         // Act & Assert
-        var exception = Assert.ThrowsAsync<InvalidOperationException>(async () => await agent.SaveConversationAsync(default));
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () => await agent.SaveConversationAsync(default));
         Assert.That(exception, Is.Not.Null);
         Assert.That(exception!.Message, Does.Contain("No active conversation to save"));
     }
@@ -1446,14 +1446,14 @@ public sealed partial class AiAgentTests
     /// Tests that LoadConversationAsync throws ArgumentException when serializedThread is an empty string.
     /// </summary>
     [Test]
-    public void LoadConversationAsync_EmptySerializedThread_ThrowsArgumentException()
+    public async Task LoadConversationAsync_EmptySerializedThread_ThrowsArgumentException()
     {
         // Arrange
         var mockChatClient = new Mock<IChatClient>();
         var aiAgent = new ReceptyOks.Shared.AI.AiAgent(mockChatClient.Object);
         string serializedThread = string.Empty;
         // Act & Assert
-        var ex = Assert.ThrowsAsync<ArgumentException>(async () => await aiAgent.LoadConversationAsync(serializedThread, null, CancellationToken.None));
+        var ex = await Assert.ThrowsAsync<ArgumentException>(async () => await aiAgent.LoadConversationAsync(serializedThread, null, CancellationToken.None));
         Assert.That(ex, Is.Not.Null);
     }
 
@@ -1465,13 +1465,13 @@ public sealed partial class AiAgentTests
     [TestCase("\t")]
     [TestCase("\n")]
     [TestCase("\r\n")]
-    public void LoadConversationAsync_WhitespaceSerializedThread_ThrowsArgumentException(string whitespaceThread)
+    public async Task LoadConversationAsync_WhitespaceSerializedThread_ThrowsArgumentException(string whitespaceThread)
     {
         // Arrange
         var mockChatClient = new Mock<IChatClient>();
         var aiAgent = new ReceptyOks.Shared.AI.AiAgent(mockChatClient.Object);
         // Act & Assert
-        var ex = Assert.ThrowsAsync<ArgumentException>(async () => await aiAgent.LoadConversationAsync(whitespaceThread, null, CancellationToken.None));
+        var ex = await Assert.ThrowsAsync<ArgumentException>(async () => await aiAgent.LoadConversationAsync(whitespaceThread, null, CancellationToken.None));
         Assert.That(ex, Is.Not.Null);
     }
 
@@ -1482,13 +1482,13 @@ public sealed partial class AiAgentTests
     [TestCase("{incomplete")]
     [TestCase("[}")]
     [TestCase("random text 123")]
-    public void LoadConversationAsync_InvalidJsonFormat_ThrowsJsonException(string invalidJson)
+    public async Task LoadConversationAsync_InvalidJsonFormat_ThrowsJsonException(string invalidJson)
     {
         // Arrange
         var mockChatClient = new Mock<IChatClient>();
         var aiAgent = new ReceptyOks.Shared.AI.AiAgent(mockChatClient.Object);
         // Act & Assert
-        Assert.ThrowsAsync<JsonException>(async () => await aiAgent.LoadConversationAsync(invalidJson, null, CancellationToken.None));
+        await Assert.ThrowsAsync<JsonException>(async () => await aiAgent.LoadConversationAsync(invalidJson, null, CancellationToken.None));
     }
 
     /// <summary>
@@ -1705,13 +1705,13 @@ public sealed partial class AiAgentTests
     /// Tests empty string validation for required parameter.
     /// </summary>
     [Test]
-    public void ChatAsync_WithEmptyUserMessage_ThrowsArgumentException()
+    public async Task ChatAsync_WithEmptyUserMessage_ThrowsArgumentException()
     {
         // Arrange
         var mockChatClient = new Mock<IChatClient>();
         var agent = new AiAgent(mockChatClient.Object);
         // Act & Assert
-        Assert.ThrowsAsync<ArgumentException>(async () => await agent.ChatAsync<TestResponse>(string.Empty));
+        await Assert.ThrowsAsync<ArgumentException>(async () => await agent.ChatAsync<TestResponse>(string.Empty));
     }
 
     /// <summary>
@@ -1723,13 +1723,13 @@ public sealed partial class AiAgentTests
     [TestCase("\n", Description = "Newline only")]
     [TestCase("\r\n", Description = "Carriage return and newline")]
     [TestCase("  \t\n\r  ", Description = "Mixed whitespace")]
-    public void ChatAsync_WithWhitespaceUserMessage_ThrowsArgumentException(string userMessage)
+    public async Task ChatAsync_WithWhitespaceUserMessage_ThrowsArgumentException(string userMessage)
     {
         // Arrange
         var mockChatClient = new Mock<IChatClient>();
         var agent = new AiAgent(mockChatClient.Object);
         // Act & Assert
-        Assert.ThrowsAsync<ArgumentException>(async () => await agent.ChatAsync<TestResponse>(userMessage));
+        await Assert.ThrowsAsync<ArgumentException>(async () => await agent.ChatAsync<TestResponse>(userMessage));
     }
 
     /// <summary>
