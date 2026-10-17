@@ -56,6 +56,23 @@ public sealed class SearchProfileRequestValidator : AbstractValidator<SearchProf
             .MaximumLength(2000).WithMessage("Extra criteria must be at most 2000 characters")
             .When(x => !string.IsNullOrWhiteSpace(x.ExtraCriteria));
 
+        RuleFor(x => x)
+            .Must(x => x.HomeLatitude.HasValue == x.HomeLongitude.HasValue)
+            .WithName("HomeLatitude")
+            .WithMessage("Home location requires both latitude and longitude");
+
+        RuleFor(x => x.HomeLatitude)
+            .InclusiveBetween(-90, 90).WithMessage("Home latitude must be between -90 and 90")
+            .When(x => x.HomeLatitude.HasValue);
+
+        RuleFor(x => x.HomeLongitude)
+            .InclusiveBetween(-180, 180).WithMessage("Home longitude must be between -180 and 180")
+            .When(x => x.HomeLongitude.HasValue);
+
+        RuleFor(x => x.HomeLabel)
+            .MaximumLength(200).WithMessage("Home label must be at most 200 characters")
+            .When(x => !string.IsNullOrWhiteSpace(x.HomeLabel));
+
         // Validate the parsed/normalized list rather than the raw string: ",;" must be
         // rejected as empty, and the stored value is the normalized form (", "-joined),
         // which can be longer than the raw input.

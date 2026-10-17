@@ -16,6 +16,10 @@ public interface IHomeSeekerService
     Task<HomeSeekerResult<HomeSeekerPagedResult<HomeSeekerListing>>> GetListingsAsync(
         int pageNumber, int pageSize, HomeSeekerListingQuery query, CancellationToken cancellationToken = default);
 
+    /// <summary>Best scored listings with coordinates (filters as in <paramref name="query"/>; sort is ignored).</summary>
+    Task<HomeSeekerResult<List<HomeSeekerMapListing>>> GetMapListingsAsync(
+        int limit, HomeSeekerListingQuery query, CancellationToken cancellationToken = default);
+
     Task<HomeSeekerResult<List<HomeSeekerScanRun>>> GetScansAsync(int count = 20, CancellationToken cancellationToken = default);
 
     Task<HomeSeekerResult<string>> GetReportHtmlAsync(Guid scanId, CancellationToken cancellationToken = default);

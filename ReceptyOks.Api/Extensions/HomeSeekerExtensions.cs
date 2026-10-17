@@ -131,6 +131,18 @@ public static class HomeSeekerExtensions
                 sqliteType: "INTEGER NOT NULL DEFAULT 0", sqlServerType: "BIT NOT NULL DEFAULT 0");
             EnsureColumn(db, logger, "HouseListings", "DevelopmentKey",
                 sqliteType: "TEXT NULL", sqlServerType: "NVARCHAR(100) NULL");
+            EnsureColumn(db, logger, "HouseListings", "Latitude",
+                sqliteType: "REAL NULL", sqlServerType: "FLOAT NULL");
+            EnsureColumn(db, logger, "HouseListings", "Longitude",
+                sqliteType: "REAL NULL", sqlServerType: "FLOAT NULL");
+            EnsureColumn(db, logger, "HouseListings", "CoordinatesApproximate",
+                sqliteType: "INTEGER NOT NULL DEFAULT 0", sqlServerType: "BIT NOT NULL DEFAULT 0");
+            EnsureColumn(db, logger, "SearchProfiles", "HomeLatitude",
+                sqliteType: "REAL NULL", sqlServerType: "FLOAT NULL");
+            EnsureColumn(db, logger, "SearchProfiles", "HomeLongitude",
+                sqliteType: "REAL NULL", sqlServerType: "FLOAT NULL");
+            EnsureColumn(db, logger, "SearchProfiles", "HomeLabel",
+                sqliteType: "TEXT NULL", sqlServerType: "NVARCHAR(200) NULL");
         }
         catch (Exception ex)
         {
@@ -301,10 +313,12 @@ public static class HomeSeekerExtensions
 
         // Market scan service
         services.AddScoped<IMarketScanService, MarketScanService>();
+        services.AddScoped<CoordinateBackfill>();
 
         // Background service
         services.AddHostedService<HomeSeekerScanService>();
         services.AddHostedService<HomeSeekerCleaner>();
+        services.AddHostedService<HomeSeekerCoordinateBackfillService>();
 
         return services;
     }

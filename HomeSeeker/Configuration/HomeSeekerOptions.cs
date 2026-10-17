@@ -57,6 +57,13 @@ public sealed class HomeSeekerOptions : IValidatableObject
     public int MaxDistanceBackfillPerScan { get; set; } = 5;
 
     /// <summary>
+    /// Listing coordinates farther than this from the profile's city centre are treated as
+    /// portal geocoding errors and ignored (no map pin, no distance).
+    /// </summary>
+    [Range(1, 500)]
+    public double MaxCoordinateDistanceFromCityKm { get; set; } = 60;
+
+    /// <summary>
     /// Number of top listings to include in the email report.
     /// </summary>
     [Range(1, 50)]

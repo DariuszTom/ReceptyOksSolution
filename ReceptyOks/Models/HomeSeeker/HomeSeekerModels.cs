@@ -27,10 +27,34 @@ public sealed class HomeSeekerProfile
     public string? ExtraCriteria { get; set; }
     public string NotificationEmail { get; set; } = string.Empty;
     public bool IsActive { get; set; } = true;
+    public double? HomeLatitude { get; set; }
+    public double? HomeLongitude { get; set; }
+    public string? HomeLabel { get; set; }
     public DateTime? LastScannedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 
     public DateTime? LastScannedAtLocal => LastScannedAt is { } value ? HomeSeekerTime.ToLocal(value) : null;
+
+    public bool HasHome => HomeLatitude.HasValue && HomeLongitude.HasValue;
+
+    /// <summary>Request that keeps every field of this profile (callers then change what they need).</summary>
+    public HomeSeekerProfileRequest ToRequest() => new()
+    {
+        City = City,
+        District = District,
+        PropertyTypes = PropertyTypes,
+        MinPrice = MinPrice,
+        MaxPrice = MaxPrice,
+        MinAreaSqm = MinAreaSqm,
+        MaxAreaSqm = MaxAreaSqm,
+        MinRooms = MinRooms,
+        ExtraCriteria = ExtraCriteria,
+        NotificationEmail = NotificationEmail,
+        IsActive = IsActive,
+        HomeLatitude = HomeLatitude,
+        HomeLongitude = HomeLongitude,
+        HomeLabel = HomeLabel
+    };
 }
 
 /// <summary>Body of <c>PUT /api/homeseeker/profile</c>.</summary>
@@ -47,6 +71,44 @@ public sealed class HomeSeekerProfileRequest
     public string? ExtraCriteria { get; set; }
     public string NotificationEmail { get; set; } = string.Empty;
     public bool IsActive { get; set; } = true;
+
+    /// <summary>"Our location" – reference point for distances (set both or neither).</summary>
+    public double? HomeLatitude { get; set; }
+    public double? HomeLongitude { get; set; }
+    public string? HomeLabel { get; set; }
+}
+
+/// <summary>Map pin returned by <c>GET /api/homeseeker/map</c>.</summary>
+public sealed class HomeSeekerMapListing
+{
+    public Guid Id { get; set; }
+    public string Portal { get; set; } = string.Empty;
+    public string Url { get; set; } = string.Empty;
+    public string Title { get; set; } = string.Empty;
+    public decimal Price { get; set; }
+    public decimal? PreviousPrice { get; set; }
+    public decimal AreaSqm { get; set; }
+    public string? Location { get; set; }
+    public HomeSeekerPropertyTypes PropertyType { get; set; } = HomeSeekerPropertyTypes.House;
+    public int? AiScore { get; set; }
+    public string? AiSummary { get; set; }
+    public double Latitude { get; set; }
+    public double Longitude { get; set; }
+    public bool CoordinatesApproximate { get; set; }
+    public double? DistanceFromCenterKm { get; set; }
+    public bool DistanceIsApproximate { get; set; }
+
+    public string? DistanceText => HomeSeekerListing.FormatDistance(DistanceFromCenterKm, DistanceIsApproximate);
+
+    public string PropertyTypeText => PropertyType == HomeSeekerPropertyTypes.Apartment ? "Mieszkanie" : "Dom";
+
+    public decimal? PricePerSqm => AreaSqm > 0 ? Math.Round(Price / AreaSqm, 0) : null;
+
+    public bool HasPriceDrop => PreviousPrice is { } previous && previous > Price;
+
+    public string ScoreText => AiScore?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "–";
+
+    public bool HasHttpUrl => HomeSeekerListing.IsHttpUrl(Url);
 }
 
 /// <summary>Filters and sort for <c>GET /api/homeseeker/listings</c>; null members are not sent.</summary>
@@ -88,9 +150,16 @@ public sealed class HomeSeekerListing
     public double? DistanceFromCenterKm { get; set; }
     public bool DistanceIsApproximate { get; set; }
 
-    public string? DistanceText => DistanceFromCenterKm is { } km
-        ? $"{(DistanceIsApproximate ? "ok. " : string.Empty)}{km.ToString("0.0", System.Globalization.CultureInfo.CurrentCulture)} km do centrum"
+    public string? DistanceText => FormatDistance(DistanceFromCenterKm, DistanceIsApproximate);
+
+    /// <summary>Distance is measured from "our location" when set, otherwise from the city centre.</summary>
+    public static string? FormatDistance(double? km, bool approximate) => km is { } value
+        ? $"{(approximate ? "ok. " : string.Empty)}{value.ToString("0.0", System.Globalization.CultureInfo.CurrentCulture)} km"
         : null;
+
+    public static bool IsHttpUrl(string? url) =>
+        Uri.TryCreate(url, UriKind.Absolute, out var uri)
+        && (uri.Scheme == Uri.UriSchemeHttps || uri.Scheme == Uri.UriSchemeHttp);
 
     public DateTime FirstSeenAtLocal => HomeSeekerTime.ToLocal(FirstSeenAt);
 
@@ -113,9 +182,7 @@ public sealed class HomeSeekerListing
     public string? ConsText => Cons.Count == 0 ? null : "− " + string.Join("\n− ", Cons);
 
     /// <summary>Only http(s) links may be opened in the browser (the URL originates from scraped content).</summary>
-    public bool HasHttpUrl =>
-        Uri.TryCreate(Url, UriKind.Absolute, out var uri)
-        && (uri.Scheme == Uri.UriSchemeHttps || uri.Scheme == Uri.UriSchemeHttp);
+    public bool HasHttpUrl => IsHttpUrl(Url);
 
     public static IReadOnlyList<string> ParseList(string? json)
     {

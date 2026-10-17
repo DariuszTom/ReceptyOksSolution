@@ -74,6 +74,22 @@ public class HouseListing
     public bool DistanceIsApproximate { get; set; }
 
     /// <summary>
+    /// Latitude (WGS84) of the listing, when known; used to place it on the map and
+    /// to recompute <see cref="DistanceFromCenterKm"/> when the reference point changes.
+    /// </summary>
+    public double? Latitude { get; set; }
+
+    /// <summary>
+    /// Longitude (WGS84) of the listing, when known.
+    /// </summary>
+    public double? Longitude { get; set; }
+
+    /// <summary>
+    /// True when <see cref="Latitude"/>/<see cref="Longitude"/> are approximate (e.g. OLX map radius).
+    /// </summary>
+    public bool CoordinatesApproximate { get; set; }
+
+    /// <summary>
     /// When the listing was first discovered.
     /// </summary>
     public DateTime FirstSeenAt { get; set; }

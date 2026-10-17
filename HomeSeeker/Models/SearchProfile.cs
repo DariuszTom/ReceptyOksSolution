@@ -1,3 +1,6 @@
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
+
 namespace HomeSeeker.Models;
 
 /// <summary>
@@ -72,6 +75,32 @@ public class SearchProfile
     /// Whether this profile is actively being scanned.
     /// </summary>
     public bool IsActive { get; set; } = true;
+
+    /// <summary>
+    /// Latitude of the household's chosen reference location ("our location").
+    /// When set together with <see cref="HomeLongitude"/>, distances are measured
+    /// from it instead of the city centre.
+    /// </summary>
+    public double? HomeLatitude { get; set; }
+
+    /// <summary>
+    /// Longitude of the household's chosen reference location.
+    /// </summary>
+    public double? HomeLongitude { get; set; }
+
+    /// <summary>
+    /// Optional human-readable label of the reference location (e.g. "Praca").
+    /// </summary>
+    public string? HomeLabel { get; set; }
+
+    /// <summary>
+    /// The reference location as a point, or null when not configured.
+    /// </summary>
+    [JsonIgnore]
+    [NotMapped]
+    public GeoPoint? Home => HomeLatitude is { } lat && HomeLongitude is { } lon
+        ? new GeoPoint(lat, lon)
+        : null;
 
     /// <summary>
     /// Timestamp of the last scan for this profile.

@@ -30,6 +30,12 @@ public sealed record PriceBenchmark(
     public bool DistanceIsApproximate { get; init; }
 
     /// <summary>
+    /// True when <see cref="DistanceFromCenterKm"/> is measured from the buyer's chosen location
+    /// instead of the city centre.
+    /// </summary>
+    public bool DistanceFromHome { get; init; }
+
+    /// <summary>
     /// Transaction-price (RCN) valuation near the listing, when available (apartments only).
     /// </summary>
     public RcnValuation? Rcn { get; init; }

@@ -13,6 +13,7 @@ public class HomeSeekerDbContext(DbContextOptions<HomeSeekerDbContext> options) 
     public const int AiSummaryMaxLength = 2000;
     public const int AiListJsonMaxLength = 4000;
     public const int AiPriceAssessmentMaxLength = 100;
+    public const int HomeLabelMaxLength = 200;
 
     public DbSet<SearchProfile> SearchProfiles => Set<SearchProfile>();
     public DbSet<HouseListing> HouseListings => Set<HouseListing>();
@@ -31,6 +32,7 @@ public class HomeSeekerDbContext(DbContextOptions<HomeSeekerDbContext> options) 
             entity.Property(p => p.District).HasMaxLength(100);
             entity.Property(p => p.NotificationEmail).IsRequired().HasMaxLength(200);
             entity.Property(p => p.ExtraCriteria).HasMaxLength(2000);
+            entity.Property(p => p.HomeLabel).HasMaxLength(HomeLabelMaxLength);
 
             // Decimal precision for prices/areas
             entity.Property(p => p.MinPrice).HasPrecision(18, 2);

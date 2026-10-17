@@ -100,6 +100,44 @@ public interface IListingRepository
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Stores the listing's coordinates. Exact coordinates are never replaced by approximate ones.
+    /// </summary>
+    Task SaveCoordinatesAsync(
+        Guid listingId,
+        GeoPoint coordinates,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Recomputes <see cref="HouseListing.DistanceFromCenterKm"/> from <paramref name="reference"/>
+    /// for every active listing of the profile that has stored coordinates.
+    /// </summary>
+    /// <returns>Number of updated listings.</returns>
+    Task<int> RecomputeDistancesAsync(
+        Guid profileId,
+        GeoPoint reference,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets scored active listings that have no stored coordinates yet (best score first),
+    /// excluding <paramref name="excludeIds"/>.
+    /// </summary>
+    Task<IReadOnlyList<HouseListing>> GetListingsMissingCoordinatesAsync(
+        Guid profileId,
+        int count,
+        IReadOnlyCollection<Guid> excludeIds,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets scored active listings with coordinates matching <paramref name="filter"/>,
+    /// best score first (sort in the filter is ignored).
+    /// </summary>
+    Task<IReadOnlyList<HouseListing>> GetMapListingsAsync(
+        Guid profileId,
+        ListingQuery filter,
+        int count,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Saves AI evaluation results for a listing.
     /// </summary>
     Task SaveEvaluationAsync(
@@ -120,7 +158,7 @@ public interface IListingRepository
     /// <summary>
     /// Gets all active listings of a profile with only the fields needed to group units of one
     /// development / cross-portal copies: <c>Id</c>, <c>PropertyType</c>, <c>Price</c>, <c>AreaSqm</c>,
-    /// <c>DevelopmentKey</c> and <c>AiScore</c>.
+    /// <c>DevelopmentKey</c>, <c>AiScore</c> and the coordinates.
     /// </summary>
     Task<IReadOnlyList<HouseListing>> GetGroupingSampleAsync(
         Guid profileId,

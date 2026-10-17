@@ -91,14 +91,17 @@ public sealed class MarketScanService : IMarketScanService
                 groupingSample);
             _logger.LogInformation("Selected {Count} candidates for AI evaluation", candidates.Count);
 
+            // The city centre is resolved even when "our location" is set: it is the sanity
+            // check for portal coordinates.
             var cityCenter = upsertResults.Count > 0
                 ? await GetCityCenterAsync(profile.City, cancellationToken).ConfigureAwait(false)
                 : null;
+            var location = new LocationContext(profile.Home ?? cityCenter, profile.Home is not null, cityCenter);
 
-            await UpdateDistancesAsync(upsertResults, candidates, scraped, cityCenter, cancellationToken)
+            await UpdateDistancesAsync(upsertResults, candidates, scraped, location, cancellationToken)
                 .ConfigureAwait(false);
 
-            await EvaluateCandidatesAsync(profile, candidates, scraped, priceStats, cityCenter, stats, cancellationToken)
+            await EvaluateCandidatesAsync(profile, candidates, scraped, priceStats, location, stats, cancellationToken)
                 .ConfigureAwait(false);
 
             reportHtml = await WriteReportAsync(profile, scanRun, stats, groupingSample, cancellationToken)
@@ -272,7 +275,7 @@ public sealed class MarketScanService : IMarketScanService
         IReadOnlyList<UpsertResult> candidates,
         IReadOnlyList<ScrapedListing> scraped,
         MarketPriceStats priceStats,
-        GeoPoint? cityCenter,
+        LocationContext location,
         ScanStats stats,
         CancellationToken cancellationToken)
     {
@@ -308,8 +311,12 @@ public sealed class MarketScanService : IMarketScanService
                     }
                 }
 
+                coordinates = Plausible(coordinates, location, listing);
+                if (coordinates is { } point)
+                    await SaveCoordinatesAsync(listing, point, cancellationToken).ConfigureAwait(false);
+
                 var benchmark = await EnrichBenchmarkAsync(
-                        priceStats.GetBenchmark(listing), listing, coordinates, cityCenter, cancellationToken)
+                        priceStats.GetBenchmark(listing), listing, coordinates, location, cancellationToken)
                     .ConfigureAwait(false);
 
                 if (benchmark?.DistanceFromCenterKm is { } distanceKm)
@@ -548,13 +555,13 @@ public sealed class MarketScanService : IMarketScanService
         PriceBenchmark? benchmark,
         HouseListing listing,
         GeoPoint? coordinates,
-        GeoPoint? cityCenter,
+        LocationContext location,
         CancellationToken cancellationToken)
     {
         if (coordinates is not { } point)
             return benchmark;
 
-        double? distance = cityCenter is { } center ? Math.Round(point.DistanceKmTo(center), 1) : null;
+        double? distance = location.Reference is { } reference ? Math.Round(point.DistanceKmTo(reference), 1) : null;
 
         RcnValuation? rcn = null;
         if (_valuationProvider is not null && listing.PropertyType == PropertyTypes.Apartment && listing.AreaSqm > 0)
@@ -581,6 +588,7 @@ public sealed class MarketScanService : IMarketScanService
         {
             DistanceFromCenterKm = distance,
             DistanceIsApproximate = distance is not null && point.IsApproximate,
+            DistanceFromHome = distance is not null && location.IsHome,
             Rcn = rcn
         };
     }
@@ -602,10 +610,10 @@ public sealed class MarketScanService : IMarketScanService
         IReadOnlyList<UpsertResult> upsertResults,
         IReadOnlyList<UpsertResult> candidates,
         IReadOnlyList<ScrapedListing> scraped,
-        GeoPoint? cityCenter,
+        LocationContext location,
         CancellationToken cancellationToken)
     {
-        if (cityCenter is not { } center)
+        if (location.Reference is not { } center)
             return;
 
         var scrapedByKey = ToScrapedLookup(scraped);
@@ -621,12 +629,15 @@ public sealed class MarketScanService : IMarketScanService
                 continue;
             }
 
-            if (scrapedListing.Coordinates is not { } point)
+            if (Plausible(scrapedListing.Coordinates, location, listing) is not { } point)
             {
                 if (listing.DistanceFromCenterKm is null)
                     missingDistance.Add(listing);
                 continue;
             }
+
+            if (listing.Latitude is null || listing.CoordinatesApproximate)
+                await SaveCoordinatesAsync(listing, point, cancellationToken).ConfigureAwait(false);
 
             // Never replace an exact distance (from the ad page) with an approximate one.
             if (point.IsApproximate && listing.DistanceFromCenterKm is not null && !listing.DistanceIsApproximate)
@@ -639,11 +650,11 @@ public sealed class MarketScanService : IMarketScanService
             await SaveDistanceAsync(listing, distanceKm, point.IsApproximate, cancellationToken).ConfigureAwait(false);
         }
 
-        await BackfillDistancesAsync(missingDistance, center, cancellationToken).ConfigureAwait(false);
+        await BackfillDistancesAsync(missingDistance, center, location, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task BackfillDistancesAsync(
-        IReadOnlyList<HouseListing> listings, GeoPoint center, CancellationToken cancellationToken)
+        IReadOnlyList<HouseListing> listings, GeoPoint center, LocationContext location, CancellationToken cancellationToken)
     {
         var requests = 0;
         foreach (var listing in listings)
@@ -661,9 +672,10 @@ public sealed class MarketScanService : IMarketScanService
             await Task.Delay(_options.RequestDelay, cancellationToken).ConfigureAwait(false);
 
             var details = await FetchDetailsAsync(scraper, listing, cancellationToken).ConfigureAwait(false);
-            if (details?.Coordinates is not { } point)
+            if (Plausible(details?.Coordinates, location, listing) is not { } point)
                 continue;
 
+            await SaveCoordinatesAsync(listing, point, cancellationToken).ConfigureAwait(false);
             var distanceKm = Math.Round(point.DistanceKmTo(center), 1);
             await SaveDistanceAsync(listing, distanceKm, point.IsApproximate, cancellationToken).ConfigureAwait(false);
         }
@@ -694,6 +706,60 @@ public sealed class MarketScanService : IMarketScanService
             _logger.LogWarning(ex, "Saving distance failed for listing {ListingId}", listing.Id);
         }
     }
+
+    /// <summary>
+    /// Persists the coordinates for the map and later distance recomputation; a failure only loses the pin.
+    /// </summary>
+    private async Task SaveCoordinatesAsync(HouseListing listing, GeoPoint point, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _repository.SaveCoordinatesAsync(listing.Id, point, cancellationToken).ConfigureAwait(false);
+            if (!point.IsApproximate || listing.Latitude is null || listing.CoordinatesApproximate)
+            {
+                listing.Latitude = point.Latitude;
+                listing.Longitude = point.Longitude;
+                listing.CoordinatesApproximate = point.IsApproximate;
+            }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Saving coordinates failed for listing {ListingId}", listing.Id);
+        }
+    }
+
+    /// <summary>
+    /// Drops invalid coordinates and ones too far from the city centre to be a real location
+    /// of an offer in that city (portal geocoding errors), so they don't skew distance or map.
+    /// </summary>
+    private GeoPoint? Plausible(GeoPoint? coordinates, LocationContext location, HouseListing listing)
+    {
+        if (coordinates is not { } point)
+            return null;
+
+        if (!point.IsValid)
+            return null;
+
+        if (location.CityCenter is { } center &&
+            point.DistanceKmTo(center) > _options.MaxCoordinateDistanceFromCityKm)
+        {
+            _logger.LogDebug(
+                "Ignoring coordinates of listing {ListingId}: farther than {MaxKm} km from the city centre",
+                listing.Id, _options.MaxCoordinateDistanceFromCityKm);
+            return null;
+        }
+
+        return point;
+    }
+
+    /// <summary>
+    /// Distance reference for a scan: "our location" when set, otherwise the city centre.
+    /// </summary>
+    private readonly record struct LocationContext(GeoPoint? Reference, bool IsHome, GeoPoint? CityCenter);
 
     private async Task<ListingDetails?> FetchDetailsAsync(
         IListingScraper scraper, HouseListing listing, CancellationToken cancellationToken)
