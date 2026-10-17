@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 44 44">
+  <!-- "Our location": blue disc with a white house and a soft halo, centred on the point. -->
+  <circle cx="22" cy="22" r="21" fill="#2166D6" fill-opacity="0.18"/>
+  <circle cx="22" cy="22" r="14" fill="#2166D6" stroke="#FFFFFF" stroke-width="3"/>
+  <path d="M22 14.5 L29 20.5 L27 20.5 L27 28 L24 28 L24 23.5 L20 23.5 L20 28 L17 28 L17 20.5 L15 20.5 Z" fill="#FFFFFF"/>
+</svg>

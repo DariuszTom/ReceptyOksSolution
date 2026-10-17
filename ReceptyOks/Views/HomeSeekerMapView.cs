@@ -1,4 +1,4 @@
-using Mapsui;
+﻿using Mapsui;
 using Mapsui.Layers;
 using Mapsui.Manipulations;
 using Mapsui.Projections;
@@ -7,8 +7,6 @@ using Mapsui.Tiling;
 using Mapsui.UI.Maui;
 using ReceptyOks.Models.HomeSeeker;
 using ReceptyOks.ViewModels;
-using Color = Mapsui.Styles.Color;
-using Brush = Mapsui.Styles.Brush;
 
 namespace ReceptyOks.Views;
 
@@ -22,9 +20,9 @@ internal sealed class HomeSeekerMapView
     private const string ListingKey = "listing";
     private const string UserAgent = "ReceptyOks-HomeSeeker/1.0 (+https://github.com/DariuszTom/ReceptyOksSolution)";
 
-    // Wrocław; replaced by the pins' extent as soon as data arrives.
-    private const double DefaultLatitude = 51.11;
-    private const double DefaultLongitude = 17.03;
+    // Cracow; replaced by the pins' extent as soon as data arrives.
+    private const double DefaultLatitude = 50.06;
+    private const double DefaultLongitude = 19.94;
 
     private readonly HomeSeekerViewModel _viewModel;
     private readonly Func<string, string, Task<bool>> _confirm;
@@ -68,12 +66,12 @@ internal sealed class HomeSeekerMapView
         foreach (var group in pins.Where(p => p.IsSpread).GroupBy(p => p.Listing.Latitude + "," + p.Listing.Longitude))
         {
             var first = group.First().Listing;
-            features.Add(CreatePoint(first.Latitude, first.Longitude, CenterDotStyle));
+            features.Add(CreatePoint(first.Latitude, first.Longitude, HomeSeekerMapSymbols.GroupCenter));
         }
 
         foreach (var pin in pins)
         {
-            var feature = CreatePoint(pin.Listing.Latitude, pin.Listing.Longitude, PinStyle(pin));
+            var feature = CreatePoint(pin.Listing.Latitude, pin.Listing.Longitude, HomeSeekerMapSymbols.ForPin(pin));
             feature[ListingKey] = pin.Listing;
             features.Add(feature);
         }
@@ -81,7 +79,7 @@ internal sealed class HomeSeekerMapView
         _pinLayer.Features = features;
 
         _homeLayer.Features = _viewModel.HomeLatitude is { } lat && _viewModel.HomeLongitude is { } lon
-            ? [CreatePoint(lat, lon, HomeStyle)]
+            ? [CreatePoint(lat, lon, HomeSeekerMapSymbols.Home)]
             : [];
 
         _pinLayer.DataHasChanged();
@@ -136,49 +134,12 @@ internal sealed class HomeSeekerMapView
         }
     }
 
-    private static PointFeature CreatePoint(double latitude, double longitude, IStyle style)
+    private static PointFeature CreatePoint(double latitude, double longitude, params IEnumerable<IStyle> styles)
     {
         var (x, y) = SphericalMercator.FromLonLat(longitude, latitude);
         var feature = new PointFeature(x, y);
-        feature.Styles.Add(style);
+        foreach (var style in styles)
+            feature.Styles.Add(style);
         return feature;
     }
-
-    private static Color ScoreColor(int? score) => score switch
-    {
-        >= 75 => new Color(46, 160, 67),
-        >= 50 => new Color(230, 170, 20),
-        _ => new Color(140, 140, 140)
-    };
-
-    private static SymbolStyle PinStyle(MapPin pin)
-    {
-        var approximate = pin.Listing.CoordinatesApproximate;
-        var color = ScoreColor(pin.Listing.AiScore);
-        return new SymbolStyle
-        {
-            SymbolType = SymbolType.Ellipse,
-            // Approximate locations (e.g. OLX radius): a larger translucent disc instead of a solid pin.
-            SymbolScale = approximate ? 0.9 : 0.55,
-            Fill = new Brush(approximate ? new Color(color.R, color.G, color.B, 90) : color),
-            Outline = new Pen(Color.White, approximate ? 1 : 2),
-            Offset = new Offset(pin.OffsetX, pin.OffsetY)
-        };
-    }
-
-    private static readonly SymbolStyle CenterDotStyle = new()
-    {
-        SymbolType = SymbolType.Ellipse,
-        SymbolScale = 0.2,
-        Fill = new Brush(new Color(60, 60, 60)),
-        Outline = new Pen(Color.White, 1)
-    };
-
-    private static readonly SymbolStyle HomeStyle = new()
-    {
-        SymbolType = SymbolType.Rectangle,
-        SymbolScale = 0.7,
-        Fill = new Brush(new Color(33, 102, 214)),
-        Outline = new Pen(Color.White, 3)
-    };
 }
