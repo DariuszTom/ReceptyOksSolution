@@ -215,7 +215,7 @@ public sealed class HomeSeekerClientServiceTests
             Assert.That(item.HasHttpUrl, Is.True);
             Assert.That(item.DistanceFromCenterKm, Is.EqualTo(4.25));
             Assert.That(item.DistanceIsApproximate, Is.True);
-            Assert.That(item.DistanceText, Does.StartWith("ok. ").And.EndWith(" km do centrum"));
+            Assert.That(item.DistanceText, Does.StartWith("ok. ").And.EndWith(" km"));
         });
     }
 
@@ -238,6 +238,51 @@ public sealed class HomeSeekerClientServiceTests
 
         Assert.That(handler.Requests.Single().RequestUri!.PathAndQuery,
             Is.EqualTo("/api/homeseeker/listings?pageNumber=1&pageSize=20&sort=distance&propertyType=2&portal=OLX&maxDistanceKm=5&priceDropOnly=true&evaluatedOnly=true"));
+    }
+
+    [Test]
+    public async Task GetMapListingsAsync_SendsLimitAndFilters_WithoutSort_AndMapsCoordinates()
+    {
+        var server = new[]
+        {
+            ServerModels.MapListing.From(new ServerModels.HouseListing
+            {
+                Id = Guid.NewGuid(),
+                Title = "Mieszkanie",
+                Url = "https://www.olx.pl/d/oferta/x",
+                Price = 500_000,
+                AreaSqm = 50,
+                AiScore = 77,
+                PropertyType = ServerModels.PropertyTypes.Apartment,
+                Latitude = 51.1,
+                Longitude = 17.03,
+                CoordinatesApproximate = true
+            })
+        };
+        var handler = new StubHandler(_ => Json(HttpStatusCode.OK, server));
+        var sut = CreateSut(handler, out _);
+
+        var result = await sut.GetMapListingsAsync(50, new HomeSeekerListingQuery
+        {
+            MinScore = 60,
+            Sort = "price",
+            PropertyType = HomeSeekerPropertyTypes.Apartment,
+            Portal = "OLX",
+            EvaluatedOnly = false
+        });
+
+        Assert.That(handler.Requests.Single().RequestUri!.PathAndQuery,
+            Is.EqualTo("/api/homeseeker/map?limit=50&minScore=60&propertyType=2&portal=OLX"));
+        var item = result.Value!.Single();
+        Assert.Multiple(() =>
+        {
+            Assert.That(item.Latitude, Is.EqualTo(51.1));
+            Assert.That(item.Longitude, Is.EqualTo(17.03));
+            Assert.That(item.CoordinatesApproximate, Is.True);
+            Assert.That(item.PropertyType, Is.EqualTo(HomeSeekerPropertyTypes.Apartment));
+            Assert.That(item.PricePerSqm, Is.EqualTo(10_000m));
+            Assert.That(item.HasHttpUrl, Is.True);
+        });
     }
 
     [Test]

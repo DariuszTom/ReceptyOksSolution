@@ -2,6 +2,7 @@ using CommunityToolkit.Maui;
 using Microsoft.Extensions.Configuration;
 using ReceptyOks.Configuration;
 using ReceptyOks.Handlers;
+using SkiaSharp.Views.Maui.Controls.Hosting;
 using System.Reflection;
 using UraniumUI;
 
@@ -25,6 +26,7 @@ public static class MauiProgram
             .UseMauiCommunityToolkit(options => options.SetShouldEnableSnackbarOnWindows(true))
             .UseUraniumUI()
             .UseUraniumUIMaterial()
+            .UseSkiaSharp() // required by the Mapsui map (HomeSeeker "Mapa" tab)
             .ConfigureFonts(fonts =>
             {
                 fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");

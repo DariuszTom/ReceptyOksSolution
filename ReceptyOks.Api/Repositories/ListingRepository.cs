@@ -109,6 +109,9 @@ public sealed class ListingRepository : IListingRepository
         profile.ExtraCriteria = request.ExtraCriteria;
         profile.NotificationEmail = NotificationEmails.Normalize(request.NotificationEmail);
         profile.IsActive = request.IsActive;
+        profile.HomeLatitude = request.HomeLatitude;
+        profile.HomeLongitude = request.HomeLongitude;
+        profile.HomeLabel = string.IsNullOrWhiteSpace(request.HomeLabel) ? null : request.HomeLabel.Trim();
         profile.UpdatedAt = now;
     }
 
@@ -340,6 +343,77 @@ public sealed class ListingRepository : IListingRepository
             .ConfigureAwait(false);
     }
 
+    public async Task SaveCoordinatesAsync(
+        Guid listingId,
+        GeoPoint coordinates,
+        CancellationToken cancellationToken = default)
+    {
+        if (!coordinates.IsValid)
+            return;
+
+        var approximate = coordinates.IsApproximate;
+        await _db.HouseListings
+            .Where(l => l.Id == listingId)
+            .Where(l => !approximate || l.Latitude == null || l.Longitude == null || l.CoordinatesApproximate)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(l => l.Latitude, coordinates.Latitude)
+                .SetProperty(l => l.Longitude, coordinates.Longitude)
+                .SetProperty(l => l.CoordinatesApproximate, approximate),
+                cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    public async Task<int> RecomputeDistancesAsync(
+        Guid profileId,
+        GeoPoint reference,
+        CancellationToken cancellationToken = default)
+    {
+        var located = await _db.HouseListings
+            .AsNoTracking()
+            .Where(l => l.SearchProfileId == profileId && !l.IsDeleted)
+            .Where(l => l.Latitude != null && l.Longitude != null)
+            .Select(l => new { l.Id, Latitude = l.Latitude!.Value, Longitude = l.Longitude!.Value, l.CoordinatesApproximate })
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        foreach (var listing in located)
+        {
+            var distance = Math.Round(
+                new GeoPoint(listing.Latitude, listing.Longitude).DistanceKmTo(reference), 1);
+            await _db.HouseListings
+                .Where(l => l.Id == listing.Id)
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(l => l.DistanceFromCenterKm, distance)
+                    .SetProperty(l => l.DistanceIsApproximate, listing.CoordinatesApproximate),
+                    cancellationToken)
+                .ConfigureAwait(false);
+        }
+
+        return located.Count;
+    }
+
+    public async Task<IReadOnlyList<HouseListing>> GetListingsMissingCoordinatesAsync(
+        Guid profileId,
+        int count,
+        IReadOnlyCollection<Guid> excludeIds,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _db.HouseListings
+            .AsNoTracking()
+            .Where(l => l.SearchProfileId == profileId && !l.IsDeleted)
+            .Where(l => l.AiScore != null && (l.Latitude == null || l.Longitude == null));
+
+        if (excludeIds.Count > 0)
+            query = query.Where(l => !excludeIds.Contains(l.Id));
+
+        return await query
+            .OrderByDescending(l => l.AiScore)
+            .ThenBy(l => l.Id)
+            .Take(count)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+    }
+
     public async Task SaveEvaluationAsync(
         Guid listingId,
         ListingEvaluation evaluation,
@@ -402,7 +476,10 @@ public sealed class ListingRepository : IListingRepository
                 Price = l.Price,
                 AreaSqm = l.AreaSqm,
                 DevelopmentKey = l.DevelopmentKey,
-                AiScore = l.AiScore
+                AiScore = l.AiScore,
+                Latitude = l.Latitude,
+                Longitude = l.Longitude,
+                CoordinatesApproximate = l.CoordinatesApproximate
             })
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
@@ -434,30 +511,11 @@ public sealed class ListingRepository : IListingRepository
     {
         ArgumentNullException.ThrowIfNull(filter);
 
-        var query = _db.HouseListings
-            .AsNoTracking()
-            .Where(l => l.SearchProfileId == profileId && !l.IsDeleted);
-
-        if (filter.MinScore is { } minScore)
-            query = query.Where(l => l.AiScore >= minScore);
-
-        if (filter.EvaluatedOnly)
-            query = query.Where(l => l.AiScore != null);
-
-        if (filter.PropertyType is { } propertyType)
-            query = query.Where(l => l.PropertyType == propertyType);
-
-        if (!string.IsNullOrWhiteSpace(filter.Portal))
-        {
-            var portal = filter.Portal.Trim().ToLower();
-            query = query.Where(l => l.Portal.ToLower() == portal);
-        }
-
-        if (filter.MaxDistanceKm is { } maxDistance)
-            query = query.Where(l => l.DistanceFromCenterKm != null && l.DistanceFromCenterKm <= maxDistance);
-
-        if (filter.PriceDropOnly)
-            query = query.Where(l => l.PreviousPrice != null && (double)l.PreviousPrice.Value > (double)l.Price);
+        var query = ApplyFilter(
+            _db.HouseListings
+                .AsNoTracking()
+                .Where(l => l.SearchProfileId == profileId && !l.IsDeleted),
+            filter);
 
         var totalCount = await query.CountAsync(cancellationToken).ConfigureAwait(false);
 
@@ -488,6 +546,56 @@ public sealed class ListingRepository : IListingRepository
             .ConfigureAwait(false);
 
         return (listings, totalCount);
+    }
+
+    public async Task<IReadOnlyList<HouseListing>> GetMapListingsAsync(
+        Guid profileId,
+        ListingQuery filter,
+        int count,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(filter);
+
+        var query = ApplyFilter(
+            _db.HouseListings
+                .AsNoTracking()
+                .Where(l => l.SearchProfileId == profileId && !l.IsDeleted)
+                .Where(l => l.AiScore != null && l.Latitude != null && l.Longitude != null),
+            filter);
+
+        return await query
+            .OrderByDescending(l => l.AiScore)
+            .ThenBy(l => (double)l.AreaSqm > 0 ? (double)l.Price / (double)l.AreaSqm : double.MaxValue)
+            .ThenBy(l => l.Id)
+            .Take(count)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    private static IQueryable<HouseListing> ApplyFilter(IQueryable<HouseListing> query, ListingQuery filter)
+    {
+        if (filter.MinScore is { } minScore)
+            query = query.Where(l => l.AiScore >= minScore);
+
+        if (filter.EvaluatedOnly)
+            query = query.Where(l => l.AiScore != null);
+
+        if (filter.PropertyType is { } propertyType)
+            query = query.Where(l => l.PropertyType == propertyType);
+
+        if (!string.IsNullOrWhiteSpace(filter.Portal))
+        {
+            var portal = filter.Portal.Trim().ToLower();
+            query = query.Where(l => l.Portal.ToLower() == portal);
+        }
+
+        if (filter.MaxDistanceKm is { } maxDistance)
+            query = query.Where(l => l.DistanceFromCenterKm != null && l.DistanceFromCenterKm <= maxDistance);
+
+        if (filter.PriceDropOnly)
+            query = query.Where(l => l.PreviousPrice != null && (double)l.PreviousPrice.Value > (double)l.Price);
+
+        return query;
     }
 
     public async Task<IReadOnlyList<ScanRun>> GetScanHistoryAsync(

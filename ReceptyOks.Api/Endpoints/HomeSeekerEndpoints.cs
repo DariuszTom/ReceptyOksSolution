@@ -1,13 +1,19 @@
 ﻿using System.Security.Claims;
 using FluentValidation;
 using HomeSeeker.Abstractions;
+using HomeSeeker.Configuration;
 using HomeSeeker.Models;
+using HomeSeeker.Services;
+using Microsoft.Extensions.Options;
 using ReceptyOks.Api.Services;
 
 namespace ReceptyOks.Api.Endpoints;
 
 public static class HomeSeekerEndpoints
 {
+    private const int MapDefaultLimit = 50;
+    private const int MapMaxLimit = 200;
+
     public static void MapHomeSeekerEndpoints(this WebApplication app)
     {
         // HomeSeeker is a household feature: there is exactly one shared search
@@ -34,6 +40,8 @@ public static class HomeSeekerEndpoints
             ClaimsPrincipal user,
             IValidator<SearchProfileRequest> validator,
             IListingRepository repository,
+            ICityCenterProvider cityCenterProvider,
+            ILoggerFactory loggerFactory,
             CancellationToken ct) =>
         {
             if (CallerIdentity.GetOwnerId(user) is not { } updatedBy)
@@ -47,7 +55,28 @@ public static class HomeSeekerEndpoints
                 return Results.ValidationProblem(validation.ToDictionary());
             }
 
+            var previous = await repository.GetSharedProfileAsync(ct).ConfigureAwait(false);
             var profile = await repository.UpsertSharedProfileAsync(request, updatedBy, ct).ConfigureAwait(false);
+
+            // Distances are relative to "our location" (or the city centre); keep the list,
+            // filters and map consistent right away instead of waiting for the next scan.
+            if (previous?.Home != profile.Home ||
+                (profile.Home is null && !string.Equals(previous?.City, profile.City, StringComparison.OrdinalIgnoreCase)))
+            {
+                try
+                {
+                    var reference = profile.Home
+                        ?? await cityCenterProvider.GetCenterAsync(profile.City, ct).ConfigureAwait(false);
+                    if (reference is { } point)
+                        await repository.RecomputeDistancesAsync(profile.Id, point, ct).ConfigureAwait(false);
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    // The profile is saved; distances are refreshed by the next scan.
+                    loggerFactory.CreateLogger("HomeSeeker").LogWarning(ex, "Recomputing distances failed");
+                }
+            }
+
             return Results.Ok(profile);
         })
         .WithName("UpdateSharedProfile");
@@ -107,6 +136,53 @@ public static class HomeSeekerEndpoints
             });
         })
         .WithName("GetListings");
+
+        // GET /map - Scored listings with coordinates (best first, development/duplicate copies capped)
+        group.MapGet("/map", async (
+            int limit = MapDefaultLimit,
+            int? minScore = null,
+            PropertyTypes? propertyType = null,
+            string? portal = null,
+            double? maxDistanceKm = null,
+            bool priceDropOnly = false,
+            IListingRepository repository = default!,
+            IOptions<HomeSeekerOptions> options = default!,
+            CancellationToken ct = default) =>
+        {
+            limit = Math.Clamp(limit, 1, MapMaxLimit);
+
+            var profile = await repository.GetSharedProfileAsync(ct).ConfigureAwait(false);
+            if (profile is null)
+                return Results.Ok(Array.Empty<MapListing>());
+
+            var query = new ListingQuery
+            {
+                MinScore = minScore,
+                PropertyType = propertyType is PropertyTypes.House or PropertyTypes.Apartment ? propertyType : null,
+                Portal = portal,
+                MaxDistanceKm = maxDistanceKm is > 0 ? maxDistanceKm : null,
+                PriceDropOnly = priceDropOnly,
+                EvaluatedOnly = true
+            };
+
+            // Same capping as the e-mail report, so one development doesn't fill the map.
+            var maxPerGroup = options.Value.MaxListingsPerDevelopment;
+            var groupingSample = await repository.GetGroupingSampleAsync(profile.Id, ct).ConfigureAwait(false);
+            var fetch = limit * 3;
+            List<HouseListing> capped;
+            while (true)
+            {
+                var ranked = await repository.GetMapListingsAsync(profile.Id, query, fetch, ct).ConfigureAwait(false);
+                var groups = new ListingGroups(ranked.Concat(groupingSample));
+                capped = ListingGroups.CapPerGroup(ranked, maxPerGroup, groups).Take(limit).ToList();
+                if (capped.Count >= limit || ranked.Count < fetch || fetch >= MapMaxLimit * 16)
+                    break;
+                fetch *= 2;
+            }
+
+            return Results.Ok(capped.Select(MapListing.From).ToList());
+        })
+        .WithName("GetMapListings");
 
         // GET /scans - Scan history for the shared profile
         group.MapGet("/scans", async (

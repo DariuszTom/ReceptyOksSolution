@@ -31,6 +31,32 @@ public sealed class SearchProfileRequestValidatorTests
         Assert.That(result.Errors.Select(e => e.PropertyName), Does.Contain(nameof(SearchProfileRequest.PropertyTypes)));
     }
 
+    [TestCase(null, null)]
+    [TestCase(51.1, 17.03)]
+    [TestCase(-90.0, 180.0)]
+    public void Validate_WithValidOrNoHome_HasNoHomeError(double? lat, double? lon)
+    {
+        var request = Request(PropertyTypes.House) with { HomeLatitude = lat, HomeLongitude = lon };
+
+        var result = _validator.Validate(request);
+
+        Assert.That(result.Errors.Where(e => e.PropertyName.StartsWith("Home")), Is.Empty);
+    }
+
+    [TestCase(51.1, null)]
+    [TestCase(null, 17.03)]
+    [TestCase(91.0, 17.03)]
+    [TestCase(51.1, -181.0)]
+    public void Validate_WithPartialOrOutOfRangeHome_IsRejected(double? lat, double? lon)
+    {
+        var request = Request(PropertyTypes.House) with { HomeLatitude = lat, HomeLongitude = lon };
+
+        var result = _validator.Validate(request);
+
+        Assert.That(result.IsValid, Is.False);
+        Assert.That(result.Errors.Select(e => e.PropertyName), Has.Some.StartsWith("Home"));
+    }
+
     private static SearchProfileRequest Request(PropertyTypes types) => new()
     {
         City = "Wrocław",

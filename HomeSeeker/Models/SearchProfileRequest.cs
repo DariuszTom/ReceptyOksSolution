@@ -65,4 +65,20 @@ public sealed record SearchProfileRequest
     /// Whether the profile should be active.
     /// </summary>
     public bool IsActive { get; init; } = true;
+
+    /// <summary>
+    /// Latitude of "our location" used as the distance reference; send both
+    /// coordinates or neither (null clears the location).
+    /// </summary>
+    public double? HomeLatitude { get; init; }
+
+    /// <summary>
+    /// Longitude of "our location".
+    /// </summary>
+    public double? HomeLongitude { get; init; }
+
+    /// <summary>
+    /// Optional label of "our location".
+    /// </summary>
+    public string? HomeLabel { get; init; }
 }

@@ -103,10 +103,10 @@ public sealed class HomeSeekerViewModelTests
         await vm.LoadCommand.ExecuteAsync(null);
         Assert.That(vm.FiltersHeaderText, Is.EqualTo("Filtry"));
 
-        vm.SelectedSortOption = "Najbliżej centrum";
+        vm.SelectedSortOption = "Najbliżej";
         vm.SelectedPropertyTypeOption = "Mieszkania";
         vm.SelectedPortalOption = "OLX";
-        vm.SelectedMaxDistanceOption = "≤ 5 km od centrum";
+        vm.SelectedMaxDistanceOption = "≤ 5 km";
         vm.PriceDropOnly = true;
         vm.EvaluatedOnly = false;
         await vm.LoadListingsCommand.ExecuteAsync(null);
@@ -222,6 +222,75 @@ public sealed class HomeSeekerViewModelTests
 
         Assert.That(vm.IsRefreshingListings, Is.False);
         Assert.That(vm.Listings.Select(l => l.Title), Is.EqualTo(new[] { "refreshed" }));
+    }
+
+    [Test]
+    public async Task Map_IsLoadedLazily_OnFirstEntry_AndFollowsListFilters()
+    {
+        _service.Setup(s => s.GetListingsAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<HomeSeekerListingQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Page(1, totalPages: 1, "x"));
+        var queries = new List<HomeSeekerListingQuery>();
+        _service.Setup(s => s.GetMapListingsAsync(It.IsAny<int>(), It.IsAny<HomeSeekerListingQuery>(), It.IsAny<CancellationToken>()))
+            .Callback<int, HomeSeekerListingQuery, CancellationToken>((_, q, _) => queries.Add(q))
+            .ReturnsAsync(HomeSeekerResult<List<HomeSeekerMapListing>>.Ok(
+            [
+                new HomeSeekerMapListing { Id = Guid.NewGuid(), Latitude = 51.1, Longitude = 17.03 },
+                new HomeSeekerMapListing { Id = Guid.NewGuid(), Latitude = 51.1, Longitude = 17.03 }
+            ]));
+
+        var vm = CreateViewModel();
+        var redraws = 0;
+        vm.MapDataChanged += (_, _) => redraws++;
+        await vm.LoadCommand.ExecuteAsync(null);
+        Assert.That(queries, Is.Empty, "map is not fetched until the tab is opened");
+
+        vm.CurrentSection = HomeSeekerSection.Map;
+        await WaitUntil(() => !vm.LoadMapCommand.IsRunning && queries.Count == 1);
+
+        Assert.That(vm.MapPins, Has.Count.EqualTo(2));
+        Assert.That(vm.MapPins.All(p => p.IsSpread), Is.True);
+        Assert.That(vm.MapStatusText, Does.StartWith("2 "));
+        Assert.That(redraws, Is.GreaterThan(0));
+        _service.Verify(s => s.GetMapListingsAsync(HomeSeekerViewModel.MapListingLimit, It.IsAny<HomeSeekerListingQuery>(), It.IsAny<CancellationToken>()), Times.Once);
+
+        vm.SelectedPortalOption = "OLX";
+        await WaitUntil(() => !vm.LoadMapCommand.IsRunning && queries.Count == 2);
+        Assert.That(queries[^1].Portal, Is.EqualTo("OLX"));
+
+        // Re-entering the tab does not refetch.
+        vm.CurrentSection = HomeSeekerSection.Listings;
+        vm.CurrentSection = HomeSeekerSection.Map;
+        await Task.Delay(50);
+        Assert.That(queries, Has.Count.EqualTo(2));
+    }
+
+    [Test]
+    public async Task Map_HomeFromProfile_IsExposed()
+    {
+        _service.Setup(s => s.GetProfileAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(HomeSeekerResult<HomeSeekerProfile>.Ok(new HomeSeekerProfile
+            {
+                City = "Wrocław",
+                HomeLatitude = 51.05,
+                HomeLongitude = 16.95,
+                HomeLabel = "GPS"
+            }));
+        _service.Setup(s => s.GetListingsAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<HomeSeekerListingQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Page(1, totalPages: 1, "x"));
+
+        var vm = CreateViewModel();
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.That(vm.HasHome, Is.True);
+        Assert.That(vm.HomeLatitude, Is.EqualTo(51.05));
+        Assert.That(vm.DistanceReferenceText, Does.Contain("naszej lokalizacji").And.Contain("GPS"));
+    }
+
+    private static async Task WaitUntil(Func<bool> condition)
+    {
+        for (var i = 0; i < 200 && !condition(); i++)
+            await Task.Delay(10);
+        Assert.That(condition(), Is.True, "condition not met in time");
     }
 
     private HomeSeekerViewModel CreateViewModel() => new(_service.Object, NullLogger<HomeSeekerViewModel>.Instance);

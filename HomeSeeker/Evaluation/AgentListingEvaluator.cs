@@ -72,6 +72,8 @@ public sealed class AgentListingEvaluator : IListingEvaluator
           otoczenie. Odległa lokalizacja obniża ocenę, nawet przy niskiej cenie za m².
           Jeśli podano "Odległość od centrum", uwzględnij ją: im dalej, tym niższa ocena
           lokalizacji (chyba że kryteria kupującego wprost preferują spokojne obrzeża).
+          Jeśli podano "Odległość od wskazanej lokalizacji kupującego", to ona jest ważniejsza
+          niż odległość od centrum: im bliżej tego punktu, tym lepiej.
 
         Oceniaj pod kątem (po sprawdzeniu kryteriów kupującego):
         - Lokalizacja i okolica (dostępność centrum i komunikacji)
@@ -244,7 +246,10 @@ public sealed class AgentListingEvaluator : IListingEvaluator
         {
             sb.AppendLine();
             var approx = benchmark.DistanceIsApproximate ? "ok. " : string.Empty;
-            sb.AppendLine($"Odległość od centrum miasta (w linii prostej): {approx}{distance.ToString("0.0", ci)} km");
+            var from = benchmark.DistanceFromHome
+                ? "Odległość od wskazanej lokalizacji kupującego"
+                : "Odległość od centrum miasta";
+            sb.AppendLine($"{from} (w linii prostej): {approx}{distance.ToString("0.0", ci)} km");
         }
 
         sb.AppendLine();
@@ -372,7 +377,7 @@ public sealed class AgentListingEvaluator : IListingEvaluator
                 var titleEncoded = System.Net.WebUtility.HtmlEncode(listing.Title ?? string.Empty);
                 var titleCell = (TryBuildSafeLink(listing.Url, titleEncoded)
                     ?? titleEncoded) // Fallback to plain text when the URL is unsafe.
-                    + $"<br><span style=\"color: #7f8c8d; font-size: 12px;\">{(listing.PropertyType == PropertyTypes.Apartment ? "🏢 Mieszkanie" : "🏠 Dom")}{FormatDistance(listing)}</span>";
+                    + $"<br><span style=\"color: #7f8c8d; font-size: 12px;\">{(listing.PropertyType == PropertyTypes.Apartment ? "🏢 Mieszkanie" : "🏠 Dom")}{FormatDistance(listing, profile.Home is not null)}</span>";
                 var priceCell = listing.Price.ToString("N0", System.Globalization.CultureInfo.InvariantCulture);
                 var areaCell = listing.AreaSqm.ToString("N0", System.Globalization.CultureInfo.InvariantCulture);
                 var discountBadge = listing.PreviousPrice.HasValue && listing.PreviousPrice > listing.Price
@@ -428,13 +433,14 @@ public sealed class AgentListingEvaluator : IListingEvaluator
         return sb.ToString();
     }
 
-    private static string FormatDistance(HouseListing listing)
+    private static string FormatDistance(HouseListing listing, bool fromHome)
     {
         if (listing.DistanceFromCenterKm is not { } km)
             return string.Empty;
 
         var prefix = listing.DistanceIsApproximate ? "ok. " : string.Empty;
-        return $" · 📍 {prefix}{km.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture).Replace('.', ',')} km do centrum";
+        var suffix = fromHome ? "od naszej lokalizacji" : "do centrum";
+        return $" · 📍 {prefix}{km.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture).Replace('.', ',')} km {suffix}";
     }
 
     /// <summary>

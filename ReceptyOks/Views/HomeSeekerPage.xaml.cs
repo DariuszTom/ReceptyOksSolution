@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using Microsoft.Extensions.Logging;
 using ReceptyOks.ViewModels;
 using UraniumUI.Material.Controls;
 
@@ -9,6 +10,7 @@ public partial class HomeSeekerPage : ContentPage
     private readonly HomeSeekerViewModel _viewModel;
     private bool _initialized;
     private bool _componentReady;
+    private HomeSeekerMapView? _map;
 
     public HomeSeekerPage(HomeSeekerViewModel viewModel)
     {
@@ -38,7 +40,11 @@ public partial class HomeSeekerPage : ContentPage
 
         var section = tab == ProfileTab ? HomeSeekerSection.Profile
             : tab == ScansTab ? HomeSeekerSection.Scans
+            : tab == MapTab ? HomeSeekerSection.Map
             : HomeSeekerSection.Listings;
+
+        if (section == HomeSeekerSection.Map)
+            EnsureMap();
 
         if (_viewModel.CurrentSection != section)
             _viewModel.CurrentSection = section;
@@ -48,8 +54,38 @@ public partial class HomeSeekerPage : ContentPage
     {
         HomeSeekerSection.Profile => ProfileTab,
         HomeSeekerSection.Scans => ScansTab,
+        HomeSeekerSection.Map => MapTab,
         _ => ListingsTab,
     };
+
+    // The map (tiles, Skia surface) is only created when the tab is opened for the first time.
+    private void EnsureMap()
+    {
+        if (_map is not null)
+            return;
+
+        try
+        {
+            _map = new HomeSeekerMapView(_viewModel, (title, message) => DisplayAlertAsync(title, message, "Ustaw", "Anuluj"));
+            MapHost.Children.Insert(0, _map.Control);
+        }
+        catch (Exception ex)
+        {
+            _map = null;
+            Handler?.MauiContext?.Services.GetService<ILogger<HomeSeekerPage>>()?.LogError(ex, "Creating the map failed");
+            _viewModel.ErrorMessage = "Nie udało się utworzyć mapy";
+        }
+    }
+
+    protected override void OnHandlerChanging(HandlerChangingEventArgs args)
+    {
+        base.OnHandlerChanging(args);
+        if (args.NewHandler is null)
+        {
+            _map?.Detach();
+            _map = null;
+        }
+    }
 
     protected override async void OnAppearing()
     {

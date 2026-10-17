@@ -998,6 +998,85 @@ public sealed class MarketScanServiceTests
         scraper.Verify(s => s.GetDetailsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
+    [Test]
+    public async Task RunScan_SavesCoordinates_AndMeasuresDistanceFromHome_WhenHomeIsSet()
+    {
+        AddUpsert("a", price: 600_000, area: 50, isNew: true);
+        var listingPoint = new GeoPoint(51.1, 17.0);
+        var home = new GeoPoint(51.05, 16.95);
+        _profile.HomeLatitude = home.Latitude;
+        _profile.HomeLongitude = home.Longitude;
+
+        var scraper = Mock.Get(SucceedingScraper("Otodom", "a"));
+        scraper.Setup(s => s.GetDetailsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ListingDetails("Opis", listingPoint));
+        var centers = new Mock<ICityCenterProvider>();
+        centers.Setup(c => c.GetCenterAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(new GeoPoint(51.11, 17.03));
+
+        await CreateSut([scraper.Object], centers: centers.Object).RunScanAsync(ProfileId);
+
+        var expectedKm = Math.Round(listingPoint.DistanceKmTo(home), 1);
+        _repository.Verify(r => r.SaveCoordinatesAsync(_upsertResults["a"].Listing.Id, listingPoint, It.IsAny<CancellationToken>()), Times.Once);
+        _repository.Verify(r => r.SaveDistanceAsync(It.IsAny<Guid>(), expectedKm, false, It.IsAny<CancellationToken>()), Times.Once);
+        _evaluator.Verify(e => e.EvaluateAsync(It.IsAny<SearchProfile>(), It.IsAny<HouseListing>(), "Opis",
+            It.Is<PriceBenchmark?>(b => b != null && b.DistanceFromCenterKm == expectedKm && b.DistanceFromHome),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Test]
+    public async Task RunScan_IgnoresCoordinatesFarFromTheCity()
+    {
+        AddUpsert("a", price: 600_000, area: 50, isNew: true);
+        // Kraków – a portal geocoding error for a Wrocław listing (~240 km away).
+        var scraper = Mock.Get(SucceedingScraper("Otodom", "a"));
+        scraper.Setup(s => s.GetDetailsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ListingDetails("Opis", new GeoPoint(50.06, 19.94)));
+        var centers = new Mock<ICityCenterProvider>();
+        centers.Setup(c => c.GetCenterAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(new GeoPoint(51.11, 17.03));
+
+        await CreateSut([scraper.Object], centers: centers.Object).RunScanAsync(ProfileId);
+
+        _repository.Verify(r => r.SaveCoordinatesAsync(It.IsAny<Guid>(), It.IsAny<GeoPoint>(), It.IsAny<CancellationToken>()), Times.Never);
+        _repository.Verify(r => r.SaveDistanceAsync(It.IsAny<Guid>(), It.IsAny<double>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()), Times.Never);
+        _evaluator.Verify(e => e.EvaluateAsync(It.IsAny<SearchProfile>(), It.IsAny<HouseListing>(), "Opis",
+            It.Is<PriceBenchmark?>(b => b == null || b.DistanceFromCenterKm == null), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Test]
+    public void ListingGroups_JoinsCrossPortalCopies_AtTheSameExactLocation()
+    {
+        // Same flat on two portals: price/area rounded differently, pins ~10 m apart.
+        var otodom = Located(Listing(price: 650_000, area: 52.4m), 51.10000, 17.03000);
+        var olx = Located(Listing(price: 655_000, area: 52m), 51.10009, 17.03000);
+
+        var groups = new ListingGroups([otodom, olx]);
+
+        Assert.That(groups.GroupOf(otodom), Is.EqualTo(groups.GroupOf(olx)));
+    }
+
+    // 652k vs 650k: within tolerance, but not the exact "dup:" key – only the location decides.
+    [TestCase(51.10100, 17.03000, false, 652_000, 52.4, TestName = "ListingGroups_KeepsApart_WhenFartherThan30m")]
+    [TestCase(51.10009, 17.03000, true, 652_000, 52.4, TestName = "ListingGroups_KeepsApart_WhenLocationApproximate")]
+    [TestCase(51.10009, 17.03000, false, 720_000, 52.4, TestName = "ListingGroups_KeepsApart_WhenPriceDiffers")]
+    [TestCase(51.10009, 17.03000, false, 650_000, 60.0, TestName = "ListingGroups_KeepsApart_WhenAreaDiffers")]
+    public void ListingGroups_DoesNotJoinDifferentOffers(double lat, double lon, bool approximate, decimal price, decimal area)
+    {
+        var a = Located(Listing(price: 650_000, area: 52.4m), 51.10000, 17.03000);
+        var b = Located(Listing(price: price, area: area), lat, lon, approximate);
+
+        var groups = new ListingGroups([a, b]);
+
+        Assert.That(groups.GroupOf(a), Is.Not.EqualTo(groups.GroupOf(b)));
+    }
+
+    private static HouseListing Located(HouseListing listing, double lat, double lon, bool approximate = false)
+    {
+        listing.Latitude = lat;
+        listing.Longitude = lon;
+        listing.CoordinatesApproximate = approximate;
+        return listing;
+    }
+
     private MarketScanService CreateSut(IEnumerable<IListingScraper> scrapers, int maxCandidates = 8,
         ICityCenterProvider? centers = null, IPropertyValuationProvider? valuations = null, int maxDistanceBackfill = 5) =>
         new(

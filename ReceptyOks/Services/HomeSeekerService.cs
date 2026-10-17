@@ -43,18 +43,7 @@ public class HomeSeekerService(HttpClient httpClient, IAccessTokenRefresher toke
             $"pageNumber={pageNumber.ToString(CultureInfo.InvariantCulture)}",
             $"pageSize={pageSize.ToString(CultureInfo.InvariantCulture)}"
         };
-        if (query.MinScore is { } score)
-            parameters.Add($"minScore={score.ToString(CultureInfo.InvariantCulture)}");
-        if (!string.IsNullOrWhiteSpace(query.Sort))
-            parameters.Add($"sort={Uri.EscapeDataString(query.Sort)}");
-        if (query.PropertyType is { } propertyType)
-            parameters.Add($"propertyType={((int)propertyType).ToString(CultureInfo.InvariantCulture)}");
-        if (!string.IsNullOrWhiteSpace(query.Portal))
-            parameters.Add($"portal={Uri.EscapeDataString(query.Portal)}");
-        if (query.MaxDistanceKm is { } maxDistance)
-            parameters.Add($"maxDistanceKm={maxDistance.ToString(CultureInfo.InvariantCulture)}");
-        if (query.PriceDropOnly)
-            parameters.Add("priceDropOnly=true");
+        AddFilters(parameters, query, includeSort: true);
         if (query.EvaluatedOnly)
             parameters.Add("evaluatedOnly=true");
 
@@ -64,6 +53,37 @@ public class HomeSeekerService(HttpClient httpClient, IAccessTokenRefresher toke
             ct => httpClient.GetAsync(url, ct),
             (response, ct) => response.Content.ReadFromJsonAsync<HomeSeekerPagedResult<HomeSeekerListing>>(ct),
             cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<HomeSeekerResult<List<HomeSeekerMapListing>>> GetMapListingsAsync(
+        int limit, HomeSeekerListingQuery query, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+
+        var parameters = new List<string> { $"limit={limit.ToString(CultureInfo.InvariantCulture)}" };
+        AddFilters(parameters, query, includeSort: false);
+        var url = $"{BasePath}/map?{string.Join('&', parameters)}";
+
+        return await ExecuteAsync(
+            ct => httpClient.GetAsync(url, ct),
+            async (response, ct) => await response.Content.ReadFromJsonAsync<List<HomeSeekerMapListing>>(ct).ConfigureAwait(false) ?? [],
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    private static void AddFilters(List<string> parameters, HomeSeekerListingQuery query, bool includeSort = false)
+    {
+        if (query.MinScore is { } score)
+            parameters.Add($"minScore={score.ToString(CultureInfo.InvariantCulture)}");
+        if (includeSort && !string.IsNullOrWhiteSpace(query.Sort))
+            parameters.Add($"sort={Uri.EscapeDataString(query.Sort)}");
+        if (query.PropertyType is { } propertyType)
+            parameters.Add($"propertyType={((int)propertyType).ToString(CultureInfo.InvariantCulture)}");
+        if (!string.IsNullOrWhiteSpace(query.Portal))
+            parameters.Add($"portal={Uri.EscapeDataString(query.Portal)}");
+        if (query.MaxDistanceKm is { } maxDistance)
+            parameters.Add($"maxDistanceKm={maxDistance.ToString(CultureInfo.InvariantCulture)}");
+        if (query.PriceDropOnly)
+            parameters.Add("priceDropOnly=true");
     }
 
     public async Task<HomeSeekerResult<List<HomeSeekerScanRun>>> GetScansAsync(int count = 20, CancellationToken cancellationToken = default)

@@ -8,6 +8,7 @@ namespace ReceptyOks.ViewModels;
 public enum HomeSeekerSection
 {
     Listings,
+    Map,
     Scans,
     Profile
 }
@@ -34,7 +35,7 @@ public partial class HomeSeekerViewModel(IHomeSeekerService service, ILogger<Hom
     private bool _reloadListingsAfterLoad;
 
     public IReadOnlyList<string> SortOptions { get; } =
-        ["Ocena AI", "Cena", "Cena malejąco", "Cena za m²", "Największa powierzchnia", "Najbliżej centrum", "Najnowsze"];
+        ["Ocena AI", "Cena", "Cena malejąco", "Cena za m²", "Największa powierzchnia", "Najbliżej", "Najnowsze"];
 
     public IReadOnlyList<string> MinScoreOptions { get; } = ["Wszystkie", "Ocena ≥ 50", "Ocena ≥ 70", "Ocena ≥ 85"];
 
@@ -42,17 +43,18 @@ public partial class HomeSeekerViewModel(IHomeSeekerService service, ILogger<Hom
 
     public IReadOnlyList<string> PortalOptions { get; } = ["Wszystkie portale", "Otodom", "OLX"];
 
-    public IReadOnlyList<string> MaxDistanceOptions { get; } = ["Dowolna odległość", "≤ 3 km od centrum", "≤ 5 km od centrum", "≤ 10 km od centrum"];
+    public IReadOnlyList<string> MaxDistanceOptions { get; } = ["Dowolna odległość", "≤ 3 km", "≤ 5 km", "≤ 10 km"];
 
     public ObservableCollection<HomeSeekerListing> Listings { get; } = [];
 
     public ObservableCollection<HomeSeekerScanRun> Scans { get; } = [];
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsListingsSection), nameof(IsScansSection), nameof(IsProfileSection))]
+    [NotifyPropertyChangedFor(nameof(IsListingsSection), nameof(IsMapSection), nameof(IsScansSection), nameof(IsProfileSection))]
     private HomeSeekerSection currentSection = HomeSeekerSection.Listings;
 
     public bool IsListingsSection => CurrentSection == HomeSeekerSection.Listings;
+    public bool IsMapSection => CurrentSection == HomeSeekerSection.Map;
     public bool IsScansSection => CurrentSection == HomeSeekerSection.Scans;
     public bool IsProfileSection => CurrentSection == HomeSeekerSection.Profile;
 
@@ -180,6 +182,8 @@ public partial class HomeSeekerViewModel(IHomeSeekerService service, ILogger<Hom
 
     private void ReloadListingsForFilterChange()
     {
+        ReloadMapIfLoaded();
+
         if (IsLoading)
         {
             // LoadAsync may already have requested listings with the previous filters.
@@ -224,6 +228,8 @@ public partial class HomeSeekerViewModel(IHomeSeekerService service, ILogger<Hom
             }
 
             await Task.WhenAll(LoadListingsCoreAsync(cancellationToken), LoadScansCoreAsync(cancellationToken));
+            if (CurrentSection == HomeSeekerSection.Map && !_mapLoaded)
+                LoadMapCommand.Execute(null);
 
             // Filters may change again while a replay is in flight; keep going until they settle.
             while (_reloadListingsAfterLoad)
@@ -324,6 +330,10 @@ public partial class HomeSeekerViewModel(IHomeSeekerService service, ILogger<Hom
 
         var request = new HomeSeekerProfileRequest
         {
+            // "Our location" is edited on the map; keep it when saving the form.
+            HomeLatitude = _profile?.HomeLatitude,
+            HomeLongitude = _profile?.HomeLongitude,
+            HomeLabel = _profile?.HomeLabel,
             City = City.Trim(),
             District = string.IsNullOrWhiteSpace(District) ? null : District.Trim(),
             PropertyTypes = propertyTypes,
@@ -355,6 +365,7 @@ public partial class HomeSeekerViewModel(IHomeSeekerService service, ILogger<Hom
                 ApplyProfile(result.Value);
                 await SnackBarHelper.ShowInfoSnackbarAsync("Profil zapisany");
                 await Task.WhenAll(LoadListingsCoreAsync(cancellationToken), LoadScansCoreAsync(cancellationToken));
+                ReloadMapIfLoaded();
             }
             else if (result.Status == HomeSeekerCallStatus.ValidationFailed && result.Errors.Count > 0)
             {
@@ -480,6 +491,8 @@ public partial class HomeSeekerViewModel(IHomeSeekerService service, ILogger<Hom
 
     private void ApplyProfile(HomeSeekerProfile profile)
     {
+        _profile = profile;
+        OnHomeChanged();
         City = profile.City;
         District = profile.District;
         SearchHouses = profile.PropertyTypes.HasFlag(HomeSeekerPropertyTypes.House);
