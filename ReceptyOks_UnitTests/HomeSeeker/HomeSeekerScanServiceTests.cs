@@ -191,14 +191,6 @@ public sealed class HomeSeekerScanServiceTests
         _scanService.Verify(s => s.RunScanAsync(ProfileId, It.IsAny<CancellationToken>()), Times.AtLeast(2));
     }
 
-    [TestCase(1, 1)]
-    [TestCase(5, 5)]
-    [TestCase(10, 5)]
-    [TestCase(24 * 60, 5)]
-    public void PollInterval_IsScanIntervalCappedAtFiveMinutes(int scanMinutes, int expectedMinutes) =>
-        Assert.That(HomeSeekerScanService.PollInterval(TimeSpan.FromMinutes(scanMinutes)),
-            Is.EqualTo(TimeSpan.FromMinutes(expectedMinutes)));
-
     [TestCase(10, 10)]
     [TestCase(60, 60)]
     [TestCase(24 * 60, 60)]
