@@ -202,7 +202,7 @@ GET    /scans/{id}/report           Results.Content(ReportHtml, "text/html") + r
 - **Raport:** `HomeSeekerReportPage` = WebView z HTML z `/scans/{id}/report` i wstrzykniętym meta-CSP (`default-src 'none'`). Nawigacja http(s) w WebView jest anulowana, a link otwierany w przeglądarce systemowej.
 - **Testy:** `HomeSeekerClientServiceTests` (24) — mapowanie statusów (404/400/401/błąd sieci), refresh + retry JWT, budowa query, zgodność DTO z modelami serwera, `ParseList`, `HasHttpUrl`, `ParseDecimal`, wstrzykiwanie CSP.
 
-### Faza 9 — mapa ofert i „nasza lokalizacja” 📝 zaplanowana
+### Faza 9 — mapa ofert i „nasza lokalizacja” ✅ zaimplementowana (wizualnie do sprawdzenia w aplikacji)
 
 **Cel:** zakładka „Mapa” w `HomeSeekerPage` z pinezkami ocenionych ofert (domyślnie top 50 wg `AiScore`)
 oraz punktem „nasza lokalizacja”, który zastępuje centrum miasta przy liczeniu odległości i w ocenie AI.
@@ -248,6 +248,14 @@ oraz punktem „nasza lokalizacja”, który zastępuje centrum miasta przy licz
 przeliczenie odległości po zmianie Home, endpoint mapy (filtry, limit, tylko z współrzędnymi),
 walidator Home, backfill (pomija przy lease / bez scrapera), algorytm rozsuwania pinezek, DTO klienta.
 
+**Dodatkowe użycie `GeoPoint`:**
+- Kontrola wiarygodności: współrzędne dalej niż 60 km od centrum miasta są odrzucane (błędny pin na portalu).
+- Deduplikacja po lokalizacji w `ListingGroups`: dokładne piny ≤ 30 m, ten sam typ, metraż ±2%, cena ±5%
+  łączą kopie z różnych portali, których nie złapał dokładny klucz `dup:` (przybliżone piny OLX pomijane).
+
+**Realizacja:** mapa w `ReceptyOks/Views/HomeSeekerMapView.cs` (Mapsui 5.1, budowana leniwie w code-behind),
+stan w `HomeSeekerViewModel.Map.cs` (zamiast osobnego VM); rozsuwanie w `Models/HomeSeeker/MapPinLayout.cs`.
+
 ## 5. Model danych
 
 ```
@@ -288,7 +296,7 @@ SearchProfile 1 ──── * HouseListing      (unikalny: SearchProfileId+Port
 | 6. Konfiguracja | ✅ appsettings, CI, sekrety SMTP w Key Vault; `main.bicep` celowo bez zmian |
 | 7. Testy | ✅ 70 jednostkowych HomeSeeker (parsery, `NotificationEmails`, `SearchAsync`, `MarketScanService`, `AgentListingEvaluator`, `HomeSeekerScanService`) + 18 integracyjnych endpointów |
 | 8. Klient MAUI | ✅ `HomeSeekerPage` + `HomeSeekerReportPage`, JWT refresh/retry, 24 testy klienta |
-| 9. Mapa ofert + nasza lokalizacja | 📝 zaplanowana (Mapsui, współrzędne, `/map`, backfill) |
+| 9. Mapa ofert + nasza lokalizacja | ✅ (Mapsui, współrzędne, `/map`, backfill, Home, dedup po lokalizacji) |
 
 ### Pozostało do zrobienia
 

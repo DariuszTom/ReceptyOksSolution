@@ -43,9 +43,7 @@ public class HomeSeekerService(HttpClient httpClient, IAccessTokenRefresher toke
             $"pageNumber={pageNumber.ToString(CultureInfo.InvariantCulture)}",
             $"pageSize={pageSize.ToString(CultureInfo.InvariantCulture)}"
         };
-        if (!string.IsNullOrWhiteSpace(query.Sort))
-            parameters.Add($"sort={Uri.EscapeDataString(query.Sort)}");
-        AddFilters(parameters, query);
+        AddFilters(parameters, query, includeSort: true);
         if (query.EvaluatedOnly)
             parameters.Add("evaluatedOnly=true");
 
@@ -63,7 +61,7 @@ public class HomeSeekerService(HttpClient httpClient, IAccessTokenRefresher toke
         ArgumentNullException.ThrowIfNull(query);
 
         var parameters = new List<string> { $"limit={limit.ToString(CultureInfo.InvariantCulture)}" };
-        AddFilters(parameters, query);
+        AddFilters(parameters, query, includeSort: false);
         var url = $"{BasePath}/map?{string.Join('&', parameters)}";
 
         return await ExecuteAsync(
@@ -72,10 +70,12 @@ public class HomeSeekerService(HttpClient httpClient, IAccessTokenRefresher toke
             cancellationToken).ConfigureAwait(false);
     }
 
-    private static void AddFilters(List<string> parameters, HomeSeekerListingQuery query)
+    private static void AddFilters(List<string> parameters, HomeSeekerListingQuery query, bool includeSort = false)
     {
         if (query.MinScore is { } score)
             parameters.Add($"minScore={score.ToString(CultureInfo.InvariantCulture)}");
+        if (includeSort && !string.IsNullOrWhiteSpace(query.Sort))
+            parameters.Add($"sort={Uri.EscapeDataString(query.Sort)}");
         if (query.PropertyType is { } propertyType)
             parameters.Add($"propertyType={((int)propertyType).ToString(CultureInfo.InvariantCulture)}");
         if (!string.IsNullOrWhiteSpace(query.Portal))
