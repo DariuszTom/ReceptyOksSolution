@@ -14,21 +14,26 @@ public sealed class HomeSeekerScanService : BackgroundService
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly HomeSeekerOptions _options;
     private readonly ILogger<HomeSeekerScanService> _logger;
+    private readonly TimeProvider _time;
+    private DateTimeOffset _retryNotBefore = DateTimeOffset.MinValue;
 
     public HomeSeekerScanService(
         IServiceScopeFactory scopeFactory,
         IOptions<HomeSeekerOptions> options,
-        ILogger<HomeSeekerScanService> logger)
+        ILogger<HomeSeekerScanService> logger,
+        TimeProvider? timeProvider = null)
     {
         _scopeFactory = scopeFactory;
         _options = options.Value;
         _logger = logger;
+        _time = timeProvider ?? TimeProvider.System;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _logger.LogInformation("HomeSeeker scan service starting. Enabled={Enabled}, Interval={Interval}",
-            _options.Enabled, _options.ScanInterval);
+        _logger.LogInformation(
+            "HomeSeeker scan service starting. Enabled={Enabled}, Interval={Interval}, DueCheckEvery={Poll}",
+            _options.Enabled, _options.ScanInterval, PollInterval(_options.ScanInterval));
 
         if (!_options.Enabled)
         {
@@ -49,7 +54,7 @@ public sealed class HomeSeekerScanService : BackgroundService
         // this a no-op when the profile was scanned recently), then on every tick.
         await ScanSharedProfileAsync(stoppingToken).ConfigureAwait(false);
 
-        using var timer = new PeriodicTimer(_options.ScanInterval);
+        using var timer = new PeriodicTimer(PollInterval(_options.ScanInterval));
 
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -83,8 +88,32 @@ public sealed class HomeSeekerScanService : BackgroundService
         }
     }
 
+    /// <summary>Upper bound on how late a due scan may start.</summary>
+    public static readonly TimeSpan MaxPollInterval = TimeSpan.FromMinutes(30);
+
+    /// <summary>
+    /// How often to check whether a scan is due. Ticking once per <see cref="HomeSeekerOptions.ScanInterval"/>
+    /// doubled the effective cycle: <c>LastScannedAt</c> is stamped when a scan finishes, so at the next
+    /// tick the profile was still a few minutes short of due and the scan slipped a whole interval.
+    /// Polling often is cheap (the due/lease check is one conditional UPDATE) and keeps scans on schedule.
+    /// </summary>
+    public static TimeSpan PollInterval(TimeSpan scanInterval) =>
+        scanInterval < MaxPollInterval ? scanInterval : MaxPollInterval;
+
+    /// <summary>Upper bound on the pause after a failed scan.</summary>
+    public static readonly TimeSpan MaxFailedScanRetryDelay = TimeSpan.FromHours(1);
+
+    /// <summary>
+    /// Pause after a failed scan, so a blocked portal (403) is not hammered on every due check.
+    /// </summary>
+    public static TimeSpan FailedScanRetryDelay(TimeSpan scanInterval) =>
+        scanInterval < MaxFailedScanRetryDelay ? scanInterval : MaxFailedScanRetryDelay;
+
     private async Task ScanSharedProfileAsync(CancellationToken stoppingToken)
     {
+        if (_time.GetUtcNow() < _retryNotBefore)
+            return;
+
         await using var scope = _scopeFactory.CreateAsyncScope();
         var repository = scope.ServiceProvider.GetRequiredService<IListingRepository>();
 
@@ -148,6 +177,10 @@ public sealed class HomeSeekerScanService : BackgroundService
         }
         finally
         {
+            _retryNotBefore = succeeded
+                ? DateTimeOffset.MinValue
+                : _time.GetUtcNow() + FailedScanRetryDelay(_options.ScanInterval);
+
             // Always release the lease so other instances can pick the profile up, but only
             // stamp LastScannedAt on success so failed/cancelled scans are retried next cycle.
             // Use CancellationToken.None so a shutdown cannot leave the row leased forever.

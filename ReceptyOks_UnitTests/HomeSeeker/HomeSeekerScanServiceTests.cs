@@ -152,6 +152,60 @@ public sealed class HomeSeekerScanServiceTests
         _repository.VerifyNoOtherCalls();
     }
 
+    [Test]
+    public async Task WhenNotYetDue_KeepsCheckingWithinOneScanInterval()
+    {
+        var attempts = 0;
+        var thirdAttempt = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        _repository.Setup(r => r.TryAcquireScanLeaseAsync(ProfileId, It.IsAny<CancellationToken>()))
+            .Callback(() => { if (Interlocked.Increment(ref attempts) >= 3) thirdAttempt.TrySetResult(); })
+            .ReturnsAsync((Guid?)null);
+
+        var sut = CreateSut(enabled: true, scanInterval: TimeSpan.FromMilliseconds(50));
+        await sut.StartAsync(CancellationToken.None);
+        var completed = await Task.WhenAny(thirdAttempt.Task, Task.Delay(TimeSpan.FromSeconds(5)));
+        await sut.StopAsync(CancellationToken.None);
+
+        Assert.That(completed, Is.SameAs(thirdAttempt.Task), "due check was not repeated");
+    }
+
+    [Test]
+    public async Task AfterFailedScan_WaitsBeforeRetrying()
+    {
+        var time = new ManualTimeProvider();
+        _repository.Setup(r => r.TryAcquireScanLeaseAsync(ProfileId, It.IsAny<CancellationToken>())).ReturnsAsync(Guid.NewGuid());
+        _scanService.Setup(s => s.RunScanAsync(ProfileId, It.IsAny<CancellationToken>())).ReturnsAsync(false);
+
+        var sut = CreateSut(enabled: true, scanInterval: TimeSpan.FromMilliseconds(20), timeProvider: time);
+        await sut.StartAsync(CancellationToken.None);
+        await _released.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        await Task.Delay(200);
+
+        _scanService.Verify(s => s.RunScanAsync(ProfileId, It.IsAny<CancellationToken>()), Times.Once);
+
+        _released = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        time.Advance(TimeSpan.FromSeconds(1));
+        await _released.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        await sut.StopAsync(CancellationToken.None);
+
+        _scanService.Verify(s => s.RunScanAsync(ProfileId, It.IsAny<CancellationToken>()), Times.AtLeast(2));
+    }
+
+    [TestCase(1, 1)]
+    [TestCase(5, 5)]
+    [TestCase(10, 5)]
+    [TestCase(24 * 60, 5)]
+    public void PollInterval_IsScanIntervalCappedAtFiveMinutes(int scanMinutes, int expectedMinutes) =>
+        Assert.That(HomeSeekerScanService.PollInterval(TimeSpan.FromMinutes(scanMinutes)),
+            Is.EqualTo(TimeSpan.FromMinutes(expectedMinutes)));
+
+    [TestCase(10, 10)]
+    [TestCase(60, 60)]
+    [TestCase(24 * 60, 60)]
+    public void FailedScanRetryDelay_IsScanIntervalCappedAtOneHour(int scanMinutes, int expectedMinutes) =>
+        Assert.That(HomeSeekerScanService.FailedScanRetryDelay(TimeSpan.FromMinutes(scanMinutes)),
+            Is.EqualTo(TimeSpan.FromMinutes(expectedMinutes)));
+
     private async Task RunAsync(bool enabled = true)
     {
         var sut = CreateSut(enabled);
@@ -170,14 +224,26 @@ public sealed class HomeSeekerScanServiceTests
         Assert.That(completed, Is.SameAs(_released.Task), "lease was not released");
     }
 
-    private HomeSeekerScanService CreateSut(bool enabled, TimeSpan? startupDelay = null) =>
+    private HomeSeekerScanService CreateSut(
+        bool enabled, TimeSpan? startupDelay = null, TimeSpan? scanInterval = null, TimeProvider? timeProvider = null) =>
         new(
             _provider.GetRequiredService<IServiceScopeFactory>(),
             Options.Create(new HomeSeekerOptions
             {
                 Enabled = enabled,
                 StartupDelay = startupDelay ?? TimeSpan.Zero,
-                ScanInterval = TimeSpan.FromHours(1)
+                ScanInterval = scanInterval ?? TimeSpan.FromHours(1)
             }),
-            NullLogger<HomeSeekerScanService>.Instance);
+            NullLogger<HomeSeekerScanService>.Instance,
+            timeProvider);
+
+    /// <summary>Clock for the failed-scan back-off; timers still run on real time.</summary>
+    private sealed class ManualTimeProvider : TimeProvider
+    {
+        private long _ticks = DateTimeOffset.UtcNow.UtcTicks;
+
+        public override DateTimeOffset GetUtcNow() => new(Interlocked.Read(ref _ticks), TimeSpan.Zero);
+
+        public void Advance(TimeSpan by) => Interlocked.Add(ref _ticks, by.Ticks);
+    }
 }
