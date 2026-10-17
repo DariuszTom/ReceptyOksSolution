@@ -12,7 +12,8 @@ namespace ReceptyOks.Api.Endpoints;
 public static class HomeSeekerEndpoints
 {
     private const int MapDefaultLimit = 50;
-    private const int MapMaxLimit = 200;
+    /// <summary>Safety cap; also what <c>limit=0</c> ("all") resolves to.</summary>
+    private const int MapMaxLimit = 1000;
 
     public static void MapHomeSeekerEndpoints(this WebApplication app)
     {
@@ -149,7 +150,7 @@ public static class HomeSeekerEndpoints
             IOptions<HomeSeekerOptions> options = default!,
             CancellationToken ct = default) =>
         {
-            limit = Math.Clamp(limit, 1, MapMaxLimit);
+            limit = limit <= 0 ? MapMaxLimit : Math.Min(limit, MapMaxLimit);
 
             var profile = await repository.GetSharedProfileAsync(ct).ConfigureAwait(false);
             if (profile is null)
@@ -175,7 +176,7 @@ public static class HomeSeekerEndpoints
                 var ranked = await repository.GetMapListingsAsync(profile.Id, query, fetch, ct).ConfigureAwait(false);
                 var groups = new ListingGroups(ranked.Concat(groupingSample));
                 capped = ListingGroups.CapPerGroup(ranked, maxPerGroup, groups).Take(limit).ToList();
-                if (capped.Count >= limit || ranked.Count < fetch || fetch >= MapMaxLimit * 16)
+                if (capped.Count >= limit || ranked.Count < fetch || fetch >= MapMaxLimit * 4)
                     break;
                 fetch *= 2;
             }

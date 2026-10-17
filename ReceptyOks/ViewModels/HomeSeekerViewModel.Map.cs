@@ -9,6 +9,20 @@ public partial class HomeSeekerViewModel
 {
     public const int MapListingLimit = 50;
 
+    /// <summary>"All" for the map endpoint (the server applies its own safety cap).</summary>
+    public const int MapAllListings = 0;
+
+    private static readonly int[] MapLimitValues = [50, 100, 200, 300, MapAllListings];
+
+    public IReadOnlyList<string> MapLimitOptions { get; } = ["50", "100", "200", "300", "Wszystkie"];
+
+    [ObservableProperty]
+    private string? selectedMapLimitOption = "50";
+
+    public int CurrentMapLimit => MapLimitValues[Math.Max(0, IndexOf(MapLimitOptions, SelectedMapLimitOption))];
+
+    partial void OnSelectedMapLimitOptionChanged(string? value) => ReloadMapIfLoaded();
+
     private HomeSeekerProfile? _profile;
     private int _mapGeneration;
     private bool _mapLoaded;
@@ -53,7 +67,7 @@ public partial class HomeSeekerViewModel
         try
         {
             IsMapLoading = true;
-            var result = await service.GetMapListingsAsync(MapListingLimit, CurrentQuery, cancellationToken);
+            var result = await service.GetMapListingsAsync(CurrentMapLimit, CurrentQuery, cancellationToken);
             if (generation != _mapGeneration)
                 return;
 
@@ -65,7 +79,9 @@ public partial class HomeSeekerViewModel
                     SelectedMapListing = null;
                 MapStatusText = MapPins.Count == 0
                     ? "Brak ocenionych ofert z lokalizacją dla wybranych filtrów"
-                    : $"{MapPins.Count} najlepszych ofert";
+                    : CurrentMapLimit == MapAllListings
+                        ? $"Wszystkie oferty ({MapPins.Count})"
+                        : $"{MapPins.Count} najlepszych ofert";
                 MapDataChanged?.Invoke(this, EventArgs.Empty);
             }
             else

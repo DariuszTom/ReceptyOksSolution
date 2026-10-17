@@ -265,6 +265,32 @@ public sealed class HomeSeekerViewModelTests
     }
 
     [Test]
+    public async Task Map_LimitOption_ReloadsWithSelectedLimit()
+    {
+        _service.Setup(s => s.GetListingsAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<HomeSeekerListingQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Page(1, totalPages: 1, "x"));
+        var limits = new List<int>();
+        _service.Setup(s => s.GetMapListingsAsync(It.IsAny<int>(), It.IsAny<HomeSeekerListingQuery>(), It.IsAny<CancellationToken>()))
+            .Callback<int, HomeSeekerListingQuery, CancellationToken>((l, _, _) => limits.Add(l))
+            .ReturnsAsync(HomeSeekerResult<List<HomeSeekerMapListing>>.Ok(
+                [new HomeSeekerMapListing { Id = Guid.NewGuid(), Latitude = 51.1, Longitude = 17.03 }]));
+
+        var vm = CreateViewModel();
+        await vm.LoadCommand.ExecuteAsync(null);
+        vm.SelectedMapLimitOption = "200";
+        Assert.That(limits, Is.Empty, "changing the limit before the map is opened does not fetch");
+
+        vm.CurrentSection = HomeSeekerSection.Map;
+        await WaitUntil(() => !vm.LoadMapCommand.IsRunning && limits.Count == 1);
+        Assert.That(limits[0], Is.EqualTo(200));
+
+        vm.SelectedMapLimitOption = "Wszystkie";
+        await WaitUntil(() => !vm.LoadMapCommand.IsRunning && limits.Count == 2);
+        Assert.That(limits[1], Is.EqualTo(HomeSeekerViewModel.MapAllListings));
+        Assert.That(vm.MapStatusText, Does.StartWith("Wszystkie oferty (1)"));
+    }
+
+    [Test]
     public async Task Map_HomeFromProfile_IsExposed()
     {
         _service.Setup(s => s.GetProfileAsync(It.IsAny<CancellationToken>()))

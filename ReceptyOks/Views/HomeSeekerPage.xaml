@@ -7,6 +7,7 @@
              xmlns:hs="clr-namespace:ReceptyOks.Models.HomeSeeker"
              xmlns:icons="clr-namespace:UraniumUI.Icons.MaterialSymbols;assembly=UraniumUI.Icons.MaterialSymbols"
              xmlns:material="http://schemas.enisn-projects.io/dotnet/maui/uraniumui/material"
+             xmlns:uranium="http://schemas.enisn-projects.io/dotnet/maui/uraniumui"
              xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
              x:DataType="vm:HomeSeekerViewModel"
              Shell.NavBarIsVisible="False"
@@ -341,22 +342,32 @@
             <material:TabItem Title="Mapa" x:Name="MapTab">
                 <material:TabItem.Content>
                     <Grid RowDefinitions="Auto,*">
-                        <Grid Padding="16,8,16,6" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
-                            <VerticalStackLayout Grid.Column="0" Spacing="2" VerticalOptions="Center">
-                                <Label Text="{Binding MapStatusText}" Style="{StaticResource HsText}" FontAttributes="Bold"/>
-                                <Label Text="{Binding DistanceReferenceText}" Style="{StaticResource HsMuted}" FontSize="11"
-                                       MaxLines="2" LineBreakMode="TailTruncation"/>
-                                <Label Text="Filtry jak w zakładce Ogłoszenia" Style="{StaticResource HsMuted}" FontSize="11"/>
-                            </VerticalStackLayout>
-                            <Button Grid.Column="1" Text="GPS" FontSize="12" Padding="10,0" HeightRequest="36"
-                                    Command="{Binding UseGpsLocationCommand}"
-                                    ToolTipProperties.Text="Ustaw naszą lokalizację z GPS"/>
-                            <Button Grid.Column="2" Text="Usuń" FontSize="12" Padding="10,0" HeightRequest="36"
-                                    BackgroundColor="{StaticResource Gray400}"
-                                    IsVisible="{Binding HasHome}"
-                                    Command="{Binding ClearHomeCommand}"
-                                    ToolTipProperties.Text="Usuń naszą lokalizację (odległości od centrum)"/>
-                        </Grid>
+                        <uranium:ExpanderView Padding="16,6,16,6">
+                            <uranium:ExpanderView.Header>
+                                <Label Text="{Binding MapStatusText}" Style="{StaticResource HsText}" FontAttributes="Bold"
+                                       VerticalOptions="Center" Padding="0,6"/>
+                            </uranium:ExpanderView.Header>
+                            <Grid ColumnDefinitions="*,Auto,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="8" RowSpacing="4" Padding="0,2,0,4">
+                                <VerticalStackLayout Grid.Column="0" Spacing="2" VerticalOptions="Center">
+                                    <Label Text="{Binding DistanceReferenceText}" Style="{StaticResource HsMuted}" FontSize="11"
+                                           MaxLines="2" LineBreakMode="TailTruncation"/>
+                                    <Label Text="Filtry jak w zakładce Ogłoszenia" Style="{StaticResource HsMuted}" FontSize="11"/>
+                                </VerticalStackLayout>
+                                <Button Grid.Column="1" Text="GPS" FontSize="12" Padding="10,0" HeightRequest="36"
+                                        Command="{Binding UseGpsLocationCommand}"
+                                        ToolTipProperties.Text="Ustaw naszą lokalizację z GPS"/>
+                                <Button Grid.Column="2" Text="Usuń" FontSize="12" Padding="10,0" HeightRequest="36"
+                                        BackgroundColor="{StaticResource Gray400}"
+                                        IsVisible="{Binding HasHome}"
+                                        Command="{Binding ClearHomeCommand}"
+                                        ToolTipProperties.Text="Usuń naszą lokalizację (odległości od centrum)"/>
+                                <material:PickerField Grid.Row="1" Grid.Column="0" Title="Liczba ofert na mapie"
+                                                      ItemsSource="{Binding MapLimitOptions}"
+                                                      SelectedItem="{Binding SelectedMapLimitOption}"
+                                                      AllowClear="False"
+                                                      AccentColor="{StaticResource Primary}"/>
+                            </Grid>
+                        </uranium:ExpanderView>
 
                         <Grid Grid.Row="1" x:Name="MapHost">
                             <ActivityIndicator IsRunning="{Binding IsMapLoading}" IsVisible="{Binding IsMapLoading}"
