@@ -300,6 +300,7 @@ public static class HomeSeekerExtensions
         // HomeSeeker:DisabledPortals turns a portal off without a deployment of new code.
         services.AddSingleton<IListingScraper, OtodomScraper>();
         services.AddSingleton<IListingScraper, OlxScraper>();
+        services.AddSingleton<IListingScraper, NieruchomosciOnlineScraper>();
 
         // Repository
         services.AddScoped<IListingRepository, ListingRepository>();

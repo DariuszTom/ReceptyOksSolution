@@ -1,6 +1,9 @@
 # HomeSeeker – scraper nieruchomosci-online.pl (analiza wykonalności)
 
-Status: **rozpoznanie, nie zaimplementowano**. Data rozpoznania: 2026-10-18.
+Status: **zaimplementowano** (`Scrapers/NieruchomosciOnlineScraper.cs`, testy
+`NieruchomosciOnlineScraperTests`). Data rozpoznania: 2026-10-18.
+Przed włączeniem na produkcji sprawdzić dostęp z IP Azure (patrz „Ryzyka”); w razie blokady
+dodać `Nieruchomosci-online` do `HomeSeeker:DisabledPortals`.
 
 ## Werdykt
 
