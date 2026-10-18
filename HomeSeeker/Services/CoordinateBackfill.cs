@@ -19,6 +19,8 @@ public sealed class CoordinateBackfill(
     ICityCenterProvider? cityCenterProvider = null)
 {
     private readonly HomeSeekerOptions _options = options.Value;
+    private readonly List<IListingScraper> _scrapers =
+        scrapers.Where(s => options.Value.IsPortalEnabled(s.PortalName)).ToList();
 
     /// <summary>
     /// Processes up to <paramref name="maxListings"/> listings. Stops early while a scan holds
@@ -50,7 +52,7 @@ public sealed class CoordinateBackfill(
         {
             skipIds.Add(listing.Id);
 
-            var scraper = scrapers.FirstOrDefault(s =>
+            var scraper = _scrapers.FirstOrDefault(s =>
                 string.Equals(s.PortalName, listing.Portal, StringComparison.OrdinalIgnoreCase));
             if (scraper is null)
                 continue;

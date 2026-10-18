@@ -127,6 +127,24 @@ public sealed class MarketScanServiceTests
     }
 
     [Test]
+    public async Task RunScan_DisabledPortal_IsNotScrapedAndNotReported()
+    {
+        AddUpsert("a", price: 500_000, area: 100, isNew: true);
+
+        var disabled = new Mock<IListingScraper>();
+        disabled.SetupGet(s => s.PortalName).Returns("OLX");
+
+        var sut = CreateSut([SucceedingScraper("Otodom", "a"), disabled.Object], disabledPortals: ["olx"]);
+
+        var result = await sut.RunScanAsync(ProfileId);
+
+        Assert.That(result, Is.True);
+        disabled.Verify(s => s.SearchAsync(It.IsAny<SearchProfile>(), It.IsAny<CancellationToken>()), Times.Never);
+        _repository.Verify(r => r.CompleteScanRunAsync(_scanRun.Id, ScanStatus.Completed, 1, 1, 0, 1,
+            "<html>report</html>", null, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Test]
     public async Task RunScan_SelectsOnlyNewOrPriceDropped_OrderedByPricePerSqm_LimitedByOptions()
     {
         // price/m²: cheap=3000, mid=5000, dropped=4000, expensive=9000, unchanged=1000 (not a candidate)
@@ -1078,7 +1096,8 @@ public sealed class MarketScanServiceTests
     }
 
     private MarketScanService CreateSut(IEnumerable<IListingScraper> scrapers, int maxCandidates = 8,
-        ICityCenterProvider? centers = null, IPropertyValuationProvider? valuations = null, int maxDistanceBackfill = 5) =>
+        ICityCenterProvider? centers = null, IPropertyValuationProvider? valuations = null, int maxDistanceBackfill = 5,
+        string[]? disabledPortals = null) =>
         new(
             scrapers,
             _repository.Object,
@@ -1089,7 +1108,8 @@ public sealed class MarketScanServiceTests
                 MaxCandidatesPerScan = maxCandidates,
                 MaxDistanceBackfillPerScan = maxDistanceBackfill,
                 TopListingsInReport = 5,
-                RequestDelay = TimeSpan.Zero
+                RequestDelay = TimeSpan.Zero,
+                DisabledPortals = disabledPortals ?? []
             }),
             NullLogger<MarketScanService>.Instance,
             centers,

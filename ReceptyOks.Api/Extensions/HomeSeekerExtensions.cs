@@ -257,7 +257,7 @@ public static class HomeSeekerExtensions
             .ValidateOnStart();
 
         // Register named HttpClient for scrapers
-        services.AddHttpClient("homeseeker-scraper", client =>
+        services.AddHttpClient(ListingScraperBase.HttpClientName, client =>
         {
             client.DefaultRequestHeaders.Add("User-Agent",
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
@@ -295,7 +295,9 @@ public static class HomeSeekerExtensions
         services.AddSingleton<ICityCenterProvider, NominatimCityCenterProvider>();
         services.AddSingleton<IPropertyValuationProvider, DeweloperuchValuationProvider>();
 
-        // Scrapers
+        // Scrapers. A new portal: derive from ListingScraperBase, add its name to PortalNames and
+        // register it here; scans, backfill, the /portals filter list and the app pick it up.
+        // HomeSeeker:DisabledPortals turns a portal off without a deployment of new code.
         services.AddSingleton<IListingScraper, OtodomScraper>();
         services.AddSingleton<IListingScraper, OlxScraper>();
 

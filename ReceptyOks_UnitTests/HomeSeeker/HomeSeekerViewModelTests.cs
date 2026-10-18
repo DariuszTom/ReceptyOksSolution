@@ -19,6 +19,42 @@ public sealed class HomeSeekerViewModelTests
             .ReturnsAsync(HomeSeekerResult<HomeSeekerProfile>.Ok(new HomeSeekerProfile { City = "Wrocław" }));
         _service.Setup(s => s.GetScansAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(HomeSeekerResult<List<HomeSeekerScanRun>>.Ok([]));
+        _service.Setup(s => s.GetPortalsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(HomeSeekerResult<List<string>>.Ok(["OLX", "Otodom"]));
+    }
+
+    [Test]
+    public async Task Load_SyncsPortalOptionsWithServer_KeepingSelection()
+    {
+        _service.Setup(s => s.GetListingsAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<HomeSeekerListingQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Page(1, totalPages: 1, "x"));
+        _service.Setup(s => s.GetPortalsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(HomeSeekerResult<List<string>>.Ok(["Otodom", "Gratka"]));
+
+        var vm = CreateViewModel();
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.That(vm.PortalOptions, Is.EqualTo(new[] { "Wszystkie portale", "Otodom", "Gratka" }));
+        Assert.That(vm.SelectedPortalOption, Is.EqualTo("Wszystkie portale"));
+
+        vm.SelectedPortalOption = "Gratka";
+        await Task.Yield();
+        _service.Verify(s => s.GetListingsAsync(1, It.IsAny<int>(),
+            It.Is<HomeSeekerListingQuery>(q => q.Portal == "Gratka"), It.IsAny<CancellationToken>()), Times.AtLeastOnce);
+    }
+
+    [Test]
+    public async Task Load_WhenPortalsFail_KeepsDefaultPortalOptions()
+    {
+        _service.Setup(s => s.GetListingsAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<HomeSeekerListingQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Page(1, totalPages: 1, "x"));
+        _service.Setup(s => s.GetPortalsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(HomeSeekerResult<List<string>>.Fail(HomeSeekerCallStatus.Error, "down"));
+
+        var vm = CreateViewModel();
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        Assert.That(vm.PortalOptions, Is.EqualTo(new[] { "Wszystkie portale", "Otodom", "OLX" }));
     }
 
     [Test]

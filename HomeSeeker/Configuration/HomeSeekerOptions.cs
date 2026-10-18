@@ -117,9 +117,19 @@ public sealed class HomeSeekerOptions : IValidatableObject
     public TimeSpan RcnValuationBlockedCooldown { get; set; } = TimeSpan.FromHours(24);
 
     /// <summary>
+    /// Portal names (case-insensitive, e.g. "OLX") whose scrapers are skipped in scans and
+    /// coordinate backfill, e.g. when a portal blocks the host's IP. Existing listings stay visible.
+    /// </summary>
+    public string[] DisabledPortals { get; set; } = [];
+
+    /// <summary>
     /// SMTP configuration for sending email reports.
     /// </summary>
     public SmtpOptions Smtp { get; set; } = new();
+
+    /// <summary>Whether the portal is not listed in <see cref="DisabledPortals"/>.</summary>
+    public bool IsPortalEnabled(string portalName) =>
+        !DisabledPortals.Contains(portalName, StringComparer.OrdinalIgnoreCase);
 
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {

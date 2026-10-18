@@ -12,127 +12,26 @@ namespace HomeSeeker.Scrapers;
 /// <summary>
 /// Scraper for Otodom.pl using __NEXT_DATA__ JSON parsing.
 /// </summary>
-public sealed partial class OtodomScraper : IListingScraper
+public sealed partial class OtodomScraper : ListingScraperBase
 {
-    private readonly HttpClient _httpClient;
-    private readonly HomeSeekerOptions _options;
-    private readonly ILogger<OtodomScraper> _logger;
-
-    public string PortalName => "Otodom";
-
     public OtodomScraper(
         IHttpClientFactory httpClientFactory,
         IOptions<HomeSeekerOptions> options,
         ILogger<OtodomScraper> logger)
+        : base(httpClientFactory, options, logger)
     {
-        ArgumentNullException.ThrowIfNull(httpClientFactory);
-        _httpClient = httpClientFactory.CreateClient("homeseeker-scraper");
-        _options = options.Value;
-        _logger = logger;
     }
 
-    public async Task<ScrapeResult> SearchAsync(
-        SearchProfile profile,
-        CancellationToken cancellationToken = default)
-    {
-        var results = new List<ScrapedListing>();
-        var pagesFetched = 0;
-        string? failure = null;
-        var lostTypes = new List<PropertyTypes>();
-        var partialTypes = new List<(PropertyTypes Type, string Error)>();
+    public override string PortalName => PortalNames.Otodom;
 
-        try
-        {
-            var requestsSent = 0;
-            var blocked = false;
-            foreach (var type in profile.PropertyTypes.Selected())
-            {
-                // Bot detection applies to the whole portal; do not hammer it with the next category.
-                if (blocked)
-                {
-                    lostTypes.Add(type);
-                    continue;
-                }
+    protected override string PortalDomain => "otodom.pl";
 
-                var pagesBefore = pagesFetched;
-                string? typeFailure = null;
-                for (int page = 1; page <= _options.MaxSearchPagesPerPortal; page++)
-                {
-                    if (cancellationToken.IsCancellationRequested)
-                        break;
+    protected override IReadOnlyList<ScrapedListing> ParseSearchPage(string html) => ParseNextData(html);
 
-                    if (requestsSent++ > 0)
-                    {
-                        await Task.Delay(_options.RequestDelay, cancellationToken).ConfigureAwait(false);
-                    }
+    protected override ListingDetails? ParseDetailsPage(string html) =>
+        CreateDetails(ParseDetails(html), ParseCoordinates(html));
 
-                    var url = BuildSearchUrl(profile, type, page);
-                    _logger.LogDebug("Fetching Otodom {Type} page {Page}: {Url}", type, page, url);
-
-                    try
-                    {
-                        var html = await _httpClient.GetStringAsync(url, cancellationToken).ConfigureAwait(false);
-                        pagesFetched++;
-                        var listings = ParseNextData(html);
-
-                        if (listings.Count == 0)
-                        {
-                            _logger.LogDebug("No more {Type} listings found on page {Page}", type, page);
-                            break;
-                        }
-
-                        results.AddRange(listings.Select(l => l with { PropertyType = type }));
-                    }
-                    catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Forbidden)
-                    {
-                        _logger.LogWarning("Otodom returned 403 Forbidden - possible rate limiting or bot detection");
-                        failure = "Otodom returned 403 Forbidden";
-                        typeFailure = failure;
-                        blocked = true;
-                        break;
-                    }
-                    catch (HttpRequestException ex)
-                    {
-                        _logger.LogWarning(ex, "Failed to fetch Otodom {Type} page {Page}", type, page);
-                        failure = $"Otodom request failed: {ex.Message}";
-                        typeFailure = failure;
-                        break;
-                    }
-                }
-
-                if (pagesFetched == pagesBefore && !cancellationToken.IsCancellationRequested)
-                    lostTypes.Add(type);
-                else if (typeFailure is not null)
-                    partialTypes.Add((type, typeFailure)); // Later page failed: keep the listings, flag as incomplete.
-            }
-        }
-        catch (OperationCanceledException)
-        {
-            _logger.LogDebug("Otodom scraping cancelled");
-            failure = "Otodom scraping cancelled";
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Unexpected error during Otodom scraping");
-            failure = $"Otodom scraping error: {ex.Message}";
-        }
-
-        // Only treat the portal as failed when we never got a usable page.
-        if (pagesFetched == 0 && failure is not null)
-        {
-            return ScrapeResult.Failure(failure);
-        }
-
-        _logger.LogInformation("Otodom scraper found {Count} listings for profile {ProfileId}",
-            results.Count, profile.Id);
-
-        var warnings = lostTypes.Select(t => $"{t.ToPolish()} - nie pobrano")
-            .Concat(partialTypes.Select(p => $"{p.Type.ToPolish()} - niepełne wyniki ({p.Error})"))
-            .ToList();
-        return ScrapeResult.Success(results, warnings);
-    }
-
-    private static string BuildSearchUrl(SearchProfile profile, PropertyTypes type, int page)
+    protected override string BuildSearchUrl(SearchProfile profile, PropertyTypes type, int page)
     {
         var city = ScraperHelper.NormalizeCity(profile.City);
         var category = type == PropertyTypes.Apartment ? "mieszkanie" : "dom";
@@ -285,7 +184,7 @@ public sealed partial class OtodomScraper : IListingScraper
 
             return new ScrapedListing
             {
-                Portal = "Otodom",
+                Portal = PortalNames.Otodom,
                 ExternalId = externalId,
                 Url = url,
                 Title = title,
@@ -329,34 +228,7 @@ public sealed partial class OtodomScraper : IListingScraper
         return RoomCountFromCode(RoomCodes, rooms.GetString());
     }
 
-    public async Task<ListingDetails?> GetDetailsAsync(string url, CancellationToken cancellationToken = default)
-    {
-        if (!IsOtodomUrl(url))
-            return null;
-
-        try
-        {
-            var html = await _httpClient.GetStringAsync(url, cancellationToken).ConfigureAwait(false);
-            var text = ParseDetails(html);
-            var coordinates = ParseCoordinates(html);
-            return text is null && coordinates is null ? null : new ListingDetails(text, coordinates);
-        }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            throw;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Failed to fetch Otodom listing details {Url}", url);
-            return null;
-        }
-    }
-
-    internal static bool IsOtodomUrl(string url) =>
-        Uri.TryCreate(url, UriKind.Absolute, out var uri) &&
-        uri.Scheme == Uri.UriSchemeHttps &&
-        (uri.Host.Equals("otodom.pl", StringComparison.OrdinalIgnoreCase) ||
-         uri.Host.EndsWith(".otodom.pl", StringComparison.OrdinalIgnoreCase));
+    internal static bool IsOtodomUrl(string url) => IsUrlOnDomain(url, "otodom.pl");
 
     // Already present in the prompt (price, area) or irrelevant for evaluation.
     private static readonly HashSet<string> SkippedDetailKeys = new(StringComparer.OrdinalIgnoreCase)

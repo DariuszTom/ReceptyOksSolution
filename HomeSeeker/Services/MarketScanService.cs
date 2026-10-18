@@ -34,11 +34,11 @@ public sealed class MarketScanService : IMarketScanService
         ICityCenterProvider? cityCenterProvider = null,
         IPropertyValuationProvider? valuationProvider = null)
     {
-        _scrapers = scrapers;
+        _options = options.Value;
+        _scrapers = scrapers.Where(s => _options.IsPortalEnabled(s.PortalName)).ToList();
         _repository = repository;
         _evaluator = evaluator;
         _reportSender = reportSender;
-        _options = options.Value;
         _logger = logger;
         _cityCenterProvider = cityCenterProvider;
         _valuationProvider = valuationProvider;

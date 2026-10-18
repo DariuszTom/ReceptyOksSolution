@@ -22,7 +22,7 @@ public partial class HomeSeekerViewModel(IHomeSeekerService service, ILogger<Hom
     private static readonly string?[] SortKeys = [null, "price", "price_desc", "pricesqm", "area_desc", "distance", "firstseen"];
     private static readonly int?[] MinScoreValues = [null, 50, 70, 85];
     private static readonly HomeSeekerPropertyTypes?[] PropertyTypeValues = [null, HomeSeekerPropertyTypes.House, HomeSeekerPropertyTypes.Apartment];
-    private static readonly string?[] PortalValues = [null, "Otodom", "OLX"];
+    private const string AllPortalsOption = "Wszystkie portale";
     private static readonly double?[] MaxDistanceValues = [null, 3, 5, 10];
 
     private int _currentPage;
@@ -41,7 +41,8 @@ public partial class HomeSeekerViewModel(IHomeSeekerService service, ILogger<Hom
 
     public IReadOnlyList<string> PropertyTypeOptions { get; } = ["Domy i mieszkania", "Domy", "Mieszkania"];
 
-    public IReadOnlyList<string> PortalOptions { get; } = ["Wszystkie portale", "Otodom", "OLX"];
+    /// <summary>First item means no portal filter; the rest are portal names, refreshed from the server on load.</summary>
+    public ObservableCollection<string> PortalOptions { get; } = [AllPortalsOption, "Otodom", "OLX"];
 
     public IReadOnlyList<string> MaxDistanceOptions { get; } = ["Dowolna odległość", "≤ 3 km", "≤ 5 km", "≤ 10 km"];
 
@@ -227,7 +228,10 @@ public partial class HomeSeekerViewModel(IHomeSeekerService service, ILogger<Hom
                 return;
             }
 
-            await Task.WhenAll(LoadListingsCoreAsync(cancellationToken), LoadScansCoreAsync(cancellationToken));
+            await Task.WhenAll(
+                LoadListingsCoreAsync(cancellationToken),
+                LoadScansCoreAsync(cancellationToken),
+                LoadPortalsCoreAsync(cancellationToken));
             if (CurrentSection == HomeSeekerSection.Map && !_mapLoaded)
                 LoadMapCommand.Execute(null);
 
@@ -420,7 +424,8 @@ public partial class HomeSeekerViewModel(IHomeSeekerService service, ILogger<Hom
 
     private HomeSeekerPropertyTypes? CurrentPropertyType => PropertyTypeValues[Math.Max(0, IndexOf(PropertyTypeOptions, SelectedPropertyTypeOption))];
 
-    private string? CurrentPortal => PortalValues[Math.Max(0, IndexOf(PortalOptions, SelectedPortalOption))];
+    private string? CurrentPortal =>
+        IndexOf(PortalOptions, SelectedPortalOption) > 0 ? SelectedPortalOption : null;
 
     private double? CurrentMaxDistance => MaxDistanceValues[Math.Max(0, IndexOf(MaxDistanceOptions, SelectedMaxDistanceOption))];
 
@@ -486,6 +491,34 @@ public partial class HomeSeekerViewModel(IHomeSeekerService service, ILogger<Hom
         else
         {
             ErrorMessage = result.Message;
+        }
+    }
+
+    /// <summary>
+    /// Syncs <see cref="PortalOptions"/> with the server in place (no Clear), so the picker keeps
+    /// its selection and no filter reload is triggered. A failure keeps the built-in defaults.
+    /// </summary>
+    private async Task LoadPortalsCoreAsync(CancellationToken cancellationToken)
+    {
+        var result = await service.GetPortalsAsync(cancellationToken);
+        if (result is not { IsSuccess: true, Value: { Count: > 0 } portals })
+            return;
+
+        var names = portals.Where(p => !string.IsNullOrWhiteSpace(p))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        for (int i = PortalOptions.Count - 1; i > 0; i--)
+        {
+            var option = PortalOptions[i];
+            if (option != SelectedPortalOption && !names.Contains(option, StringComparer.OrdinalIgnoreCase))
+                PortalOptions.RemoveAt(i);
+        }
+
+        foreach (var name in names)
+        {
+            if (!PortalOptions.Skip(1).Contains(name, StringComparer.OrdinalIgnoreCase))
+                PortalOptions.Add(name);
         }
     }
 

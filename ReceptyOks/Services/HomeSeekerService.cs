@@ -86,6 +86,14 @@ public class HomeSeekerService(HttpClient httpClient, IAccessTokenRefresher toke
             parameters.Add("priceDropOnly=true");
     }
 
+    public async Task<HomeSeekerResult<List<string>>> GetPortalsAsync(CancellationToken cancellationToken = default)
+    {
+        return await ExecuteAsync(
+            ct => httpClient.GetAsync($"{BasePath}/portals", ct),
+            async (response, ct) => await response.Content.ReadFromJsonAsync<List<string>>(ct).ConfigureAwait(false) ?? [],
+            cancellationToken).ConfigureAwait(false);
+    }
+
     public async Task<HomeSeekerResult<List<HomeSeekerScanRun>>> GetScansAsync(int count = 20, CancellationToken cancellationToken = default)
     {
         var url = $"{BasePath}/scans?count={count.ToString(CultureInfo.InvariantCulture)}";

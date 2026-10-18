@@ -15,135 +15,35 @@ namespace HomeSeeker.Scrapers;
 /// <summary>
 /// Scraper for OLX.pl using __PRERENDERED_STATE__ JSON parsing with HtmlAgilityPack fallback.
 /// </summary>
-public sealed partial class OlxScraper : IListingScraper
+public sealed partial class OlxScraper : ListingScraperBase
 {
-    private readonly HttpClient _httpClient;
-    private readonly HomeSeekerOptions _options;
-    private readonly ILogger<OlxScraper> _logger;
-
-    public string PortalName => "OLX";
-
     public OlxScraper(
         IHttpClientFactory httpClientFactory,
         IOptions<HomeSeekerOptions> options,
         ILogger<OlxScraper> logger)
+        : base(httpClientFactory, options, logger)
     {
-        ArgumentNullException.ThrowIfNull(httpClientFactory);
-        _httpClient = httpClientFactory.CreateClient("homeseeker-scraper");
-        _options = options.Value;
-        _logger = logger;
     }
 
-    public async Task<ScrapeResult> SearchAsync(
-        SearchProfile profile,
-        CancellationToken cancellationToken = default)
+    public override string PortalName => PortalNames.Olx;
+
+    protected override string PortalDomain => "olx.pl";
+
+    protected override IReadOnlyList<ScrapedListing> ParseSearchPage(string html)
     {
-        var results = new List<ScrapedListing>();
-        var pagesFetched = 0;
-        string? failure = null;
-        var lostTypes = new List<PropertyTypes>();
-        var partialTypes = new List<(PropertyTypes Type, string Error)>();
+        // Try JSON parsing first, fallback to HTML
+        var listings = ParsePrerenderedState(html);
+        if (listings.Count > 0)
+            return listings;
 
-        try
-        {
-            var requestsSent = 0;
-            var blocked = false;
-            foreach (var type in profile.PropertyTypes.Selected())
-            {
-                // Bot detection applies to the whole portal; do not hammer it with the next category.
-                if (blocked)
-                {
-                    lostTypes.Add(type);
-                    continue;
-                }
-
-                var pagesBefore = pagesFetched;
-                string? typeFailure = null;
-                for (int page = 1; page <= _options.MaxSearchPagesPerPortal; page++)
-                {
-                    if (cancellationToken.IsCancellationRequested)
-                        break;
-
-                    if (requestsSent++ > 0)
-                    {
-                        await Task.Delay(_options.RequestDelay, cancellationToken).ConfigureAwait(false);
-                    }
-
-                    var url = BuildSearchUrl(profile, type, page);
-                    _logger.LogDebug("Fetching OLX {Type} page {Page}: {Url}", type, page, url);
-
-                    try
-                    {
-                        var html = await _httpClient.GetStringAsync(url, cancellationToken).ConfigureAwait(false);
-                        pagesFetched++;
-
-                        // Try JSON parsing first, fallback to HTML
-                        var listings = ParsePrerenderedState(html);
-                        if (listings.Count == 0)
-                        {
-                            _logger.LogDebug("JSON parsing returned empty, trying HTML fallback");
-                            listings = ParseHtmlFallback(html);
-                        }
-
-                        if (listings.Count == 0)
-                        {
-                            _logger.LogDebug("No more {Type} listings found on page {Page}", type, page);
-                            break;
-                        }
-
-                        results.AddRange(listings.Select(l => l with { PropertyType = type }));
-                    }
-                    catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Forbidden)
-                    {
-                        _logger.LogWarning("OLX returned 403 Forbidden - possible rate limiting or bot detection");
-                        failure = "OLX returned 403 Forbidden";
-                        typeFailure = failure;
-                        blocked = true;
-                        break;
-                    }
-                    catch (HttpRequestException ex)
-                    {
-                        _logger.LogWarning(ex, "Failed to fetch OLX {Type} page {Page}", type, page);
-                        failure = $"OLX request failed: {ex.Message}";
-                        typeFailure = failure;
-                        break;
-                    }
-                }
-
-                if (pagesFetched == pagesBefore && !cancellationToken.IsCancellationRequested)
-                    lostTypes.Add(type);
-                else if (typeFailure is not null)
-                    partialTypes.Add((type, typeFailure)); // Later page failed: keep the listings, flag as incomplete.
-            }
-        }
-        catch (OperationCanceledException)
-        {
-            _logger.LogDebug("OLX scraping cancelled");
-            failure = "OLX scraping cancelled";
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Unexpected error during OLX scraping");
-            failure = $"OLX scraping error: {ex.Message}";
-        }
-
-        // Only treat the portal as failed when we never got a usable page.
-        // A failure after at least one good page still yields a partial success.
-        if (pagesFetched == 0 && failure is not null)
-        {
-            return ScrapeResult.Failure(failure);
-        }
-
-        _logger.LogInformation("OLX scraper found {Count} listings for profile {ProfileId}",
-            results.Count, profile.Id);
-
-        var warnings = lostTypes.Select(t => $"{t.ToPolish()} - nie pobrano")
-            .Concat(partialTypes.Select(p => $"{p.Type.ToPolish()} - niepełne wyniki ({p.Error})"))
-            .ToList();
-        return ScrapeResult.Success(results, warnings);
+        Logger.LogDebug("JSON parsing returned empty, trying HTML fallback");
+        return ParseHtmlFallback(html);
     }
 
-    private static string BuildSearchUrl(SearchProfile profile, PropertyTypes type, int page)
+    protected override ListingDetails? ParseDetailsPage(string html) =>
+        CreateDetails(ParseDetails(html), ParseCoordinates(html));
+
+    protected override string BuildSearchUrl(SearchProfile profile, PropertyTypes type, int page)
     {
         var city = ScraperHelper.NormalizeCity(profile.City);
         var category = type == PropertyTypes.Apartment ? "mieszkania" : "domy";
@@ -330,7 +230,7 @@ public sealed partial class OlxScraper : IListingScraper
 
             return new ScrapedListing
             {
-                Portal = "OLX",
+                Portal = PortalNames.Olx,
                 ExternalId = externalId,
                 Url = url,
                 Title = title,
@@ -440,7 +340,7 @@ public sealed partial class OlxScraper : IListingScraper
 
             return new ScrapedListing
             {
-                Portal = "OLX",
+                Portal = PortalNames.Olx,
                 ExternalId = externalId,
                 Url = url,
                 Title = HtmlEntity.DeEntitize(title),
@@ -455,34 +355,7 @@ public sealed partial class OlxScraper : IListingScraper
         }
     }
 
-    public async Task<ListingDetails?> GetDetailsAsync(string url, CancellationToken cancellationToken = default)
-    {
-        if (!IsOlxUrl(url))
-            return null;
-
-        try
-        {
-            var html = await _httpClient.GetStringAsync(url, cancellationToken).ConfigureAwait(false);
-            var text = ParseDetails(html);
-            var coordinates = ParseCoordinates(html);
-            return text is null && coordinates is null ? null : new ListingDetails(text, coordinates);
-        }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            throw;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Failed to fetch OLX listing details {Url}", url);
-            return null;
-        }
-    }
-
-    internal static bool IsOlxUrl(string url) =>
-        Uri.TryCreate(url, UriKind.Absolute, out var uri) &&
-        uri.Scheme == Uri.UriSchemeHttps &&
-        (uri.Host.Equals("olx.pl", StringComparison.OrdinalIgnoreCase) ||
-         uri.Host.EndsWith(".olx.pl", StringComparison.OrdinalIgnoreCase));
+    internal static bool IsOlxUrl(string url) => IsUrlOnDomain(url, "olx.pl");
 
     /// <summary>
     /// Parses parameters and description from an OLX ad page (__PRERENDERED_STATE__ → ad.ad).

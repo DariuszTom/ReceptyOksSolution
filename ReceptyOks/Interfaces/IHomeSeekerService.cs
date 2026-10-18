@@ -20,6 +20,9 @@ public interface IHomeSeekerService
     Task<HomeSeekerResult<List<HomeSeekerMapListing>>> GetMapListingsAsync(
         int limit, HomeSeekerListingQuery query, CancellationToken cancellationToken = default);
 
+    /// <summary>Names of the portals scanned by the server (values of the listing portal filter).</summary>
+    Task<HomeSeekerResult<List<string>>> GetPortalsAsync(CancellationToken cancellationToken = default);
+
     Task<HomeSeekerResult<List<HomeSeekerScanRun>>> GetScansAsync(int count = 20, CancellationToken cancellationToken = default);
 
     Task<HomeSeekerResult<string>> GetReportHtmlAsync(Guid scanId, CancellationToken cancellationToken = default);

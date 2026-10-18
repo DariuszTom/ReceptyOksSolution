@@ -185,6 +185,15 @@ public static class HomeSeekerEndpoints
         })
         .WithName("GetMapListings");
 
+        // GET /portals - Names of all registered portals (for the portal filter). Disabled portals
+        // are included because their listings stay in the database.
+        group.MapGet("/portals", (IEnumerable<IListingScraper> scrapers) =>
+            Results.Ok(scrapers.Select(s => s.PortalName)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Order(StringComparer.OrdinalIgnoreCase)
+                .ToList()))
+        .WithName("GetPortals");
+
         // GET /scans - Scan history for the shared profile
         group.MapGet("/scans", async (
             int count = 20,
