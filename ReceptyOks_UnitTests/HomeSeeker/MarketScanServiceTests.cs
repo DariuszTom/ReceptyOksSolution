@@ -391,7 +391,7 @@ public sealed class MarketScanServiceTests
         IReadOnlyList<HouseListing>? reported = null;
         _evaluator.Setup(e => e.WriteReportHtmlAsync(It.IsAny<SearchProfile>(), It.IsAny<IReadOnlyList<HouseListing>>(),
                 It.IsAny<ScanRun>(), It.IsAny<CancellationToken>()))
-            .Callback((SearchProfile _, IReadOnlyList<HouseListing> l, ScanRun _, CancellationToken _) => reported = l)
+            .Callback((SearchProfile _, IReadOnlyList<HouseListing> l, ScanRun _, CancellationToken _) => reported ??= l)
             .ReturnsAsync("<html>report</html>");
         AddUpsert("n1", price: 1, area: 1, isNew: true);
 
@@ -454,7 +454,7 @@ public sealed class MarketScanServiceTests
         IReadOnlyList<HouseListing>? reported = null;
         _evaluator.Setup(e => e.WriteReportHtmlAsync(It.IsAny<SearchProfile>(), It.IsAny<IReadOnlyList<HouseListing>>(),
                 It.IsAny<ScanRun>(), It.IsAny<CancellationToken>()))
-            .Callback((SearchProfile _, IReadOnlyList<HouseListing> l, ScanRun _, CancellationToken _) => reported = l)
+            .Callback((SearchProfile _, IReadOnlyList<HouseListing> l, ScanRun _, CancellationToken _) => reported ??= l)
             .ReturnsAsync("<html>report</html>");
         AddUpsert("n1", price: 1, area: 1, isNew: true);
 
@@ -480,7 +480,7 @@ public sealed class MarketScanServiceTests
         IReadOnlyList<HouseListing>? reported = null;
         _evaluator.Setup(e => e.WriteReportHtmlAsync(It.IsAny<SearchProfile>(), It.IsAny<IReadOnlyList<HouseListing>>(),
                 It.IsAny<ScanRun>(), It.IsAny<CancellationToken>()))
-            .Callback((SearchProfile _, IReadOnlyList<HouseListing> l, ScanRun _, CancellationToken _) => reported = l)
+            .Callback((SearchProfile _, IReadOnlyList<HouseListing> l, ScanRun _, CancellationToken _) => reported ??= l)
             .ReturnsAsync("<html>report</html>");
         AddUpsert("n1", price: 1, area: 1, isNew: true);
 
@@ -773,6 +773,47 @@ public sealed class MarketScanServiceTests
         _sender.Verify(s => s.SendAsync("a@example.com",
             It.Is<string>(subj => subj.Contains("Wrocław") && subj.Contains("1 nowych") && subj.Contains("1 obniżek")),
             "<html>report</html>", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Test]
+    public async Task RunScan_EmailContainsOnlyNewListingsAboveMinScore()
+    {
+        AddUpsert("good", price: 300_000, area: 100, isNew: true);
+        AddUpsert("weak", price: 300_000, area: 100, isNew: true);
+        _evaluator.Setup(e => e.EvaluateAsync(It.IsAny<SearchProfile>(), It.IsAny<HouseListing>(), It.IsAny<string?>(), It.IsAny<PriceBenchmark?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((SearchProfile _, HouseListing l, string? _, PriceBenchmark? _, CancellationToken _) =>
+                new ListingEvaluation { Score = l.ExternalId == "good" ? 80 : 50, Summary = "s" });
+
+        IReadOnlyList<HouseListing>? emailed = null;
+        _evaluator.Setup(e => e.WriteReportHtmlAsync(It.IsAny<SearchProfile>(), It.IsAny<IReadOnlyList<HouseListing>>(),
+                It.IsAny<ScanRun>(), It.IsAny<CancellationToken>()))
+            .Callback((SearchProfile _, IReadOnlyList<HouseListing> l, ScanRun _, CancellationToken _) => emailed = l)
+            .ReturnsAsync("<html>good</html>");
+
+        var sut = CreateSut([SucceedingScraper("Otodom", "good", "weak")]);
+
+        await sut.RunScanAsync(ProfileId);
+
+        Assert.That(emailed!.Select(l => l.ExternalId), Is.EqualTo(new[] { "good" }));
+        Assert.That(emailed[0].AiScore, Is.EqualTo(80));
+        _sender.Verify(s => s.SendAsync("a@example.com",
+            It.Is<string>(subj => subj.Contains("1 nowych") && !subj.Contains("obniżek")),
+            "<html>good</html>", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Test]
+    public async Task RunScan_WhenNewListingsScoreBelowMin_DoesNotSendEmail()
+    {
+        AddUpsert("a", price: 300_000, area: 100, isNew: true);
+        _evaluator.Setup(e => e.EvaluateAsync(It.IsAny<SearchProfile>(), It.IsAny<HouseListing>(), It.IsAny<string?>(), It.IsAny<PriceBenchmark?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ListingEvaluation { Score = 64 });
+
+        var sut = CreateSut([SucceedingScraper("Otodom", "a")]);
+
+        var result = await sut.RunScanAsync(ProfileId);
+
+        Assert.That(result, Is.True);
+        _sender.VerifyNoOtherCalls();
     }
 
     [Test]

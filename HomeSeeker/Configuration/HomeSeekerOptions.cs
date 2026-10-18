@@ -70,6 +70,14 @@ public sealed class HomeSeekerOptions : IValidatableObject
     public int TopListingsInReport { get; set; } = 5;
 
     /// <summary>
+    /// Minimum AI score of a new (or price-dropped) listing for it to be e-mailed. The e-mail
+    /// is sent only when a scan scored at least one such listing and contains only those,
+    /// so the same offers are not sent repeatedly.
+    /// </summary>
+    [Range(0, 100)]
+    public int EmailMinScore { get; set; } = 65;
+
+    /// <summary>
     /// Maximum listings from one development (or copies of the same offer across portals)
     /// that are evaluated by AI and shown in the report. The rest stay in the database.
     /// </summary>

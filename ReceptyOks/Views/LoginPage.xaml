@@ -91,6 +91,9 @@
                                              Color="{StaticResource OffBlack}"
                                              Size="24"/>
                         </material:TextField.Icon>
+                        <material:TextField.Attachments>
+                            <material:TextFieldPasswordShowHideAttachment />
+                        </material:TextField.Attachments>
                     </material:TextField>
 
                     <!-- Komunikat błędu -->

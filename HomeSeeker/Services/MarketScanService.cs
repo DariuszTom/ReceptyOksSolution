@@ -106,7 +106,7 @@ public sealed class MarketScanService : IMarketScanService
 
             reportHtml = await WriteReportAsync(profile, scanRun, stats, groupingSample, cancellationToken)
                 .ConfigureAwait(false);
-            await SendReportAsync(profile, scanRun, stats, reportHtml, cancellationToken).ConfigureAwait(false);
+            await SendReportAsync(profile, scanRun, stats, cancellationToken).ConfigureAwait(false);
 
             _logger.LogInformation(
                 "Scan {ScanRunId} completed: found={Found}, new={New}, drops={Drops}, evaluated={Evaluated}",
@@ -331,6 +331,18 @@ public sealed class MarketScanService : IMarketScanService
 
                 await _repository.SaveEvaluationAsync(listing.Id, evaluation, cancellationToken).ConfigureAwait(false);
                 stats.Evaluated++;
+
+                // Only offers first seen (or cheaper) in this run are news; the unscored backlog is not.
+                if ((candidate.IsNew || candidate.PriceDropped) && evaluation.Score >= _options.EmailMinScore)
+                {
+                    // The repository updates the row directly; mirror it for the e-mail report.
+                    listing.AiScore = Math.Clamp(evaluation.Score, 0, 100);
+                    listing.AiSummary = evaluation.Summary;
+                    listing.AiProsJson = JsonSerializer.Serialize(evaluation.Pros);
+                    listing.AiConsJson = JsonSerializer.Serialize(evaluation.Cons);
+                    listing.AiPriceAssessment = evaluation.PriceAssessment;
+                    stats.GoodNew.Add(candidate);
+                }
                 _logger.LogDebug("Evaluated listing {ListingId}: score {Score}", listing.Id, evaluation.Score);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -385,22 +397,36 @@ public sealed class MarketScanService : IMarketScanService
     }
 
     /// <summary>
-    /// Phase 5: e-mails the report - only when there is something new to tell the
-    /// household about; the full report is always available via the API.
+    /// Phase 5: e-mails only this run's new or price-dropped listings scored at least
+    /// <see cref="HomeSeekerOptions.EmailMinScore"/>, so the same offers are not sent again;
+    /// the full report is always available via the API.
     /// </summary>
     private async Task SendReportAsync(
-        SearchProfile profile, ScanRun scanRun, ScanStats stats, string reportHtml, CancellationToken cancellationToken)
+        SearchProfile profile, ScanRun scanRun, ScanStats stats, CancellationToken cancellationToken)
     {
-        if (stats.New == 0 && stats.PriceDrops == 0)
+        if (stats.GoodNew.Count == 0)
         {
-            _logger.LogInformation("Scan {ScanRunId}: no new listings or price drops, skipping email", scanRun.Id);
+            _logger.LogInformation("Scan {ScanRunId}: no new listings scored at least {MinScore}, skipping email",
+                scanRun.Id, _options.EmailMinScore);
             return;
         }
 
         if (string.IsNullOrWhiteSpace(profile.NotificationEmail))
             return;
 
-        var subject = $"HomeSeeker: {profile.City} - {stats.New} nowych, {stats.PriceDrops} obniżek";
+        var good = stats.GoodNew
+            .OrderByDescending(r => r.Listing.AiScore)
+            .Select(r => r.Listing)
+            .ToList();
+        var newCount = stats.GoodNew.Count(r => r.IsNew);
+        var dropCount = good.Count - newCount;
+
+        var reportHtml = await _evaluator.WriteReportHtmlAsync(profile, good, scanRun, cancellationToken)
+            .ConfigureAwait(false);
+
+        var subject = dropCount > 0
+            ? $"HomeSeeker: {profile.City} - {newCount} nowych, {dropCount} obniżek (ocena ≥ {_options.EmailMinScore})"
+            : $"HomeSeeker: {profile.City} - {newCount} nowych (ocena ≥ {_options.EmailMinScore})";
         var sent = await _reportSender.SendAsync(profile.NotificationEmail, subject, reportHtml, cancellationToken)
             .ConfigureAwait(false);
 
@@ -452,6 +478,9 @@ public sealed class MarketScanService : IMarketScanService
         public int PriceDrops { get; set; }
         public int Evaluated { get; set; }
         public string? Warnings { get; set; }
+
+        /// <summary>New or price-dropped listings scored at least <see cref="HomeSeekerOptions.EmailMinScore"/> in this run.</summary>
+        public List<UpsertResult> GoodNew { get; } = [];
     }
 
     /// <summary>
