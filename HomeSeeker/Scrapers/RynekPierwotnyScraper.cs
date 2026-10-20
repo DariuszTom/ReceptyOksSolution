@@ -152,7 +152,7 @@ public sealed class RynekPierwotnyScraper : ListingScraperBase
 
     /// <summary>
     /// Estimates the cheapest unit of the investment that fits the profile: the smallest area
-    /// within both ranges, priced at the lowest price/m² for that area (at least the minimum price),
+    /// within both ranges (raised to the typical size of a unit with the profile's minimum rooms), priced at the lowest price/m² for that area (at least the minimum price),
     /// then clamped into the overlap of the investment's and the profile's price ranges (a pricier unit
     /// of a matching size may exist within the range). When the ranges don't overlap the raw estimate is kept,
     /// so the profile filter rejects it. Ranges cover the whole investment: this is an estimate, not a real unit.
@@ -160,7 +160,8 @@ public sealed class RynekPierwotnyScraper : ListingScraperBase
     internal static (decimal Price, decimal Area, int? Rooms) EstimateUnit(Ranges ranges, SearchProfile? profile)
     {
         var areaMin = ranges.AreaMin!.Value;
-        var area = FitToOverlap(areaMin, areaMin, ranges.AreaMax, profile?.MinAreaSqm, profile?.MaxAreaSqm);
+        var wantedArea = EstimateAreaForRooms(ranges, profile?.MinRooms) ?? areaMin;
+        var area = FitToOverlap(wantedArea, areaMin, ranges.AreaMax, profile?.MinAreaSqm, profile?.MaxAreaSqm);
 
         var priceMin = ranges.PriceMin!.Value;
         var estimate = Math.Max(priceMin, ranges.PriceM2Min is > 0 ? Math.Round(area * ranges.PriceM2Min.Value) : 0);
@@ -175,6 +176,23 @@ public sealed class RynekPierwotnyScraper : ListingScraperBase
         }
 
         return (price, area, rooms);
+    }
+
+    /// <summary>
+    /// The smallest unit with <paramref name="minRooms"/> rooms is unknown, so the investment's area range is split
+    /// evenly into room buckets and the start of the wanted bucket is used (e.g. 2–4 rooms, 40–90 m², 4 rooms → ~73 m²).
+    /// Null when the profile doesn't need more rooms than the smallest unit or the investment has no such units.
+    /// </summary>
+    private static decimal? EstimateAreaForRooms(Ranges ranges, int? minRooms)
+    {
+        if (minRooms is not { } wanted || ranges.RoomsMin is not > 0 || ranges.RoomsMax is not > 0
+            || ranges.AreaMax is not > 0 || wanted <= ranges.RoomsMin || wanted > ranges.RoomsMax)
+            return null;
+
+        var areaMin = ranges.AreaMin!.Value;
+        var buckets = ranges.RoomsMax.Value - ranges.RoomsMin.Value + 1;
+        var fraction = (decimal)(wanted - ranges.RoomsMin.Value) / buckets;
+        return Math.Round(areaMin + (ranges.AreaMax.Value - areaMin) * fraction);
     }
 
     private static decimal FitToOverlap(decimal value, decimal low, decimal? high, decimal? profileMin, decimal? profileMax)

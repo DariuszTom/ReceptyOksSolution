@@ -102,9 +102,9 @@ public sealed class RynekPierwotnyScraperTests
 
         Assert.Multiple(() =>
         {
-            // 40 m² × 16 000 zł/m² = 640 000 zł, within both the investment's and the profile's ranges.
-            Assert.That(listing.AreaSqm, Is.EqualTo(40m));
-            Assert.That(listing.Price, Is.EqualTo(640_000m));
+            // 3 of 1–6 rooms → 30 + 85 × 2/6 ≈ 58 m²; 58 × 16 000 = 928 000 zł, clamped to the profile's 900 000 zł.
+            Assert.That(listing.AreaSqm, Is.EqualTo(58m));
+            Assert.That(listing.Price, Is.EqualTo(900_000m));
             Assert.That(listing.Rooms, Is.EqualTo(3));
             Assert.That(ListingSelection.MatchesCriteria(Profile, listing), Is.True);
         });
@@ -120,6 +120,47 @@ public sealed class RynekPierwotnyScraperTests
 
         Assert.That(area, Is.EqualTo(35m));
         Assert.That(price, Is.EqualTo(700_000m));
+    }
+
+    [Test]
+    public void EstimateUnit_ProfileNeedsMoreRooms_ScalesAreaWithinInvestmentRange()
+    {
+        var ranges = new RynekPierwotnyScraper.Ranges(500_000, 1_500_000, 12_000, 15_000, 40, 100, 2, 4);
+        var profile = new SearchProfile { MinAreaSqm = 70, MaxAreaSqm = 110, MinRooms = 4, MaxPrice = 1_400_000 };
+
+        var (price, area, rooms) = RynekPierwotnyScraper.EstimateUnit(ranges, profile);
+
+        Assert.Multiple(() =>
+        {
+            // Rooms 2–4 split 40–100 m² into thirds; 4 rooms start at 40 + 60 × 2/3 = 80 m².
+            Assert.That(area, Is.EqualTo(80m));
+            Assert.That(price, Is.EqualTo(960_000m));
+            Assert.That(rooms, Is.EqualTo(4));
+        });
+    }
+
+    [Test]
+    public void EstimateUnit_RoomEstimateBelowProfileMinimum_UsesProfileMinimumArea()
+    {
+        var ranges = new RynekPierwotnyScraper.Ranges(400_000, 1_500_000, 12_000, 15_000, 30, 90, 1, 4);
+        var profile = new SearchProfile { MinAreaSqm = 70, MinRooms = 2 };
+
+        var (_, area, rooms) = RynekPierwotnyScraper.EstimateUnit(ranges, profile);
+
+        Assert.That(area, Is.EqualTo(70m));
+        Assert.That(rooms, Is.EqualTo(2));
+    }
+
+    [Test]
+    public void EstimateUnit_RoomsAboveInvestmentRange_KeepsSmallestArea()
+    {
+        var ranges = new RynekPierwotnyScraper.Ranges(400_000, 900_000, 12_000, 15_000, 30, 60, 1, 3);
+        var profile = new SearchProfile { MinRooms = 4 };
+
+        var (_, area, rooms) = RynekPierwotnyScraper.EstimateUnit(ranges, profile);
+
+        Assert.That(area, Is.EqualTo(30m));
+        Assert.That(rooms, Is.EqualTo(1));
     }
 
     [Test]
