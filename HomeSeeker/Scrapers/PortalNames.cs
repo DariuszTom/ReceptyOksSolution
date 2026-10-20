@@ -6,4 +6,5 @@ public static class PortalNames
     public const string Otodom = "Otodom";
     public const string Olx = "OLX";
     public const string NieruchomosciOnline = "Nieruchomosci-online";
+    public const string RynekPierwotny = "RynekPierwotny";
 }

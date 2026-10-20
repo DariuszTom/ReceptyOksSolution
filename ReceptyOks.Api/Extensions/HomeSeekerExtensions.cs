@@ -301,6 +301,7 @@ public static class HomeSeekerExtensions
         services.AddSingleton<IListingScraper, OtodomScraper>();
         services.AddSingleton<IListingScraper, OlxScraper>();
         services.AddSingleton<IListingScraper, NieruchomosciOnlineScraper>();
+        services.AddSingleton<IListingScraper, RynekPierwotnyScraper>();
 
         // Repository
         services.AddScoped<IListingRepository, ListingRepository>();

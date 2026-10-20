@@ -1,4 +1,5 @@
 using HomeSeeker.Models;
+using HomeSeeker.Scrapers;
 
 namespace HomeSeeker.Services;
 
@@ -21,8 +22,10 @@ public sealed class MarketPriceStats
 
     public MarketPriceStats(IEnumerable<HouseListing> listings)
     {
+        // Primary-market investments carry estimated prices derived from ranges, not real offers,
+        // so they are ranked against the market but don't shape it.
         var priced = listings
-            .Where(l => l.Price > 0 && l.AreaSqm > 0)
+            .Where(l => l.Price > 0 && l.AreaSqm > 0 && l.Portal != PortalNames.RynekPierwotny)
             .Select(l => (l.PropertyType, District: DistrictOf(l.Location), PerSqm: l.Price / l.AreaSqm))
             .ToList();
 

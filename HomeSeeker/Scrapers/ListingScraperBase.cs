@@ -46,6 +46,13 @@ public abstract class ListingScraperBase : IListingScraper
     /// <summary>Listings found on a search results page; empty when there are no more results.</summary>
     protected abstract IReadOnlyList<ScrapedListing> ParseSearchPage(string html);
 
+    /// <summary>
+    /// Profile- and page-aware variant, for portals that need the request context (e.g. to detect a
+    /// redirect to another page or to fit ranges to the profile). Defaults to <see cref="ParseSearchPage(string)"/>.
+    /// </summary>
+    protected virtual IReadOnlyList<ScrapedListing> ParseSearchPage(string html, SearchProfile profile, PropertyTypes type, int page) =>
+        ParseSearchPage(html);
+
     /// <summary>Details text and coordinates from an ad page; null when nothing could be read.</summary>
     protected abstract ListingDetails? ParseDetailsPage(string html);
 
@@ -90,7 +97,7 @@ public abstract class ListingScraperBase : IListingScraper
                         var html = await HttpClient.GetStringAsync(url, cancellationToken).ConfigureAwait(false);
                         pagesFetched++;
 
-                        var listings = ParseSearchPage(html);
+                        var listings = ParseSearchPage(html, profile, type, page);
                         if (listings.Count == 0)
                         {
                             Logger.LogDebug("No more {Type} listings found on {Portal} page {Page}", type, PortalName, page);
