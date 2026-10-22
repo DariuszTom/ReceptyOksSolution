@@ -36,17 +36,12 @@ public sealed class ApiKeyAuthMiddleware
     {
         var path = context.Request.Path.Value ?? string.Empty;
 
-        // Pomijamy autoryzacji dla:
-        // - endpointu auth (żeby można było się uwierzytelnić)
-        // - health checks
-        // - OpenAPI/Scalar (tylko w development)
         if (ShouldSkipAuth(path, context.RequestServices.GetRequiredService<IWebHostEnvironment>()))
         {
             await _next(context);
             return;
         }
-
-        // Rate limiting (per-partition) - przed sprawdzeniem klucza
+        
         using var lease = await _rateLimiter.AcquireAsync(context, permitCount: 1, context.RequestAborted).ConfigureAwait(false);
         if (!lease.IsAcquired)
         {
@@ -62,7 +57,6 @@ public sealed class ApiKeyAuthMiddleware
             return;
         }
 
-        // Sprawdzamy nagłówek X-Api-Key
         if (!context.Request.Headers.TryGetValue(GlobalConstants.ApiKeyHeaderName, out var providedApiKey))
         {
             _logger.LogWarning("Request to {Path} rejected - missing {Header} header", path, GlobalConstants.ApiKeyHeaderName);
