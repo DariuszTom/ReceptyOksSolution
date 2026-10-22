@@ -52,7 +52,7 @@ namespace ReceptyOks.Api.Endpoints
                 // Return full token with a suggested short TTL (in minutes).
                 return Results.Ok(new { Token = token, ExpiresIn = 10 });
             })
-            .WithName("GetTokenSecret")
+            .WithName("GetTokenSecret");
         }
         public record AuthRequest(byte[] SecretHash, string UserName);
     }
