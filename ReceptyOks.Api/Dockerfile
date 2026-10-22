@@ -1,5 +1,5 @@
 # Build stage
-FROM mcr.microsoft.com/dotnet/sdk:10.0-preview AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
 # Copy project files
@@ -22,18 +22,17 @@ WORKDIR /src/ReceptyOks.Api
 RUN dotnet publish -c Release -o /app/publish --no-restore
 
 # Runtime stage
-FROM mcr.microsoft.com/dotnet/aspnet:10.0-preview AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 
 EXPOSE 8080
-EXPOSE 8081
 
 COPY --from=build /app/publish .
 
-# Running the container will serve HTTP on ports 8080 and 8081. TLS should be terminated by a reverse proxy
-# or by mounting a certificate and configuring Kestrel at runtime if container-level HTTPS is required.
-# Set environment variables
-ENV ASPNETCORE_URLS=http://+:8080;http://+:8081
+# HTTP only on 8080 (image default via ASPNETCORE_HTTP_PORTS). TLS is terminated by the ingress/reverse proxy.
 ENV ASPNETCORE_ENVIRONMENT=Production
 
-ENTRYPOINT ["dotnet", "ReceptyOks.Api.dll"]
+# Run as the built-in non-root user provided by the .NET images
+USER $APP_UID
+
+ENTRYPOINT
