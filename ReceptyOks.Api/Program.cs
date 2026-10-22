@@ -1,5 +1,6 @@
 using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
 using ReceptyOks.Api.Endpoints;
@@ -21,11 +22,21 @@ builder.AddServiceDefaults();
 // Register SecretStore
 builder.Services.AddSingleton<SecretStore>();
 
+// Behind Azure Container Apps ingress (Envoy) the TCP peer is the proxy, not the client.
+// The container is reachable only via ingress, so trust its X-Forwarded-* headers.
+// ForwardLimit = 1 takes only the right-most X-Forwarded-For entry (appended by Envoy), so client-spoofed values are ignored.
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.ForwardLimit = 1;
+    options.KnownIPNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+
 // Per-IP rate limiter for API key auth middleware
 builder.Services.AddSingleton(PartitionedRateLimiter.Create<HttpContext, string>(context =>
 {
-    var remoteIp = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
-    return RateLimitPartition.GetFixedWindowLimiter(remoteIp, _ => new FixedWindowRateLimiterOptions
+    return RateLimitPartition.GetFixedWindowLimiter(context.GetClientIp(), _ => new FixedWindowRateLimiterOptions
     {
         PermitLimit = 60,
         Window = TimeSpan.FromMinutes(1),
@@ -76,18 +87,20 @@ builder.Services.AddOpenApi();
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = 429;
-    options.AddFixedWindowLimiter("fixed", limiterOptions =>
-    {
-        limiterOptions.PermitLimit = 60;
-        limiterOptions.Window = TimeSpan.FromMinutes(1);
-        limiterOptions.QueueProcessingOrder = System.Threading.RateLimiting.QueueProcessingOrder.OldestFirst;
-    });
-    options.AddFixedWindowLimiter("strict", limiterOptions =>
-    {
-        limiterOptions.PermitLimit = 10;
-        limiterOptions.Window = TimeSpan.FromMinutes(1);
-        limiterOptions.QueueProcessingOrder = System.Threading.RateLimiting.QueueProcessingOrder.OldestFirst;
-    });
+    options.AddPolicy("fixed", context =>
+        RateLimitPartition.GetFixedWindowLimiter(context.GetClientIp(), _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 60,
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0
+        }));
+    options.AddPolicy("strict", context =>
+        RateLimitPartition.GetFixedWindowLimiter(context.GetClientIp(), _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 10,
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0
+        }));
 });
 
 var jwtKey = builder.Configuration["Jwt:Key"]
@@ -122,6 +135,7 @@ builder.Services.AddScoped<ISyncRepository, SyncRepository>();
 builder.Services.AddScoped<ISyncService, SyncService>();
 
 var app = builder.Build();
+app.UseForwardedHeaders(); // Must run first so RemoteIpAddress/Scheme reflect the real client
 app.UseResponseCompression(); // Must be early in pipeline, before other middleware
 app.UseRateLimiter();
 app.UseAuthentication();

@@ -24,7 +24,7 @@ public class NotificationManagerService : INotificationManagerService
     private int _messageId = System.Environment.TickCount;
     private int _pendingIntentId = System.Environment.TickCount;
 
-    private NotificationManagerCompat? _compatManager = null!;
+    private readonly NotificationManagerCompat _compatManager;
 
     private readonly WeakEventManager<NotificationEventArgs> _notificationEventManager = new();
 
@@ -39,7 +39,8 @@ public class NotificationManagerService : INotificationManagerService
     public NotificationManagerService()
     {
         CreateNotificationChannel();
-        _compatManager = NotificationManagerCompat.From(Platform.AppContext);
+        _compatManager = NotificationManagerCompat.From(Platform.AppContext)
+            ?? throw new InvalidOperationException("NotificationManagerCompat is not available.");
         Instance ??= this;
     }
 
@@ -63,6 +64,10 @@ public class NotificationManagerService : INotificationManagerService
 
             var pendingIntent = PendingIntent.GetBroadcast(
                 Platform.AppContext, _pendingIntentId++, intent, pendingIntentFlags);
+            if (pendingIntent is null)
+            {
+                return;
+            }
 
             long triggerTime = GetNotifyTime(notifyTime.Value);
             var alarmManager = Platform.AppContext.GetSystemService(Context.AlarmService) as AlarmManager;
@@ -100,19 +105,25 @@ public class NotificationManagerService : INotificationManagerService
         var pendingIntent = PendingIntent.GetActivity(
             Platform.AppContext, _pendingIntentId++, intent, pendingIntentFlags);
 
-        var builder = new NotificationCompat.Builder(Platform.AppContext, ChannelId)
-            .SetContentIntent(pendingIntent)
-            .SetContentTitle(title)
-            .SetContentText(message)
-            .SetSmallIcon(Resource.Mipmap.appicon)
-            .SetAutoCancel(true);
+        var builder = new NotificationCompat.Builder(Platform.AppContext, ChannelId);
+        builder.SetContentIntent(pendingIntent);
+        builder.SetContentTitle(title);
+        builder.SetContentText(message);
+        builder.SetSmallIcon(Resource.Mipmap.appicon);
+        builder.SetAutoCancel(true);
 
-        _compatManager.Notify(_messageId++, builder.Build());
+        var notification = builder.Build();
+        if (notification is null)
+        {
+            return;
+        }
+
+        _compatManager.Notify(_messageId++, notification);
     }
 
     private void CreateNotificationChannel()
     {
-        if (Build.VERSION.SdkInt >= BuildVersionCodes.O)
+        if (OperatingSystem.IsAndroidVersionAtLeast(26))
         {
             var channelNameJava = new Java.Lang.String(ChannelName);
             var channel = new NotificationChannel(ChannelId, channelNameJava, NotificationImportance.Default)
