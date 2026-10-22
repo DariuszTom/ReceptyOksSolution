@@ -147,6 +147,18 @@ public static class Extensions
     {
         context.Response.ContentType = "application/json";
 
+        var services = context.RequestServices;
+        var exposeDetails = services.GetService<IHostEnvironment>()?.IsDevelopment() == true;
+        var logger = services.GetService<ILoggerFactory>()?.CreateLogger("HealthChecks");
+
+        foreach (var (name, entry) in report.Entries)
+        {
+            if (entry.Exception is not null)
+            {
+                logger?.LogError(entry.Exception, "Health check {HealthCheck} failed with status {Status}", name, entry.Status);
+            }
+        }
+
         var response = new
         {
             status = report.Status.ToString(),
@@ -157,8 +169,12 @@ public static class Extensions
                 {
                     status = e.Value.Status.ToString(),
                     duration = e.Value.Duration,
-                    description = e.Value.Description,
-                    exception = e.Value.Exception?.Message,
+                    // When a check throws, HealthCheckService copies ex.Message into Description,
+                    // so both fields must be hidden to avoid leaking internals on this anonymous endpoint.
+                    description = e.Value.Exception is null || exposeDetails
+                        ? e.Value.Description
+                        : "Health check failed",
+                    exception = exposeDetails ? e.Value.Exception?.Message : null,
                     data = e.Value.Data,
                     tags = e.Value.Tags
                 })

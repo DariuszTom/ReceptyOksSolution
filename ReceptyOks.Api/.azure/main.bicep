@@ -70,6 +70,17 @@ param anthropicToken string = ''
 @description('SQL Server name (must be globally unique). Defaults include a resource-group suffix to avoid collisions.')
 param sqlServerName string = '${appName}-sql-${take(uniqueString(resourceGroup().id), 6)}'
 
+@description('Entra ID (Azure AD) SQL administrator - display name / UPN of the user or group.')
+param sqlEntraAdminLogin string
+
+@description('Entra ID (Azure AD) SQL administrator - object ID of the user or group.')
+param sqlEntraAdminObjectId string
+
+// After the first deployment create the app's DB user once (as the Entra admin):
+//   CREATE USER [receptyoks-api] FROM EXTERNAL PROVIDER;
+//   ALTER ROLE db_datareader ADD MEMBER [receptyoks-api];
+//   ALTER ROLE db_datawriter ADD MEMBER [receptyoks-api];
+//   ALTER ROLE db_ddladmin ADD MEMBER [receptyoks-api];  -- app creates/extends tables at startup
 resource sqlServer 'Microsoft.Sql/servers@2023-05-01-preview' = {
   name: sqlServerName
   location: location
@@ -79,6 +90,14 @@ resource sqlServer 'Microsoft.Sql/servers@2023-05-01-preview' = {
     version: '12.0'
     minimalTlsVersion: '1.2'
     publicNetworkAccess: 'Enabled'
+    administrators: {
+      administratorType: 'ActiveDirectory'
+      principalType: 'User'
+      login: sqlEntraAdminLogin
+      sid: sqlEntraAdminObjectId
+      tenantId: subscription().tenantId
+      azureADOnlyAuthentication: true
+    }
   }
 }
 
@@ -97,15 +116,22 @@ resource sqlDatabase 'Microsoft.Sql/servers/databases@2023-05-01-preview' = {
   }
 }
 
-// Firewall rule - Allow Azure Services
-resource sqlFirewallAzure 'Microsoft.Sql/servers/firewallRules@2023-05-01-preview' = {
+// Firewall rules - only the Container App's outbound IPs (no "Allow Azure Services", which opens
+// the server to every Azure tenant). The environment's outbound IP can change if it is recreated:
+// check with `az containerapp show -n receptyoks-api -g <RG> --query properties.outboundIpAddresses`.
+@description('Public IPs allowed through the SQL firewall (Container App outbound IPs).')
+param sqlAllowedIpAddresses array = [
+  '134.112.149.50'
+]
+
+resource sqlFirewallAllowed 'Microsoft.Sql/servers/firewallRules@2023-05-01-preview' = [for (ip, i) in sqlAllowedIpAddresses: {
   parent: sqlServer
-  name: 'AllowAzureServices'
+  name: i == 0 ? 'AllowContainerAppOutbound' : 'AllowContainerAppOutbound${i}'
   properties: {
-    startIpAddress: '0.0.0.0'
-    endIpAddress: '0.0.0.0'
+    startIpAddress: ip
+    endIpAddress: ip
   }
-}
+}]
 
 // =====================================================
 // Log Analytics Workspace (optional - for logs)
@@ -246,7 +272,8 @@ resource containerAppEnv 'Microsoft.App/managedEnvironments@2024-03-01' = {
 // =====================================================
 // Container App
 // =====================================================
-var sqlConnectionString = 'Server=tcp:${sqlServer.properties.fullyQualifiedDomainName},1433;Initial Catalog=${sqlDatabase.name};Persist Security Info=False;User ID=${sqlAdminLogin};Password=${sqlAdminPassword};MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;'
+// No password: the app authenticates with its system-assigned managed identity (Entra-only auth).
+var sqlConnectionString = 'Server=tcp:${sqlServer.properties.fullyQualifiedDomainName},1433;Initial Catalog=${sqlDatabase.name};Authentication=Active Directory Managed Identity;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;'
 
 resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
   name: '${appName}-api'

@@ -1,6 +1,7 @@
 @using Microsoft.AspNetCore.Components
 @using Microsoft.AspNetCore.Components.Web
 @using ReceptyOks.BlazorComponents.Services
+@using Ganss.Xss
 @inject HtmlViewerState ViewerState
 @implements IDisposable
 
@@ -18,6 +19,56 @@
 </div>
 
 @code {
+    // Sanitize() is thread-safe once configured.
+    private static readonly HtmlSanitizer Sanitizer = CreateSanitizer();
+
+    private static readonly string[] AllowedVideoPrefixes =
+    [
+        "https://www.youtube.com/embed/",
+        "https://youtube.com/embed/",
+        "https://www.youtube-nocookie.com/embed/",
+        "https://player.vimeo.com/video/"
+    ];
+
+    private static HtmlSanitizer CreateSanitizer()
+    {
+        var sanitizer = new HtmlSanitizer();
+
+        // Quill embeds images as base64 data URIs and videos as <iframe class="ql-video">
+        sanitizer.AllowedSchemes.Add("data");
+        sanitizer.AllowedTags.Add("iframe");
+        sanitizer.AllowedAttributes.Add("allowfullscreen");
+        sanitizer.AllowedAttributes.Add("frameborder");
+        sanitizer.AllowedAttributes.Add("allow");
+        sanitizer.AllowedAttributes.Add("class");
+
+        sanitizer.FilterUrl += (_, e) =>
+        {
+            var tag = e.Tag?.TagName;
+            var url = e.OriginalUrl?.Trim() ?? string.Empty;
+
+            if (string.Equals(tag, "iframe", StringComparison.OrdinalIgnoreCase))
+            {
+                e.SanitizedUrl = AllowedVideoPrefixes.Any(p => url.StartsWith(p, StringComparison.OrdinalIgnoreCase))
+                    ? url
+                    : null;
+            }
+            else if (url.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
+            {
+                // data: only for raster images inside <img>
+                var isImg = string.Equals(tag, "img", StringComparison.OrdinalIgnoreCase);
+                var isRaster = url.StartsWith("data:image/png", StringComparison.OrdinalIgnoreCase)
+                    || url.StartsWith("data:image/jpeg", StringComparison.OrdinalIgnoreCase)
+                    || url.StartsWith("data:image/jpg", StringComparison.OrdinalIgnoreCase)
+                    || url.StartsWith("data:image/gif", StringComparison.OrdinalIgnoreCase)
+                    || url.StartsWith("data:image/webp", StringComparison.OrdinalIgnoreCase);
+                e.SanitizedUrl = isImg && isRaster ? url : null;
+            }
+        };
+
+        return sanitizer;
+    }
+
     private string _displayContent = string.Empty;
 
     /// <summary>
@@ -70,7 +121,7 @@
         // Initialize display content from parameter if provided
         if (!string.IsNullOrEmpty(HtmlContent))
         {
-            _displayContent = HtmlContent;
+            _displayContent = Sanitize(HtmlContent);
         }
     }
 
@@ -83,7 +134,7 @@
             ViewerState.SignalReady();
 
             // After SignalReady, the state content is authoritative
-            var stateContent = ViewerState.Content;
+            var stateContent = Sanitize(ViewerState.Content);
             if (!string.IsNullOrEmpty(stateContent) && _displayContent != stateContent)
             {
                 _displayContent = stateContent;
@@ -97,15 +148,18 @@
         // If HtmlContent parameter is set and state is empty, use parameter
         if (!string.IsNullOrEmpty(HtmlContent) && string.IsNullOrEmpty(ViewerState.Content))
         {
-            _displayContent = HtmlContent;
+            _displayContent = Sanitize(HtmlContent);
         }
   }
 
     private void OnExternalContentChanged(object? sender, string newContent)
     {
-        _displayContent = newContent;
+        _displayContent = Sanitize(newContent);
         InvokeAsync(StateHasChanged);
     }
+
+    private static string Sanitize(string? html) =>
+        string.IsNullOrEmpty(html) ? string.Empty : Sanitizer.Sanitize(html);
 
     public void Dispose()
     {

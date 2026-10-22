@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using System.Net;
@@ -350,6 +351,46 @@ public class ExtensionsTests
         Assert.That(selfEntry.TryGetProperty("tags", out _), Is.True, "Entry should contain 'tags'");
     }
 
+    [Test]
+    public async Task MapDefaultEndpoints_HealthEndpoint_DoesNotExposeExceptionDetailsOutsideDevelopment()
+    {
+        // Arrange
+        const string secret = "Server=db;Password=SuperSecret";
+        await using var app = CreateTestApplication(
+            configureChecks: checks => checks.AddCheck("throwing", () => throw new InvalidOperationException(secret)),
+            environment: Environments.Production);
+        var client = app.GetTestClient();
+
+        // Act
+        var response = await client.GetAsync("/health");
+        var content = await response.Content.ReadAsStringAsync();
+        var entry = JsonDocument.Parse(content).RootElement.GetProperty("entries").GetProperty("throwing");
+
+        // Assert
+        Assert.That(content, Does.Not.Contain(secret));
+        Assert.That(entry.GetProperty("exception").ValueKind, Is.EqualTo(JsonValueKind.Null));
+        Assert.That(entry.GetProperty("description").GetString(), Is.EqualTo("Health check failed"));
+    }
+
+    [Test]
+    public async Task MapDefaultEndpoints_HealthEndpoint_ExposesExceptionDetailsInDevelopment()
+    {
+        // Arrange
+        const string message = "boom";
+        await using var app = CreateTestApplication(
+            configureChecks: checks => checks.AddCheck("throwing", () => throw new InvalidOperationException(message)),
+            environment: Environments.Development);
+        var client = app.GetTestClient();
+
+        // Act
+        var response = await client.GetAsync("/health");
+        var content = await response.Content.ReadAsStringAsync();
+        var entry = JsonDocument.Parse(content).RootElement.GetProperty("entries").GetProperty("throwing");
+
+        // Assert
+        Assert.That(entry.GetProperty("exception").GetString(), Is.EqualTo(message));
+    }
+
     #endregion
 
     #region ConfigureOpenTelemetry Tests
@@ -381,12 +422,18 @@ public class ExtensionsTests
 
     #region Helper Methods
 
-    private static WebApplication CreateTestApplication(bool addNonLiveCheck = false)
+    private static WebApplication CreateTestApplication(
+        bool addNonLiveCheck = false,
+        Action<IHealthChecksBuilder>? configureChecks = null,
+        string? environment = null)
     {
-        var builder = WebApplication.CreateBuilder();
+        var builder = environment is null
+            ? WebApplication.CreateBuilder()
+            : WebApplication.CreateBuilder(new WebApplicationOptions { EnvironmentName = environment });
         builder.WebHost.UseTestServer();
 
         builder.AddDefaultHealthChecks();
+        configureChecks?.Invoke(builder.Services.AddHealthChecks());
 
         if (addNonLiveCheck)
         {

@@ -65,30 +65,20 @@ public sealed class ApiKeyAuthMiddleware
             return;
         }
 
-        if (_storedHashBytes == null)
+        if (_storedHashBytes is null || _storedHashBytes.Length == 0 ||
+            _hmacKeyBytes is null || _hmacKeyBytes.Length == 0)
         {
-            _logger.LogError("ApiAuth:PasswordHash is not configured or could not be decoded");
+            _logger.LogError("PasswordHash or SecretKey is not configured or could not be decoded");
             context.Response.StatusCode = StatusCodes.Status500InternalServerError;
             await context.Response.WriteAsJsonAsync(new { error = "Server configuration error" }).ConfigureAwait(false);
             return;
         }
 
         var provided = providedApiKey.ToString().Trim();
-        byte[] providedDerived;
+        var providedDerived = HMACSHA256.HashData(_hmacKeyBytes, Encoding.UTF8.GetBytes(provided));
 
-        if (_hmacKeyBytes != null && _hmacKeyBytes.Length > 0)
-        {
-            // Compute HMAC-SHA256(provided) using configured secret key
-            using var hmac = new HMACSHA256(_hmacKeyBytes);
-            providedDerived = hmac.ComputeHash(Encoding.UTF8.GetBytes(provided));
-        }
-        else
-        {
-            // Fallback: compare raw UTF8 bytes (still constant-time)
-            providedDerived = Encoding.UTF8.GetBytes(provided);
-        }
-
-        var isValid = CryptographicOperations.FixedTimeEquals(_storedHashBytes, providedDerived);
+        var isValid = provided.Length > 0 &&
+                      CryptographicOperations.FixedTimeEquals(_storedHashBytes, providedDerived);
 
         if (!isValid)
         {
