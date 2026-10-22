@@ -101,7 +101,10 @@ builder.Services.AddRateLimiter(options =>
             Window = TimeSpan.FromMinutes(1),
             QueueLimit = 0
         }));
+    options.AddAnthropicProxyRateLimiter();
 });
+
+builder.Services.AddAnthropicProxy(builder.Configuration);
 
 var jwtKey = builder.Configuration["Jwt:Key"]
     ?? throw new InvalidOperationException("Jwt:Key is not configured. Set it in environment variables or user secrets.");
@@ -174,4 +177,5 @@ app.MapShoppingListEndpoints();
 app.MapSyncEndpoints();
 app.MapTokenProviderEndpoints();
 app.MapHomeSeekerEndpoints();
+app.MapAnthropicProxy();
 app.Run();

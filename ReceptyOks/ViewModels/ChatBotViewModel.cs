@@ -12,7 +12,7 @@ namespace ReceptyOks.ViewModels;
 public partial class ChatBotViewModel : ObservableObject
 {
     private readonly LocalDatabase _database;
-    private readonly TokenProviderService _tokenProvider;
+    private readonly AiChatClientFactory _chatClientFactory;
     private readonly ILogger _logger;
     private readonly AgentToolsRegistrar _toolsRegistrar;
     private readonly AttachmentService _attachmentService;
@@ -89,19 +89,19 @@ public partial class ChatBotViewModel : ObservableObject
 
     public ChatBotViewModel(
         LocalDatabase database,
-        TokenProviderService tokenProvider,
+        AiChatClientFactory chatClientFactory,
         AttachmentService attachmentService,
         ILogger logger)
     {
         ArgumentNullException.ThrowIfNull(database);
-        ArgumentNullException.ThrowIfNull(tokenProvider);
+        ArgumentNullException.ThrowIfNull(chatClientFactory);
         ArgumentNullException.ThrowIfNull(attachmentService);
         ArgumentNullException.ThrowIfNull(logger);
 
         _database = database;
         _logger = logger;
         _toolsRegistrar = new AgentToolsRegistrar(database, logger);
-        _tokenProvider = tokenProvider;
+        _chatClientFactory = chatClientFactory;
         _attachmentService = attachmentService;
     }
 
@@ -121,27 +121,15 @@ public partial class ChatBotViewModel : ObservableObject
 
         try
         {
-            // Get API token from backend
-            var tokenResponse = await _tokenProvider.GetTokenAsync(cancellationToken).ConfigureAwait(false);
-            if (tokenResponse is null || string.IsNullOrWhiteSpace(tokenResponse.Token))
-            {
-                throw new InvalidOperationException("Failed to retrieve API token from backend");
-            }
-
-            var tokenBytes = System.Text.Encoding.UTF8.GetBytes(tokenResponse.Token);
-
             var settings = new AnthropicSettings();
 
-            using (var anthritopicAgent = new AnthropicAgent(settings, tokenBytes))
+            string prompt = settings.SystemPrompt;
+            if (await UserService.Instance.Value.HasUserAsync())
             {
-                string prompt = settings.SystemPrompt;
-                if (await UserService.Instance.Value.HasUserAsync())
-                {
-                    var user = await UserService.Instance.Value.GetUserAsync();
-                    prompt = prompt.Replace("{UserName}", user.Name ?? "Nie podano");
-                }
-                _agent = new AiAgent(anthritopicAgent.GetAgent(), prompt);
+                var user = await UserService.Instance.Value.GetUserAsync();
+                prompt = prompt.Replace("{UserName}", user.Name ?? "Nie podano");
             }
+            _agent = new AiAgent(_chatClientFactory.CreateChatClient(settings), prompt);
 
             // Register tools
             _toolsRegistrar.RegisterTools(_agent);

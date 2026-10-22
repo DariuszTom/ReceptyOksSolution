@@ -86,15 +86,15 @@ public partial class MealPlanViewModel : ObservableObject
     private DateSlot? _selectedDateSlotForAdding;
     private bool _categoriesAndRecipesLoaded;
 
-    public MealPlanViewModel(LocalDatabase database, ILogger<MealPlanViewModel> logger, TokenProviderService tokenProvider)
+    public MealPlanViewModel(LocalDatabase database, ILogger<MealPlanViewModel> logger, AiChatClientFactory chatClientFactory)
     {
         _database = database;
         _logger = logger;
         _toolsRegistrar = new AgentToolsRegistrar(database, Serilog.Log.Logger);
         CurrentWeekStart = DateTime.Today.GetStartOfWeek();
-        InitlizeShoppingListAgent(tokenProvider).SafeFireAndForget(ConfigureAwaitOptions.SuppressThrowing);
+        InitlizeShoppingListAgent(chatClientFactory);
     }
-    public async Task InitlizeShoppingListAgent(TokenProviderService tokenProvider)
+    public void InitlizeShoppingListAgent(AiChatClientFactory chatClientFactory)
     {
         if (_agent is not null) return;
 
@@ -103,29 +103,16 @@ public partial class MealPlanViewModel : ObservableObject
 
         try
         {
-            // Get API token from backend
-            var tokenResponse = await tokenProvider.GetTokenAsync(CancellationToken.None).ConfigureAwait(false);
-            if (tokenResponse is null || string.IsNullOrWhiteSpace(tokenResponse.Token))
-            {
-                throw new InvalidOperationException("Failed to retrieve API token from backend");
-            }
-
-            var tokenBytes = System.Text.Encoding.UTF8.GetBytes(tokenResponse.Token);
-
             var settings = new AnthropicSettings();
-
-            using (var anthritopicAgent = new AnthropicAgent(settings, tokenBytes))
-            {
-                _agent = new AiAgent(anthritopicAgent.GetAgent(), settings.SystemPromtShoppingList);
-            }
+            _agent = new AiAgent(chatClientFactory.CreateChatClient(settings), settings.SystemPromtShoppingList);
 
             // Register tools
             _toolsRegistrar.RegisterToolsForShoppingList(_agent);
             IsAgentReady = true;
         }
-        catch
+        catch (Exception ex)
         {
-            _logger.LogError("Failed to initialize AI agent for shopping list generation");
+            _logger.LogError(ex, "Failed to initialize AI agent for shopping list generation");
             IsAgentReady = false;
         }
         finally

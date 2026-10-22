@@ -49,14 +49,15 @@ internal static class HttpClientServiceExtensions
         .AddHttpMessageHandler<ApiKeyHandler>()
         .AddServiceDiscovery();
 
-        // TokenProviderService
-        services.AddHttpClient<TokenProviderService>(client =>
+        // Anthropic reverse proxy on the backend - the Anthropic key never reaches the device.
+        // The SDK enforces its own per-request timeout, so the HttpClient one is disabled.
+        services.AddHttpClient(AiChatClientFactory.HttpClientName, client =>
             {
-                client.BaseAddress = new Uri(baseUrl);
-                client.Timeout = defaultTimeout;
+                client.Timeout = Timeout.InfiniteTimeSpan;
             })
         .AddHttpMessageHandler<ApiKeyHandler>()
         .AddServiceDiscovery();
+        services.AddSingleton<AiChatClientFactory>();
 
         // ShoppingListService
         services.AddHttpClient<IShoppingListService, ShoppingListService>(client =>
