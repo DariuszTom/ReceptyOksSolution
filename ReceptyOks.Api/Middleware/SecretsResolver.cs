@@ -57,7 +57,13 @@ namespace ReceptyOks.Api.Middleware
                     Environment.Exit(1);
                 }
 
-                if (!string.IsNullOrWhiteSpace(secretKey) && !ValidateSecretFormat(secretKey))
+                if (string.IsNullOrWhiteSpace(secretKey))
+                {
+                    Console.Error.WriteLine("FATAL: KeyVault is configured but 'SecretKey' is missing. Add secret 'SecretKey' to Key Vault.");
+                    Environment.Exit(1);
+                }
+
+                if (!ValidateSecretFormat(secretKey))
                 {
                     Console.Error.WriteLine("FATAL: 'ApiAuth:SecretKey' exists but is not valid Base64 or hex. Store SecretKey as Base64 (recommended) or hex.");
                     Environment.Exit(1);

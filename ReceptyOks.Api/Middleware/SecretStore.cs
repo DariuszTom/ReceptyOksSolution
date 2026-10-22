@@ -57,12 +57,14 @@ public sealed class SecretStore : IDisposable
                 throw new InvalidOperationException("Missing PasswordHash");
             }
 
-            var newStored = DecodeStringToBytes(passwordHash.Trim());
-            byte[]? newKey = null;
-            if (!string.IsNullOrWhiteSpace(secretKey))
+            if (string.IsNullOrWhiteSpace(secretKey))
             {
-                newKey = DecodeStringToBytes(secretKey.Trim());
+                _logger.LogError("HMAC secret key is missing (SecretKey)");
+                throw new InvalidOperationException("Missing SecretKey");
             }
+
+            var newStored = DecodeStringToBytes(passwordHash.Trim());
+            var newKey = DecodeStringToBytes(secretKey.Trim());
 
             // zero previous
             if (_storedHashBytes is not null)
