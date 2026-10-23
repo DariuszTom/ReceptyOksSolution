@@ -4,8 +4,15 @@ namespace ReceptyOks.Api.Endpoints
 {
     public static class TokenProviderEndpoints
     {
+        /// <summary>
+        /// Legacy endpoint returning the raw Anthropic key; kept only for already-installed app versions.
+        /// New clients use the reverse proxy at <c>/api/ai</c>. Disable with <c>TokenProvider:LegacyEndpointEnabled=false</c>.
+        /// </summary>
         public static void MapTokenProviderEndpoints(this WebApplication app)
         {
+            if (!app.Configuration.GetValue("TokenProvider:LegacyEndpointEnabled", defaultValue: true))
+                return;
+
             var group = app.MapGroup("/api/tokenprovider")
                 .WithTags("Token Provider")
                 .RequireRateLimiting("strict")
@@ -52,7 +59,8 @@ namespace ReceptyOks.Api.Endpoints
                 // Return full token with a suggested short TTL (in minutes).
                 return Results.Ok(new { Token = token, ExpiresIn = 10 });
             })
-            .WithName("GetTokenSecret");
+            .WithName("GetAnthropicTokenSecret")
+            .WithMetadata(new ObsoleteAttribute("Use the /api/ai reverse proxy instead."));
         }
         public record AuthRequest(byte[] SecretHash, string UserName);
     }
