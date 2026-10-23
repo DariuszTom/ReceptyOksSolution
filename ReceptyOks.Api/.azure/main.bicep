@@ -57,10 +57,7 @@ param passwordHash string
 @secure()
 param secretKey string
 
-@description('UserAgent - allowed username for token issuance. Read as Configuration["UserAgent"].')
-param userAgent string = 'ReceptyOksApp'
-
-@description('Token - Anthropic API token exposed via /token endpoint. Read as Configuration["Token"]. Leave empty if not using Anthropic.')
+@description('Token - Anthropic API key used server-side by the /api/ai reverse proxy. Read as Configuration["Token"]. Leave empty if not using Anthropic.')
 @secure()
 param anthropicToken string = ''
 
@@ -181,9 +178,8 @@ resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
 // Names MUST match what the application reads via IConfiguration:
 //   Configuration["Jwt:Key"]      -> KV secret "Jwt--Key"     (Program.cs)
 //   Configuration["PasswordHash"] -> KV secret "PasswordHash" (SecretsResolver, AuthEndpoints)
-//   Configuration["SecretKey"]    -> KV secret "SecretKey"    (AuthEndpoints, TokenProviderEndpoints)
-//   Configuration["UserAgent"]    -> KV secret "UserAgent"    (TokenProviderEndpoints)
-//   Configuration["Token"]        -> KV secret "Token"        (TokenProviderEndpoints - Anthropic)
+//   Configuration["SecretKey"]    -> KV secret "SecretKey"    (AuthEndpoints, ApiKeyAuthMiddleware)
+//   Configuration["Token"]        -> KV secret "Token"        (AnthropicProxyExtensions - Anthropic)
 // Key Vault flattens '--' in secret names to ':' in IConfiguration.
 
 // JWT signing key - REQUIRED by Program.cs (min 32 chars, else app crashes)
@@ -210,15 +206,6 @@ resource kvSecretSecretKey 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
   name: 'SecretKey'
   properties: {
     value: secretKey
-  }
-}
-
-// Allowed username for token issuance
-resource kvSecretUserAgent 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
-  parent: keyVault
-  name: 'UserAgent'
-  properties: {
-    value: userAgent
   }
 }
 
@@ -304,7 +291,7 @@ resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
       // and store the credential as a Container App secret (e.g., 'registry-pull-token').
       // Only SQL connection string is stored inline as a Container App secret,
       // because it depends on runtime values (server FQDN) and is not read via Key Vault.
-      // All application secrets (PasswordHash, SecretKey, UserAgent, etc.)
+      // All application secrets (PasswordHash, SecretKey, Token, etc.)
       // are read directly from Key Vault by the app using DefaultAzureCredential
       // (see ReceptyOks.Api/Middleware/SecretsResolver.cs).
       secrets: [
@@ -336,7 +323,7 @@ resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
               name: 'ConnectionStrings__DefaultConnection'
               secretRef: 'sql-connection-string'
             }
-            // App reads all secrets (PasswordHash, SecretKey, UserAgent, etc.)
+            // App reads all secrets (PasswordHash, SecretKey, Token, etc.)
             // from Key Vault using DefaultAzureCredential + this URI.
             {
               name: 'KeyVault__VaultUri'

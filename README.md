@@ -136,7 +136,7 @@ The backend API provides RESTful endpoints for:
 | `/api/shopping-list` | Shopping list management (single & bulk operations) | fixed (60/min) |
 | `/api/sync` | Bidirectional synchronization, full sync | fixed (60/min) |
 | `/api/auth/validate` | Password hash validation | strict (10/min) |
-| `/api/tokenprovider/token` | Anthropic token provider for AI features | strict (10/min) |
+| `/api/ai/v1/messages` | Anthropic Messages API reverse proxy (server-side key) | ai (60/min) |
 
 ### Security Features
 

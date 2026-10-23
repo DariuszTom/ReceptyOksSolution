@@ -167,7 +167,7 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-// Mapowanie endpointów
+// Mapowanie endpointÃ³w
 // Map authentication endpoints (ensure /api/auth/validate is available)
 app.MapAuthEndpoints();
 app.MapRecipeEndpoints();
@@ -175,7 +175,6 @@ app.MapCategoryEndpoints();
 app.MapIngredientEndpoints();
 app.MapShoppingListEndpoints();
 app.MapSyncEndpoints();
-app.MapTokenProviderEndpoints();
 app.MapHomeSeekerEndpoints();
 app.MapAnthropicProxy();
 app.Run();
