@@ -35,4 +35,4 @@ ENV ASPNETCORE_ENVIRONMENT=Production
 # Run as the built-in non-root user provided by the .NET images
 USER $APP_UID
 
-ENTRYPOINT
+ENTRYPOINT ["dotnet", "ReceptyOks.Api.dll"]
