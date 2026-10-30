@@ -27,6 +27,10 @@ internal static class HttpClientServiceExtensions
         services.AddTransient<ApiKeyHandler>();
         services.AddTransient<BearerTokenHandler>();
 
+        // Advertise Accept-Encoding (br/gzip/deflate) so the API's response compression actually kicks in.
+        services.ConfigureHttpClientDefaults(builder =>
+            builder.ConfigurePrimaryHttpMessageHandler((handler, _) => EnableAutomaticDecompression(handler)));
+
         // SyncService with extended timeout for Azure SQL sync + large JSON deserialization
         services.AddHttpClient<SyncService>(client =>
       {
@@ -88,5 +92,18 @@ internal static class HttpClientServiceExtensions
         .AddServiceDiscovery();
 
         return services;
+    }
+
+    private static void EnableAutomaticDecompression(HttpMessageHandler handler)
+    {
+        switch (handler)
+        {
+            case HttpClientHandler clientHandler when clientHandler.SupportsAutomaticDecompression:
+                clientHandler.AutomaticDecompression = System.Net.DecompressionMethods.All;
+                break;
+            case SocketsHttpHandler socketsHandler:
+                socketsHandler.AutomaticDecompression = System.Net.DecompressionMethods.All;
+                break;
+        }
     }
 }

@@ -61,7 +61,8 @@ builder.Services.AddResponseCompression(options =>
 
 builder.Services.Configure<Microsoft.AspNetCore.ResponseCompression.BrotliCompressionProviderOptions>(options =>
 {
-    options.Level = System.IO.Compression.CompressionLevel.Fastest; // Balance speed vs compression
+
+    options.Level = System.IO.Compression.CompressionLevel.Optimal;
 });
 
 builder.Services.Configure<Microsoft.AspNetCore.ResponseCompression.GzipCompressionProviderOptions>(options =>
