@@ -177,4 +177,5 @@ app.MapShoppingListEndpoints();
 app.MapSyncEndpoints();
 app.MapHomeSeekerEndpoints();
 app.MapAnthropicProxy();
+app.MapRobotsEndpoints();
 app.Run();
