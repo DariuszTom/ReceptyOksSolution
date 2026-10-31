@@ -6,6 +6,7 @@ using Mapsui.Styles;
 using Mapsui.Tiling;
 using Mapsui.UI.Maui;
 using ReceptyOks.Models.HomeSeeker;
+using ReceptyOks.Shared.Misc;
 using ReceptyOks.ViewModels;
 
 namespace ReceptyOks.Views;
@@ -18,7 +19,6 @@ namespace ReceptyOks.Views;
 internal sealed class HomeSeekerMapView
 {
     private const string ListingKey = "listing";
-    private const string UserAgent = "ReceptyOks-HomeSeeker/1.0 (+https://github.com/DariuszTom/ReceptyOksSolution)";
 
     // Cracow; replaced by the pins' extent as soon as data arrives.
     private const double DefaultLatitude = 50.06;
@@ -36,7 +36,7 @@ internal sealed class HomeSeekerMapView
         _confirm = confirm;
 
         var map = new Mapsui.Map();
-        map.Layers.Add(OpenStreetMap.CreateTileLayer(UserAgent));
+        map.Layers.Add(OpenStreetMap.CreateTileLayer(UserAgentBuilder.App));
         map.Layers.Add(_homeLayer);
         map.Layers.Add(_pinLayer);
         map.Tapped += OnMapTapped;

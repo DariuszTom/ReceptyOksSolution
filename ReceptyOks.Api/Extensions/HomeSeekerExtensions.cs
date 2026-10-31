@@ -16,6 +16,7 @@ using ReceptyOks.Api.Middleware;
 using ReceptyOks.Api.Repositories;
 using ReceptyOks.Api.Services;
 using ReceptyOks.Shared;
+using ReceptyOks.Shared.Misc;
 
 namespace ReceptyOks.Api.Extensions;
 
@@ -256,19 +257,18 @@ public static class HomeSeekerExtensions
                 "HomeSeeker:ScanInterval must be positive.")
             .ValidateOnStart();
 
-        // Register named HttpClient for scrapers
+        // Register named HttpClient for scrapers. User-Agent is set per request by ListingScraperBase
+        // (rotated every scan via UserAgentBuilder).
         services.AddHttpClient(ListingScraperBase.HttpClientName, client =>
         {
-            client.DefaultRequestHeaders.Add("User-Agent",
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
             client.DefaultRequestHeaders.Add("Accept-Language", "pl-PL,pl;q=0.9,en;q=0.8");
             client.DefaultRequestHeaders.Add("Accept",
                 "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8");
             client.Timeout = TimeSpan.FromSeconds(30);
         });
 
-        // Public APIs identify the app honestly (Nominatim usage policy requires it).
-        const string apiUserAgent = "ReceptyOks-HomeSeeker/1.0 (+https://github.com/DariuszTom/ReceptyOksSolution)";
+        
+        const string apiUserAgent = UserAgentBuilder.App;
         // RemoveAllResilienceHandlers drops the standard handler added by ServiceDefaults (it retries 429).
 #pragma warning disable EXTEXP0001
         services.AddHttpClient(NominatimCityCenterProvider.HttpClientName, client =>

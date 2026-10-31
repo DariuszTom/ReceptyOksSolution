@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Web;
 using Microsoft.Extensions.AI;
+using ReceptyOks.Shared.Misc;
 
 namespace ReceptyOks.Shared.AI;
 
@@ -34,7 +35,11 @@ public sealed partial class WebBrowsingTool : IDisposable
             _ownsHttpClient = false;
         }
 
-        _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (compatible; AIAgent/1.0)");
+        if (_httpClient.DefaultRequestHeaders.UserAgent.Count == 0)
+        {
+            _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd(UserAgentBuilder.Next());
+        }
+
         _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("text/html"));
         _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("text/plain"));
         _httpClient.Timeout = TimeSpan.FromSeconds(30);
@@ -142,7 +147,7 @@ public sealed partial class WebBrowsingTool : IDisposable
             var searchUrl = $"https://html.duckduckgo.com/html/?q={encodedQuery}";
 
             using var request = new HttpRequestMessage(HttpMethod.Get, searchUrl);
-            request.Headers.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
+            request.Headers.UserAgent.ParseAdd(UserAgentBuilder.Next());
 
             using var response = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
 

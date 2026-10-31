@@ -4,6 +4,7 @@ using HomeSeeker.Configuration;
 using HomeSeeker.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using ReceptyOks.Shared.Misc;
 
 namespace HomeSeeker.Scrapers;
 
@@ -40,6 +41,8 @@ public abstract class ListingScraperBase : IListingScraper
 
     protected ILogger Logger { get; }
 
+    private volatile string _currentUserAgent = UserAgentBuilder.Next();
+
     /// <summary>Search results URL for one property type and 1-based page.</summary>
     protected abstract string BuildSearchUrl(SearchProfile profile, PropertyTypes type, int page);
 
@@ -59,6 +62,8 @@ public abstract class ListingScraperBase : IListingScraper
     public async Task<ScrapeResult> SearchAsync(SearchProfile profile, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(profile);
+
+        _currentUserAgent = UserAgentBuilder.Next(_currentUserAgent);
 
         var results = new List<ScrapedListing>();
         var pagesFetched = 0;
@@ -94,7 +99,7 @@ public abstract class ListingScraperBase : IListingScraper
 
                     try
                     {
-                        var html = await HttpClient.GetStringAsync(url, cancellationToken).ConfigureAwait(false);
+                        var html = await GetPageAsync(url, cancellationToken).ConfigureAwait(false);
                         pagesFetched++;
 
                         var listings = ParseSearchPage(html, profile, type, page);
@@ -161,7 +166,7 @@ public abstract class ListingScraperBase : IListingScraper
 
         try
         {
-            var html = await HttpClient.GetStringAsync(url, cancellationToken).ConfigureAwait(false);
+            var html = await GetPageAsync(url, cancellationToken).ConfigureAwait(false);
             return ParseDetailsPage(html);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -175,7 +180,17 @@ public abstract class ListingScraperBase : IListingScraper
         }
     }
 
-    /// <summary>True for an absolute https URL on <paramref name="domain"/> or its subdomain.</summary>
+    /// <summary>GET with the scan's User-Agent; throws <see cref="HttpRequestException"/> on a non-success status.</summary>
+    protected async Task<string> GetPageAsync(string url, CancellationToken cancellationToken)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, url);
+        request.Headers.UserAgent.ParseAdd(_currentUserAgent);
+        using var response = await HttpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>True for an absolute https URL on
     protected static bool IsUrlOnDomain(string url, string domain) =>
         Uri.TryCreate(url, UriKind.Absolute, out var uri) &&
         uri.Scheme == Uri.UriSchemeHttps &&
