@@ -301,7 +301,8 @@ public partial class ChatBotViewModel : ObservableObject
             url = "https://" + url;
         }
 
-        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri)) return;
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri)
+            || (uri.Scheme != Uri.UriSchemeHttps && uri.Scheme != Uri.UriSchemeHttp)) return;
 
         try
         {
