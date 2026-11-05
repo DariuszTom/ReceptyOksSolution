@@ -1,8 +1,7 @@
 using Microsoft.Extensions.AI;
-using ReceptyOks.Interfaces;
-using ReceptyOks.Services;
 using ReceptyOks.Shared;
 using ReceptyOks.Shared.AI;
+using ReceptyOks.Shared.AI.Chat;
 using ILogger = Serilog.ILogger;
 
 namespace ReceptyOks.ViewModels;
@@ -12,12 +11,11 @@ namespace ReceptyOks.ViewModels;
 /// </summary>
 public partial class ChatBotViewModel : ObservableObject
 {
-    private readonly LocalDatabase _database;
-    private readonly AiChatClientFactory _chatClientFactory;
+    private readonly IChatConversationStore _conversationStore;
+    private readonly IChatAgentFactory _agentFactory;
     private readonly ILogger _logger;
-    private readonly IAgentToolsRegistrar _toolsRegistrar;
-    private readonly AttachmentService _attachmentService;
-    private AiAgent? _agent;
+    private readonly IChatAttachmentProvider _attachmentService;
+    private IAiAgent? _agent;
     private CancellationTokenSource? _sendCts;
     private string? _currentConversationId;
 
@@ -89,21 +87,19 @@ public partial class ChatBotViewModel : ObservableObject
     public ObservableCollection<ConversationHistoryItemViewModel> Conversations { get; } = [];
 
     public ChatBotViewModel(
-        LocalDatabase database,
-        AiChatClientFactory chatClientFactory,
-        AttachmentService attachmentService,
-        IAgentToolsRegistrar toolsRegistrar,
+        IChatConversationStore conversationStore,
+        IChatAgentFactory agentFactory,
+        IChatAttachmentProvider attachmentService,
         ILogger logger)
     {
-        _database = database ?? throw new ArgumentNullException(nameof(database));
-        _chatClientFactory = chatClientFactory ?? throw new ArgumentNullException(nameof(chatClientFactory));
+        _conversationStore = conversationStore ?? throw new ArgumentNullException(nameof(conversationStore));
+        _agentFactory = agentFactory ?? throw new ArgumentNullException(nameof(agentFactory));
         _attachmentService = attachmentService ?? throw new ArgumentNullException(nameof(attachmentService));
-        _toolsRegistrar = toolsRegistrar ?? throw new ArgumentNullException(nameof(toolsRegistrar));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     /// <summary>
-    /// Initializes the AI agent with Anthropic client and registers tools.
+    /// Initializes the AI agent using the configured <see cref="IChatAgentFactory"/>.
     /// </summary>
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
@@ -118,19 +114,7 @@ public partial class ChatBotViewModel : ObservableObject
 
         try
         {
-            var settings = new AnthropicSettings();
-
-            string prompt = settings.SystemPrompt;
-            if (await UserService.Instance.Value.HasUserAsync())
-            {
-                var user = await UserService.Instance.Value.GetUserAsync();
-                prompt = prompt.Replace("{UserName}", user.Name ?? "Nie podano");
-            }
-            _agent = new AiAgent(_chatClientFactory.CreateChatClient(settings), prompt);
-
-            // Register tools
-            _toolsRegistrar.RegisterTools(_agent, AgentToolGroup.Recipes, AgentToolGroup.HomeSeeker, AgentToolGroup.Web);
-
+            _agent = await _agentFactory.CreateAgentAsync(cancellationToken);
         }
         catch (Exception ex)
         {
@@ -498,7 +482,7 @@ public partial class ChatBotViewModel : ObservableObject
 
         try
         {
-            var conversations = await _database.GetConversationsAsync().ConfigureAwait(false);
+            var conversations = await _conversationStore.GetConversationsAsync().ConfigureAwait(false);
 
             await MainThread.InvokeOnMainThreadAsync(() =>
   {
@@ -538,7 +522,7 @@ public partial class ChatBotViewModel : ObservableObject
 
         try
         {
-            var conversation = await _database.GetConversationAsync(item.Id).ConfigureAwait(false);
+            var conversation = await _conversationStore.GetConversationAsync(item.Id).ConfigureAwait(false);
             if (conversation is null)
             {
                 _logger.Warning("Conversation {Id} not found", item.Id);
@@ -642,14 +626,7 @@ public partial class ChatBotViewModel : ObservableObject
            ? firstUserMessage.Content[..50] + "..."
             : firstUserMessage?.Content ?? "Rozmowa";
 
-            var conversation = new ConversationLocal
-            {
-                Id = _currentConversationId,
-                Title = title,
-                SerializedThread = serializedThread
-            };
-
-            await _database.SaveConversationAsync(conversation).ConfigureAwait(false);
+            await _conversationStore.SaveConversationAsync(_currentConversationId, title, serializedThread).ConfigureAwait(false);
 
             _logger.Information("Conversation saved with ID {Id}", _currentConversationId);
         }
@@ -681,7 +658,7 @@ public partial class ChatBotViewModel : ObservableObject
 
         try
         {
-            await _database.DeleteConversationAsync(item.Id).ConfigureAwait(false);
+            await _conversationStore.DeleteConversationAsync(item.Id).ConfigureAwait(false);
 
             await MainThread.InvokeOnMainThreadAsync(() =>
       {

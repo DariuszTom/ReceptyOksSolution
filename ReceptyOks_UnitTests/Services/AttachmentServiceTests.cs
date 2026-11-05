@@ -1,6 +1,7 @@
 ﻿using Moq;
 using NUnit.Framework;
 using ReceptyOks.Services;
+using ReceptyOks.Shared.AI.Chat;
 using ILogger = Serilog.ILogger;
 
 namespace ReceptyOks_UnitTests.Services;

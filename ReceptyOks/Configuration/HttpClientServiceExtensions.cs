@@ -94,6 +94,7 @@ internal static class HttpClientServiceExtensions
         });
         services.AddTransient<IAgentToolProvider>(sp => sp.GetRequiredService<WebBrowsingToolProvider>());
         services.AddTransient<IAgentToolsRegistrar, AgentToolsRegistrar>();
+        services.AddTransient<ReceptyOks.Shared.AI.Chat.IChatAgentFactory, ReceptyOksChatAgentFactory>();
 
         // HealthStatusService
         services.AddHttpClient<IHealthStatusService, HealthStatusService>(client =>

@@ -7,6 +7,7 @@ using Plugin.Maui.OCR;
 using ReceptyOks.BlazorComponents.Services;
 using ReceptyOks.Data;
 using ReceptyOks.Services;
+using ReceptyOks.Shared.AI.Chat;
 using ReceptyOks.Shared.Configuration;
 using ReceptyOks.Shared.OCR;
 
@@ -71,6 +72,8 @@ internal static class ApplicationServiceExtensions
 
         // Chat attachments (image / PDF picker + persistence)
         services.AddSingleton<AttachmentService>();
+        services.AddSingleton<IChatAttachmentProvider>(sp => sp.GetRequiredService<AttachmentService>());
+        services.AddSingleton<IChatConversationStore, LocalChatConversationStore>();
 
         return services;
     }

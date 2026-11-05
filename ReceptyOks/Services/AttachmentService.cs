@@ -1,4 +1,5 @@
 using System.Text;
+using ReceptyOks.Shared.AI.Chat;
 using ILogger = Serilog.ILogger;
 
 namespace ReceptyOks.Services;
@@ -9,7 +10,7 @@ namespace ReceptyOks.Services;
 /// Files are copied to <see cref="FileSystem.AppDataDirectory"/> so they survive across sessions
 /// and can be referenced by saved conversations.
 /// </summary>
-public sealed class AttachmentService
+public sealed class AttachmentService : IChatAttachmentProvider
 {
     /// <summary>Anthropic Claude image size hard limit (~5 MB).</summary>
     private const long MaxImageBytes = 5 * 1024 * 1024;
@@ -584,30 +585,4 @@ public sealed class AttachmentService
             _ => ".jpg",
         };
     }
-}
-
-/// <summary>
-/// Represents a single attachment prepared for a chat message.
-/// </summary>
-/// <param name="FilePath">Absolute path to the persisted copy on disk.</param>
-/// <param name="MediaType">MIME type (e.g. "image/jpeg", "application/pdf", "text/plain").</param>
-/// <param name="OriginalFileName">The original file name as provided by the picker.</param>
-/// <param name="Data">Raw bytes of the file, used to build the AI request payload.</param>
-/// <param name="TextContent">
-/// Extracted plain-text content for text-based documents (TXT/MD/CSV/DOCX…). Sent inline in
-/// the prompt instead of as a binary <c>DataContent</c>. <c>null</c> for images and PDFs.
-/// </param>
-public sealed record ChatAttachment(
-    string FilePath,
-    string MediaType,
-    string OriginalFileName,
-    byte[] Data,
-    string? TextContent = null)
-{
-    public bool IsImage => MediaType.StartsWith("image/", StringComparison.OrdinalIgnoreCase);
-
-    public bool IsPdf => MediaType.Equals("application/pdf", StringComparison.OrdinalIgnoreCase);
-
-    /// <summary>True when the attachment carries extracted text to be inlined into the prompt.</summary>
-    public bool IsTextDocument => TextContent is not null;
 }
