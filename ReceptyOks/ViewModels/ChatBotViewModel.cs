@@ -1,4 +1,5 @@
 using Microsoft.Extensions.AI;
+using ReceptyOks.Interfaces;
 using ReceptyOks.Services;
 using ReceptyOks.Shared;
 using ReceptyOks.Shared.AI;
@@ -14,7 +15,7 @@ public partial class ChatBotViewModel : ObservableObject
     private readonly LocalDatabase _database;
     private readonly AiChatClientFactory _chatClientFactory;
     private readonly ILogger _logger;
-    private readonly AgentToolsRegistrar _toolsRegistrar;
+    private readonly IAgentToolsRegistrar _toolsRegistrar;
     private readonly AttachmentService _attachmentService;
     private AiAgent? _agent;
     private CancellationTokenSource? _sendCts;
@@ -91,18 +92,14 @@ public partial class ChatBotViewModel : ObservableObject
         LocalDatabase database,
         AiChatClientFactory chatClientFactory,
         AttachmentService attachmentService,
+        IAgentToolsRegistrar toolsRegistrar,
         ILogger logger)
     {
-        ArgumentNullException.ThrowIfNull(database);
-        ArgumentNullException.ThrowIfNull(chatClientFactory);
-        ArgumentNullException.ThrowIfNull(attachmentService);
-        ArgumentNullException.ThrowIfNull(logger);
-
-        _database = database;
-        _logger = logger;
-        _toolsRegistrar = new AgentToolsRegistrar(database, logger);
-        _chatClientFactory = chatClientFactory;
-        _attachmentService = attachmentService;
+        _database = database ?? throw new ArgumentNullException(nameof(database));
+        _chatClientFactory = chatClientFactory ?? throw new ArgumentNullException(nameof(chatClientFactory));
+        _attachmentService = attachmentService ?? throw new ArgumentNullException(nameof(attachmentService));
+        _toolsRegistrar = toolsRegistrar ?? throw new ArgumentNullException(nameof(toolsRegistrar));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     /// <summary>
@@ -132,7 +129,7 @@ public partial class ChatBotViewModel : ObservableObject
             _agent = new AiAgent(_chatClientFactory.CreateChatClient(settings), prompt);
 
             // Register tools
-            _toolsRegistrar.RegisterTools(_agent);
+            _toolsRegistrar.RegisterTools(_agent, AgentToolGroup.Recipes, AgentToolGroup.HomeSeeker, AgentToolGroup.Web);
 
         }
         catch (Exception ex)
@@ -289,6 +286,32 @@ public partial class ChatBotViewModel : ObservableObject
     private void Cancel()
     {
         _sendCts?.Cancel();
+    }
+
+    /// <summary>
+    /// Opens a hyperlink tapped in a rendered markdown message in the system browser.
+    /// </summary>
+    [RelayCommand]
+    private async Task OpenLinkAsync(string? url)
+    {
+        if (string.IsNullOrWhiteSpace(url)) return;
+
+        if (!url.Contains("://", StringComparison.Ordinal))
+        {
+            url = "https://" + url;
+        }
+
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri)
+            || (uri.Scheme != Uri.UriSchemeHttps && uri.Scheme != Uri.UriSchemeHttp)) return;
+
+        try
+        {
+            await Launcher.Default.OpenAsync(uri);
+        }
+        catch (Exception ex)
+        {
+            _logger.Warning(ex, "Failed to open link {Url}", url);
+        }
     }
 
     private bool CanPickAttachment => !IsBusy && !IsInitializing && PendingAttachment is null;

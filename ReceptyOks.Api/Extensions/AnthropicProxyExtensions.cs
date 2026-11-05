@@ -19,11 +19,14 @@ public static class AnthropicProxyExtensions
     private const string RouteId = "anthropic-messages";
     private const string ClusterId = "anthropic";
     private const string TokenConfigKey = "Token";
+    private const string DestinationConfigKey = "AnthropicProxy:Destination";
     private const string AnthropicApiKeyHeader = "x-api-key";
 
     public static IServiceCollection AddAnthropicProxy(this IServiceCollection services, IConfiguration configuration)
     {
-        var destination = new AnthropicSettings().BaseUrl ?? throw new InvalidOperationException($"Missing {nameof(AnthropicSettings)}.{nameof(AnthropicSettings.BaseUrl)} configuration");
+        var destination = configuration[DestinationConfigKey];
+        if (string.IsNullOrWhiteSpace(destination))
+            destination = new AnthropicSettings().BaseUrl;
 
         var routes = new[]
         {

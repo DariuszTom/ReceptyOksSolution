@@ -2,6 +2,7 @@ using AsyncAwaitBestPractices;
 using CommunityToolkit.Maui;
 using CommunityToolkit.Maui.Extensions;
 using Microsoft.Maui.Controls.Shapes;
+using ReceptyOks.Interfaces;
 using ReceptyOks.Services;
 using ReceptyOks.Shared.AI;
 using ReceptyOks.Shared.Misc;
@@ -13,7 +14,7 @@ public partial class MealPlanViewModel : ObservableObject
 {
     private readonly LocalDatabase _database;
     private readonly ILogger<MealPlanViewModel> _logger;
-    private readonly AgentToolsRegistrar _toolsRegistrar;
+    private readonly IAgentToolsRegistrar _toolsRegistrar;
     private AiAgent _agent;
 
     [ObservableProperty]
@@ -86,11 +87,11 @@ public partial class MealPlanViewModel : ObservableObject
     private DateSlot? _selectedDateSlotForAdding;
     private bool _categoriesAndRecipesLoaded;
 
-    public MealPlanViewModel(LocalDatabase database, ILogger<MealPlanViewModel> logger, AiChatClientFactory chatClientFactory)
+    public MealPlanViewModel(LocalDatabase database, ILogger<MealPlanViewModel> logger, AiChatClientFactory chatClientFactory, IAgentToolsRegistrar toolsRegistrar)
     {
         _database = database;
         _logger = logger;
-        _toolsRegistrar = new AgentToolsRegistrar(database, Serilog.Log.Logger);
+        _toolsRegistrar = toolsRegistrar ?? throw new ArgumentNullException(nameof(toolsRegistrar));
         CurrentWeekStart = DateTime.Today.GetStartOfWeek();
         InitlizeShoppingListAgent(chatClientFactory);
     }
@@ -107,7 +108,7 @@ public partial class MealPlanViewModel : ObservableObject
             _agent = new AiAgent(chatClientFactory.CreateChatClient(settings), settings.SystemPromtShoppingList);
 
             // Register tools
-            _toolsRegistrar.RegisterToolsForShoppingList(_agent);
+            _toolsRegistrar.RegisterTools(_agent, AgentToolGroup.ShoppingList);
             IsAgentReady = true;
         }
         catch (Exception ex)

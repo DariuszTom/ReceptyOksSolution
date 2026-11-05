@@ -1,55 +1,21 @@
+using ReceptyOks.Interfaces;
 using ReceptyOks.Shared.AI;
 using System.Text.Json;
 using ILogger = Serilog.ILogger;
 
-namespace ReceptyOks.Services;
+namespace ReceptyOks.Services.AgentTools;
 
 /// <summary>
-/// Handles registration and implementation of AI agent tools for database queries.
+/// Recipe, category, ingredient and meal plan tools backed by the local database.
 /// </summary>
-public class AgentToolsRegistrar : IDisposable
+public sealed class RecipeToolProvider(LocalDatabase database, ILogger logger) : IAgentToolProvider
 {
-    private readonly LocalDatabase _database;
-    private readonly ILogger _logger;
-    private readonly WebBrowsingTool _webBrowsingTool;
-    private bool _disposed;
+    private readonly LocalDatabase _database = database ?? throw new ArgumentNullException(nameof(database));
+    private readonly ILogger _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
-    public AgentToolsRegistrar(LocalDatabase database, ILogger logger, HttpClient? httpClient = null)
-    {
-        ArgumentNullException.ThrowIfNull(database);
-        ArgumentNullException.ThrowIfNull(logger);
+    public AgentToolGroup Group => AgentToolGroup.Recipes;
 
-        _database = database;
-        _logger = logger;
-        _webBrowsingTool = new WebBrowsingTool(httpClient);
-    }
-
-    /// <inheritdoc />
-    public void Dispose()
-    {
-        Dispose(true);
-        GC.SuppressFinalize(this);
-    }
-
-    protected virtual void Dispose(bool disposing)
-    {
-        if (_disposed)
-        {
-            return;
-        }
-
-        if (disposing)
-        {
-            _webBrowsingTool.Dispose();
-        }
-
-        _disposed = true;
-    }
-
-    /// <summary>
-    /// Registers all available tools with the AI agent.
-    /// </summary>
-    public void RegisterTools(AiAgent agent)
+    public void Register(AiAgent agent)
     {
         ArgumentNullException.ThrowIfNull(agent);
 
@@ -76,69 +42,6 @@ public class AgentToolsRegistrar : IDisposable
 
         agent.AddToolAsync<string, string>(GetMealPlansWithRecipesAsync,
                 "get_meal_plans_with_recipes", "Retrieves meal plans with their associated recipes for a date range. Parameter: dateRangeJson - JSON string with StartDate and EndDate in ISO 8601 format (e.g., {\"StartDate\":\"2024-01-01\",\"EndDate\":\"2024-01-07\"}).");
-
-        // Register web browsing tools (WebBrowsingTool is owned by this class)
-        _webBrowsingTool.RegisterTools(agent);
-    }
-    public void RegisterToolsForShoppingList(AiAgent agent)
-    {
-        ArgumentNullException.ThrowIfNull(agent);
-        agent.AddToolAsync<List<Guid>, string>(GetAllIngredientsAsyncForRecipes,
-            "get_all_ingredients_for_recipes", "Parameter: List of recipeId strings (GUIDs).");
-    }
-
-    private async Task<string> GetAllIngredientsAsyncForRecipes(List<Guid> list)
-    {
-        if (list is null || list.Count == 0)
-        {
-            return "[]";
-        }
-
-        var validIds = list.Where(id => id != Guid.Empty).Distinct().ToList();
-        if (validIds.Count == 0)
-        {
-            return "[]";
-        }
-
-        var allRecipeIngredients = new List<RecipeIngredientLocal>();
-        foreach (var recipeId in validIds)
-        {
-            var recipeIngredients = await _database.GetRecipeIngredientsAsync(recipeId).ConfigureAwait(false);
-            allRecipeIngredients.AddRange(recipeIngredients);
-        }
-
-        var neededIds = allRecipeIngredients.Select(ri => ri.IngredientId).ToHashSet();
-        var ingredients = await _database.GetIngredientsAsync().ConfigureAwait(false);
-        var ingredientLookup = ingredients
-            .Where(i => neededIds.Contains(i.Id))
-            .ToDictionary(i => i.Id);
-
-        var aggregated = new Dictionary<Guid, (string Name, decimal Quantity, string? Unit)>();
-        foreach (var ri in allRecipeIngredients)
-        {
-            var name = ingredientLookup.TryGetValue(ri.IngredientId, out var ingredient)
-                ? ingredient.Name
-                : "Unknown";
-            var unit = ingredient?.Unit;
-
-            if (aggregated.TryGetValue(ri.IngredientId, out var existing))
-            {
-                aggregated[ri.IngredientId] = (existing.Name, existing.Quantity + ri.Quantity, existing.Unit);
-            }
-            else
-            {
-                aggregated[ri.IngredientId] = (name, ri.Quantity, unit);
-            }
-        }
-
-        var result = aggregated.Values.Select(v => new
-        {
-            v.Name,
-            v.Quantity,
-            v.Unit
-        });
-
-        return JsonSerializer.Serialize(result);
     }
 
     private async Task<string> GetAllRecipesAsync()
