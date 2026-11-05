@@ -1,0 +1,2 @@
+# False positive: built-in Azure RBAC role definition ID (Key Vault Secrets User), not a secret.
+1b091cd46f06cf6e399017cd47bc414ae8dffdb8:ReceptyOks.Api/.azure/main.bicep:generic-api-key:357
