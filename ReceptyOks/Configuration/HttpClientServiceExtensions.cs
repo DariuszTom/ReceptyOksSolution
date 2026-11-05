@@ -2,6 +2,7 @@ namespace ReceptyOks.Configuration;
 
 using ReceptyOks.Interfaces;
 using ReceptyOks.Services;
+using ReceptyOks.Services.AgentTools;
 
 /// <summary>
 /// Extension methods for registering HTTP clients with the dependency injection container.
@@ -83,7 +84,18 @@ internal static class HttpClientServiceExtensions
         .AddHttpMessageHandler<BearerTokenHandler>()
         .AddServiceDiscovery();
 
-        // HealthStatusService - no API key needed for health endpoints
+        // AI agent tools (Composite): each IAgentToolProvider contributes one tool group.
+        services.AddTransient<IAgentToolProvider, RecipeToolProvider>();
+        services.AddTransient<IAgentToolProvider, ShoppingListToolProvider>();
+        services.AddTransient<IAgentToolProvider, HomeSeekerToolProvider>();
+        services.AddHttpClient<WebBrowsingToolProvider>(client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(30);
+        });
+        services.AddTransient<IAgentToolProvider>(sp => sp.GetRequiredService<WebBrowsingToolProvider>());
+        services.AddTransient<IAgentToolsRegistrar, AgentToolsRegistrar>();
+
+        // HealthStatusService
         services.AddHttpClient<IHealthStatusService, HealthStatusService>(client =>
         {
             client.BaseAddress = new Uri(baseUrl);
