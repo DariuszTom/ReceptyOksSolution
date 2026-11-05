@@ -1,10 +1,9 @@
-﻿using ReceptyOks.Interfaces;
+﻿using Microsoft.Extensions.AI;
+using ReceptyOks.Interfaces;
 using ReceptyOks.Models.HomeSeeker;
 using ReceptyOks.Shared.AI;
-using System.Net;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Text.RegularExpressions;
 using ILogger = Serilog.ILogger;
 
 namespace ReceptyOks.Services.AgentTools
@@ -27,25 +26,21 @@ namespace ReceptyOks.Services.AgentTools
         {
             ArgumentNullException.ThrowIfNull(agent);
 
-            agent.AddTool<Task<string>>(GetHomeSeekerProfileAsync,
-                "homeseeker_get_profile", "Gets the HomeSeeker search profile (city, district, property types, price/area/rooms limits, extra criteria, notification email, 'our location', last scan time).");
+            agent.AddTool(AIFunctionFactory.Create(GetHomeSeekerProfileAsync,
+                "homeseeker_get_profile", "Gets the HomeSeeker search profile (city, district, property types, price/area/rooms limits, extra criteria, notification email, 'our location', last scan time)."));
 
-            agent.AddToolAsync<string, string>(GetHomeSeekerListingsAsync,
-                "homeseeker_get_listings", $"Searches real estate listings found by HomeSeeker scans (with AI score, summary, pros/cons, price assessment, distance). Parameter: queryJson - JSON object (all optional): PageNumber (default 1), PageSize (default 10, max {MaxListingsPageSize}), MinScore (0-100), Sort ({string.Join(", ", ListingSorts)}), PropertyType (\"House\" or \"Apartment\"), Portal (see homeseeker_get_portals), MaxDistanceKm, PriceDropOnly (bool), EvaluatedOnly (bool). Pass \"{{}}\" for defaults.");
+            agent.AddTool(AIFunctionFactory.Create(GetHomeSeekerListingsAsync,
+                "homeseeker_get_listings", $"Searches real estate listings found by HomeSeeker scans (with AI score, summary, pros/cons, price assessment, distance). Parameter: queryJson - JSON object (all optional): PageNumber (default 1), PageSize (default 10, max {MaxListingsPageSize}), MinScore (0-100), Sort ({string.Join(", ", ListingSorts)}), PropertyType (\"House\" or \"Apartment\"), Portal (see homeseeker_get_portals), MaxDistanceKm, PriceDropOnly (bool), EvaluatedOnly (bool). Pass \"{{}}\" for defaults."));
 
-            agent.AddTool<Task<string>>(GetHomeSeekerPortalsAsync,
-                "homeseeker_get_portals", "Returns names of real estate portals scanned by HomeSeeker (values for the Portal filter).");
+            agent.AddTool(AIFunctionFactory.Create(GetHomeSeekerPortalsAsync,
+                "homeseeker_get_portals", "Returns names of real estate portals scanned by HomeSeeker (values for the Portal filter)."));
 
-            agent.AddToolAsync<int, string>(GetHomeSeekerScansAsync,
-                "homeseeker_get_scans", $"Returns recent HomeSeeker scan runs (status, start/end time, found/new listings, price drops, evaluated count, report availability). Parameter: count - number of scans (1-{MaxScansCount}).");
-
-            agent.AddToolAsync<string, string>(GetHomeSeekerScanReportAsync,
-                "homeseeker_get_scan_report", "Returns the plain-text content of a HomeSeeker scan report. Parameter: scanId - the GUID of the scan (from homeseeker_get_scans, only when HasReport is true).");
+            agent.AddTool(AIFunctionFactory.Create(GetHomeSeekerScansAsync,
+                "homeseeker_get_scans", $"Returns recent HomeSeeker scan runs (status, start/end time, found/new listings, price drops, evaluated count, report availability). Parameter: count - number of scans (1-{MaxScansCount})."));
         }
 
         private const int MaxListingsPageSize = 25;
         private const int MaxScansCount = 50;
-        private const int MaxReportLength = 12000;
         private static readonly string[] ListingSorts = ["score", "price", "price_desc", "pricesqm", "area_desc", "distance", "firstseen"];
 
         private static readonly JsonSerializerOptions ToolJsonOptions = new()
@@ -54,9 +49,9 @@ namespace ReceptyOks.Services.AgentTools
             Converters = { new JsonStringEnumConverter() }
         };
 
-        private async Task<string> GetHomeSeekerProfileAsync()
+        private async Task<string> GetHomeSeekerProfileAsync(CancellationToken cancellationToken = default)
         {
-            var result = await _homeSeekerService.GetProfileAsync().ConfigureAwait(false);
+            var result = await _homeSeekerService.GetProfileAsync(cancellationToken).ConfigureAwait(false);
             if (!result.IsSuccess || result.Value is null)
             {
                 return Failure(result.Status, result.Message, result.Status == HomeSeekerCallStatus.NotFound
@@ -67,7 +62,7 @@ namespace ReceptyOks.Services.AgentTools
             return Serialize(ProjectProfile(result.Value));
         }
 
-        private async Task<string> GetHomeSeekerListingsAsync(string queryJson)
+        private async Task<string> GetHomeSeekerListingsAsync(string queryJson, CancellationToken cancellationToken = default)
         {
             ListingsToolRequest? request;
             try
@@ -105,7 +100,7 @@ namespace ReceptyOks.Services.AgentTools
             var pageNumber = Math.Max(1, request.PageNumber ?? 1);
             var pageSize = Math.Clamp(request.PageSize ?? 10, 1, MaxListingsPageSize);
 
-            var result = await _homeSeekerService.GetListingsAsync(pageNumber, pageSize, query).ConfigureAwait(false);
+            var result = await _homeSeekerService.GetListingsAsync(pageNumber, pageSize, query, cancellationToken).ConfigureAwait(false);
             if (!result.IsSuccess || result.Value is null)
             {
                 return Failure(result.Status, result.Message, errors: result.Errors);
@@ -143,17 +138,17 @@ namespace ReceptyOks.Services.AgentTools
             });
         }
 
-        private async Task<string> GetHomeSeekerPortalsAsync()
+        private async Task<string> GetHomeSeekerPortalsAsync(CancellationToken cancellationToken = default)
         {
-            var result = await _homeSeekerService.GetPortalsAsync().ConfigureAwait(false);
+            var result = await _homeSeekerService.GetPortalsAsync(cancellationToken).ConfigureAwait(false);
             return result.IsSuccess
                 ? Serialize(result.Value ?? [])
                 : Failure(result.Status, result.Message);
         }
 
-        private async Task<string> GetHomeSeekerScansAsync(int count)
+        private async Task<string> GetHomeSeekerScansAsync(int count, CancellationToken cancellationToken = default)
         {
-            var result = await _homeSeekerService.GetScansAsync(Math.Clamp(count <= 0 ? 10 : count, 1, MaxScansCount)).ConfigureAwait(false);
+            var result = await _homeSeekerService.GetScansAsync(Math.Clamp(count <= 0 ? 10 : count, 1, MaxScansCount), cancellationToken).ConfigureAwait(false);
             if (!result.IsSuccess)
             {
                 return Failure(result.Status, result.Message);
@@ -174,29 +169,6 @@ namespace ReceptyOks.Services.AgentTools
             }));
         }
 
-        private async Task<string> GetHomeSeekerScanReportAsync(string scanId)
-        {
-            if (!Guid.TryParse(scanId, out var id))
-            {
-                return Serialize(new { error = "Invalid scan ID format" });
-            }
-
-            var result = await _homeSeekerService.GetReportHtmlAsync(id).ConfigureAwait(false);
-            if (!result.IsSuccess || string.IsNullOrWhiteSpace(result.Value))
-            {
-                return Failure(result.Status, result.Message, result.IsSuccess ? "Report is empty" : null);
-            }
-
-            var text = HtmlToText(result.Value);
-            var truncated = text.Length > MaxReportLength;
-            return Serialize(new
-            {
-                ScanId = id,
-                Truncated = truncated,
-                Content = truncated ? text[..MaxReportLength] : text
-            });
-        }
-
         private static object ProjectProfile(HomeSeekerProfile p) => new
         {
             p.City,
@@ -215,17 +187,6 @@ namespace ReceptyOks.Services.AgentTools
             p.HomeLabel,
             LastScannedAt = p.LastScannedAtLocal
         };
-
-        private static string HtmlToText(string html)
-        {
-            var text = Regex.Replace(html, @"<(script|style)[^>]*>.*?</\1>", string.Empty, RegexOptions.Singleline | RegexOptions.IgnoreCase);
-            text = Regex.Replace(text, @"<(br|/p|/div|/tr|/li|/h\d)[^>]*>", "\n", RegexOptions.IgnoreCase);
-            text = Regex.Replace(text, "<[^>]+>", " ");
-            text = WebUtility.HtmlDecode(text);
-            text = Regex.Replace(text, @"[ \t\r\f\v]+", " ");
-            text = Regex.Replace(text, @"\s*\n\s*", "\n");
-            return text.Trim();
-        }
 
         private static string Failure(HomeSeekerCallStatus status, string? message, string? fallback = null, IReadOnlyDictionary<string, string[]>? errors = null) =>
             Serialize(new
