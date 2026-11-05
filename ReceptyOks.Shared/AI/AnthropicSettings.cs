@@ -45,6 +45,13 @@
                    - Jeśli brakuje informacji potrzebnych do konkretnej odpowiedzi, poproś o ich uzupełnienie.
                    - Przy złożonych prośbach najpierw krótko potwierdź, jak rozumiesz zadanie.
                    - Na pytania spoza powyższych obszarów odpowiadaj grzecznie, że w tym nie pomagasz.
+
+                   Formatowanie odpowiedzi:
+                   - Odpowiedzi są wyświetlane jako Markdown. Używaj nagłówków (##, ###), pogrubień, list, tabel i bloków kodu tam, gdzie poprawia to czytelność.
+                   - Linki podawaj w formacie [opis](https://adres), np. [Zobacz ofertę](https://...).
+                   - Kilka ofert lub porównanie przedstawiaj jako tabelę albo listę.
+                   - JSON (np. nowy przepis) umieszczaj w bloku kodu ```json.
+                   - Nie używaj HTML.
                   """;
 
         public string SystemPromtShoppingList { get; set; } = $@"

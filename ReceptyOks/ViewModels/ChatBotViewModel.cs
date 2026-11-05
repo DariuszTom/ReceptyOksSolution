@@ -288,6 +288,31 @@ public partial class ChatBotViewModel : ObservableObject
         _sendCts?.Cancel();
     }
 
+    /// <summary>
+    /// Opens a hyperlink tapped in a rendered markdown message in the system browser.
+    /// </summary>
+    [RelayCommand]
+    private async Task OpenLinkAsync(string? url)
+    {
+        if (string.IsNullOrWhiteSpace(url)) return;
+
+        if (!url.Contains("://", StringComparison.Ordinal))
+        {
+            url = "https://" + url;
+        }
+
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri)) return;
+
+        try
+        {
+            await Launcher.Default.OpenAsync(uri);
+        }
+        catch (Exception ex)
+        {
+            _logger.Warning(ex, "Failed to open link {Url}", url);
+        }
+    }
+
     private bool CanPickAttachment => !IsBusy && !IsInitializing && PendingAttachment is null;
 
     /// <summary>
