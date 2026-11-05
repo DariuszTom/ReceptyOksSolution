@@ -316,6 +316,7 @@
         <Border Grid.Row="1"
                 IsVisible="{Binding HasError}"
                 VerticalOptions="End"
+                MaximumWidthRequest="1400"
                 Margin="16,0,16,8"
                 Padding="16,12"
                 BackgroundColor="#FFEBEE"
@@ -325,7 +326,7 @@
             <Border.Shadow>
                 <Shadow Brush="#EF5350" Offset="0,2" Radius="8" Opacity="0.2"/>
             </Border.Shadow>
-            <HorizontalStackLayout Spacing="10">
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
                 <Image HeightRequest="20" WidthRequest="20" VerticalOptions="Center">
                     <Image.Source>
                         <FontImageSource Glyph="{x:Static icons:MaterialOutlined.Error}"
@@ -334,13 +335,13 @@
                                          Size="20"/>
                     </Image.Source>
                 </Image>
-                <Label Text="{Binding ErrorMessage}"
+                <Label Grid.Column="1"
+                       Text="{Binding ErrorMessage}"
                        TextColor="#C62828"
                        FontSize="14"
                        VerticalOptions="Center"
-                       LineBreakMode="WordWrap"
-                       MaximumWidthRequest="900"/>
-            </HorizontalStackLayout>
+                       LineBreakMode="WordWrap"/>
+            </Grid>
         </Border>
 
         <!-- Input Area -->
