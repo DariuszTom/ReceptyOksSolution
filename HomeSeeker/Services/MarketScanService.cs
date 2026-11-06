@@ -199,6 +199,9 @@ public sealed class MarketScanService : IMarketScanService
     /// "similar" offers), so the profile's ranges are enforced here before anything is stored.
     /// Removes out-of-range listings from <paramref name="scraped"/>; already-stored ones are
     /// refreshed and hidden so lists and reports never keep showing them at a stale price.
+    /// Skips the exclusion write for a key that also has an in-range occurrence in this scan
+    /// (duplicate straddling the range): writing it would overwrite the stored price with the
+    /// out-of-range one, and the later upsert of the in-range copy would then read that as a drop.
     /// </summary>
     private async Task ExcludeOutOfRangeAsync(
         SearchProfile profile, List<ScrapedListing> scraped, CancellationToken cancellationToken)
@@ -207,12 +210,20 @@ public sealed class MarketScanService : IMarketScanService
         if (outOfRange.Count == 0)
             return;
 
+        var inRangeKeys = scraped
+            .Where(s => ListingSelection.MatchesCriteria(profile, s))
+            .Select(s => (s.Portal, s.ExternalId))
+            .ToHashSet();
+
         scraped.RemoveAll(s => !ListingSelection.MatchesCriteria(profile, s));
         _logger.LogInformation("Dropped {Count} listings outside the profile's price/area/rooms range",
             outOfRange.Count);
 
         foreach (var listing in outOfRange)
         {
+            if (inRangeKeys.Contains((listing.Portal, listing.ExternalId)))
+                continue;
+
             try
             {
                 await _repository.ExcludeListingAsync(profile.Id, listing, cancellationToken).ConfigureAwait(false);
