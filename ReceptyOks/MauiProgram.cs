@@ -41,6 +41,8 @@ public static class MauiProgram
             })
             .ConfigureMauiHandlers(handlers => handlers.AddHandler<Button, SafeStatefulButtonHandler>());
 
+        ReceptyOks.Controls.BorderlessEditor.ConfigureHandler();
+
         // Add Blazor WebView services
         builder.AddBlazorServices();
 
