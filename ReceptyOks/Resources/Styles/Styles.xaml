@@ -589,7 +589,7 @@
 
     <!-- Destructive variant (red tint) -->
     <Style x:Key="ChatActionButtonDanger" TargetType="Button" BasedOn="{StaticResource ChatActionButton}">
-        <Setter Property="TextColor" Value="#E53935"/>
+        <Setter Property="TextColor" Value="{AppThemeBinding Light=#7F0000, Dark=#FFF5F5}"/>
         <Setter Property="BackgroundColor" Value="#1AEF5350"/>
         <Setter Property="BorderColor" Value="#66EF5350"/>
     </Style>
