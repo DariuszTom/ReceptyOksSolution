@@ -257,6 +257,26 @@ public sealed class MarketScanServiceTests
     }
 
     [Test]
+    public async Task RunScan_SameListingScrapedTwice_UpsertsOnce()
+    {
+        AddUpsert("dup", price: 1_000_000, area: 100, isNew: true);
+        var scraper = new Mock<IListingScraper>();
+        scraper.SetupGet(s => s.PortalName).Returns("Otodom");
+        scraper.Setup(s => s.SearchAsync(It.IsAny<SearchProfile>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ScrapeResult.Success(
+            [
+                new ScrapedListing { Portal = "Otodom", ExternalId = "dup", Url = "https://x/1", Title = "a", Price = 1_000_000, AreaSqm = 100 },
+                new ScrapedListing { Portal = "Otodom", ExternalId = "dup", Url = "https://x/2", Title = "b", Price = 900_000, AreaSqm = 100 }
+            ]));
+
+        var result = await CreateSut([scraper.Object]).RunScanAsync(ProfileId);
+
+        Assert.That(result, Is.True);
+        _repository.Verify(r => r.UpsertListingAsync(ProfileId, It.Is<ScrapedListing>(s => s.ExternalId == "dup"), It.IsAny<CancellationToken>()), Times.Once);
+        _repository.Verify(r => r.UpsertListingAsync(ProfileId, It.Is<ScrapedListing>(s => s.Price == 1_000_000), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Test]
     public void SelectCandidates_DeduplicatesRepeatedListings_PreferringNewOccurrence()
     {
         AddUpsert("dup", price: 300_000, area: 100, isNew: true);

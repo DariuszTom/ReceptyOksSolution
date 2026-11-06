@@ -74,6 +74,7 @@ public sealed class MarketScanService : IMarketScanService
         {
             var scraped = await ScrapePortalsAsync(profile, stats, cancellationToken).ConfigureAwait(false);
             await ExcludeOutOfRangeAsync(profile, scraped, cancellationToken).ConfigureAwait(false);
+            scraped = DistinctByKey(scraped);
 
             stats.Found = scraped.Count;
             _logger.LogInformation("Total scraped: {Count} listings", stats.Found);
@@ -621,6 +622,14 @@ public sealed class MarketScanService : IMarketScanService
             Rcn = rcn
         };
     }
+
+    /// <summary>
+    /// Keeps the first occurrence of each (portal, external id). A listing repeated within one scan
+    /// (e.g. on two result pages) would otherwise be upserted twice, and a differing second price
+    /// would mark an offer first seen in this scan as a price drop.
+    /// </summary>
+    internal static List<ScrapedListing> DistinctByKey(IEnumerable<ScrapedListing> scraped) =>
+        scraped.DistinctBy(s => (s.Portal, s.ExternalId)).ToList();
 
     private static Dictionary<(string Portal, string ExternalId), ScrapedListing> ToScrapedLookup(
         IReadOnlyList<ScrapedListing> scraped) =>
