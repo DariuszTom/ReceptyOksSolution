@@ -84,6 +84,23 @@ public sealed class OtodomScraperParserTests
     }
 
     [Test]
+    public void ParseNextData_InjectedHprAd_IsSkipped()
+    {
+        const string html = """
+            <script id="__NEXT_DATA__" type="application/json">
+            {"props":{"pageProps":{"data":{"searchAds":{"items":[
+              {"id":68610295,"slug":"gotowe-ID4DSFF","title":"Gotowe","totalPrice":{"value":937829},"areaInSquareMeters":71.59,"href":"[lang]/ad/gotowe-ID4DSFF"},
+              {"id":9000062291,"slug":"gotowe-ID4DSFF","title":"Gotowe","totalPrice":{"value":937829},"areaInSquareMeters":71.59,"href":"hpr/[lang]/ad/mieszkanie-3-pokoje-106-m2-taras-ID9P5ll1"}
+            ]}}}}}
+            </script>
+            """;
+
+        var listings = OtodomScraper.ParseNextData(html);
+
+        Assert.That(listings.Select(l => l.ExternalId), Is.EqualTo(new[] { "68610295" }));
+    }
+
+    [Test]
     public void ParseNextData_WithoutNextDataScript_ReturnsEmpty()
     {
         var listings = OtodomScraper.ParseNextData("<html><body><p>Nothing here</p></body></html>");

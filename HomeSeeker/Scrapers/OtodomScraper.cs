@@ -103,6 +103,10 @@ public sealed partial class OtodomScraper : ListingScraperBase
     {
         try
         {
+            // Injected "hpr/" tiles reuse one placeholder id (9000…) for different ads at a promo price.
+            if (IsInjectedAd(item))
+                return null;
+
             // Extract ID
             if (!item.TryGetProperty("id", out var idProp))
                 return null;
@@ -200,6 +204,11 @@ public sealed partial class OtodomScraper : ListingScraperBase
             return null;
         }
     }
+
+    internal static bool IsInjectedAd(JsonElement item) =>
+        item.TryGetProperty("href", out var href) &&
+        href.ValueKind == JsonValueKind.String &&
+        href.GetString()!.StartsWith("hpr/", StringComparison.OrdinalIgnoreCase);
 
     // Otodom's roomsNumber enum; "MORE" means more than ten.
     private static readonly string[] RoomCodes =
