@@ -1,0 +1,12 @@
+{
+  "servers": {
+    "maui-devflow": {
+      "command": "maui",
+      "args": [
+        "devflow",
+        "mcp"
+      ],
+      "type": "stdio"
+    }
+  }
+}
