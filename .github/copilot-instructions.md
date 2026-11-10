@@ -1,7 +1,7 @@
 # Copilot Instructions
 
 ## Solution overview
-- .NET 10 solution orchestrated with .NET Aspire (`ReceptyOksSolution.AppHost`, `ServiceDefaults`).
+- .NET 11 solution orchestrated with .NET Aspire (`ReceptyOksSolution.AppHost`, `ServiceDefaults`).
 - `ReceptyOks` – .NET MAUI app (Android, Windows) with Blazor Hybrid pages.
 - `ReceptyOks.Api` – ASP.NET Core API (EF Core, JWT auth, FluentValidation, Scalar/OpenAPI, YARP).
 - `ReceptyOks.Shared` – shared models, enums, AI abstractions (Microsoft.Extensions.AI, Microsoft.Agents.AI).
@@ -10,7 +10,7 @@
 - Tests: `ReceptyOks_UnitTests`, `ReceptyOks.Api.IntegrationTests` (NUnit + Moq).
 
 ## General guidelines
-- Target .NET 10 / C# latest; use file-scoped namespaces, nullable reference types, primary constructors where it improves readability.
+- Target .NET 11 / C# latest; use file-scoped namespaces, nullable reference types, primary constructors where it improves readability.
 - Prefer NuGet packages over custom implementations.
 - Use async/await end-to-end; don't use `.Result`/`.Wait()`. Use `SafeFireAndForget` (AsyncAwaitBestPractices) for fire-and-forget.
 - Register services through DI extension methods (e.g., in `Configuration/`), not with `new` inside view models.
