@@ -257,6 +257,50 @@ public sealed class MarketScanServiceTests
     }
 
     [Test]
+    public async Task RunScan_SameListingScrapedTwice_UpsertsOnce()
+    {
+        AddUpsert("dup", price: 1_000_000, area: 100, isNew: true);
+        var scraper = new Mock<IListingScraper>();
+        scraper.SetupGet(s => s.PortalName).Returns("Otodom");
+        scraper.Setup(s => s.SearchAsync(It.IsAny<SearchProfile>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ScrapeResult.Success(
+            [
+                new ScrapedListing { Portal = "Otodom", ExternalId = "dup", Url = "https://x/1", Title = "a", Price = 1_000_000, AreaSqm = 100 },
+                new ScrapedListing { Portal = "Otodom", ExternalId = "dup", Url = "https://x/2", Title = "b", Price = 900_000, AreaSqm = 100 }
+            ]));
+
+        var result = await CreateSut([scraper.Object]).RunScanAsync(ProfileId);
+
+        Assert.That(result, Is.True);
+        _repository.Verify(r => r.UpsertListingAsync(ProfileId, It.Is<ScrapedListing>(s => s.ExternalId == "dup"), It.IsAny<CancellationToken>()), Times.Once);
+        _repository.Verify(r => r.UpsertListingAsync(ProfileId, It.Is<ScrapedListing>(s => s.Price == 1_000_000), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Test]
+    public async Task RunScan_DuplicateStraddlingRange_DoesNotExcludeTheInRangeCopy()
+    {
+        // Same (portal, id) scraped twice: one copy in range, one over MaxPrice. Excluding the
+        // out-of-range copy first must not overwrite the stored price that the in-range copy's
+        // upsert then compares against (H2: false price-drop via the excluded copy's price).
+        _profile.MaxPrice = 1_400_000;
+        AddUpsert("straddle", price: 1_000_000, area: 100, isNew: false);
+        var scraper = new Mock<IListingScraper>();
+        scraper.SetupGet(s => s.PortalName).Returns("Otodom");
+        scraper.Setup(s => s.SearchAsync(It.IsAny<SearchProfile>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ScrapeResult.Success(
+            [
+                new ScrapedListing { Portal = "Otodom", ExternalId = "straddle", Url = "https://x/1", Title = "a", Price = 1_000_000, AreaSqm = 100 },
+                new ScrapedListing { Portal = "Otodom", ExternalId = "straddle", Url = "https://x/2", Title = "b", Price = 1_500_000, AreaSqm = 100 }
+            ]));
+
+        var result = await CreateSut([scraper.Object]).RunScanAsync(ProfileId);
+
+        Assert.That(result, Is.True);
+        _repository.Verify(r => r.ExcludeListingAsync(ProfileId, It.IsAny<ScrapedListing>(), It.IsAny<CancellationToken>()), Times.Never);
+        _repository.Verify(r => r.UpsertListingAsync(ProfileId, It.Is<ScrapedListing>(s => s.Price == 1_000_000), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Test]
     public void SelectCandidates_DeduplicatesRepeatedListings_PreferringNewOccurrence()
     {
         AddUpsert("dup", price: 300_000, area: 100, isNew: true);

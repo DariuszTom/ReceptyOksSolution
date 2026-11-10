@@ -74,6 +74,7 @@ public sealed class MarketScanService : IMarketScanService
         {
             var scraped = await ScrapePortalsAsync(profile, stats, cancellationToken).ConfigureAwait(false);
             await ExcludeOutOfRangeAsync(profile, scraped, cancellationToken).ConfigureAwait(false);
+            scraped = DistinctByKey(scraped);
 
             stats.Found = scraped.Count;
             _logger.LogInformation("Total scraped: {Count} listings", stats.Found);
@@ -198,6 +199,9 @@ public sealed class MarketScanService : IMarketScanService
     /// "similar" offers), so the profile's ranges are enforced here before anything is stored.
     /// Removes out-of-range listings from <paramref name="scraped"/>; already-stored ones are
     /// refreshed and hidden so lists and reports never keep showing them at a stale price.
+    /// Skips the exclusion write for a key that also has an in-range occurrence in this scan
+    /// (duplicate straddling the range): writing it would overwrite the stored price with the
+    /// out-of-range one, and the later upsert of the in-range copy would then read that as a drop.
     /// </summary>
     private async Task ExcludeOutOfRangeAsync(
         SearchProfile profile, List<ScrapedListing> scraped, CancellationToken cancellationToken)
@@ -206,12 +210,20 @@ public sealed class MarketScanService : IMarketScanService
         if (outOfRange.Count == 0)
             return;
 
+        var inRangeKeys = scraped
+            .Where(s => ListingSelection.MatchesCriteria(profile, s))
+            .Select(s => (s.Portal, s.ExternalId))
+            .ToHashSet();
+
         scraped.RemoveAll(s => !ListingSelection.MatchesCriteria(profile, s));
         _logger.LogInformation("Dropped {Count} listings outside the profile's price/area/rooms range",
             outOfRange.Count);
 
         foreach (var listing in outOfRange)
         {
+            if (inRangeKeys.Contains((listing.Portal, listing.ExternalId)))
+                continue;
+
             try
             {
                 await _repository.ExcludeListingAsync(profile.Id, listing, cancellationToken).ConfigureAwait(false);
@@ -621,6 +633,14 @@ public sealed class MarketScanService : IMarketScanService
             Rcn = rcn
         };
     }
+
+    /// <summary>
+    /// Keeps the first occurrence of each (portal, external id). A listing repeated within one scan
+    /// (e.g. on two result pages) would otherwise be upserted twice, and a differing second price
+    /// would mark an offer first seen in this scan as a price drop.
+    /// </summary>
+    internal static List<ScrapedListing> DistinctByKey(IEnumerable<ScrapedListing> scraped) =>
+        scraped.DistinctBy(s => (s.Portal, s.ExternalId)).ToList();
 
     private static Dictionary<(string Portal, string ExternalId), ScrapedListing> ToScrapedLookup(
         IReadOnlyList<ScrapedListing> scraped) =>
