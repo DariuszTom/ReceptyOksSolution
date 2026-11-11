@@ -13,7 +13,7 @@ A cross-platform recipe management application built with **.NET 11**, **.NET MA
 ReceptyOks is a modern recipe management solution that allows users to create, organize, and sync recipes across devices. The application features:
 
 - Cross-platform mobile/desktop client (Android, Windows)
-- RESTful API backend with SQLite database
+- RESTful API backend with SQL Server database (Azure SQL in production)
 - Offline-first architecture with sync capabilities
 - OCR support for extracting text from recipe images
 - Rich text editing for recipe instructions using Blazor Hybrid
@@ -155,7 +155,7 @@ https://localhost:{port}/scalar/v1
 
 ### Key Dependencies
 
-- [Entity Framework Core](https://docs.microsoft.com/ef/core/) with SQLite and SQL Server providers
+- [Entity Framework Core](https://docs.microsoft.com/ef/core/) with the SQL Server provider
 - [Scalar.AspNetCore](https://github.com/scalar/scalar) - Modern API documentation UI
 - [Anthropic](https://github.com/tryAGI/Anthropic) - Anthropic Claude SDK
 - [Azure.Identity](https://github.com/Azure/azure-sdk-for-net) - Azure authentication
@@ -240,7 +240,8 @@ The `ReceptyOks.BlazorComponents` project provides:
 ## 🗄️ Data Storage
 
 ### Development Environment
-- **API**: SQLite database (`recipes.db`) stored in the API's Data folder
+- **API**: SQL Server container managed by Aspire (`ReceptyOksSolution.AppHost`). Start the AppHost, not the API project directly. The container (`sql`, database `ReceptyOks`) is persistent and its data lives in the `receptyoks-sql-data` volume. Requires Docker Desktop or Podman. The API reads the `ConnectionStrings:receptyoksdb` connection string injected by Aspire.
+  - To fill it with a copy of production data, run `scripts\Import-ProductionDatabase.ps1` (see the script header)
 - **Client**: Local SQLite database (`recipes_local.db`) stored in app data directory
 - **Logs**: Application logs stored locally using Serilog file sink
 
@@ -258,7 +259,7 @@ The `ReceptyOks.BlazorComponents` project provides:
 ### API Configuration
 
 The API uses standard ASP.NET Core configuration with support for:
-- Database path configuration (`Database:Name`)
+- Database connection (`ConnectionStrings:DefaultConnection` from Key Vault in production, `ConnectionStrings:receptyoksdb` from Aspire in development)
 - JWT authentication settings (`Jwt:Key`)
 - Rate limiting policies (fixed and strict window limiters)
 - Secret resolution from Azure Key Vault or environment variables (via `SecretsResolver`)

@@ -21,8 +21,6 @@ public class HomeSeekerDbContext(DbContextOptions<HomeSeekerDbContext> options) 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        var isSqlServer = Database.IsSqlServer();
-
         // SearchProfile
         modelBuilder.Entity<SearchProfile>(entity =>
         {
@@ -92,16 +90,8 @@ public class HomeSeekerDbContext(DbContextOptions<HomeSeekerDbContext> options) 
         {
             entity.HasKey(s => s.Id);
 
-            // Large HTML report - use appropriate column type
-            if (isSqlServer)
-            {
-                entity.Property(s => s.ReportHtml).HasColumnType("NVARCHAR(MAX)");
-            }
-            else
-            {
-                // SQLite handles TEXT automatically
-                entity.Property(s => s.ReportHtml);
-            }
+            // Unbounded string maps to nvarchar(max) on SQL Server by default.
+            entity.Property(s => s.ReportHtml);
 
             entity.Property(s => s.Error).HasMaxLength(2000);
             entity.Ignore(s => s.HasReport);

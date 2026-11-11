@@ -11,25 +11,13 @@ public class RecipeDbContext(DbContextOptions<RecipeDbContext> options) : DbCont
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        // Sprawdzamy typ providera bazy danych
-        var isSqlServer = Database.IsSqlServer();
-
         // Recipe
         modelBuilder.Entity<Recipe>(entity =>
         {
             entity.HasKey(r => r.Id);
             entity.Property(r => r.Title).IsRequired().HasMaxLength(200);
-
-            // Warunkowy typ kolumny w zależności od providera
-            if (isSqlServer)
-            {
-                entity.Property(r => r.Image).HasColumnType("VARBINARY(MAX)");
-            }
-            else
-            {
-                // SQLite używa BLOB automatycznie dla byte[]
-                entity.Property(r => r.Image);
-            }
+            // byte[] maps to varbinary(max) on SQL Server by default.
+            entity.Property(r => r.Image);
 
             entity.Property(r => r.ImageContentType).HasMaxLength(50);
 

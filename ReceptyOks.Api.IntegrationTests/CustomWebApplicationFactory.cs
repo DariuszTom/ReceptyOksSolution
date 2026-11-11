@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Internal;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -10,6 +11,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Tokens;
 using ReceptyOks.Api.DbUtility;
+using ReceptyOks.Api.Extensions;
 using ReceptyOks.Api.Middleware;
 using ReceptyOks.Shared;
 using System.IdentityModel.Tokens.Jwt;
@@ -59,6 +61,12 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
             });
         });
 
+        // Only satisfies startup validation (both DbContexts are replaced below). UseSetting is
+        // required because Program reads the connection string before ConfigureAppConfiguration runs.
+        builder.UseSetting(
+            $"ConnectionStrings:{DatabaseExtensions.DevelopmentConnectionStringName}",
+            "Server=localhost;Database=ReceptyOksTests;Integrated Security=true;TrustServerCertificate=true");
+
         builder.ConfigureServices(services =>
         {
             // Remove all DbContext-related registrations (including pooling services)
@@ -78,6 +86,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
             services.RemoveAll<RecipeDbContext>();
             services.RemoveAll(typeof(IDbContextPool<RecipeDbContext>));
             services.RemoveAll(typeof(IScopedDbContextLease<RecipeDbContext>));
+            services.RemoveAll<IDbContextOptionsConfiguration<RecipeDbContext>>();
 
             // Add in-memory database for testing (without pooling)
             services.AddDbContext<RecipeDbContext>(options =>
@@ -85,13 +94,14 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
                 options.UseInMemoryDatabase(_databaseName);
             });
 
-            // HomeSeeker: replace the file-backed SQLite DB with an isolated in-memory one.
+            // HomeSeeker: replace the SQL Server DB with an isolated in-memory SQLite one.
             // The relational provider is kept because the repository relies on ExecuteUpdate,
             // which the EF InMemory provider does not support.
             services.RemoveAll<DbContextOptions<HomeSeekerDbContext>>();
             services.RemoveAll<HomeSeekerDbContext>();
             services.RemoveAll(typeof(IDbContextPool<HomeSeekerDbContext>));
             services.RemoveAll(typeof(IScopedDbContextLease<HomeSeekerDbContext>));
+            services.RemoveAll<IDbContextOptionsConfiguration<HomeSeekerDbContext>>();
 
             _homeSeekerConnection.Open();
             services.AddDbContext<HomeSeekerDbContext>(options =>
