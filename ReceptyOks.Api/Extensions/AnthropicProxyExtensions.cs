@@ -1,3 +1,4 @@
+using ReceptyOks.Shared;
 using ReceptyOks.Shared.AI;
 using System.Threading.RateLimiting;
 using Yarp.ReverseProxy.Configuration;
@@ -13,9 +14,7 @@ namespace ReceptyOks.Api.Extensions;
 /// </summary>
 public static class AnthropicProxyExtensions
 {
-    public const string PathPrefix = "/api/ai";
     public const string RateLimiterPolicy = "ai";
-
     private const string RouteId = "anthropic-messages";
     private const string ClusterId = "anthropic";
     private const string TokenConfigKey = "Token";
@@ -37,7 +36,7 @@ public static class AnthropicProxyExtensions
                 RateLimiterPolicy = RateLimiterPolicy,
                 Match = new RouteMatch
                 {
-                    Path = $"{PathPrefix}/v1/messages",
+                    Path = $"{GlobalConstants.AI_API_PathPrefix}/v1/messages",
                     Methods = ["POST"]
                 }
             }
@@ -71,7 +70,7 @@ public static class AnthropicProxyExtensions
 
                 // Do not leak client IPs / proxy details to the upstream provider.
                 context.UseDefaultForwarders = false;
-                context.AddPathRemovePrefix(PathPrefix);
+                context.AddPathRemovePrefix(GlobalConstants.AI_API_PathPrefix);
                 context.AddRequestHeaderRemove("Authorization");
                 context.AddRequestHeaderRemove("Cookie");
                 context.AddRequestTransform(transform =>

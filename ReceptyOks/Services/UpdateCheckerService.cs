@@ -38,8 +38,7 @@ public class UpdateCheckerService
                 _httpClient.GetAsync(_settings.Http.Github.ReleaseEndpoint)).ConfigureAwait(false);
             if (!response.IsSuccessStatusCode) return null;
 
-            var release = await response.Content.ReadFromJsonAsync<GitHubRelease>().ConfigureAwait(false);
-            return release;
+            return await response.Content.ReadFromJsonAsync<GitHubRelease>().ConfigureAwait(false);
         }
         catch
         {
