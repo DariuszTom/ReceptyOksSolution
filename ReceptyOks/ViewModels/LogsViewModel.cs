@@ -1,3 +1,4 @@
+using AsyncAwaitBestPractices;
 using ReceptyOks.Services;
 
 namespace ReceptyOks.ViewModels;
@@ -120,7 +121,7 @@ public partial class LogsViewModel(LocalDatabase database, ILogger<LogsViewModel
 
     partial void OnSelectedLevelChanged(string value)
     {
-        Task.Run(async () => await LoadLogsAsync());
+        LoadLogsAsync().SafeFireAndForget();
     }
 
     [RelayCommand]

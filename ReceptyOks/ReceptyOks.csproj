@@ -34,8 +34,11 @@
 		<TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.1</TargetPlatformMinVersion>
 	    <RunAOTCompilation Condition="'$(Configuration)' == 'Release'">false</RunAOTCompilation>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-		<InternalsVisibleTo>ReceptyOks_UnitTests</InternalsVisibleTo>
 </PropertyGroup>
+
+	<ItemGroup>
+		<InternalsVisibleTo Include="ReceptyOks_UnitTests" />
+	</ItemGroup>
 
 	<ItemGroup>
 		<!-- App Icon -->

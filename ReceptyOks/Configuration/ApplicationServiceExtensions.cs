@@ -35,9 +35,6 @@ internal static class ApplicationServiceExtensions
         services.AddSingleton(OcrPlugin.Default);
         services.AddSingleton<IOCRService, MobileOcerService>();
 
-        // Update checking
-        services.AddSingleton<UpdateCheckerService>();
-
         // Platform services
         services.AddSingleton<IBadge>(Badge.Default);
         services.AddSingleton<ISpeechToText>(SpeechToText.Default);

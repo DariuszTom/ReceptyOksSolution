@@ -104,6 +104,14 @@ internal static class HttpClientServiceExtensions
         })
         .AddServiceDiscovery();
 
+        // UpdateCheckerService (GitHub releases API)
+        services.AddHttpClient<UpdateCheckerService>(client =>
+        {
+            client.BaseAddress = new Uri(appSettings.Http.Github.BaseUrl);
+            client.Timeout = defaultTimeout;
+            client.DefaultRequestHeaders.UserAgent.ParseAdd(appSettings.Http.Github.UserAgent);
+        });
+
         return services;
     }
 
