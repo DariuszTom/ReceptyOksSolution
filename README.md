@@ -6,7 +6,7 @@
 [![Android Release](https://github.com/DariuszTom/ReceptyOksSolution/actions/workflows/android-release.yml/badge.svg)](https://github.com/DariuszTom/ReceptyOksSolution/actions/workflows/android-release.yml)
 [![Secrets Scan](https://github.com/DariuszTom/ReceptyOksSolution/actions/workflows/secrets-scan.yml/badge.svg)](https://github.com/DariuszTom/ReceptyOksSolution/actions/workflows/secrets-scan.yml)
 
-A cross-platform recipe management application built with **.NET 10**, **.NET MAUI**, and **.NET Aspire 9.5**.
+A cross-platform recipe management application built with **.NET 11**, **.NET MAUI**, and **Aspire 13**.
 
 ## 📋 Overview
 
@@ -43,19 +43,19 @@ ReceptyOksSolution/
 
 | Project | Description | Target Framework |
 |---------|-------------|------------------|
-| **ReceptyOks** | .NET MAUI cross-platform client | net10.0-android, net10.0-windows10.0.19041.0 |
-| **ReceptyOks.Api** | ASP.NET Core Web API backend | net10.0 |
-| **ReceptyOks.Shared** | Shared models, DTOs, and AI components | net10.0 |
-| **ReceptyOks.BlazorComponents** | Blazor Razor components with MudBlazor and ApexCharts | net10.0 |
-| **ReceptyOks_UnitTests** | Unit tests with NUnit and Moq | net10.0-windows10.0.19041 |
-| **ReceptyOksSolution.AppHost** | .NET Aspire 9.5 application host | net10.0 |
-| **ReceptyOksSolution.ServiceDefaults** | Common service configurations with OpenTelemetry | net10.0 |
+| **ReceptyOks** | .NET MAUI cross-platform client | net11.0-android, net11.0-windows10.0.19041.0 |
+| **ReceptyOks.Api** | ASP.NET Core Web API backend | net11.0 |
+| **ReceptyOks.Shared** | Shared models, DTOs, and AI components | net11.0 |
+| **ReceptyOks.BlazorComponents** | Blazor Razor components with MudBlazor and ApexCharts | net11.0 |
+| **ReceptyOks_UnitTests** | Unit tests with NUnit and Moq | net11.0-windows10.0.19041 |
+| **ReceptyOksSolution.AppHost** | Aspire 13 application host | net11.0 |
+| **ReceptyOksSolution.ServiceDefaults** | Common service configurations with OpenTelemetry | net11.0 |
 
 ## 🚀 Getting Started
 
 ### Prerequisites
 
-- [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
+- [.NET 11 SDK](https://dotnet.microsoft.com/download/dotnet/11.0)
 - [.NET MAUI workload](https://learn.microsoft.com/dotnet/maui/get-started/installation)
 - [.NET Aspire workload](https://learn.microsoft.com/dotnet/aspire/fundamentals/setup-tooling)
 - Visual Studio 2022 17.12+ or VS Code with C# Dev Kit
@@ -89,12 +89,12 @@ dotnet run --project ReceptyOks.Api
 
 **MAUI client (Android):**
 ```bash
-dotnet build ReceptyOks -f net10.0-android
+dotnet build ReceptyOks -f net11.0-android
 ```
 
 **MAUI client (Windows):**
 ```bash
-dotnet build ReceptyOks -f net10.0-windows10.0.19041.0
+dotnet build ReceptyOks -f net11.0-windows10.0.19041.0
 ```
 
 ## 📱 MAUI Client Features
@@ -165,7 +165,7 @@ https://localhost:{port}/scalar/v1
 
 ## 🌐 .NET Aspire Integration
 
-The solution uses .NET Aspire 9.5 (SDK) with Aspire.Hosting.AppHost 13.2.1 for:
+The solution uses Aspire.AppHost.Sdk 13.6.5 with Aspire.Hosting.AppHost 13.6.5 for:
 
 - **Service Discovery**: Automatic service registration and discovery
 - **Health Checks**: Built-in health monitoring with EF Core database checks
