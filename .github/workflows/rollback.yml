@@ -1,0 +1,135 @@
+name: Rollback API (:release)
+
+# ---------------------------------------------------------------------------
+# Manual rollback of the Azure Container App to an existing GHCR image.
+# No build is performed, so a rollback works even when master is broken.
+#
+#   GitHub -> Actions -> "Rollback API (:release)" -> Run workflow
+#     target_tag = 'release-previous' (default) - the image that was :release
+#                  before the last promote/rollback
+#                = '<short-sha>' (e.g. 'a1b2c3d') - any image built by
+#                  "Build and Push Docker Image"
+#
+# Before ':release' is overwritten, the current ':release' is saved as
+# ':release-previous', so running this workflow again with the default
+# value undoes the rollback.
+#
+# Available tags: GitHub -> Packages -> receptyoks-api (also listed in the
+# summary of every run of this workflow).
+# ---------------------------------------------------------------------------
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_tag:
+        description: 'GHCR tag to restore as :release (short SHA or release-previous)'
+        required: true
+        default: 'release-previous'
+        type: string
+      reason:
+        description: 'Reason for the rollback (shown in the run summary)'
+        required: false
+        default: ''
+        type: string
+
+concurrency:
+  group: deploy-receptyoks-api
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: receptyoks-api
+
+jobs:
+  rollback:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Resolve images
+        id: images
+        env:
+          TARGET_TAG: ${{ github.event.inputs.target_tag }}
+        run: |
+          OWNER="${{ github.repository_owner }}"
+          REPO="${REGISTRY}/${OWNER,,}/${IMAGE_NAME}"
+          if [[ ! "${TARGET_TAG}" =~ ^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$ ]]; then
+            echo "::error::Invalid tag '${TARGET_TAG}'"; exit 1
+          fi
+          if [[ "${TARGET_TAG}" == "release" ]]; then
+            echo "::error::'release' is the tag being replaced - choose another tag"; exit 1
+          fi
+
+          if ! TARGET_DIGEST=$(docker buildx imagetools inspect "${REPO}:${TARGET_TAG}" --format '{{json .Manifest.Digest}}' | tr -d '"'); then
+            echo "::error::Image ${REPO}:${TARGET_TAG} does not exist in GHCR"; exit 1
+          fi
+          CURRENT_DIGEST=$(docker buildx imagetools inspect "${REPO}:release" --format '{{json .Manifest.Digest}}' | tr -d '"' || true)
+
+          if [[ -n "${CURRENT_DIGEST}" && "${CURRENT_DIGEST}" == "${TARGET_DIGEST}" ]]; then
+            echo "::error::${REPO}:${TARGET_TAG} is already the current :release (${TARGET_DIGEST})"; exit 1
+          fi
+
+          echo "repo=${REPO}" >> "$GITHUB_OUTPUT"
+          echo "target_digest=${TARGET_DIGEST}" >> "$GITHUB_OUTPUT"
+          echo "current_digest=${CURRENT_DIGEST}" >> "$GITHUB_OUTPUT"
+
+      - name: Save current :release as :release-previous
+        if: steps.images.outputs.current_digest != ''
+        run: |
+          REPO="${{ steps.images.outputs.repo }}"
+          docker buildx imagetools create --tag "${REPO}:release-previous" "${REPO}@${{ steps.images.outputs.current_digest }}"
+
+      - name: Retag target image as :release
+        run: |
+          REPO="${{ steps.images.outputs.repo }}"
+          docker buildx imagetools create --tag "${REPO}:release" "${REPO}@${{ steps.images.outputs.target_digest }}"
+
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Restart Container App to pull :release
+        run: |
+          REVISION=$(az containerapp show \
+            --name ${{ secrets.CONTAINER_APP_NAME }} \
+            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+            --query "properties.latestRevisionName" -o tsv)
+          az containerapp revision restart \
+            --name ${{ secrets.CONTAINER_APP_NAME }} \
+            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+            --revision "$REVISION"
+          echo "Restarted revision: $REVISION"
+
+      - name: Summary
+        if: always()
+        env:
+          TARGET_TAG: ${{ github.event.inputs.target_tag }}
+          REASON: ${{ github.event.inputs.reason }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          {
+            echo "## Rollback of receptyoks-api"
+            echo "- Restored tag: \`${TARGET_TAG}\` (\`${{ steps.images.outputs.target_digest }}\`)"
+            echo "- Previous :release saved as \`release-previous\` (\`${{ steps.images.outputs.current_digest }}\`)"
+            echo "- Reason: ${REASON:-n/a}"
+            echo "- Triggered by: @${{ github.actor }}"
+            echo ""
+            echo "### Recent image tags"
+            OWNER="${{ github.repository_owner }}"
+            gh api "/users/${OWNER}/packages/container/${IMAGE_NAME}/versions?per_page=15" \
+              --jq '.[] | select(.metadata.container.tags | length > 0) | "- \(.updated_at): \(.metadata.container.tags | join(", "))"' \
+              2>/dev/null || echo "_Tag list unavailable - see GitHub -> Packages -> ${IMAGE_NAME}_"
+          } >> "$GITHUB_STEP_SUMMARY"

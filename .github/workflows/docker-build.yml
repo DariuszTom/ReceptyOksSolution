@@ -20,7 +20,9 @@ name: Build and Push Docker Image
 #   - Restart the Azure Container App so it pulls the new ':release'
 #
 # Rollback:
-#   Run this workflow again with promote=true and source_tag=<previous-sha>.
+#   Use the "Rollback API (:release)" workflow (rollback.yml). Before
+#   ':release' is overwritten, promote saves the current one as
+#   ':release-previous', which is the rollback default.
 # ---------------------------------------------------------------------------
 
 on:
@@ -124,6 +126,9 @@ jobs:
       github.event_name == 'workflow_dispatch'
       && github.event.inputs.promote == 'true'
     runs-on: ubuntu-latest
+    concurrency:
+      group: deploy-receptyoks-api
+      cancel-in-progress: false
     permissions:
       contents: read
       packages: write
@@ -146,6 +151,10 @@ jobs:
           fi
           SOURCE="ghcr.io/${OWNER}/receptyoks-api:${SOURCE_TAG}"
           TARGET="ghcr.io/${OWNER}/receptyoks-api:release"
+          if docker pull "${TARGET}"; then
+            docker tag "${TARGET}" "ghcr.io/${OWNER}/receptyoks-api:release-previous"
+            docker push "ghcr.io/${OWNER}/receptyoks-api:release-previous"
+          fi
           echo "Promoting ${SOURCE} -> ${TARGET}"
           docker pull "${SOURCE}"
           docker tag "${SOURCE}" "${TARGET}"
