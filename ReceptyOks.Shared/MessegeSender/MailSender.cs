@@ -22,15 +22,16 @@ namespace SharedLibrary.Misc.MessegeSender
         #region Properiets
         public bool IsBodyHtml { get => _IsBodyHtml; set => _IsBodyHtml = value; }
         #endregion
-        public async Task MailConfig(string addres, int port, SecureString pw, string login)
+        public Task MailConfig(string addres, int port, SecureString pw, string login)
         {
-            if (await IsMailValid(login) == false)
+            if (IsMailValid(login) == false)
                 throw new ArgumentException("Invalid login email address", nameof(login));
 
             _MyMail = login;
             _host = addres;
             _port = port;
             _credentials = new NetworkCredential(login, pw);
+            return Task.CompletedTask;
         }
         public void CreateMail(string subject, StringBuilder body)
         {
@@ -52,13 +53,13 @@ namespace SharedLibrary.Misc.MessegeSender
 
             foreach (string email in sendTo)
             {
-                if (await IsMailValid(email) == true) message.To.Add(MailboxAddress.Parse(email));
+                if (IsMailValid(email) == true) message.To.Add(MailboxAddress.Parse(email));
             }
             if (sendCC != null)
             {
                 foreach (string email in sendCC)
                 {
-                    if (await IsMailValid(email) == true) message.Cc.Add(MailboxAddress.Parse(email));
+                    if (IsMailValid(email) == true) message.Cc.Add(MailboxAddress.Parse(email));
                 }
             }
 
@@ -69,10 +70,10 @@ namespace SharedLibrary.Misc.MessegeSender
             await client.DisconnectAsync(true).ConfigureAwait(false);
         }
 
-        private static async Task<bool> IsMailValid(string mail)
+        private static bool IsMailValid(string mail)
         {
             var addr = new EmailAddressAttribute();
-            return await Task.Run(() => addr.IsValid(mail)).ConfigureAwait(false);
+            return addr.IsValid(mail);
         }
 
         public void Dispose()
