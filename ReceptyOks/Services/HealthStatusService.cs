@@ -1,5 +1,6 @@
 using ReceptyOks.Interfaces;
 using ReceptyOks.Models;
+using ReceptyOks.Shared;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -35,12 +36,12 @@ public class HealthStatusService : IHealthStatusService
             // Check network connectivity first
             if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet)
             {
-                response.Status = "Unhealthy";
+                response.Status = HealthStatusNames.Unhealthy;
                 response.ErrorMessage = "Brak połączenia z internetem";
                 return response;
             }
 
-            using var httpResponse = await _httpClient.GetAsync("/health", cancellationToken).ConfigureAwait(false);
+            using var httpResponse = await _httpClient.GetAsync(ApiRoutes.Health, cancellationToken).ConfigureAwait(false);
 
             if (httpResponse.IsSuccessStatusCode)
             {
@@ -79,26 +80,26 @@ public class HealthStatusService : IHealthStatusService
             }
             else
             {
-                response.Status = "Unhealthy";
+                response.Status = HealthStatusNames.Unhealthy;
                 response.ErrorMessage = $"Serwer zwrócił błąd: {(int)httpResponse.StatusCode} {httpResponse.ReasonPhrase}";
                 _logger.LogWarning("Health check failed with status {StatusCode}", httpResponse.StatusCode);
             }
         }
         catch (TaskCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            response.Status = "Unknown";
+            response.Status = HealthStatusNames.Unknown;
             response.ErrorMessage = "Sprawdzanie anulowane";
             throw;
         }
         catch (HttpRequestException ex)
         {
-            response.Status = "Unhealthy";
+            response.Status = HealthStatusNames.Unhealthy;
             response.ErrorMessage = $"Nie można połączyć się z serwerem: {ex.Message}";
             _logger.LogError(ex, "Failed to connect to health endpoint");
         }
         catch (Exception ex)
         {
-            response.Status = "Unhealthy";
+            response.Status = HealthStatusNames.Unhealthy;
             response.ErrorMessage = $"Błąd: {ex.Message}";
             _logger.LogError(ex, "Unexpected error during health check");
         }
@@ -116,7 +117,7 @@ public class HealthStatusService : IHealthStatusService
                 return false;
             }
 
-            using var response = await _httpClient.GetAsync("/alive", cancellationToken).ConfigureAwait(false);
+            using var response = await _httpClient.GetAsync(ApiRoutes.Alive, cancellationToken).ConfigureAwait(false);
             return response.IsSuccessStatusCode;
         }
         catch (Exception ex)

@@ -109,7 +109,7 @@ public partial class AppStatusViewModel : ObservableObject
                     HealthChecks.Insert(0, new HealthCheckItemViewModel
                     {
                         Name = "Liveness",
-                        Status = "Healthy",
+                        Status = HealthStatusNames.Healthy,
                         Duration = "0 ms",
                         StatusColor = Colors.Green,
                         Description = "Serwer odpowiada na /alive",
@@ -154,25 +154,19 @@ public partial class AppStatusViewModel : ObservableObject
 
         StatusText = response.Status switch
         {
-            "Healthy" => "Zdrowy",
-            "Degraded" => "Obniżona wydajność",
-            "Unhealthy" => "Niezdatny",
+            HealthStatusNames.Healthy => "Zdrowy",
+            HealthStatusNames.Degraded => "Obniżona wydajność",
+            HealthStatusNames.Unhealthy => "Niezdatny",
             _ => response.Status
         };
 
-        StatusColor = response.Status switch
-        {
-            "Healthy" => Colors.Green,
-            "Degraded" => Colors.Orange,
-            "Unhealthy" => Colors.Red,
-            _ => Colors.Gray
-        };
+        StatusColor = GetStatusColor(response.Status);
 
         StatusIcon = response.Status switch
         {
-            "Healthy" => "✓",
-            "Degraded" => "⚠",
-            "Unhealthy" => "✗",
+            HealthStatusNames.Healthy => "✓",
+            HealthStatusNames.Degraded => "⚠",
+            HealthStatusNames.Unhealthy => "✗",
             _ => "●"
         };
 
@@ -186,13 +180,7 @@ public partial class AppStatusViewModel : ObservableObject
                 Name = GetFriendlyName(entry.Key),
                 Status = entry.Value.Status,
                 Duration = $"{entry.Value.Duration.TotalMilliseconds:F0} ms",
-                StatusColor = entry.Value.Status switch
-                {
-                    "Healthy" => Colors.Green,
-                    "Degraded" => Colors.Orange,
-                    "Unhealthy" => Colors.Red,
-                    _ => Colors.Gray
-                },
+                StatusColor = GetStatusColor(entry.Value.Status),
                 Description = entry.Value.Description,
                 Tags = string.Join(", ", entry.Value.Tags)
             });
@@ -236,23 +224,25 @@ public partial class AppStatusViewModel : ObservableObject
             MemoryUsagePercent = Math.Min((double)(memoryMB / MemoryThresholdMB), 1.0);
 
             // Set color based on status
-            MemoryBarColor = status switch
-            {
-                "Healthy" => Colors.Green,
-                "Degraded" => Colors.Orange,
-                "Unhealthy" => Colors.Red,
-                _ => Colors.Gray
-            };
+            MemoryBarColor = GetStatusColor(status);
 
             MemoryStatusText = status switch
             {
-                "Healthy" => "Normalne",
-                "Degraded" => "Wysokie",
-                "Unhealthy" => "Krytyczne",
+                HealthStatusNames.Healthy => "Normalne",
+                HealthStatusNames.Degraded => "Wysokie",
+                HealthStatusNames.Unhealthy => "Krytyczne",
                 _ => "-"
             };
         }
     }
+
+    private static Color GetStatusColor(string status) => status switch
+    {
+        HealthStatusNames.Healthy => Colors.Green,
+        HealthStatusNames.Degraded => Colors.Orange,
+        HealthStatusNames.Unhealthy => Colors.Red,
+        _ => Colors.Gray
+    };
 
     private void SetUnhealthyState()
     {

@@ -1,10 +1,12 @@
+using ReceptyOks.Shared;
+
 namespace ReceptyOks.Api.Endpoints;
 
 public static class RecipeEndpoints
 {
     public static void MapRecipeEndpoints(this WebApplication app)
     {
-        var group = app.MapGroup("/api/recipes")
+        var group = app.MapGroup(ApiRoutes.Recipes.Base)
             .WithTags("Recipes")
             .RequireRateLimiting("fixed");
 
@@ -66,7 +68,7 @@ public static class RecipeEndpoints
             if (recipe?.Image is null)
                 return Results.NotFound();
 
-            return Results.File(recipe.Image, recipe.ImageContentType ?? "image/jpeg");
+            return Results.File(recipe.Image, recipe.ImageContentType ?? System.Net.Mime.MediaTypeNames.Image.Jpeg);
         })
         .WithName("GetRecipeImage");
 
@@ -80,7 +82,7 @@ public static class RecipeEndpoints
             db.Recipes.Add(recipe);
             await db.SaveChangesAsync().ConfigureAwait(false);
 
-            return Results.Created($"/api/recipes/{recipe.Id}", recipe);
+            return Results.Created(ApiRoutes.Recipes.ById(recipe.Id), recipe);
         })
         .WithName("CreateRecipe");
 

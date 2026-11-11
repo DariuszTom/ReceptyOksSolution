@@ -215,7 +215,7 @@ public static class HomeSeekerExtensions
         services.AddHttpClient(NominatimCityCenterProvider.HttpClientName, client =>
             {
                 client.DefaultRequestHeaders.Add("User-Agent", apiUserAgent);
-                client.DefaultRequestHeaders.Add("Accept", "application/json");
+                client.DefaultRequestHeaders.Add("Accept", System.Net.Mime.MediaTypeNames.Application.Json);
                 client.DefaultRequestHeaders.Add("Accept-Language", "pl");
                 client.Timeout = ApiClientTimeout;
             })
@@ -225,7 +225,7 @@ public static class HomeSeekerExtensions
         services.AddHttpClient(DeweloperuchValuationProvider.HttpClientName, client =>
             {
                 client.DefaultRequestHeaders.Add("User-Agent", apiUserAgent);
-                client.DefaultRequestHeaders.Add("Accept", "application/json");
+                client.DefaultRequestHeaders.Add("Accept", System.Net.Mime.MediaTypeNames.Application.Json);
                 client.Timeout = ApiClientTimeout;
             })
             .RemoveAllResilienceHandlers()

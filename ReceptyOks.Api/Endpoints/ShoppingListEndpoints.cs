@@ -1,3 +1,5 @@
+using ReceptyOks.Shared;
+
 namespace ReceptyOks.Api.Endpoints;
 
 /// <summary>
@@ -9,7 +11,7 @@ public static class ShoppingListEndpoints
 {
     public static void MapShoppingListEndpoints(this WebApplication app)
     {
-        var group = app.MapGroup("/api/shopping-list")
+        var group = app.MapGroup(ApiRoutes.ShoppingList.Base)
             .WithTags("ShoppingList")
             .RequireRateLimiting("fixed");
 
@@ -64,7 +66,7 @@ public static class ShoppingListEndpoints
             db.ShoppingListItems.Add(item);
             await db.SaveChangesAsync().ConfigureAwait(false);
 
-            return Results.Created($"/api/shopping-list/{item.Id}", item);
+            return Results.Created(ApiRoutes.ShoppingList.ById(item.Id), item);
         })
         .Produces<ShoppingListItem>(StatusCodes.Status201Created)
         .Produces(StatusCodes.Status400BadRequest)
@@ -97,7 +99,7 @@ public static class ShoppingListEndpoints
             db.ShoppingListItems.AddRange(items);
             await db.SaveChangesAsync().ConfigureAwait(false);
 
-            return Results.Created("/api/shopping-list", items);
+            return Results.Created(ApiRoutes.ShoppingList.Base, items);
         })
         .Produces<List<ShoppingListItem>>(StatusCodes.Status201Created)
         .Produces(StatusCodes.Status400BadRequest)

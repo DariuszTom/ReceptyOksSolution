@@ -6,6 +6,7 @@ using HomeSeeker.Models;
 using HomeSeeker.Services;
 using Microsoft.Extensions.Options;
 using ReceptyOks.Api.Services;
+using ReceptyOks.Shared;
 
 namespace ReceptyOks.Api.Endpoints;
 
@@ -22,7 +23,7 @@ public static class HomeSeekerEndpoints
         // scan (schedule configured at deployment via HomeSeeker options) and one
         // shared result set. In addition to the global API key a JWT bearer token
         // is still required; its `sub` claim is only recorded as "last edited by".
-        var group = app.MapGroup("/api/homeseeker")
+        var group = app.MapGroup(ApiRoutes.HomeSeeker.Base)
             .WithTags("HomeSeeker")
             .RequireRateLimiting("fixed")
             .RequireAuthorization();

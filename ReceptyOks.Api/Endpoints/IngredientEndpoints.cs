@@ -1,10 +1,12 @@
+using ReceptyOks.Shared;
+
 namespace ReceptyOks.Api.Endpoints;
 
 public static class IngredientEndpoints
 {
     public static void MapIngredientEndpoints(this WebApplication app)
     {
-        var group = app.MapGroup("/api/ingredients")
+        var group = app.MapGroup(ApiRoutes.Ingredients.Base)
             .WithTags("Ingredients")
             .RequireRateLimiting("fixed");
 
@@ -37,7 +39,7 @@ public static class IngredientEndpoints
             db.Ingredients.Add(ingredient);
             await db.SaveChangesAsync().ConfigureAwait(false);
 
-            return Results.Created($"/api/ingredients/{ingredient.Id}", ingredient);
+            return Results.Created(ApiRoutes.Ingredients.ById(ingredient.Id), ingredient);
         })
         .WithName("CreateIngredient");
 

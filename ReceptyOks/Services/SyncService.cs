@@ -54,7 +54,7 @@ public class SyncService : ISyncService
 
             using var response = await _retryPolicy.ExecuteAsync(() =>
             {
-                var httpRequest = new HttpRequestMessage(HttpMethod.Post, "/api/sync")
+                var httpRequest = new HttpRequestMessage(HttpMethod.Post, ApiRoutes.Sync.Base)
                 {
                     Content = JsonContent.Create(request)
                 };
@@ -127,7 +127,7 @@ public class SyncService : ISyncService
         try
         {
 
-            using var response = await _httpClient.GetAsync("/api/sync/full").ConfigureAwait(false);
+            using var response = await _httpClient.GetAsync(ApiRoutes.Sync.Full).ConfigureAwait(false);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -231,7 +231,7 @@ public class SyncService : ISyncService
 
                 using var response = await _retryPolicy.ExecuteAsync(ct =>
                 {
-                    var httpRequest = new HttpRequestMessage(HttpMethod.Post, "/api/sync/upload-all")
+                    var httpRequest = new HttpRequestMessage(HttpMethod.Post, ApiRoutes.Sync.UploadAll)
                     {
                         Content = JsonContent.Create(request),
                     };

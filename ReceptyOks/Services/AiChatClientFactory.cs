@@ -13,7 +13,6 @@ namespace ReceptyOks.Services;
 public sealed class AiChatClientFactory
 {
     public const string HttpClientName = "AnthropicProxy";
-    private const string ProxyPath = GlobalConstants.AI_API_PathPrefix;
 
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly AppSettings _appSettings;
@@ -30,7 +29,7 @@ public sealed class AiChatClientFactory
     {
         ArgumentNullException.ThrowIfNull(settings);
 
-        settings.BaseUrl = $"{_appSettings.Http.GetEffectiveApiUrl().TrimEnd('/')}{ProxyPath}";
+        settings.BaseUrl = $"{_appSettings.Http.GetEffectiveApiUrl().TrimEnd('/')}{ApiRoutes.Ai.Base}";
 
         using var agent = new AnthropicAgent(settings, _httpClientFactory.CreateClient(HttpClientName));
         return agent.GetAgent();

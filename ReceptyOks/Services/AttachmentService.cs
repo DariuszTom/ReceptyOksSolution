@@ -1,3 +1,4 @@
+using System.Net.Mime;
 using System.Text;
 using ReceptyOks.Shared.AI.Chat;
 using ILogger = Serilog.ILogger;
@@ -28,10 +29,10 @@ public sealed class AttachmentService : IChatAttachmentProvider
 
     private static readonly HashSet<string> AllowedImageMediaTypes = new(StringComparer.OrdinalIgnoreCase)
     {
-        "image/jpeg",
-        "image/png",
-        "image/gif",
-        "image/webp",
+        MediaTypeNames.Image.Jpeg,
+        MediaTypeNames.Image.Png,
+        MediaTypeNames.Image.Gif,
+        MediaTypeNames.Image.Webp,
         "image/heic",
     };
 
@@ -40,17 +41,17 @@ public sealed class AttachmentService : IChatAttachmentProvider
     /// </summary>
     private static readonly Dictionary<string, string> TextDocumentMediaTypes = new(StringComparer.OrdinalIgnoreCase)
     {
-        [".txt"] = "text/plain",
-        [".md"] = "text/markdown",
-        [".markdown"] = "text/markdown",
-        [".csv"] = "text/csv",
+        [".txt"] = MediaTypeNames.Text.Plain,
+        [".md"] = MediaTypeNames.Text.Markdown,
+        [".markdown"] = MediaTypeNames.Text.Markdown,
+        [".csv"] = MediaTypeNames.Text.Csv,
         [".tsv"] = "text/tab-separated-values",
-        [".json"] = "application/json",
-        [".xml"] = "application/xml",
-        [".html"] = "text/html",
-        [".htm"] = "text/html",
-        [".log"] = "text/plain",
-        [".ini"] = "text/plain",
+        [".json"] = MediaTypeNames.Application.Json,
+        [".xml"] = MediaTypeNames.Application.Xml,
+        [".html"] = MediaTypeNames.Text.Html,
+        [".htm"] = MediaTypeNames.Text.Html,
+        [".log"] = MediaTypeNames.Text.Plain,
+        [".ini"] = MediaTypeNames.Text.Plain,
         [".yaml"] = "text/yaml",
         [".yml"] = "text/yaml",
         [".docx"] = "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -88,7 +89,7 @@ public sealed class AttachmentService : IChatAttachmentProvider
                 PickerTitle = "Wybierz plik PDF",
                 FileTypes = new FilePickerFileType(new Dictionary<DevicePlatform, IEnumerable<string>>
                 {
-                    { DevicePlatform.Android, new[] { "application/pdf" } },
+                    { DevicePlatform.Android, new[] { MediaTypeNames.Application.Pdf } },
                     { DevicePlatform.iOS,     new[] { "com.adobe.pdf" } },
                     { DevicePlatform.WinUI,   new[] { ".pdf" } },
                     { DevicePlatform.MacCatalyst, new[] { "pdf" } },
@@ -113,7 +114,7 @@ public sealed class AttachmentService : IChatAttachmentProvider
             }
 
             using var stream = await result.OpenReadAsync().ConfigureAwait(false);
-            return await PersistAsync(stream, "application/pdf", result.FileName, cancellationToken).ConfigureAwait(false);
+            return await PersistAsync(stream, MediaTypeNames.Application.Pdf, result.FileName, cancellationToken).ConfigureAwait(false);
         }
         catch (PermissionException ex)
         {
@@ -142,8 +143,8 @@ public sealed class AttachmentService : IChatAttachmentProvider
                 {
                     { DevicePlatform.Android, new[]
                         {
-                            "text/plain", "text/markdown", "text/csv", "text/html",
-                            "application/json", "application/xml",
+                            MediaTypeNames.Text.Plain, MediaTypeNames.Text.Markdown, MediaTypeNames.Text.Csv, MediaTypeNames.Text.Html,
+                            MediaTypeNames.Application.Json, MediaTypeNames.Application.Xml,
                             "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
                         }
                     },
@@ -375,7 +376,7 @@ public sealed class AttachmentService : IChatAttachmentProvider
         string originalFileName,
         CancellationToken cancellationToken)
     {
-        var isPdf = mediaType.Equals("application/pdf", StringComparison.OrdinalIgnoreCase);
+        var isPdf = mediaType.Equals(MediaTypeNames.Application.Pdf, StringComparison.OrdinalIgnoreCase);
         var maxBytes = isPdf ? MaxPdfBytes : MaxImageBytes;
 
         // Read into memory so we can validate size and reuse for both disk and byte[] output.
@@ -555,10 +556,10 @@ public sealed class AttachmentService : IChatAttachmentProvider
         var ext = Path.GetExtension(fileName).ToLowerInvariant();
         return ext switch
         {
-            ".jpg" or ".jpeg" => "image/jpeg",
-            ".png" => "image/png",
-            ".gif" => "image/gif",
-            ".webp" => "image/webp",
+            ".jpg" or ".jpeg" => MediaTypeNames.Image.Jpeg,
+            ".png" => MediaTypeNames.Image.Png,
+            ".gif" => MediaTypeNames.Image.Gif,
+            ".webp" => MediaTypeNames.Image.Webp,
             ".heic" or ".heif" => "image/heic",
             _ => string.Empty,
         };
@@ -577,11 +578,11 @@ public sealed class AttachmentService : IChatAttachmentProvider
 
         return mediaType.ToLowerInvariant() switch
         {
-            "image/png" => ".png",
-            "image/gif" => ".gif",
-            "image/webp" => ".webp",
+            MediaTypeNames.Image.Png => ".png",
+            MediaTypeNames.Image.Gif => ".gif",
+            MediaTypeNames.Image.Webp => ".webp",
             "image/heic" => ".heic",
-            "application/pdf" => ".pdf",
+            MediaTypeNames.Application.Pdf => ".pdf",
             _ => ".jpg",
         };
     }

@@ -40,8 +40,8 @@ public sealed partial class WebBrowsingTool : IDisposable
             _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd(UserAgentBuilder.Next());
         }
 
-        _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("text/html"));
-        _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("text/plain"));
+        _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(System.Net.Mime.MediaTypeNames.Text.Html));
+        _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(System.Net.Mime.MediaTypeNames.Text.Plain));
         _httpClient.Timeout = TimeSpan.FromSeconds(30);
 
         _maxContentLength = maxContentLength;
@@ -95,7 +95,7 @@ public sealed partial class WebBrowsingTool : IDisposable
                 return $"Error: Failed to fetch page. Status code: {(int)response.StatusCode} {response.ReasonPhrase}";
             }
 
-            var contentType = response.Content.Headers.ContentType?.MediaType ?? "text/html";
+            var contentType = response.Content.Headers.ContentType?.MediaType ?? System.Net.Mime.MediaTypeNames.Text.Html;
             var content = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
 
             if (string.IsNullOrWhiteSpace(content))

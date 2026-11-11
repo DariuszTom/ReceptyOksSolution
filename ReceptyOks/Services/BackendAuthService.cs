@@ -43,7 +43,7 @@ namespace ReceptyOks.Services
             try
             {
                 var clientId = await ClientIdentityService.GetOrCreateAsync().ConfigureAwait(false);
-                using var response = await _httpClient.PostAsJsonAsync("/api/auth/validate", new ValidateRequest(apiKey, clientId), AuthJsonContext.Default.ValidateRequest).ConfigureAwait(false);
+                using var response = await _httpClient.PostAsJsonAsync(ApiRoutes.Auth.Validate, new ValidateRequest(apiKey, clientId), AuthJsonContext.Default.ValidateRequest).ConfigureAwait(false);
                 if (response.IsSuccessStatusCode)
                 {
                     var parsed = await response.Content.ReadFromJsonAsync(AuthJsonContext.Default.AuthResponse).ConfigureAwait(false)
@@ -75,7 +75,7 @@ namespace ReceptyOks.Services
             try
             {
                 var clientId = await ClientIdentityService.GetOrCreateAsync().ConfigureAwait(false);
-                using var response = await _httpClient.PostAsJsonAsync("/api/auth/validate", new ValidateRequest(apiKey, clientId), AuthJsonContext.Default.ValidateRequest, cancellationToken).ConfigureAwait(false);
+                using var response = await _httpClient.PostAsJsonAsync(ApiRoutes.Auth.Validate, new ValidateRequest(apiKey, clientId), AuthJsonContext.Default.ValidateRequest, cancellationToken).ConfigureAwait(false);
 
                 if (response.IsSuccessStatusCode)
                 {

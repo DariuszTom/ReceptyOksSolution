@@ -729,7 +729,7 @@ public partial class ChatMessageViewModel(string content, bool isUser) : Observa
         HasAttachment && (AttachmentMediaType?.StartsWith("image/", StringComparison.OrdinalIgnoreCase) ?? false);
 
     public bool HasPdfAttachment =>
-        HasAttachment && string.Equals(AttachmentMediaType, "application/pdf", StringComparison.OrdinalIgnoreCase);
+        HasAttachment && string.Equals(AttachmentMediaType, System.Net.Mime.MediaTypeNames.Application.Pdf, StringComparison.OrdinalIgnoreCase);
 
     /// <summary>True when the attachment is a text-based document (TXT/MD/CSV/DOCX/...)—not an image nor a PDF.</summary>
     public bool HasDocumentAttachment => HasAttachment && !HasImageAttachment && !HasPdfAttachment;

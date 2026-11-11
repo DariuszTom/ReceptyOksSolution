@@ -36,7 +36,7 @@ public static class AnthropicProxyExtensions
                 RateLimiterPolicy = RateLimiterPolicy,
                 Match = new RouteMatch
                 {
-                    Path = $"{GlobalConstants.AI_API_PathPrefix}/v1/messages",
+                    Path = ApiRoutes.Ai.Messages,
                     Methods = ["POST"]
                 }
             }
@@ -70,7 +70,7 @@ public static class AnthropicProxyExtensions
 
                 // Do not leak client IPs / proxy details to the upstream provider.
                 context.UseDefaultForwarders = false;
-                context.AddPathRemovePrefix(GlobalConstants.AI_API_PathPrefix);
+                context.AddPathRemovePrefix(ApiRoutes.Ai.Base);
                 context.AddRequestHeaderRemove("Authorization");
                 context.AddRequestHeaderRemove("Cookie");
                 context.AddRequestTransform(transform =>

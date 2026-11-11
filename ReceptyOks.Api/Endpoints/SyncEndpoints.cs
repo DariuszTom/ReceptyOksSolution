@@ -1,5 +1,6 @@
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
+using ReceptyOks.Shared;
 
 namespace ReceptyOks.Api.Endpoints;
 
@@ -7,7 +8,7 @@ public static class SyncEndpoints
 {
     public static void MapSyncEndpoints(this WebApplication app)
     {
-        var group = app.MapGroup("/api/sync")
+        var group = app.MapGroup(ApiRoutes.Sync.Base)
             .WithTags("Synchronization")
             .RequireRateLimiting("fixed");
 

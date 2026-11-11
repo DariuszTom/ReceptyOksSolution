@@ -1,4 +1,5 @@
 using FluentValidation;
+using ReceptyOks.Shared;
 using ReceptyOks.Shared.Interfaces;
 
 namespace ReceptyOks.Api.Endpoints;
@@ -7,7 +8,7 @@ public static class CategoryEndpoints
 {
     public static void MapCategoryEndpoints(this WebApplication app)
     {
-        var group = app.MapGroup("/api/categories")
+        var group = app.MapGroup(ApiRoutes.Categories.Base)
             .WithTags("Categories")
             .RequireRateLimiting("fixed");
 
@@ -59,7 +60,7 @@ public static class CategoryEndpoints
             db.Categories.Add(category);
             await db.SaveChangesAsync().ConfigureAwait(false);
 
-            return Results.Created($"/api/categories/{category.Id}", category);
+            return Results.Created(ApiRoutes.Categories.ById(category.Id), category);
         })
         .WithName("CreateCategory");
 

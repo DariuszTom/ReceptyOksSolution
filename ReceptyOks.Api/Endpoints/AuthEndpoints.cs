@@ -1,4 +1,5 @@
 using ReceptyOks.Api.Services;
+using ReceptyOks.Shared;
 using ReceptyOks.Shared.Misc;
 using System.Security.Cryptography;
 
@@ -14,7 +15,7 @@ public static class AuthEndpoints
 
     public static void MapAuthEndpoints(this WebApplication app)
     {
-        var group = app.MapGroup("/api/auth")
+        var group = app.MapGroup(ApiRoutes.Auth.Base)
             .WithTags("Authentication")
             .RequireRateLimiting("strict")
             .DisableHttpMetrics();

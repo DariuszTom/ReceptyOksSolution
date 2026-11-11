@@ -1,6 +1,7 @@
 using Polly;
 using Polly.Retry;
 using ReceptyOks.Misc;
+using ReceptyOks.Shared;
 using ReceptyOks.Shared.DTOs;
 using System.Net.Http.Json;
 
@@ -33,7 +34,7 @@ public class ShoppingListService(HttpClient httpClient) : IShoppingListService
                 return ShoppingListResult<List<ShoppingListItem>>.Failure("Brak połączenia z internetem");
             }
 
-            var url = includeBought ? "/api/shopping-list?includeBought=true" : "/api/shopping-list";
+            var url = includeBought ? $"{ApiRoutes.ShoppingList.Base}?includeBought=true" : ApiRoutes.ShoppingList.Base;
             using var response = await _retryPolicy.ExecuteAsync(ct =>
                 _httpClient.GetAsync(url, ct), cancellationToken).ConfigureAwait(false);
 
@@ -68,7 +69,7 @@ public class ShoppingListService(HttpClient httpClient) : IShoppingListService
             }
 
             using var response = await _retryPolicy.ExecuteAsync(ct =>
-                _httpClient.GetAsync($"/api/shopping-list/{id}", ct), cancellationToken).ConfigureAwait(false);
+                _httpClient.GetAsync(ApiRoutes.ShoppingList.ById(id), ct), cancellationToken).ConfigureAwait(false);
 
             if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
@@ -108,7 +109,7 @@ public class ShoppingListService(HttpClient httpClient) : IShoppingListService
             }
 
             using var response = await _retryPolicy.ExecuteAsync(ct =>
-                _httpClient.PostAsJsonAsync("/api/shopping-list", item, ct), cancellationToken).ConfigureAwait(false);
+                _httpClient.PostAsJsonAsync(ApiRoutes.ShoppingList.Base, item, ct), cancellationToken).ConfigureAwait(false);
 
             if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
             {
@@ -149,7 +150,7 @@ public class ShoppingListService(HttpClient httpClient) : IShoppingListService
             }
 
             using var response = await _retryPolicy.ExecuteAsync(ct =>
-                _httpClient.PostAsJsonAsync("/api/shopping-list/bulk", items, ct), cancellationToken).ConfigureAwait(false);
+                _httpClient.PostAsJsonAsync(ApiRoutes.ShoppingList.Bulk, items, ct), cancellationToken).ConfigureAwait(false);
 
             if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
             {
@@ -188,7 +189,7 @@ public class ShoppingListService(HttpClient httpClient) : IShoppingListService
             }
 
             using var response = await _retryPolicy.ExecuteAsync(ct =>
-                _httpClient.PutAsJsonAsync($"/api/shopping-list/{id}", item, ct), cancellationToken).ConfigureAwait(false);
+                _httpClient.PutAsJsonAsync(ApiRoutes.ShoppingList.ById(id), item, ct), cancellationToken).ConfigureAwait(false);
 
             if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
@@ -235,7 +236,7 @@ public class ShoppingListService(HttpClient httpClient) : IShoppingListService
 
             var request = new BoughtRequest(boughtBy);
             using var response = await _retryPolicy.ExecuteAsync(ct =>
-                _httpClient.PatchAsJsonAsync($"/api/shopping-list/{id}/bought", request, ct), cancellationToken).ConfigureAwait(false);
+                _httpClient.PatchAsJsonAsync(ApiRoutes.ShoppingList.Bought(id), request, ct), cancellationToken).ConfigureAwait(false);
 
             if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
@@ -275,7 +276,7 @@ public class ShoppingListService(HttpClient httpClient) : IShoppingListService
             }
 
             using var response = await _retryPolicy.ExecuteAsync(ct =>
-                _httpClient.PatchAsync($"/api/shopping-list/{id}/unbought", null, ct), cancellationToken).ConfigureAwait(false);
+                _httpClient.PatchAsync(ApiRoutes.ShoppingList.Unbought(id), null, ct), cancellationToken).ConfigureAwait(false);
 
             if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
@@ -316,7 +317,7 @@ public class ShoppingListService(HttpClient httpClient) : IShoppingListService
 
             var request = new BulkBoughtRequest(ids, boughtBy);
             using var response = await _retryPolicy.ExecuteAsync(ct =>
-                _httpClient.PatchAsJsonAsync("/api/shopping-list/bulk/bought", request, ct), cancellationToken).ConfigureAwait(false);
+                _httpClient.PatchAsJsonAsync(ApiRoutes.ShoppingList.BulkBought, request, ct), cancellationToken).ConfigureAwait(false);
 
             if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
             {
@@ -357,7 +358,7 @@ public class ShoppingListService(HttpClient httpClient) : IShoppingListService
             }
 
             using var response = await _retryPolicy.ExecuteAsync(ct =>
-                _httpClient.DeleteAsync($"/api/shopping-list/{id}", ct), cancellationToken).ConfigureAwait(false);
+                _httpClient.DeleteAsync(ApiRoutes.ShoppingList.ById(id), ct), cancellationToken).ConfigureAwait(false);
 
             if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
@@ -394,7 +395,7 @@ public class ShoppingListService(HttpClient httpClient) : IShoppingListService
             }
 
             using var response = await _retryPolicy.ExecuteAsync(ct =>
-                _httpClient.DeleteAsync("/api/shopping-list/clear-bought", ct), cancellationToken).ConfigureAwait(false);
+                _httpClient.DeleteAsync(ApiRoutes.ShoppingList.ClearBought, ct), cancellationToken).ConfigureAwait(false);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -429,7 +430,7 @@ public class ShoppingListService(HttpClient httpClient) : IShoppingListService
             }
 
             using var response = await _retryPolicy.ExecuteAsync(ct =>
-                _httpClient.DeleteAsync("/api/shopping-list/clear-all", ct), cancellationToken).ConfigureAwait(false);
+                _httpClient.DeleteAsync(ApiRoutes.ShoppingList.ClearAll, ct), cancellationToken).ConfigureAwait(false);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -464,7 +465,7 @@ public class ShoppingListService(HttpClient httpClient) : IShoppingListService
             }
 
             using var response = await _retryPolicy.ExecuteAsync(ct =>
-                _httpClient.GetAsync("/api/shopping-list/stats", ct), cancellationToken).ConfigureAwait(false);
+                _httpClient.GetAsync(ApiRoutes.ShoppingList.Stats, ct), cancellationToken).ConfigureAwait(false);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -499,7 +500,7 @@ public class ShoppingListService(HttpClient httpClient) : IShoppingListService
             }
 
             using var response = await _retryPolicy.ExecuteAsync(ct =>
-                _httpClient.DeleteAsync($"/api/shopping-list/{id}/permanent", ct), cancellationToken).ConfigureAwait(false);
+                _httpClient.DeleteAsync(ApiRoutes.ShoppingList.Permanent(id), ct), cancellationToken).ConfigureAwait(false);
 
             if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
             {

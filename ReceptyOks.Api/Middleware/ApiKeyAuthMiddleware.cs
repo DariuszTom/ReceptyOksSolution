@@ -95,11 +95,11 @@ public sealed class ApiKeyAuthMiddleware
     private static bool ShouldSkipAuth(string path, IWebHostEnvironment environment)
     {
         if (path.Equals("/robots.txt", StringComparison.OrdinalIgnoreCase) ||
-            path.StartsWith("/api/auth", StringComparison.OrdinalIgnoreCase) ||
-            path.StartsWith("/api/health", StringComparison.OrdinalIgnoreCase) ||
-            path.StartsWith("/api/alive", StringComparison.OrdinalIgnoreCase) ||
-            path.StartsWith("/health", StringComparison.OrdinalIgnoreCase) ||
-            path.StartsWith("/alive", StringComparison.OrdinalIgnoreCase))
+            path.StartsWith(ApiRoutes.Auth.Base, StringComparison.OrdinalIgnoreCase) ||
+            path.StartsWith(ApiRoutes.Prefix + ApiRoutes.Health, StringComparison.OrdinalIgnoreCase) ||
+            path.StartsWith(ApiRoutes.Prefix + ApiRoutes.Alive, StringComparison.OrdinalIgnoreCase) ||
+            path.StartsWith(ApiRoutes.Health, StringComparison.OrdinalIgnoreCase) ||
+            path.StartsWith(ApiRoutes.Alive, StringComparison.OrdinalIgnoreCase))
         {
             return true;
         }

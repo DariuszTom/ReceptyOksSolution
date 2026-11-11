@@ -1,6 +1,17 @@
 namespace ReceptyOks.Models;
 
 /// <summary>
+/// Status names reported by ASP.NET Core health checks (<c>HealthStatus</c> enum names).
+/// </summary>
+public static class HealthStatusNames
+{
+    public const string Healthy = "Healthy";
+    public const string Degraded = "Degraded";
+    public const string Unhealthy = "Unhealthy";
+    public const string Unknown = "Unknown";
+}
+
+/// <summary>
 /// Response model for backend health status
 /// </summary>
 public class HealthStatusResponse
@@ -38,17 +49,17 @@ public class HealthStatusResponse
     /// <summary>
     /// Checks if overall status is Healthy
     /// </summary>
-    public bool IsHealthy => Status.Equals("Healthy", StringComparison.OrdinalIgnoreCase);
+    public bool IsHealthy => Status.Equals(HealthStatusNames.Healthy, StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
     /// Checks if overall status is Degraded
     /// </summary>
-    public bool IsDegraded => Status.Equals("Degraded", StringComparison.OrdinalIgnoreCase);
+    public bool IsDegraded => Status.Equals(HealthStatusNames.Degraded, StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
     /// Checks if overall status is Unhealthy
     /// </summary>
-    public bool IsUnhealthy => Status.Equals("Unhealthy", StringComparison.OrdinalIgnoreCase);
+    public bool IsUnhealthy => Status.Equals(HealthStatusNames.Unhealthy, StringComparison.OrdinalIgnoreCase);
 }
 
 /// <summary>

@@ -20,7 +20,7 @@ public sealed record ChatAttachment(
 {
     public bool IsImage => MediaType.StartsWith("image/", StringComparison.OrdinalIgnoreCase);
 
-    public bool IsPdf => MediaType.Equals("application/pdf", StringComparison.OrdinalIgnoreCase);
+    public bool IsPdf => MediaType.Equals(System.Net.Mime.MediaTypeNames.Application.Pdf, StringComparison.OrdinalIgnoreCase);
 
     /// <summary>True when the attachment carries extracted text to be inlined into the prompt.</summary>
     public bool IsTextDocument => TextContent is not null;

@@ -1,4 +1,5 @@
 using ReceptyOks.Models.HomeSeeker;
+using ReceptyOks.Shared;
 using System.Globalization;
 using System.Net;
 using System.Net.Http.Json;
@@ -13,12 +14,10 @@ namespace ReceptyOks.Services;
 /// </summary>
 public class HomeSeekerService(HttpClient httpClient, IAccessTokenRefresher tokenRefresher, ILogger<HomeSeekerService> logger) : IHomeSeekerService
 {
-    private const string BasePath = "/api/homeseeker";
-
     public async Task<HomeSeekerResult<HomeSeekerProfile>> GetProfileAsync(CancellationToken cancellationToken = default)
     {
         return await ExecuteAsync(
-            ct => httpClient.GetAsync($"{BasePath}/profile", ct),
+            ct => httpClient.GetAsync(ApiRoutes.HomeSeeker.Profile, ct),
             (response, ct) => response.Content.ReadFromJsonAsync<HomeSeekerProfile>(ct),
             cancellationToken).ConfigureAwait(false);
     }
@@ -28,7 +27,7 @@ public class HomeSeekerService(HttpClient httpClient, IAccessTokenRefresher toke
         ArgumentNullException.ThrowIfNull(request);
 
         return await ExecuteAsync(
-            ct => httpClient.PutAsJsonAsync($"{BasePath}/profile", request, ct),
+            ct => httpClient.PutAsJsonAsync(ApiRoutes.HomeSeeker.Profile, request, ct),
             (response, ct) => response.Content.ReadFromJsonAsync<HomeSeekerProfile>(ct),
             cancellationToken).ConfigureAwait(false);
     }
@@ -47,7 +46,7 @@ public class HomeSeekerService(HttpClient httpClient, IAccessTokenRefresher toke
         if (query.EvaluatedOnly)
             parameters.Add("evaluatedOnly=true");
 
-        var url = $"{BasePath}/listings?{string.Join('&', parameters)}";
+        var url = $"{ApiRoutes.HomeSeeker.Listings}?{string.Join('&', parameters)}";
 
         return await ExecuteAsync(
             ct => httpClient.GetAsync(url, ct),
@@ -62,7 +61,7 @@ public class HomeSeekerService(HttpClient httpClient, IAccessTokenRefresher toke
 
         var parameters = new List<string> { $"limit={limit.ToString(CultureInfo.InvariantCulture)}" };
         AddFilters(parameters, query, includeSort: false);
-        var url = $"{BasePath}/map?{string.Join('&', parameters)}";
+        var url = $"{ApiRoutes.HomeSeeker.Map}?{string.Join('&', parameters)}";
 
         return await ExecuteAsync(
             ct => httpClient.GetAsync(url, ct),
@@ -89,14 +88,14 @@ public class HomeSeekerService(HttpClient httpClient, IAccessTokenRefresher toke
     public async Task<HomeSeekerResult<List<string>>> GetPortalsAsync(CancellationToken cancellationToken = default)
     {
         return await ExecuteAsync(
-            ct => httpClient.GetAsync($"{BasePath}/portals", ct),
+            ct => httpClient.GetAsync(ApiRoutes.HomeSeeker.Portals, ct),
             async (response, ct) => await response.Content.ReadFromJsonAsync<List<string>>(ct).ConfigureAwait(false) ?? [],
             cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<HomeSeekerResult<List<HomeSeekerScanRun>>> GetScansAsync(int count = 20, CancellationToken cancellationToken = default)
     {
-        var url = $"{BasePath}/scans?count={count.ToString(CultureInfo.InvariantCulture)}";
+        var url = $"{ApiRoutes.HomeSeeker.Scans}?count={count.ToString(CultureInfo.InvariantCulture)}";
 
         return await ExecuteAsync(
             ct => httpClient.GetAsync(url, ct),
@@ -107,7 +106,7 @@ public class HomeSeekerService(HttpClient httpClient, IAccessTokenRefresher toke
     public async Task<HomeSeekerResult<string>> GetReportHtmlAsync(Guid scanId, CancellationToken cancellationToken = default)
     {
         return await ExecuteAsync(
-            ct => httpClient.GetAsync($"{BasePath}/scans/{scanId}/report", ct),
+            ct => httpClient.GetAsync(ApiRoutes.HomeSeeker.ScanReport(scanId), ct),
             async (response, ct) => (string?)await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false),
             cancellationToken).ConfigureAwait(false);
     }

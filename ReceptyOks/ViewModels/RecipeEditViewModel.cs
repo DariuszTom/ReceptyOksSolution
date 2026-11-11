@@ -359,7 +359,7 @@ public partial class RecipeEditViewModel : ObservableObject
             CookingTimeMinutes = CookingTimeMinutes,
             Servings = Servings,
             Image = RecipeImage,
-            ImageContentType = RecipeImage is not null ? "image/jpeg" : null,
+            ImageContentType = RecipeImage is not null ? System.Net.Mime.MediaTypeNames.Image.Jpeg : null,
             CategoryId = SelectedCategory?.Id
         };
 
