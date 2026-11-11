@@ -13,6 +13,7 @@ namespace ReceptyOks.Shared.Models
         }
 
         [DataMember]
+        [Required]
         public Guid Id { get; init; }
 
         [DataMember]

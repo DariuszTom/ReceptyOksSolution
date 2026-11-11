@@ -225,13 +225,19 @@
     {
         var themeClass = IsDarkTheme ? "theme-dark" : "theme-light";
         var removeClass = IsDarkTheme ? "theme-light" : "theme-dark";
-
-        await JSRuntime.InvokeVoidAsync("eval", $@"
-            document.documentElement.classList.remove('{removeClass}');
-            document.documentElement.classList.add('{themeClass}');
-            document.body.classList.remove('{removeClass}');
-            document.body.classList.add('{themeClass}');
-        ");
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("eval", $@"
+                document.documentElement.classList.remove('{removeClass}');
+                document.documentElement.classList.add('{themeClass}');
+                document.body.classList.remove('{removeClass}');
+                document.body.classList.add('{themeClass}');
+            ");
+        }
+        catch
+        {
+            // Ignore errors during theme application (e.g., if JS runtime is unavailable)
+        }
     }
 
     public async ValueTask DisposeAsync()

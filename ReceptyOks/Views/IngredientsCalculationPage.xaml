@@ -91,10 +91,11 @@
                            TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource Gray100}}"/>
 
                     <!-- Original Form -->
-                    <Frame BorderColor="{StaticResource Gray200}"
-                           BackgroundColor="{AppThemeBinding Light={StaticResource Gray50}, Dark={StaticResource Gray800}}"
-                           Padding="12"
-                           CornerRadius="12">
+                    <Border Stroke="{StaticResource Gray200}"
+                            StrokeThickness="1"
+                            StrokeShape="RoundRectangle 12"
+                            BackgroundColor="{AppThemeBinding Light={StaticResource Gray50}, Dark={StaticResource Gray800}}"
+                            Padding="12">
                         <VerticalStackLayout Spacing="10">
                             <HorizontalStackLayout Spacing="8">
                                 <Image HeightRequest="20" WidthRequest="20">
@@ -143,13 +144,14 @@
                                 </material:TextField>
                             </Grid>
                         </VerticalStackLayout>
-                    </Frame>
+                    </Border>
 
                     <!-- New Form -->
-                    <Frame BorderColor="{StaticResource Gray200}"
-                           BackgroundColor="{AppThemeBinding Light={StaticResource Gray50}, Dark={StaticResource Gray800}}"
-                           Padding="12"
-                           CornerRadius="12">
+                    <Border Stroke="{StaticResource Gray200}"
+                            StrokeThickness="1"
+                            StrokeShape="RoundRectangle 12"
+                            BackgroundColor="{AppThemeBinding Light={StaticResource Gray50}, Dark={StaticResource Gray800}}"
+                            Padding="12">
                         <VerticalStackLayout Spacing="10">
                             <HorizontalStackLayout Spacing="8">
                                 <Image HeightRequest="20" WidthRequest="20">
@@ -201,7 +203,7 @@
                                 </material:TextField>
                             </Grid>
                         </VerticalStackLayout>
-                    </Frame>
+                    </Border>
 
                     <!-- Calculate Button -->
                     <Button Text="Przelicz składniki"

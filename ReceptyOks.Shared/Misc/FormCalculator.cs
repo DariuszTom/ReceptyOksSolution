@@ -68,8 +68,10 @@ namespace ReceptyOks.Shared.Misc
 
             foreach (var ingredient in ingredients)
             {
+                if(string.IsNullOrEmpty(ingredient?.Name)) continue;
+
                 decimal scaledQuantity = ScaleIngredient(ingredient.Quantity, multiplier);
-                var unit = UnitsExtensions.Parse(ingredient.Unit);
+                var unit = UnitsExtensions.Parse(string.IsNullOrEmpty(ingredient?.Unit) ? Units.Brak.ToString() : ingredient.Unit);
 
                 // Round based on unit type: countable units round up, measurable units use precision
                 scaledQuantity = unit.IsCountable()
@@ -77,10 +79,10 @@ namespace ReceptyOks.Shared.Misc
                     : Math.Round(scaledQuantity, precision);
 
                 scaledIngredients.Add(new ScaledIngredient(
-                    ingredient.Name,
-                    ingredient.Quantity,
+                    ingredient?.Name,
+                    ingredient?.Quantity ?? 0,
                     scaledQuantity,
-                    ingredient.Unit));
+                    unit.ToString()));
             }
 
             return scaledIngredients;
