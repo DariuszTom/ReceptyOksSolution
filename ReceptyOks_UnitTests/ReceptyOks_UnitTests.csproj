@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net11.0-windows10.0.19041</TargetFramework>
@@ -9,13 +9,13 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Anthropic" Version="12.58.0" />
+    <PackageReference Include="Anthropic" Version="13.8.0" />
     <PackageReference Include="coverlet.collector" Version="10.1.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="11.0.0" />
-    <PackageReference Include="Microsoft.Extensions.ServiceDiscovery" Version="10.11.0" />
+    <PackageReference Include="Microsoft.Extensions.ServiceDiscovery" Version="11.0.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.11.1" />
     <PackageReference Include="System.Security.Cryptography.Xml" Version="11.0.0" />
     <!-- Resizetizer 11 (SkiaSharp 4.x) flows in via ReceptyOks and clashes with SkiaSharp 3.x from Mapsui;
