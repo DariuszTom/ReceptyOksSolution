@@ -2,7 +2,6 @@
 using Polly.Retry;
 using ReceptyOks.Configuration;
 using ReceptyOks.Shared;
-using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 
 namespace ReceptyOks.Services;
@@ -13,35 +12,31 @@ public class UpdateCheckerService
     private readonly HttpClient _httpClient;
     private readonly ILogger<UpdateCheckerService> _logger;
 
-    public UpdateCheckerService(AppSettings settings, ILogger<UpdateCheckerService> logger)
+    public UpdateCheckerService(HttpClient httpClient, AppSettings settings, ILogger<UpdateCheckerService> logger)
     {
-        if (settings == null)
-            throw new ArgumentNullException(nameof(settings));
+        ArgumentNullException.ThrowIfNull(httpClient);
+        ArgumentNullException.ThrowIfNull(settings);
+        _httpClient = httpClient;
         _settings = settings;
-        _httpClient = new HttpClient()
-        {
-            BaseAddress = new Uri(_settings.Http.Github.BaseUrl),
-            Timeout = TimeSpan.FromSeconds(_settings.Http.DefaultTimeoutSeconds)
-        };
-        _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd(_settings.Http.Github.UserAgent);
         _logger = logger;
     }
+
+    /// <summary>Backoff between retries; overridable in tests to avoid real delays.</summary>
+    internal Func<int, TimeSpan> RetryDelayProvider { get; init; } = retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt));
 
     public async Task<GitHubRelease?> GetLatestReleaseAsync()
     {
         AsyncRetryPolicy<HttpResponseMessage> retryPolicy = Policy
             .HandleResult<HttpResponseMessage>(r => !r.IsSuccessStatusCode)
             .Or<HttpRequestException>()
-            .WaitAndRetryAsync(GlobalConstants.MaxRetryAttempts, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
+            .WaitAndRetryAsync(GlobalConstants.MaxRetryAttempts, RetryDelayProvider,
                 onRetry: (outcome, _, _, _) => outcome.Result?.Dispose());
 
         try
         {
             using var response = await retryPolicy.ExecuteAsync(() =>
-                _httpClient.GetAsync(_settings.Http.Github.ReleaseEndpoint)
-            ).ConfigureAwait(false);
-            if (!response.IsSuccessStatusCode)
-                return null;
+                _httpClient.GetAsync(_settings.Http.Github.ReleaseEndpoint)).ConfigureAwait(false);
+            if (!response.IsSuccessStatusCode) return null;
 
             var release = await response.Content.ReadFromJsonAsync<GitHubRelease>().ConfigureAwait(false);
             return release;
@@ -55,13 +50,11 @@ public class UpdateCheckerService
     public async Task<bool> IsUpdateAvailableAsync(string apptVersion)
     {
         var latest = await GetLatestReleaseAsync().ConfigureAwait(false);
-        if (latest == null)
-            return false;
+        if (latest == null)return false;
 
         string serverVersion = VersionInfo.ConvertVersionToNumeric(latest.TagName ?? string.Empty);
         string currentVersion = VersionInfo.ConvertVersionToNumeric(apptVersion);
         _logger.LogInformation("Checking for updates. Current version: {CurrentVersion}, Latest version: {LatestVersion}", currentVersion, serverVersion);
-        // Porównanie wersji
         if (Version.TryParse(currentVersion, out var current) && Version.TryParse(serverVersion, out var latestVer))
         {
             return latestVer > current;
@@ -76,7 +69,7 @@ public class UpdateCheckerService
         {
             var latest = await GetLatestReleaseAsync();
             var apkAsset = latest?.Assets?.FirstOrDefault(a => a.Name != null && a.Name.EndsWith(".apk"));
-            if (apkAsset != null)
+            if (apkAsset != null && apkAsset.DownloadUrl != null)
             {
                 // Wyświetl użytkownikowi informację i link do pobrania APK
                 await Shell.Current.DisplayAlertAsync(
@@ -85,7 +78,6 @@ public class UpdateCheckerService
                     "Pobierz", "Anuluj");
 
                 // Otwórz link do pobrania APK
-
                 await Launcher.Default.OpenAsync(apkAsset.DownloadUrl);
             }
         }

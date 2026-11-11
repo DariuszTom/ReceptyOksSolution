@@ -33,42 +33,9 @@ public static class HomeSeekerExtensions
         IWebHostEnvironment environment,
         IConfiguration configuration)
     {
-        string connectionString;
+        var connectionString = DatabaseExtensions.GetRequiredConnectionString(environment, configuration);
 
-        if (environment.IsDevelopment())
-        {
-            var dataFolder = Path.Combine(environment.ContentRootPath, "Data");
-            Directory.CreateDirectory(dataFolder);
-            var dbName = configuration["Database:Name"] ?? "recipes.db";
-            var dbPath = Path.Combine(dataFolder, dbName);
-            connectionString = $"Data Source={dbPath}";
-
-            services.AddDbContextPool<HomeSeekerDbContext>(options =>
-                options.UseSqlite(connectionString)
-            );
-        }
-        else
-        {
-            connectionString = configuration.GetConnectionString("DefaultConnection") ?? string.Empty;
-
-            if (string.IsNullOrWhiteSpace(connectionString))
-            {
-                throw new InvalidOperationException(
-                    "SQL Server connection string 'DefaultConnection' is not configured for Production.");
-            }
-
-            services.AddDbContextPool<HomeSeekerDbContext>(options =>
-                options.UseSqlServer(connectionString, opts =>
-                {
-                    opts.CommandTimeout(240);
-                    opts.EnableRetryOnFailure(
-                        maxRetryCount: GlobalConstants.MaxRetryAttempts,
-                        maxRetryDelay: TimeSpan.FromSeconds(10),
-                        errorNumbersToAdd: null);
-                    opts.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
-                })
-            );
-        }
+        services.AddDbContextPool<HomeSeekerDbContext>(options => options.UseRecipeSqlServer(connectionString));
 
         return services;
     }
@@ -109,41 +76,33 @@ public static class HomeSeekerExtensions
                 var creator = db.GetService<IRelationalDatabaseCreator>();
                 creator.CreateTables();
                 logger.LogInformation("HomeSeeker tables created in existing database");
+                return app;
+            }
+
+            // The upgrade SQL below is SQL Server specific; tests swap in other providers.
+            if (!db.Database.IsSqlServer())
+            {
+                return app;
             }
 
             // Lightweight in-place schema upgrades. The project does not use EF
             // migrations; these guard existing DBs created before a column was added.
-            EnsureColumn(db, logger, "SearchProfiles", "ScanLeaseUntil",
-                sqliteType: "TEXT NULL", sqlServerType: "DATETIME2 NULL");
-            EnsureColumn(db, logger, "SearchProfiles", "ScanLeaseToken",
-                sqliteType: "TEXT NULL", sqlServerType: "UNIQUEIDENTIFIER NULL");
-            EnsureColumn(db, logger, "SearchProfiles", "OwnerId",
-                sqliteType: "TEXT NULL", sqlServerType: "NVARCHAR(200) NULL");
+            EnsureColumn(db, logger, "SearchProfiles", "ScanLeaseUntil", "DATETIME2 NULL");
+            EnsureColumn(db, logger, "SearchProfiles", "ScanLeaseToken", "UNIQUEIDENTIFIER NULL");
+            EnsureColumn(db, logger, "SearchProfiles", "OwnerId", "NVARCHAR(200) NULL");
             // Existing profiles/listings predate apartments, so they default to House (1).
-            EnsureColumn(db, logger, "SearchProfiles", "PropertyTypes",
-                sqliteType: "INTEGER NOT NULL DEFAULT 1", sqlServerType: "INT NOT NULL DEFAULT 1");
-            EnsureColumn(db, logger, "HouseListings", "PropertyType",
-                sqliteType: "INTEGER NOT NULL DEFAULT 1", sqlServerType: "INT NOT NULL DEFAULT 1");
-            EnsureColumn(db, logger, "SearchProfiles", "MinRooms",
-                sqliteType: "INTEGER NULL", sqlServerType: "INT NULL");
-            EnsureColumn(db, logger, "HouseListings", "DistanceFromCenterKm",
-                sqliteType: "REAL NULL", sqlServerType: "FLOAT NULL");
-            EnsureColumn(db, logger, "HouseListings", "DistanceIsApproximate",
-                sqliteType: "INTEGER NOT NULL DEFAULT 0", sqlServerType: "BIT NOT NULL DEFAULT 0");
-            EnsureColumn(db, logger, "HouseListings", "DevelopmentKey",
-                sqliteType: "TEXT NULL", sqlServerType: "NVARCHAR(100) NULL");
-            EnsureColumn(db, logger, "HouseListings", "Latitude",
-                sqliteType: "REAL NULL", sqlServerType: "FLOAT NULL");
-            EnsureColumn(db, logger, "HouseListings", "Longitude",
-                sqliteType: "REAL NULL", sqlServerType: "FLOAT NULL");
-            EnsureColumn(db, logger, "HouseListings", "CoordinatesApproximate",
-                sqliteType: "INTEGER NOT NULL DEFAULT 0", sqlServerType: "BIT NOT NULL DEFAULT 0");
-            EnsureColumn(db, logger, "SearchProfiles", "HomeLatitude",
-                sqliteType: "REAL NULL", sqlServerType: "FLOAT NULL");
-            EnsureColumn(db, logger, "SearchProfiles", "HomeLongitude",
-                sqliteType: "REAL NULL", sqlServerType: "FLOAT NULL");
-            EnsureColumn(db, logger, "SearchProfiles", "HomeLabel",
-                sqliteType: "TEXT NULL", sqlServerType: "NVARCHAR(200) NULL");
+            EnsureColumn(db, logger, "SearchProfiles", "PropertyTypes", "INT NOT NULL DEFAULT 1");
+            EnsureColumn(db, logger, "HouseListings", "PropertyType", "INT NOT NULL DEFAULT 1");
+            EnsureColumn(db, logger, "SearchProfiles", "MinRooms", "INT NULL");
+            EnsureColumn(db, logger, "HouseListings", "DistanceFromCenterKm", "FLOAT NULL");
+            EnsureColumn(db, logger, "HouseListings", "DistanceIsApproximate", "BIT NOT NULL DEFAULT 0");
+            EnsureColumn(db, logger, "HouseListings", "DevelopmentKey", "NVARCHAR(100) NULL");
+            EnsureColumn(db, logger, "HouseListings", "Latitude", "FLOAT NULL");
+            EnsureColumn(db, logger, "HouseListings", "Longitude", "FLOAT NULL");
+            EnsureColumn(db, logger, "HouseListings", "CoordinatesApproximate", "BIT NOT NULL DEFAULT 0");
+            EnsureColumn(db, logger, "SearchProfiles", "HomeLatitude", "FLOAT NULL");
+            EnsureColumn(db, logger, "SearchProfiles", "HomeLongitude", "FLOAT NULL");
+            EnsureColumn(db, logger, "SearchProfiles", "HomeLabel", "NVARCHAR(200) NULL");
         }
         catch (Exception ex)
         {
@@ -159,7 +118,6 @@ public static class HomeSeekerExtensions
         ILogger logger,
         string table,
         string column,
-        string sqliteType,
         string sqlServerType)
     {
         if (ColumnExists(db, table, column))
@@ -168,9 +126,7 @@ public static class HomeSeekerExtensions
             return;
         }
 
-        var sql = db.Database.IsSqlite()
-            ? $"ALTER TABLE {table} ADD COLUMN {column} {sqliteType};"
-            : $"ALTER TABLE {table} ADD {column} {sqlServerType};";
+        var sql = $"ALTER TABLE {table} ADD {column} {sqlServerType};";
 
         try
         {
@@ -198,21 +154,6 @@ public static class HomeSeekerExtensions
         try
         {
             using var command = connection.CreateCommand();
-
-            if (db.Database.IsSqlite())
-            {
-                command.CommandText = $"PRAGMA table_info({table});";
-                using var reader = command.ExecuteReader();
-                while (reader.Read())
-                {
-                    if (string.Equals(reader.GetString(1), column, StringComparison.OrdinalIgnoreCase))
-                    {
-                        return true;
-                    }
-                }
-                return false;
-            }
-
             command.CommandText =
                 "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = @table AND COLUMN_NAME = @column;";
 
