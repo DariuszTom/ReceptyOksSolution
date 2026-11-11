@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Security;
 using System.Text;
+using AsyncAwaitBestPractices;
 using SharedLibrary.Misc.MessegeSender;
 
 namespace ReceptyOks_UnitTests.MessegeSender;
@@ -159,7 +160,7 @@ public sealed class MailSenderTests
             _listener = new TcpListener(IPAddress.Loopback, 0);
             _listener.Start();
             Port = ((IPEndPoint)_listener.LocalEndpoint).Port;
-            _ = Task.Run(RunAsync);
+            RunAsync().SafeFireAndForget();
         }
 
         public int Port { get; }
