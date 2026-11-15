@@ -19,13 +19,38 @@ public static class AnthropicProxyExtensions
     private const string ClusterId = "anthropic";
     private const string TokenConfigKey = "Token";
     private const string DestinationConfigKey = "AnthropicProxy:Destination";
+    private const string MaxRequestBodyBytesConfigKey = "AnthropicProxy:MaxRequestBodyBytes";
+    private const string MaxConcurrentRequestsConfigKey = "AnthropicProxy:MaxConcurrentRequestsPerClient";
+    private const string ConcurrencyLimiterKey = "anthropic-proxy-concurrency";
     private const string AnthropicApiKeyHeader = "x-api-key";
+
+    public const long DefaultMaxRequestBodyBytes = 16 * 1024 * 1024;
+
+    /// <summary>Generations can hold a connection for minutes, so cap in-flight requests per client.</summary>
+    public const int DefaultMaxConcurrentRequestsPerClient = 4;
 
     public static IServiceCollection AddAnthropicProxy(this IServiceCollection services, IConfiguration configuration)
     {
         var destination = configuration[DestinationConfigKey];
         if (string.IsNullOrWhiteSpace(destination))
             destination = new AnthropicSettings().BaseUrl;
+
+        var maxRequestBodyBytes = configuration.GetValue(MaxRequestBodyBytesConfigKey, DefaultMaxRequestBodyBytes);
+        if (maxRequestBodyBytes <= 0)
+            throw new InvalidOperationException($"'{MaxRequestBodyBytesConfigKey}' must be greater than 0.");
+
+        var maxConcurrentRequests = configuration.GetValue(MaxConcurrentRequestsConfigKey, DefaultMaxConcurrentRequestsPerClient);
+        if (maxConcurrentRequests <= 0)
+            throw new InvalidOperationException($"'{MaxConcurrentRequestsConfigKey}' must be greater than 0.");
+
+        services.AddSingleton(new AnthropicProxyLimits(maxRequestBodyBytes));
+        services.AddKeyedSingleton(ConcurrencyLimiterKey, (_, _) =>
+            PartitionedRateLimiter.Create<HttpContext, string>(context =>
+                RateLimitPartition.GetConcurrencyLimiter(context.GetClientIp(), _ => new ConcurrencyLimiterOptions
+                {
+                    PermitLimit = maxConcurrentRequests,
+                    QueueLimit = 0
+                })));
 
         var routes = new[]
         {
@@ -34,6 +59,8 @@ public static class AnthropicProxyExtensions
                 RouteId = RouteId,
                 ClusterId = ClusterId,
                 RateLimiterPolicy = RateLimiterPolicy,
+                // Enforced by the server while streaming, so it also covers chunked requests without Content-Length.
+                MaxRequestBodySize = maxRequestBodyBytes,
                 Match = new RouteMatch
                 {
                     Path = ApiRoutes.Ai.Messages,
@@ -115,9 +142,29 @@ public static class AnthropicProxyExtensions
                     return;
                 }
 
+                // Fail fast on declared oversized bodies; MaxRequestBodySize covers bodies without Content-Length.
+                var limits = context.RequestServices.GetRequiredService<AnthropicProxyLimits>();
+                if (context.Request.ContentLength > limits.MaxRequestBodyBytes)
+                {
+                    context.Response.StatusCode = StatusCodes.Status413PayloadTooLarge;
+                    return;
+                }
+
+                var limiter = context.RequestServices
+                    .GetRequiredKeyedService<PartitionedRateLimiter<HttpContext>>(ConcurrencyLimiterKey);
+                using var lease = await limiter.AcquireAsync(context, cancellationToken: context.RequestAborted)
+                    .ConfigureAwait(false);
+                if (!lease.IsAcquired)
+                {
+                    context.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+                    return;
+                }
+
                 await next().ConfigureAwait(false);
             });
             pipeline.UseLoadBalancing();
         });
     }
+
+    private sealed record AnthropicProxyLimits(long MaxRequestBodyBytes);
 }

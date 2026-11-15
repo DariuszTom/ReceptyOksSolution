@@ -16,11 +16,15 @@ namespace ReceptyOks.Api.IntegrationTests;
 public class AnthropicProxyTests
 {
     private const string UpstreamToken = "sk-ant-test-upstream-key";
+    private const int MaxRequestBodyBytes = 1024;
+    private const int MaxConcurrentRequests = 1;
 
     private WebApplication _upstream = null!;
     private CustomWebApplicationFactory _factory = null!;
     private WebApplicationFactory<Program> _proxyFactory = null!;
     private CapturedRequest? _captured;
+    private TaskCompletionSource _upstreamEntered = null!;
+    private TaskCompletionSource _releaseUpstream = null!;
 
     private sealed record CapturedRequest(string Path, string? ApiKey, string? Authorization, string Body);
 
@@ -28,6 +32,9 @@ public class AnthropicProxyTests
     public async Task Setup()
     {
         _captured = null;
+        _upstreamEntered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        _releaseUpstream = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        _releaseUpstream.SetResult();
 
         var upstreamBuilder = WebApplication.CreateSlimBuilder();
         upstreamBuilder.WebHost.UseUrls("http://127.0.0.1:0");
@@ -40,6 +47,8 @@ public class AnthropicProxyTests
                 ctx.Request.Headers["x-api-key"].ToString(),
                 ctx.Request.Headers.Authorization.ToString(),
                 await reader.ReadToEndAsync());
+            _upstreamEntered.TrySetResult();
+            await _releaseUpstream.Task;
             return Results.Json(new { id = "msg_test", type = "message" });
         });
         await _upstream.StartAsync();
@@ -51,12 +60,16 @@ public class AnthropicProxyTests
         _proxyFactory = _factory.WithWebHostBuilder(builder =>
         {
             builder.UseSetting("AnthropicProxy:Destination", upstreamUrl + "/");
+            builder.UseSetting("AnthropicProxy:MaxRequestBodyBytes", MaxRequestBodyBytes.ToString());
+            builder.UseSetting("AnthropicProxy:MaxConcurrentRequestsPerClient", MaxConcurrentRequests.ToString());
             // Added last so it overrides user secrets / environment variables.
             builder.ConfigureAppConfiguration((_, config) =>
                 config.AddInMemoryCollection(new Dictionary<string, string?>
                 {
                     ["AnthropicProxy:Destination"] = upstreamUrl + "/",
-                    ["Token"] = UpstreamToken
+                    ["Token"] = UpstreamToken,
+                    ["AnthropicProxy:MaxRequestBodyBytes"] = MaxRequestBodyBytes.ToString(),
+                    ["AnthropicProxy:MaxConcurrentRequestsPerClient"] = MaxConcurrentRequests.ToString()
                 }));
         });
     }
@@ -112,5 +125,46 @@ public class AnthropicProxyTests
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
         Assert.That(_captured, Is.Null);
+    }
+
+    [Test]
+    public async Task Messages_BodyOverLimit_ReturnsPayloadTooLargeAndDoesNotForward()
+    {
+        using var client = CreateAuthorizedClient();
+
+        var body = new string('a', MaxRequestBodyBytes + 1);
+        var response = await client.PostAsync("/api/ai/v1/messages", new StringContent(body, Encoding.UTF8, "application/json"));
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.RequestEntityTooLarge));
+        Assert.That(_captured, Is.Null);
+    }
+
+    [Test]
+    public async Task Messages_ConcurrentRequestsOverLimit_ReturnsTooManyRequests()
+    {
+        _releaseUpstream = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var client = CreateAuthorizedClient();
+
+        var first = client.PostAsync("/api/ai/v1/messages", new StringContent("{}", Encoding.UTF8, "application/json"));
+        await _upstreamEntered.Task.WaitAsync(TimeSpan.FromSeconds(10));
+
+        var second = await client.PostAsync("/api/ai/v1/messages", new StringContent("{}", Encoding.UTF8, "application/json"));
+        _releaseUpstream.SetResult();
+        var firstResponse = await first;
+        var third = await client.PostAsync("/api/ai/v1/messages", new StringContent("{}", Encoding.UTF8, "application/json"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(firstResponse.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            Assert.That(second.StatusCode, Is.EqualTo(HttpStatusCode.TooManyRequests));
+            Assert.That(third.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        });
+    }
+
+    private HttpClient CreateAuthorizedClient()
+    {
+        var client = _proxyFactory.CreateClient();
+        client.DefaultRequestHeaders.Add(GlobalConstants.ApiKeyHeaderName, CustomWebApplicationFactory.TestApiKey);
+        return client;
     }
 }
