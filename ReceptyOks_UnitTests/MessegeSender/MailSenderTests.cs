@@ -3,6 +3,7 @@ using System.Net.Sockets;
 using System.Security;
 using System.Text;
 using AsyncAwaitBestPractices;
+using MailKit.Security;
 using SharedLibrary.Misc.MessegeSender;
 
 namespace ReceptyOks_UnitTests.MessegeSender;
@@ -147,6 +148,19 @@ public sealed class MailSenderTests
         sut.CreateMail("s", new StringBuilder("b"));
 
         await Assert.ThrowsAsync<SocketException>(() => sut.SendMail(["to@example.com"]));
+    }
+
+    [TestCase("smtp.example.com", 587, SecureSocketOptions.StartTls)]
+    [TestCase("smtp.example.com", 25, SecureSocketOptions.StartTls)]
+    [TestCase("smtp.example.com", 465, SecureSocketOptions.SslOnConnect)]
+    [TestCase("10.0.0.5", 587, SecureSocketOptions.StartTls)]
+    [TestCase("localhost", 587, SecureSocketOptions.StartTlsWhenAvailable)]
+    [TestCase("127.0.0.1", 25, SecureSocketOptions.StartTlsWhenAvailable)]
+    [TestCase("::1", 25, SecureSocketOptions.StartTlsWhenAvailable)]
+    [TestCase("localhost", 465, SecureSocketOptions.SslOnConnect)]
+    public void ResolveSecureSocketOptions_HostAndPort_ReturnsExpectedOption(string host, int port, SecureSocketOptions expected)
+    {
+        Assert.That(MailSender.ResolveSecureSocketOptions(host, port), Is.EqualTo(expected));
     }
 
     /// <summary>Minimal single-session plaintext SMTP server supporting EHLO, AUTH PLAIN, MAIL, RCPT, DATA, QUIT.</summary>

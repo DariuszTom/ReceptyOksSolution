@@ -64,11 +64,31 @@ namespace SharedLibrary.Misc.MessegeSender
             }
 
             using var client = new SmtpClient { Timeout = 20_000 }; // 20 seconds
-            await client.ConnectAsync(_host, _port, SecureSocketOptions.Auto).ConfigureAwait(false);
+            await client.ConnectAsync(_host, _port, ResolveSecureSocketOptions(_host, _port)).ConfigureAwait(false);
+            if (!client.IsSecure && !IsLoopbackHost(_host))
+                throw new SslHandshakeException("SMTP connection is not encrypted; refusing to send credentials.");
             await client.AuthenticateAsync(_credentials).ConfigureAwait(false);
             await client.SendAsync(message).ConfigureAwait(false);
             await client.DisconnectAsync(true).ConfigureAwait(false);
         }
+
+        /// <summary>
+        /// Port 465 uses implicit TLS; any other port requires STARTTLS so a network attacker cannot
+        /// downgrade the session to plaintext. Loopback hosts (local dev relays) may stay unencrypted.
+        /// </summary>
+        public static SecureSocketOptions ResolveSecureSocketOptions(string host, int port)
+        {
+            if (port == 465)
+                return SecureSocketOptions.SslOnConnect;
+
+            return IsLoopbackHost(host)
+                ? SecureSocketOptions.StartTlsWhenAvailable
+                : SecureSocketOptions.StartTls;
+        }
+
+        private static bool IsLoopbackHost(string host) =>
+            string.Equals(host, "localhost", StringComparison.OrdinalIgnoreCase) ||
+            (IPAddress.TryParse(host, out var ip) && IPAddress.IsLoopback(ip));
 
         private static bool IsMailValid(string mail)
         {
