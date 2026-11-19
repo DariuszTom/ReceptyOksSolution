@@ -118,8 +118,10 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     {
         options.TokenValidationParameters = new TokenValidationParameters
         {
-            ValidateIssuer = false,
-            ValidateAudience = false,
+            ValidateIssuer = true,
+            ValidIssuer = JwtTokenService.GetRequired(builder.Configuration, JwtTokenService.IssuerConfigKey),
+            ValidateAudience = true,
+            ValidAudience = JwtTokenService.GetRequired(builder.Configuration, JwtTokenService.AudienceConfigKey),
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
             IssuerSigningKey = new SymmetricSecurityKey(

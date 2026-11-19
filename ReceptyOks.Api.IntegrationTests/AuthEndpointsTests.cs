@@ -1,5 +1,7 @@
 using HomeSeeker.Models;
+using Microsoft.IdentityModel.JsonWebTokens;
 using ReceptyOks.Api.Endpoints;
+using ReceptyOks.Api.Services;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
@@ -77,6 +79,47 @@ public class AuthEndpointsTests
             new { SecretHash = SecretBytes, ClientId = new string('x', 201) });
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+    }
+
+    [Test]
+    public async Task Validate_WithCorrectSecretAndClientId_TokenContainsIssuerAndAudience()
+    {
+        var response = await _client.PostAsJsonAsync("/api/auth/validate", new { SecretHash = SecretBytes, ClientId = "device-1" });
+        var token = (await response.Content.ReadFromJsonAsync<AuthResponse>())!.Token!;
+
+        var jwt = new JsonWebToken(token);
+        Assert.Multiple(() =>
+        {
+            Assert.That(jwt.Issuer, Is.EqualTo(_factory.JwtIssuer));
+            Assert.That(jwt.Audiences, Is.EquivalentTo(new[] { _factory.JwtAudience }));
+        });
+    }
+
+    [TestCase(null)]
+    [TestCase("other-service")]
+    public async Task HomeSeeker_TokenWithInvalidIssuer_Returns401(string? issuer)
+    {
+        var response = await GetProfileWithTokenAsync(
+            CustomWebApplicationFactory.CreateJwt("device-1", issuer, _factory.JwtAudience));
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
+    }
+
+    [TestCase(null)]
+    [TestCase("other-app")]
+    public async Task HomeSeeker_TokenWithInvalidAudience_Returns401(string? audience)
+    {
+        var response = await GetProfileWithTokenAsync(
+            CustomWebApplicationFactory.CreateJwt("device-1", _factory.JwtIssuer, audience));
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
+    }
+
+    private async Task<HttpResponseMessage> GetProfileWithTokenAsync(string token)
+    {
+        using var client = _factory.CreateAuthenticatedClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        return await client.GetAsync("/api/homeseeker/profile");
     }
 
     [Test]

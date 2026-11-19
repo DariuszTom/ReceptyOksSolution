@@ -63,7 +63,7 @@ public class HomeSeekerEndpointsTests
     {
         using var bearerOnly = _factory.CreateClient();
         bearerOnly.DefaultRequestHeaders.Authorization =
-            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", CustomWebApplicationFactory.CreateJwt(UserA));
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _factory.CreateJwt(UserA));
 
         var response = await bearerOnly.GetAsync("/api/homeseeker/profile");
 

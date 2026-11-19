@@ -13,6 +13,7 @@ using Microsoft.IdentityModel.Tokens;
 using ReceptyOks.Api.DbUtility;
 using ReceptyOks.Api.Extensions;
 using ReceptyOks.Api.Middleware;
+using ReceptyOks.Api.Services;
 using ReceptyOks.Shared;
 using System.IdentityModel.Tokens.Jwt;
 using System.Net.Http.Headers;
@@ -157,16 +158,27 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
         return client;
     }
 
+    public string JwtIssuer => Services.GetRequiredService<IConfiguration>()[JwtTokenService.IssuerConfigKey]!;
+
+    public string JwtAudience => Services.GetRequiredService<IConfiguration>()[JwtTokenService.AudienceConfigKey]!;
+
     /// <summary>
-    /// Mints a JWT signed with the test key for the given subject.
+    /// Mints a valid JWT (configured issuer/audience, test signing key) for the given subject.
     /// </summary>
-    public static string CreateJwt(string ownerId)
+    public string CreateJwt(string ownerId) => CreateJwt(ownerId, JwtIssuer, JwtAudience);
+
+    /// <summary>
+    /// Mints a JWT signed with the test key; a null issuer/audience omits the claim.
+    /// </summary>
+    public static string CreateJwt(string ownerId, string? issuer, string? audience)
     {
         var credentials = new SigningCredentials(
             new SymmetricSecurityKey(Encoding.UTF8.GetBytes(TestJwtKey)),
             SecurityAlgorithms.HmacSha256);
 
         var token = new JwtSecurityToken(
+            issuer: issuer,
+            audience: audience,
             claims: [new Claim(JwtRegisteredClaimNames.Sub, ownerId)],
             expires: DateTime.UtcNow.AddHours(1),
             signingCredentials: credentials);
