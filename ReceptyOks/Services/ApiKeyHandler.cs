@@ -3,11 +3,9 @@ using System.Text;
 
 namespace ReceptyOks.Services
 {
-
     public class ApiKeyHandler : DelegatingHandler
     {
         private readonly string _secretStorageKey;
-
         // opcjonalnie przyjmij nazwę klucza w SecureStorage przez DI
         public ApiKeyHandler(string secretStorageKey = GlobalConstants.ApiKeyHeaderName)
         {
