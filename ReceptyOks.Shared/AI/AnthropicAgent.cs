@@ -16,6 +16,13 @@ namespace ReceptyOks.Shared.AI
             _apiToken = apiTok ?? throw new ArgumentNullException(nameof(apiTok));
         }
 
+        public AnthropicAgent(AnthropicSettings settings, byte[] apiTok, HttpClient httpClient)
+        {
+            _settings = settings ?? throw new ArgumentNullException(nameof(settings));
+            _apiToken = apiTok ?? throw new ArgumentNullException(nameof(apiTok));
+            _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+        }
+
         public AnthropicAgent(AnthropicSettings settings, HttpClient httpClient)
         {
             _settings = settings ?? throw new ArgumentNullException(nameof(settings));

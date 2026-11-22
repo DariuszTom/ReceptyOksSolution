@@ -31,6 +31,8 @@ COPY --from=build /app/publish .
 
 # HTTP only on 8080 (image default via ASPNETCORE_HTTP_PORTS). TLS is terminated by the ingress/reverse proxy.
 ENV ASPNETCORE_ENVIRONMENT=Production
+# Compact the heap more aggressively so memory is returned in the small (0.5Gi) container.
+ENV DOTNET_GCConserveMemory=5
 
 # Run as the built-in non-root user provided by the .NET images
 USER $APP_UID

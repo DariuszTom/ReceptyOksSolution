@@ -62,15 +62,15 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Anthropic" Version="13.8.0" />
+		<PackageReference Include="Anthropic" Version="13.12.0" />
 		<PackageReference Include="AsyncAwaitBestPractices" Version="11.0.0" />
 		<PackageReference Include="CommunityToolkit.Maui" Version="17.0.0" />
 		<PackageReference Include="Indiko.Maui.Controls.Markdown" Version="1.10.0" />
-		<PackageReference Include="Mapsui.Maui" Version="5.1.0" />
+		<PackageReference Include="Mapsui.Maui" Version="5.2.0" />
 		<PackageReference Include="Microsoft.Maui.Controls" Version="11.0.0" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="11.0.0" />
 		<PackageReference Include="Microsoft.Extensions.Http" Version="11.0.0" />
-		<PackageReference Include="Microsoft.Extensions.ServiceDiscovery" Version="11.0.0" />
+		<PackageReference Include="Microsoft.Extensions.ServiceDiscovery" Version="11.0.1" />
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
 		<PackageReference Include="Plugin.Maui.Biometric" Version="0.1.2" />
 		<PackageReference Include="Plugin.Maui.OCR" Version="1.1.1" />
@@ -78,7 +78,7 @@
 		<PackageReference Include="sqlite-net-pcl" Version="1.11.285" />
 		<PackageReference Include="SQLitePCLRaw.bundle_green" Version="2.1.11" />
 		<!-- Patched native SQLite (GHSA-2m69-gcr7-jv3q); bundle_green 2.1.11 is the latest bundle and pulls vulnerable 2.1.11 natives. -->
-		<PackageReference Include="SQLitePCLRaw.lib.e_sqlite3" Version="2.1.14" />
+		<PackageReference Include="SQLitePCLRaw.lib.e_sqlite3" Version="3.53.3" />
 		<PackageReference Include="SQLitePCLRaw.lib.e_sqlite3.android" Version="2.1.14" Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'" />
 		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
 		<PackageReference Include="UraniumUI" Version="3.0.0" />
@@ -86,7 +86,7 @@
 		<PackageReference Include="UraniumUI.Icons.MaterialSymbols" Version="3.0.0" />
 		<PackageReference Include="UraniumUI.Material" Version="3.0.0" />
 		<PackageReference Include="Serilog" Version="4.4.0" />
-		<PackageReference Include="Serilog.Extensions.Logging" Version="10.0.0" />
+		<PackageReference Include="Serilog.Extensions.Logging" Version="11.0.0" />
 		<PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
 		<PackageReference Include="Serilog.Sinks.Debug" Version="3.0.0" />
 		<PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="11.0.0" />
