@@ -20,19 +20,25 @@ namespace ReceptyOks.Api.Services;
 /// </remarks>
 public sealed class AnthropicAiAgentFactory : IAiAgentFactory
 {
+    public const string HttpClientName = "homeseeker-anthropic";
+
     private readonly IConfiguration _configuration;
+    private readonly IHttpClientFactory _httpClientFactory;
     private readonly HomeSeekerOptions _options;
     private readonly ILogger<AnthropicAiAgentFactory> _logger;
 
     public AnthropicAiAgentFactory(
         IConfiguration configuration,
+        IHttpClientFactory httpClientFactory,
         IOptions<HomeSeekerOptions> options,
         ILogger<AnthropicAiAgentFactory> logger)
     {
         ArgumentNullException.ThrowIfNull(configuration);
+        ArgumentNullException.ThrowIfNull(httpClientFactory);
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(logger);
         _configuration = configuration;
+        _httpClientFactory = httpClientFactory;
         _options = options.Value;
         _logger = logger;
     }
@@ -60,7 +66,8 @@ public sealed class AnthropicAiAgentFactory : IAiAgentFactory
             MaxTokens = 8192
         };
 
-        var anthropicAgent = new AnthropicAgent(settings, tokenBytes);
+        // Pooled handler from IHttpClientFactory instead of a new connection pool per evaluation.
+        var anthropicAgent = new AnthropicAgent(settings, tokenBytes, _httpClientFactory.CreateClient(HttpClientName));
         var chatClient = anthropicAgent.GetAgent();
 
         return new AiAgent(chatClient, systemPrompt);

@@ -9,14 +9,14 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Anthropic" Version="13.8.0" />
+    <PackageReference Include="Anthropic" Version="13.12.0" />
     <PackageReference Include="coverlet.collector" Version="10.1.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="11.0.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="11.0.0" />
-    <PackageReference Include="Microsoft.Extensions.ServiceDiscovery" Version="11.0.0" />
+    <PackageReference Include="Microsoft.Extensions.ServiceDiscovery" Version="11.0.1" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.11.1" />
     <PackageReference Include="System.Security.Cryptography.Xml" Version="11.0.0" />
     <!-- Resizetizer 11 (SkiaSharp 4.x) flows in via ReceptyOks and clashes with SkiaSharp 3.x from Mapsui;

@@ -232,6 +232,11 @@ public static class HomeSeekerExtensions
             .AddResilienceHandler("deweloperuch", (builder, context) =>
                 AddPoliteApiPipeline(builder, context.ServiceProvider
                     .GetRequiredService<IOptions<HomeSeekerOptions>>().Value.RcnValuationRequestInterval));
+        services.AddHttpClient(AnthropicAiAgentFactory.HttpClientName, client =>
+            {
+                client.Timeout = Timeout.InfiniteTimeSpan;
+            })
+            .RemoveAllResilienceHandlers();
 #pragma warning restore EXTEXP0001
         services.AddSingleton<ICityCenterProvider, NominatimCityCenterProvider>();
         services.AddSingleton<IPropertyValuationProvider, DeweloperuchValuationProvider>();
