@@ -59,7 +59,7 @@ public sealed class ApiKeyAuthMiddleware
 
         if (!context.Request.Headers.TryGetValue(GlobalConstants.ApiKeyHeaderName, out var providedApiKey))
         {
-            _logger.LogWarning("Request to {Path} rejected - missing {Header} header", path, GlobalConstants.ApiKeyHeaderName);
+            _logger.LogWarning("Request from {RemoteIpAddress} to {Path} rejected - missing {Header} header", context.Connection.RemoteIpAddress, path, GlobalConstants.ApiKeyHeaderName);
             context.Response.StatusCode = StatusCodes.Status401Unauthorized;
             await context.Response.WriteAsJsonAsync(new { error = "API key is required" }).ConfigureAwait(false);
             return;
