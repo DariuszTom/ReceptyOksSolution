@@ -1,5 +1,6 @@
 using System.Net.Mime;
 using System.Text;
+using ReceptyOks.Configuration;
 using ReceptyOks.Shared.AI.Chat;
 using ILogger = Serilog.ILogger;
 
@@ -317,14 +318,13 @@ public sealed class AttachmentService : IChatAttachmentProvider
             FileResult? result;
             if (useCamera)
             {
-                result = await MediaPicker.Default.CapturePhotoAsync().ConfigureAwait(false);
+                result = await MediaPicker.Default.CapturePhotoAsync(
+                    DefaultAppPhotoOptions.CreatePhotoOptions("Zrób zdjęcie")).ConfigureAwait(false);
             }
             else
             {
-                var photos = await MediaPicker.Default.PickPhotosAsync(new MediaPickerOptions
-                {
-                    SelectionLimit = 1,
-                }).ConfigureAwait(false);
+                var photos = await MediaPicker.Default.PickPhotosAsync(
+                    DefaultAppPhotoOptions.CreatePhotoOptions("Wybierz zdjęcie")).ConfigureAwait(false);
                 result = photos?.FirstOrDefault();
             }
 

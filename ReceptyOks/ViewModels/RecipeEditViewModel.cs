@@ -1,4 +1,5 @@
 using CommunityToolkit.Maui.Media;
+using ReceptyOks.Configuration;
 using ReceptyOks.Services;
 using ReceptyOks.Shared;
 using ReceptyOks.Shared.OCR;
@@ -192,10 +193,7 @@ public partial class RecipeEditViewModel : ObservableObject
     {
         try
         {
-            var photos = await MediaPicker.Default.PickPhotosAsync(new MediaPickerOptions
-            {
-                Title = "Wybierz zdjęcie przepisu"
-            });
+            var photos = await MediaPicker.Default.PickPhotosAsync(DefaultAppPhotoOptions.CreatePhotoOptions("Wybierz zdjęcie przepisu"));
 
             var result = photos?.FirstOrDefault();
             if (result is not null)
@@ -224,10 +222,7 @@ public partial class RecipeEditViewModel : ObservableObject
                 return;
             }
 
-            var result = await MediaPicker.Default.CapturePhotoAsync(new MediaPickerOptions
-            {
-                Title = "Zrób zdjęcie przepisu"
-            });
+            var result = await MediaPicker.Default.CapturePhotoAsync(DefaultAppPhotoOptions.CreatePhotoOptions("Zrób zdjęcie przepisu"));
 
             if (result is not null)
             {
@@ -243,6 +238,7 @@ public partial class RecipeEditViewModel : ObservableObject
             await Shell.Current.DisplayAlertAsync("Błąd", $"Nie udało się zrobić zdjęcia: {ex.Message}", "OK");
         }
     }
+
 
     [RelayCommand]
     private void ToggleEditorFullScreen()

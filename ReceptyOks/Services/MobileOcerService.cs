@@ -1,4 +1,5 @@
 ﻿using Plugin.Maui.OCR;
+using ReceptyOks.Configuration;
 using ReceptyOks.Shared.OCR;
 
 namespace ReceptyOks.Services
@@ -58,7 +59,7 @@ namespace ReceptyOks.Services
                     };
                 }
 
-                var photo = await MediaPicker.Default.CapturePhotoAsync();
+                var photo = await MediaPicker.Default.CapturePhotoAsync(DefaultAppPhotoOptions.CreatePhotoOptions("Zrób zdjęcie przepisu"));
                 if (photo == null)
                 {
                     return new OCRResult
@@ -89,11 +90,7 @@ namespace ReceptyOks.Services
         {
             try
             {
-                var photos = await MediaPicker.Default.PickPhotosAsync(new MediaPickerOptions
-                {
-                    Title = "Wybierz zdjęcie przepisu",
-                    SelectionLimit = 1
-                });
+                var photos = await MediaPicker.Default.PickPhotosAsync(DefaultAppPhotoOptions.CreatePhotoOptions("Wybierz zdjęcie przepisu"));
 
                 var photo = photos?.FirstOrDefault();
 
