@@ -1,4 +1,6 @@
+using ReceptyOks.Api.Extensions;
 using ReceptyOks.Shared;
+using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.RateLimiting;
@@ -7,11 +9,23 @@ namespace ReceptyOks.Api.Middleware;
 
 public sealed class ApiKeyAuthMiddleware
 {
+    // StartsWithSegments matches whole segments only, so "/healthz" or "/api/authx" don't bypass auth.
+    private static readonly PathString[] AnonymousPaths =
+    [
+        ApiRoutes.Auth.Base,
+        ApiRoutes.Health,
+        ApiRoutes.Alive,
+        ApiRoutes.Prefix + ApiRoutes.Health,
+        ApiRoutes.Prefix + ApiRoutes.Alive,
+        ApiRoutes.Robots
+    ];
+
+    private static readonly PathString[] DevelopmentAnonymousPaths = ["/openapi", "/scalar"];
+
     private readonly RequestDelegate _next;
     private readonly ILogger<ApiKeyAuthMiddleware> _logger;
     private readonly PartitionedRateLimiter<HttpContext> _rateLimiter;
-
-    // Cached decoded bytes (provided by SecretStore)
+    private readonly bool _isDevelopment;
     private readonly byte[]? _storedHashBytes;
     private readonly byte[]? _hmacKeyBytes;
 
@@ -19,101 +33,99 @@ public sealed class ApiKeyAuthMiddleware
         RequestDelegate next,
         ILogger<ApiKeyAuthMiddleware> logger,
         PartitionedRateLimiter<HttpContext> rateLimiter,
-        SecretStore secretStore)
+        SecretStore secretStore,
+        IWebHostEnvironment environment)
     {
         _next = next;
         _logger = logger;
         _rateLimiter = rateLimiter;
+        _isDevelopment = environment.IsDevelopment();
 
-        // Use SecretStore to get cached secret bytes
         secretStore.Initialize();
         var (passwordHash, secretKey) = secretStore.GetSecrets();
-        _storedHashBytes = passwordHash;
-        _hmacKeyBytes = secretKey;
+        if (passwordHash is { Length: > 0 } && secretKey is { Length: > 0 })
+        {
+            _storedHashBytes = passwordHash;
+            _hmacKeyBytes = secretKey;
+        }
+        else
+        {
+            _logger.LogCritical("PasswordHash or SecretKey is not configured or could not be decoded - all protected requests will fail");
+        }
     }
 
     public async Task InvokeAsync(HttpContext context)
     {
-        var path = context.Request.Path.Value ?? string.Empty;
+        var path = context.Request.Path;
 
-        if (ShouldSkipAuth(path, context.RequestServices.GetRequiredService<IWebHostEnvironment>()))
+        if (ShouldSkipAuth(path))
         {
-            await _next(context);
+            await _next(context).ConfigureAwait(false);
             return;
         }
-        
+
+        var clientIp = context.GetClientIp();
+
         using var lease = await _rateLimiter.AcquireAsync(context, permitCount: 1, context.RequestAborted).ConfigureAwait(false);
         if (!lease.IsAcquired)
         {
-            _logger.LogWarning("Rate limit exceeded for request to {Path}", path);
-            context.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+            _logger.LogWarning("Rate limit exceeded for request from {ClientIp} to {Path}", clientIp, path);
 
             if (lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
             {
-                context.Response.Headers["Retry-After"] = ((int)Math.Ceiling(retryAfter.TotalSeconds)).ToString();
+                context.Response.Headers.RetryAfter = ((int)Math.Ceiling(retryAfter.TotalSeconds)).ToString(CultureInfo.InvariantCulture);
             }
 
-            await context.Response.WriteAsJsonAsync(new { error = "Too many requests. Please try again later." }).ConfigureAwait(false);
+            await WriteErrorAsync(context, StatusCodes.Status429TooManyRequests, "Too many requests. Please try again later.").ConfigureAwait(false);
             return;
         }
 
-        if (!context.Request.Headers.TryGetValue(GlobalConstants.ApiKeyHeaderName, out var providedApiKey))
+        var providedApiKey = context.Request.Headers[GlobalConstants.ApiKeyHeaderName].ToString().Trim();
+        if (providedApiKey.Length == 0)
         {
-            _logger.LogWarning("Request from {RemoteIpAddress} to {Path} rejected - missing {Header} header", context.Connection.RemoteIpAddress, path, GlobalConstants.ApiKeyHeaderName);
-            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-            await context.Response.WriteAsJsonAsync(new { error = "API key is required" }).ConfigureAwait(false);
+            _logger.LogWarning("Request from {ClientIp} to {Path} rejected - missing {Header} header", clientIp, path, GlobalConstants.ApiKeyHeaderName);
+            await WriteErrorAsync(context, StatusCodes.Status401Unauthorized, "API key is required").ConfigureAwait(false);
             return;
         }
 
-        if (_storedHashBytes is null || _storedHashBytes.Length == 0 ||
-            _hmacKeyBytes is null || _hmacKeyBytes.Length == 0)
+        if (_storedHashBytes is null || _hmacKeyBytes is null)
         {
-            _logger.LogError("PasswordHash or SecretKey is not configured or could not be decoded");
-            context.Response.StatusCode = StatusCodes.Status500InternalServerError;
-            await context.Response.WriteAsJsonAsync(new { error = "Server configuration error" }).ConfigureAwait(false);
+            await WriteErrorAsync(context, StatusCodes.Status500InternalServerError, "Server configuration error").ConfigureAwait(false);
             return;
         }
 
-        var provided = providedApiKey.ToString().Trim();
-        var providedDerived = HMACSHA256.HashData(_hmacKeyBytes, Encoding.UTF8.GetBytes(provided));
-
-        var isValid = provided.Length > 0 &&
-                      CryptographicOperations.FixedTimeEquals(_storedHashBytes, providedDerived);
-
-        if (!isValid)
+        var providedDerived = HMACSHA256.HashData(_hmacKeyBytes, Encoding.UTF8.GetBytes(providedApiKey));
+        if (!CryptographicOperations.FixedTimeEquals(_storedHashBytes, providedDerived))
         {
-            _logger.LogWarning("Request to {Path} rejected - invalid API key", path);
-            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-            await context.Response.WriteAsJsonAsync(new { error = "Invalid API key" }).ConfigureAwait(false);
+            _logger.LogWarning("Request from {ClientIp} to {Path} rejected - invalid API key", clientIp, path);
+            await WriteErrorAsync(context, StatusCodes.Status401Unauthorized, "Invalid API key").ConfigureAwait(false);
             return;
         }
 
         await _next(context).ConfigureAwait(false);
     }
 
+    private bool ShouldSkipAuth(PathString path) =>
+        MatchesAny(path, AnonymousPaths) ||
+        (_isDevelopment && MatchesAny(path, DevelopmentAnonymousPaths));
 
-    private static bool ShouldSkipAuth(string path, IWebHostEnvironment environment)
+    private static bool MatchesAny(PathString path, PathString[] prefixes)
     {
-        if (path.Equals("/robots.txt", StringComparison.OrdinalIgnoreCase) ||
-            path.StartsWith(ApiRoutes.Auth.Base, StringComparison.OrdinalIgnoreCase) ||
-            path.StartsWith(ApiRoutes.Prefix + ApiRoutes.Health, StringComparison.OrdinalIgnoreCase) ||
-            path.StartsWith(ApiRoutes.Prefix + ApiRoutes.Alive, StringComparison.OrdinalIgnoreCase) ||
-            path.StartsWith(ApiRoutes.Health, StringComparison.OrdinalIgnoreCase) ||
-            path.StartsWith(ApiRoutes.Alive, StringComparison.OrdinalIgnoreCase))
+        foreach (var prefix in prefixes)
         {
-            return true;
-        }
-
-        if (environment.IsDevelopment())
-        {
-            if (path.StartsWith("/openapi", StringComparison.OrdinalIgnoreCase) ||
-                path.StartsWith("/scalar", StringComparison.OrdinalIgnoreCase))
+            if (path.StartsWithSegments(prefix, StringComparison.OrdinalIgnoreCase))
             {
                 return true;
             }
         }
 
         return false;
+    }
+
+    private static Task WriteErrorAsync(HttpContext context, int statusCode, string error)
+    {
+        context.Response.StatusCode = statusCode;
+        return context.Response.WriteAsJsonAsync(new { error });
     }
 }
 

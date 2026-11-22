@@ -1,3 +1,5 @@
+using ReceptyOks.Shared;
+
 namespace ReceptyOks.Api.Endpoints;
 
 public static class RobotsEndpoints
@@ -11,7 +13,7 @@ public static class RobotsEndpoints
 
     public static void MapRobotsEndpoints(this WebApplication app)
     {
-        app.MapGet("/robots.txt", (HttpContext context) =>
+        app.MapGet(ApiRoutes.Robots, (HttpContext context) =>
         {
             context.Response.Headers.CacheControl = "public, max-age=86400";
             return TypedResults.Text(RobotsTxtContent, "text/plain; charset=utf-8");
