@@ -4,6 +4,7 @@ using System.Text.Json;
 using HomeSeeker.Abstractions;
 using HomeSeeker.Models;
 using Microsoft.Extensions.Logging;
+using ReceptyOks.Shared.Misc;
 
 namespace HomeSeeker.Services;
 
@@ -45,7 +46,7 @@ public sealed class NominatimCityCenterProvider : ICityCenterProvider
                 .GetAsync(url, cancellationToken).ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogWarning("Nominatim returned {Status} for city {City}", (int)response.StatusCode, key);
+                _logger.LogWarning("Nominatim returned {Status} for city {City}", (int)response.StatusCode, key.SanitizeForLog());
                 return null;
             }
 
@@ -55,7 +56,7 @@ public sealed class NominatimCityCenterProvider : ICityCenterProvider
                 _cache[key] = point;
 
             if (point is null)
-                _logger.LogInformation("City centre not resolved for {City}; distances will be skipped", key);
+                _logger.LogInformation("City centre not resolved for {City}; distances will be skipped", key.SanitizeForLog());
             return point;
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -64,7 +65,7 @@ public sealed class NominatimCityCenterProvider : ICityCenterProvider
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to resolve city centre for {City}", key);
+            _logger.LogWarning(ex, "Failed to resolve city centre for {City}", key.SanitizeForLog());
             return null;
         }
     }

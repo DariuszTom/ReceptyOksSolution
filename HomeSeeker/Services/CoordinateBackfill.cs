@@ -3,6 +3,7 @@ using HomeSeeker.Configuration;
 using HomeSeeker.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using ReceptyOks.Shared.Misc;
 
 namespace HomeSeeker.Services;
 
@@ -118,7 +119,7 @@ public sealed class CoordinateBackfill(
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Resolving city centre failed for {City}", city);
+            logger.LogWarning(ex, "Resolving city centre failed for {City}", city.SanitizeForLog());
             return null;
         }
     }

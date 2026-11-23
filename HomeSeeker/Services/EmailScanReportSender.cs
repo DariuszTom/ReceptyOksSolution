@@ -74,12 +74,12 @@ public sealed class EmailScanReportSender : IScanReportSender
         catch (SmtpCommandException ex)
         {
             _logger.LogError(ex, "SMTP error sending email to {Recipient}: {StatusCode}",
-                recipient, ex.StatusCode);
+                recipient.SanitizeForLog(), ex.StatusCode);
             return false;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to send email to {Recipient}", recipient);
+            _logger.LogError(ex, "Failed to send email to {Recipient}", recipient.SanitizeForLog());
             return false;
         }
     }

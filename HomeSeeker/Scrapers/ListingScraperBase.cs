@@ -175,7 +175,7 @@ public abstract class ListingScraperBase : IListingScraper
         }
         catch (Exception ex)
         {
-            Logger.LogWarning(ex, "Failed to fetch {Portal} listing details {Url}", PortalName, url);
+            Logger.LogWarning(ex, "Failed to fetch {Portal} listing details {Url}", PortalName, url.SanitizeForLog());
             return null;
         }
     }

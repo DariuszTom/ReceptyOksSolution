@@ -1,3 +1,5 @@
+using ReceptyOks.Shared.Misc;
+
 namespace ReceptyOks.Api.Services;
 
 /// <summary>
@@ -141,7 +143,7 @@ public class SyncService : ISyncService
             if (!existingCategories.TryGetValue(categoryDto.Id, out var existing))
             {
                 _logger.LogDebug("Adding new category: {CategoryId} - {CategoryName}",
-                    categoryDto.Id, categoryDto.Name);
+                    categoryDto.Id, categoryDto.Name.SanitizeForLog());
 
                 _db.Categories.Add(new Category
                 {
@@ -159,7 +161,7 @@ public class SyncService : ISyncService
             {
                 _logger.LogDebug(
                     "Updating category: {CategoryId} - {CategoryName} (client: {ClientUpdated}, server: {ServerUpdated})",
-                    categoryDto.Id, categoryDto.Name, categoryDto.UpdatedAt, existing.UpdatedAt);
+                    categoryDto.Id, categoryDto.Name.SanitizeForLog(), categoryDto.UpdatedAt, existing.UpdatedAt);
 
                 existing.Name = categoryDto.Name;
                 existing.Description = categoryDto.Description;
@@ -172,7 +174,7 @@ public class SyncService : ISyncService
             {
                 _logger.LogDebug(
                     "Skipping category (server newer): {CategoryId} - {CategoryName} (client: {ClientUpdated}, server: {ServerUpdated})",
-                    categoryDto.Id, categoryDto.Name, categoryDto.UpdatedAt, existing.UpdatedAt);
+                    categoryDto.Id, categoryDto.Name.SanitizeForLog(), categoryDto.UpdatedAt, existing.UpdatedAt);
                 stats.Skipped++;
             }
         }
@@ -188,7 +190,7 @@ public class SyncService : ISyncService
             if (!existingIngredients.TryGetValue(ingredientDto.Id, out var existing))
             {
                 _logger.LogDebug("Adding new ingredient: {IngredientId} - {IngredientName}",
-                    ingredientDto.Id, ingredientDto.Name);
+                    ingredientDto.Id, ingredientDto.Name.SanitizeForLog());
 
                 _db.Ingredients.Add(new Ingredient
                 {
@@ -205,7 +207,7 @@ public class SyncService : ISyncService
             {
                 _logger.LogDebug(
                     "Updating ingredient: {IngredientId} - {IngredientName} (client: {ClientUpdated}, server: {ServerUpdated})",
-                    ingredientDto.Id, ingredientDto.Name, ingredientDto.UpdatedAt, existing.UpdatedAt);
+                    ingredientDto.Id, ingredientDto.Name.SanitizeForLog(), ingredientDto.UpdatedAt, existing.UpdatedAt);
 
                 existing.Name = ingredientDto.Name;
                 existing.Unit = ingredientDto.Unit;
@@ -217,7 +219,7 @@ public class SyncService : ISyncService
             {
                 _logger.LogDebug(
                     "Skipping ingredient (server newer): {IngredientId} - {IngredientName} (client: {ClientUpdated}, server: {ServerUpdated})",
-                    ingredientDto.Id, ingredientDto.Name, ingredientDto.UpdatedAt, existing.UpdatedAt);
+                    ingredientDto.Id, ingredientDto.Name.SanitizeForLog(), ingredientDto.UpdatedAt, existing.UpdatedAt);
                 stats.Skipped++;
             }
         }
@@ -250,7 +252,7 @@ public class SyncService : ISyncService
             {
                 _logger.LogWarning(
                     "Skipping recipe with invalid category reference: {RecipeId} - {RecipeTitle}, CategoryId: {CategoryId}",
-                    recipeDto.Id, recipeDto.Title, recipeDto.CategoryId);
+                    recipeDto.Id, recipeDto.Title.SanitizeForLog(), recipeDto.CategoryId);
                 stats.SkippedInvalidReferences++;
                 continue;
             }
@@ -267,7 +269,7 @@ public class SyncService : ISyncService
             {
                 _logger.LogWarning(
                     "Recipe {RecipeId} - {RecipeTitle} has {InvalidCount} invalid ingredient references (skipping them): {InvalidIds}",
-                    recipeDto.Id, recipeDto.Title, invalidIngredientRefs.Count,
+                    recipeDto.Id, recipeDto.Title.SanitizeForLog(), invalidIngredientRefs.Count,
                     string.Join(", ", invalidIngredientRefs.Select(r => r.IngredientId)));
                 stats.SkippedInvalidReferences += invalidIngredientRefs.Count;
             }
@@ -276,7 +278,7 @@ public class SyncService : ISyncService
             {
                 _logger.LogDebug(
                     "Adding new recipe: {RecipeId} - {RecipeTitle} with {IngredientCount} ingredients (valid: {ValidCount})",
-                    recipeDto.Id, recipeDto.Title, recipeDto.Ingredients.Count, validIngredients.Count);
+                    recipeDto.Id, recipeDto.Title.SanitizeForLog(), recipeDto.Ingredients.Count, validIngredients.Count);
 
                 var recipe = CreateRecipeFromDto(recipeDto, validIngredients);
                 _db.Recipes.Add(recipe);
@@ -286,7 +288,7 @@ public class SyncService : ISyncService
             {
                 _logger.LogDebug(
                     "Updating recipe: {RecipeId} - {RecipeTitle} (client: {ClientUpdated}, server: {ServerUpdated}), ingredients: {OldCount} -> {NewCount} (valid: {ValidCount})",
-                    recipeDto.Id, recipeDto.Title, recipeDto.UpdatedAt, existing.UpdatedAt,
+                    recipeDto.Id, recipeDto.Title.SanitizeForLog(), recipeDto.UpdatedAt, existing.UpdatedAt,
                     existing.Ingredients.Count, recipeDto.Ingredients.Count, validIngredients.Count);
 
                 UpdateRecipeFromDto(existing, recipeDto, validIngredients);
@@ -296,7 +298,7 @@ public class SyncService : ISyncService
             {
                 _logger.LogDebug(
                     "Skipping recipe (server newer): {RecipeId} - {RecipeTitle} (client: {ClientUpdated}, server: {ServerUpdated})",
-                    recipeDto.Id, recipeDto.Title, recipeDto.UpdatedAt, existing.UpdatedAt);
+                    recipeDto.Id, recipeDto.Title.SanitizeForLog(), recipeDto.UpdatedAt, existing.UpdatedAt);
                 stats.Skipped++;
             }
         }

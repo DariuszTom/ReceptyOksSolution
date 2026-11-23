@@ -1,11 +1,14 @@
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using ReceptyOks.Shared;
+using ReceptyOks.Shared.Misc;
 
 namespace ReceptyOks.Api.Endpoints;
 
 public static class SyncEndpoints
 {
+    private const int MaxLoggedErrorsLength = 4096;
+
     public static void MapSyncEndpoints(this WebApplication app)
     {
         var group = app.MapGroup(ApiRoutes.Sync.Base)
@@ -23,7 +26,7 @@ public static class SyncEndpoints
             if (!validationResult.IsValid)
             {
                 logger.LogWarning("Sync request validation failed: {Errors}",
-                    string.Join("; ", validationResult.Errors.Select(e => $"{e.PropertyName}: {e.ErrorMessage}")));
+                    string.Join("; ", validationResult.Errors.Select(e => $"{e.PropertyName}: {e.ErrorMessage}")).SanitizeForLog(MaxLoggedErrorsLength));
                 return Results.ValidationProblem(validationResult.ToDictionary());
             }
 
@@ -52,7 +55,7 @@ public static class SyncEndpoints
             if (!validationResult.IsValid)
             {
                 logger.LogWarning("Upload-all request validation failed: {Errors}",
-                    string.Join("; ", validationResult.Errors.Select(e => $"{e.PropertyName}: {e.ErrorMessage}")));
+                    string.Join("; ", validationResult.Errors.Select(e => $"{e.PropertyName}: {e.ErrorMessage}")).SanitizeForLog(MaxLoggedErrorsLength));
                 return Results.ValidationProblem(validationResult.ToDictionary());
             }
 

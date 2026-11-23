@@ -62,7 +62,7 @@ public sealed class MarketScanService : IMarketScanService
         var scanRun = await _repository.CreateScanRunAsync(profileId, cancellationToken).ConfigureAwait(false);
 
         _logger.LogInformation("Starting scan {ScanRunId} for profile {ProfileId} in {City}",
-            scanRun.Id, profileId, profile.City);
+            scanRun.Id, profileId, profile.City.SanitizeForLog());
 
         // Counters are filled in as phases complete, so a failed or cancelled run still
         // records how far it got.
@@ -235,7 +235,7 @@ public sealed class MarketScanService : IMarketScanService
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Failed to exclude listing {ExternalId} from {Portal}",
-                    listing.ExternalId, listing.Portal);
+                    listing.ExternalId.SanitizeForLog(), listing.Portal);
             }
         }
     }
@@ -267,7 +267,7 @@ public sealed class MarketScanService : IMarketScanService
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Failed to upsert listing {ExternalId} from {Portal}",
-                    listing.ExternalId, listing.Portal);
+                    listing.ExternalId.SanitizeForLog(), listing.Portal);
 
                 // Drop any tracked-but-unsaved entity so later SaveChanges calls
                 // in this scope don't retry (and re-fail on) the same insert.
@@ -443,9 +443,9 @@ public sealed class MarketScanService : IMarketScanService
             .ConfigureAwait(false);
 
         if (sent)
-            _logger.LogInformation("Report sent to {Email}", profile.NotificationEmail);
+            _logger.LogInformation("Report sent to {Email}", profile.NotificationEmail.SanitizeForLog());
         else
-            _logger.LogWarning("Failed to send report to {Email}", profile.NotificationEmail);
+            _logger.LogWarning("Failed to send report to {Email}", profile.NotificationEmail.SanitizeForLog());
     }
 
     /// <summary>
@@ -582,7 +582,7 @@ public sealed class MarketScanService : IMarketScanService
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Resolving city centre failed for {City}", city);
+            _logger.LogWarning(ex, "Resolving city centre failed for {City}", city.SanitizeForLog());
             return null;
         }
     }

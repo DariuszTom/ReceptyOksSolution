@@ -5,6 +5,7 @@ using HomeSeeker.Configuration;
 using HomeSeeker.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using ReceptyOks.Shared.Misc;
 using static HomeSeeker.Scrapers.ScraperHelper;
 
 namespace HomeSeeker.Scrapers;
@@ -54,7 +55,7 @@ public sealed class RynekPierwotnyScraper : ListingScraperBase
     {
         var result = ParseSearchResults(html, profile, page);
         if (result.Problem is not null)
-            Logger.LogWarning("{Portal} {Type} page {Page} for {City}: {Problem}", PortalName, type, page, profile.City, result.Problem);
+            Logger.LogWarning("{Portal} {Type} page {Page} for {City}: {Problem}", PortalName, type, page, profile.City.SanitizeForLog(), result.Problem);
         return result.Listings;
     }
 

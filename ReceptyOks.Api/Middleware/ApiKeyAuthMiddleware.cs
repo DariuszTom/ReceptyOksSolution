@@ -1,5 +1,6 @@
 using ReceptyOks.Api.Extensions;
 using ReceptyOks.Shared;
+using ReceptyOks.Shared.Misc;
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
@@ -69,7 +70,7 @@ public sealed class ApiKeyAuthMiddleware
         using var lease = await _rateLimiter.AcquireAsync(context, permitCount: 1, context.RequestAborted).ConfigureAwait(false);
         if (!lease.IsAcquired)
         {
-            _logger.LogWarning("Rate limit exceeded for request from {ClientIp} to {Path}", clientIp, path);
+            _logger.LogWarning("Rate limit exceeded for request from {ClientIp} to {Path}", clientIp, path.Value.SanitizeForLog());
 
             if (lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
             {
@@ -83,7 +84,7 @@ public sealed class ApiKeyAuthMiddleware
         var providedApiKey = context.Request.Headers[GlobalConstants.ApiKeyHeaderName].ToString().Trim();
         if (providedApiKey.Length == 0)
         {
-            _logger.LogWarning("Request from {ClientIp} to {Path} rejected - missing {Header} header", clientIp, path, GlobalConstants.ApiKeyHeaderName);
+            _logger.LogWarning("Request from {ClientIp} to {Path} rejected - missing {Header} header", clientIp, path.Value.SanitizeForLog(), GlobalConstants.ApiKeyHeaderName);
             await WriteErrorAsync(context, StatusCodes.Status401Unauthorized, "API key is required").ConfigureAwait(false);
             return;
         }
@@ -97,7 +98,7 @@ public sealed class ApiKeyAuthMiddleware
         var providedDerived = HMACSHA256.HashData(_hmacKeyBytes, Encoding.UTF8.GetBytes(providedApiKey));
         if (!CryptographicOperations.FixedTimeEquals(_storedHashBytes, providedDerived))
         {
-            _logger.LogWarning("Request from {ClientIp} to {Path} rejected - invalid API key", clientIp, path);
+            _logger.LogWarning("Request from {ClientIp} to {Path} rejected - invalid API key", clientIp, path.Value.SanitizeForLog());
             await WriteErrorAsync(context, StatusCodes.Status401Unauthorized, "Invalid API key").ConfigureAwait(false);
             return;
         }

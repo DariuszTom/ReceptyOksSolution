@@ -401,5 +401,58 @@
             // Assert
             Assert.That(result, Is.EqualTo(expectedBytes));
         }
+
+        [TestCase(null)]
+        [TestCase("")]
+        public void SanitizeForLog_NullOrEmpty_ReturnsEmptyString(string? input)
+        {
+            Assert.That(input.SanitizeForLog(), Is.EqualTo(string.Empty));
+        }
+
+        [Test]
+        public void SanitizeForLog_SafeValue_ReturnsSameInstance()
+        {
+            var input = "/api/recipes/42";
+
+            var result = input.SanitizeForLog();
+
+            Assert.That(result, Is.SameAs(input));
+        }
+
+        [TestCase("/api\r\n[CRIT] forged entry", "/api__[CRIT] forged entry")]
+        [TestCase("/api\nx", "/api_x")]
+        [TestCase("a\tb\u001Bc", "a_b_c")]
+        [TestCase("a\u0085b\u2028c\u2029d", "a_b_c_d")]
+        [TestCase("\u007F", "_")]
+        public void SanitizeForLog_UnsafeCharacters_ReplacesWithUnderscore(string input, string expected)
+        {
+            Assert.That(input.SanitizeForLog(), Is.EqualTo(expected));
+        }
+
+        [Test]
+        public void SanitizeForLog_ValueLongerThanMax_IsTruncated()
+        {
+            var input = new string('a', 10);
+
+            Assert.That(input.SanitizeForLog(4), Is.EqualTo("aaaa"));
+        }
+
+        [Test]
+        public void SanitizeForLog_UnsafeCharBeyondMax_IsTruncatedAway()
+        {
+            Assert.That("abcd\r\n".SanitizeForLog(4), Is.EqualTo("abcd"));
+        }
+
+        [Test]
+        public void SanitizeForLog_TruncatedWithUnsafeChar_ReplacesAndTruncates()
+        {
+            Assert.That("a\nbcdef".SanitizeForLog(3), Is.EqualTo("a_b"));
+        }
+
+        [Test]
+        public void SanitizeForLog_NegativeMaxLength_ThrowsArgumentOutOfRangeException()
+        {
+            Assert.Throws<ArgumentOutOfRangeException>(() => "abc".SanitizeForLog(-1));
+        }
     }
 }
