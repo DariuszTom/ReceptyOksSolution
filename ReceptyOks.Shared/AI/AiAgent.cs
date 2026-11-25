@@ -23,9 +23,11 @@ public sealed class AiAgent : IAiAgent
     private string? _conversationId;
     private ChatClientAgent? _agent;
     private int _agentMaxToolRounds = AbsoluteMaxToolRounds;
+    private bool _disposed;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="AiAgent"/> class.
+    /// The agent takes ownership of <paramref name="chatClient"/> and disposes it in <see cref="Dispose"/>.
     /// </summary>
     /// <param name="chatClient">The chat client implementation (Anthropic, OpenAI, Azure, etc.).</param>
     /// <param name="systemPrompt">Optional system prompt to guide the AI behavior.</param>
@@ -301,6 +303,8 @@ public sealed class AiAgent : IAiAgent
 
     private ChatClientAgent GetOrCreateAgent(int maxToolRounds)
     {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
         var clamped = Math.Clamp(maxToolRounds, 1, AbsoluteMaxToolRounds);
 
         // Rebuild the agent when the requested cap changes so the pipeline is
@@ -336,6 +340,24 @@ public sealed class AiAgent : IAiAgent
     private void InvalidateAgent()
     {
         _agent = null;
+    }
+
+    /// <summary>
+    /// Releases the underlying <see cref="IChatClient"/> (and its HTTP pipeline) owned by this agent.
+    /// </summary>
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
+        _agent = null;
+        _session = null;
+        // The function-invoking wrapper built in GetOrCreateAgent only delegates to _chatClient,
+        // so disposing the root client is sufficient.
+        _chatClient.Dispose();
     }
 
     private static string ExtractTextFromResponse(AgentResponse response)

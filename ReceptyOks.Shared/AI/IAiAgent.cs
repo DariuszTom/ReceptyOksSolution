@@ -2,7 +2,10 @@
 
 namespace ReceptyOks.Shared.AI
 {
-    public interface IAiAgent
+    /// <summary>
+    /// Conversational AI agent. Owns its underlying <see cref="IChatClient"/> and releases it on dispose.
+    /// </summary>
+    public interface IAiAgent : IDisposable
     {
         string? SystemPrompt { get; set; }
         IReadOnlyList<AITool> Tools { get; }

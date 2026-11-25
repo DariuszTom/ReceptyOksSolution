@@ -109,7 +109,7 @@ public sealed class AgentListingEvaluator : IListingEvaluator
             // No web-browsing tool: evaluation uses only metadata we already scraped.
             // This removes the SSRF / prompt-injection path through fetch_web_page
             // (see CODE_REVIEW.md C4).
-            var agent = _agentFactory.CreateAgent(EvaluationSystemPrompt, withWebBrowsing: false);
+            using var agent = _agentFactory.CreateAgent(EvaluationSystemPrompt, withWebBrowsing: false);
 
             var prompt = BuildEvaluationPrompt(profile, listing, details, benchmark);
 

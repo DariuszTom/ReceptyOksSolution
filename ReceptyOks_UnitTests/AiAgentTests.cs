@@ -2258,4 +2258,36 @@ public sealed partial class AiAgentTests
         Assert.That(result[1].Content, Is.EqualTo("Assistant response"));
         Assert.That(result[1].IsUser, Is.False);
     }
+
+    /// <summary>
+    /// Tests that disposing the agent disposes the owned chat client exactly once,
+    /// even when Dispose is called multiple times.
+    /// </summary>
+    [Test]
+    public void Dispose_CalledTwice_DisposesChatClientOnce()
+    {
+        // Arrange
+        var mockChatClient = new Mock<IChatClient>();
+        var agent = new AiAgent(mockChatClient.Object);
+        // Act
+        agent.Dispose();
+        agent.Dispose();
+        // Assert
+        mockChatClient.Verify(c => c.Dispose(), Times.Once);
+    }
+
+    /// <summary>
+    /// Tests that using the agent after it was disposed throws ObjectDisposedException
+    /// instead of silently hitting a disposed chat client.
+    /// </summary>
+    [Test]
+    public void ChatAsync_AfterDispose_ThrowsObjectDisposedException()
+    {
+        // Arrange
+        var mockChatClient = new Mock<IChatClient>();
+        var agent = new AiAgent(mockChatClient.Object);
+        agent.Dispose();
+        // Act & Assert
+        Assert.That(() => agent.ChatAsync("hello"), Throws.TypeOf<ObjectDisposedException>());
+    }
 }
