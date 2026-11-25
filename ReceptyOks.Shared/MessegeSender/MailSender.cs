@@ -51,25 +51,29 @@ namespace SharedLibrary.Misc.MessegeSender
             var message = _mailMessage;
             _mailMessage = null;
 
-            foreach (string email in sendTo)
+            // MimeMessage is IDisposable (it can own streams for the body/attachments); dispose it once sent.
+            using (message)
             {
-                if (IsMailValid(email) == true) message.To.Add(MailboxAddress.Parse(email));
-            }
-            if (sendCC != null)
-            {
-                foreach (string email in sendCC)
+                foreach (string email in sendTo)
                 {
-                    if (IsMailValid(email) == true) message.Cc.Add(MailboxAddress.Parse(email));
+                    if (IsMailValid(email) == true) message.To.Add(MailboxAddress.Parse(email));
                 }
-            }
+                if (sendCC != null)
+                {
+                    foreach (string email in sendCC)
+                    {
+                        if (IsMailValid(email) == true) message.Cc.Add(MailboxAddress.Parse(email));
+                    }
+                }
 
-            using var client = new SmtpClient { Timeout = 20_000 }; // 20 seconds
-            await client.ConnectAsync(_host, _port, ResolveSecureSocketOptions(_host, _port)).ConfigureAwait(false);
-            if (!client.IsSecure && !IsLoopbackHost(_host))
-                throw new SslHandshakeException("SMTP connection is not encrypted; refusing to send credentials.");
-            await client.AuthenticateAsync(_credentials).ConfigureAwait(false);
-            await client.SendAsync(message).ConfigureAwait(false);
-            await client.DisconnectAsync(true).ConfigureAwait(false);
+                using var client = new SmtpClient { Timeout = 20_000 }; // 20 seconds
+                await client.ConnectAsync(_host, _port, ResolveSecureSocketOptions(_host, _port)).ConfigureAwait(false);
+                if (!client.IsSecure && !IsLoopbackHost(_host))
+                    throw new SslHandshakeException("SMTP connection is not encrypted; refusing to send credentials.");
+                await client.AuthenticateAsync(_credentials).ConfigureAwait(false);
+                await client.SendAsync(message).ConfigureAwait(false);
+                await client.DisconnectAsync(true).ConfigureAwait(false);
+            }
         }
 
         /// <summary>
@@ -98,6 +102,7 @@ namespace SharedLibrary.Misc.MessegeSender
 
         public void Dispose()
         {
+            _mailMessage?.Dispose();
             _mailMessage = null;
             _credentials = null;
             GC.SuppressFinalize(this);

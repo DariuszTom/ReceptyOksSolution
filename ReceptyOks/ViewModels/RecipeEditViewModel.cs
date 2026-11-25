@@ -8,7 +8,7 @@ using System.Windows.Input;
 namespace ReceptyOks.ViewModels;
 
 [QueryProperty(nameof(RecipeIdParam), "id")]
-public partial class RecipeEditViewModel : ObservableObject
+public partial class RecipeEditViewModel : ObservableObject, IDisposable
 {
     private readonly LocalDatabase _database;
     private readonly IOCRService _ocrService;
@@ -527,5 +527,19 @@ public partial class RecipeEditViewModel : ObservableObject
     {
         RecipeImage = null;
         ImagePreview = null;
+    }
+
+    public void Dispose()
+    {
+        _speechToTextService.RecognitionUpdated -= OnRecognitionUpdated;
+        _speechToTextService.RecognitionCompleted -= OnRecognitionCompleted;
+
+        // Cancelling the token signals the platform to stop listening.
+        _speechCts?.Cancel();
+        _speechCts?.Dispose();
+        _speechCts = null;
+
+        _speechToTextService.Dispose();
+        IsListening = false;
     }
 }

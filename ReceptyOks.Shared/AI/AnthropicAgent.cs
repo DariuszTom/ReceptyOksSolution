@@ -6,7 +6,7 @@ namespace ReceptyOks.Shared.AI
 {
     public class AnthropicAgent : IDisposable
     {
-        private AnthropicSettings _settings;
+        private readonly AnthropicSettings _settings;
         private byte[] _apiToken;
         private readonly HttpClient? _httpClient;
 

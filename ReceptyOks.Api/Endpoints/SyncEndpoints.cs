@@ -1,7 +1,6 @@
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using ReceptyOks.Shared;
-using ReceptyOks.Shared.Misc;
 
 namespace ReceptyOks.Api.Endpoints;
 

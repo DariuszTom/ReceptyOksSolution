@@ -155,6 +155,8 @@ public partial class RecipeEditPage : ContentPage
         {
             Application.Current.RequestedThemeChanged -= OnRequestedThemeChanged;
         }
+
+        _viewModel.Dispose();
     }
 
     /// <summary>

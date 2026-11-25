@@ -67,7 +67,7 @@ public sealed class AnthropicAiAgentFactory : IAiAgentFactory
         };
 
         // Pooled handler from IHttpClientFactory instead of a new connection pool per evaluation.
-        var anthropicAgent = new AnthropicAgent(settings, tokenBytes, _httpClientFactory.CreateClient(HttpClientName));
+        using var anthropicAgent = new AnthropicAgent(settings, tokenBytes, _httpClientFactory.CreateClient(HttpClientName));
         var chatClient = anthropicAgent.GetAgent();
 
         return new AiAgent(chatClient, systemPrompt);
