@@ -172,7 +172,7 @@ public partial class MealPlanViewModel : ObservableObject
                 var categories = await _database.GetCategoriesAsync();
                 AvailableCategories = new ObservableCollection<CategoryLocal>(categories);
 
-                var recipes = await _database.GetRecipesAsync();
+                var recipes = await _database.GetRecipesWithoutImagesAsync();
                 AvailableRecipes = new ObservableCollection<RecipeLocal>(recipes);
                 FilterRecipes();
                 _categoriesAndRecipesLoaded = true;

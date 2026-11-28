@@ -46,7 +46,7 @@ public sealed class RecipeToolProvider(LocalDatabase database, ILogger logger) :
 
     private async Task<string> GetAllRecipesAsync()
     {
-        var recipes = await _database.GetRecipesAsync().ConfigureAwait(false);
+        var recipes = await _database.GetRecipesWithoutImagesAsync().ConfigureAwait(false);
         var result = recipes.Select(r => new
         {
             r.Id,
