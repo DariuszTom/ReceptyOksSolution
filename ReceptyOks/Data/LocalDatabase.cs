@@ -1,6 +1,6 @@
 using ReceptyOks.Configuration;
 using SQLite;
-
+using System.Runtime.CompilerServices;
 
 namespace ReceptyOks.Data;
 
@@ -8,14 +8,10 @@ public class LocalDatabase : ILocalDatabase
 {
     private SQLiteAsyncConnection? _database;
     private readonly string _dbPath;
-    private static readonly string RecipeColumnsWithoutImage = string.Join(", ",
-        new TableMapping(typeof(RecipeLocal)).Columns
-            .Where(c => c.PropertyName != nameof(RecipeLocal.Image))
-            .Select(c => $"\"{c.Name}\""));
 
     public LocalDatabase(AppSettings settings)
     {
-        _dbPath = Path.Combine(FileSystem.AppDataDirectory, settings.Database.LocalDatabaseName);
+        _dbPath = Path.Combine(Microsoft.Maui.Storage.FileSystem.AppDataDirectory, settings.Database.LocalDatabaseName);
     }
 
     private async Task<SQLiteAsyncConnection> GetConnectionAsync()
@@ -48,32 +44,22 @@ public class LocalDatabase : ILocalDatabase
             .ToListAsync().ConfigureAwait(false);
     }
 
-    public async Task<List<RecipeLocal>> GetRecipesWithoutImagesAsync()
-    {
-        var db = await GetConnectionAsync().ConfigureAwait(false);
-        return await db.QueryAsync<RecipeLocal>(
-            $"SELECT {RecipeColumnsWithoutImage} FROM Recipes WHERE IsDeleted = 0 ORDER BY CreatedAt DESC")
-            .ConfigureAwait(false);
-    }
-
     public async Task<List<RecipeSummary>> GetRecipeSummariesAsync(string? searchQuery = null)
     {
         var db = await GetConnectionAsync().ConfigureAwait(false);
 
-        List<RecipeLocal> recipes;
-        if (string.IsNullOrWhiteSpace(searchQuery))
+        var query = db.Table<RecipeLocal>().Where(r => !r.IsDeleted);
+
+        if (!string.IsNullOrWhiteSpace(searchQuery))
         {
-            recipes = await db.QueryAsync<RecipeLocal>(
-                "SELECT Id, Title FROM Recipes WHERE IsDeleted = 0 ORDER BY Title")
-                .ConfigureAwait(false);
+            var lowerQuery = searchQuery.ToLower();
+            query = query.Where(r => r.Title.ToLower().Contains(lowerQuery));
         }
-        else
-        {
-            recipes = await db.QueryAsync<RecipeLocal>(
-                "SELECT Id, Title FROM Recipes WHERE IsDeleted = 0 AND lower(Title) LIKE ('%' || ? || '%') ORDER BY Title",
-                searchQuery.ToLower())
-                .ConfigureAwait(false);
-        }
+
+        var recipes = await query
+            .OrderBy(r => r.Title)
+            .ToListAsync()
+            .ConfigureAwait(false);
 
         return recipes.Select(r => new RecipeSummary(r.Id, r.Title)).ToList();
     }
@@ -88,23 +74,23 @@ public class LocalDatabase : ILocalDatabase
     public async Task<List<RecipeLocal>> GetRecipesByCategoryAsync(Guid categoryId)
     {
         var db = await GetConnectionAsync().ConfigureAwait(false);
-        return await db.QueryAsync<RecipeLocal>(
-            $"SELECT {RecipeColumnsWithoutImage} FROM Recipes WHERE CategoryId = ? AND IsDeleted = 0 ORDER BY CreatedAt DESC",
-            categoryId)
-            .ConfigureAwait(false);
+        return await db.Table<RecipeLocal>()
+            .Where(r => r.CategoryId == categoryId && !r.IsDeleted)
+            .OrderByDescending(r => r.CreatedAt)
+            .ToListAsync().ConfigureAwait(false);
     }
     public async Task<List<RecipeLocal>> GetRecipesByCategoryAndIngriendentsAsync(Guid categoryId, IEnumerable<Guid>? ingredientsId)
     {
         List<RecipeLocal> recipes;
         if (categoryId == Guid.Empty)
-            recipes = await GetRecipesWithoutImagesAsync().ConfigureAwait(false);
+            recipes = await GetRecipesAsync().ConfigureAwait(false);
         else
             recipes = await GetRecipesByCategoryAsync(categoryId).ConfigureAwait(false);
 
         if (recipes is null || recipes.Count == 0 || ingredientsId is null)
-            return recipes ?? [];
+            return recipes ?? new List<RecipeLocal>();
 
-        var ingredientsList = ingredientsId?.ToList() ?? [];
+        var ingredientsList = ingredientsId?.ToList() ?? new List<Guid>();
         if (ingredientsList.Count == 0)
             return recipes;
 
@@ -134,7 +120,10 @@ public class LocalDatabase : ILocalDatabase
         recipe.UpdatedAt = DateTime.UtcNow;
         recipe.IsDirty = true;
 
-        if (!await RecipeExistsAsync(db, recipe.Id).ConfigureAwait(false))
+        var existing = await db.Table<RecipeLocal>()
+            .FirstOrDefaultAsync(r => r.Id == recipe.Id).ConfigureAwait(false);
+
+        if (existing is null)
         {
             recipe.CreatedAt = DateTime.UtcNow;
             return await db.InsertAsync(recipe).ConfigureAwait(false);
@@ -144,9 +133,6 @@ public class LocalDatabase : ILocalDatabase
             return await db.UpdateAsync(recipe).ConfigureAwait(false);
         }
     }
-
-    private static async Task<bool> RecipeExistsAsync(SQLiteAsyncConnection db, Guid id) =>
-        await db.ExecuteScalarAsync<int>("SELECT COUNT(1) FROM Recipes WHERE Id = ?", id).ConfigureAwait(false) > 0;
 
     public async Task<int> DeleteRecipeAsync(Guid id)
     {
@@ -352,11 +338,12 @@ public class LocalDatabase : ILocalDatabase
     public async Task ApplyServerRecipeAsync(RecipeLocal recipe)
     {
         var db = await GetConnectionAsync().ConfigureAwait(false);
-        var exists = await RecipeExistsAsync(db, recipe.Id).ConfigureAwait(false);
+        var existing = await db.Table<RecipeLocal>()
+            .FirstOrDefaultAsync(r => r.Id == recipe.Id).ConfigureAwait(false);
 
         recipe.IsDirty = false;
 
-        if (!exists)
+        if (existing is null)
         {
             await db.InsertAsync(recipe).ConfigureAwait(false);
         }
@@ -596,7 +583,7 @@ public class LocalDatabase : ILocalDatabase
 
     /// <summary>
     /// Pobiera plany posi³ków z pe³nymi danymi przepisów dla zakresu dat.
-    /// Batch-loads recipes (without the Image blob) to avoid N+1 queries.
+    /// Batch-loads recipes to avoid N+1 queries.
     /// </summary>
     public async Task<List<(MealPlanLocal MealPlan, RecipeLocal? Recipe)>> GetMealPlansWithRecipesAsync(DateTime startDate, DateTime endDate)
     {
@@ -605,7 +592,9 @@ public class LocalDatabase : ILocalDatabase
             return [];
 
         var db = await GetConnectionAsync().ConfigureAwait(false);
-        var recipes = await GetRecipesWithoutImagesAsync().ConfigureAwait(false);
+        var recipes = await db.Table<RecipeLocal>()
+            .Where(r => !r.IsDeleted)
+            .ToListAsync().ConfigureAwait(false);
         var recipeLookup = recipes.ToDictionary(r => r.Id);
 
         var result = new List<(MealPlanLocal, RecipeLocal?)>(mealPlans.Count);

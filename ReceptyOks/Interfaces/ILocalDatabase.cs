@@ -35,12 +35,8 @@ namespace ReceptyOks.Data
         Task<RecipeLocal?> GetRecipeAsync(Guid id);
         Task<List<RecipeIngredientLocal>> GetRecipeIngredientsAsync(Guid recipeId);
         Task<List<RecipeLocal>> GetRecipesAsync();
-        /// <summary>Returns non-deleted recipes without the <see cref="RecipeLocal.Image"/> blob.</summary>
-        Task<List<RecipeLocal>> GetRecipesWithoutImagesAsync();
         Task<List<RecipeSummary>> GetRecipeSummariesAsync(string? searchQuery = null);
-        /// <summary>Returned recipes don't include the <see cref="RecipeLocal.Image"/> blob; use <see cref="GetRecipeAsync"/> for it.</summary>
         Task<List<RecipeLocal>> GetRecipesByCategoryAndIngriendentsAsync(Guid categoryId, IEnumerable<Guid>? ingredientsId);
-        /// <summary>Returned recipes don't include the <see cref="RecipeLocal.Image"/> blob; use <see cref="GetRecipeAsync"/> for it.</summary>
         Task<List<RecipeLocal>> GetRecipesByCategoryAsync(Guid categoryId);
         Task<int> PurgeDeletedConversationsAsync();
         Task<int> SaveCategoryAsync(CategoryLocal category);

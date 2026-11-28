@@ -59,7 +59,7 @@ public class SyncService : ISyncService
                     Content = JsonContent.Create(request)
                 };
 
-                return _httpClient.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead);
+                return _httpClient.SendAsync(httpRequest);
             }).ConfigureAwait(false);
 
             if (!response.IsSuccessStatusCode)
@@ -127,7 +127,7 @@ public class SyncService : ISyncService
         try
         {
 
-            using var response = await _httpClient.GetAsync(ApiRoutes.Sync.Full, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);
+            using var response = await _httpClient.GetAsync(ApiRoutes.Sync.Full).ConfigureAwait(false);
 
             if (!response.IsSuccessStatusCode)
             {

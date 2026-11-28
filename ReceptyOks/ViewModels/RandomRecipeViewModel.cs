@@ -148,8 +148,7 @@ public partial class RandomRecipeViewModel(LocalDatabase database, ILogger<Rando
             }
 
             var randomIndex = _random.Next(candidates.Count);
-            var picked = candidates[randomIndex];
-            RandomRecipe = await _database.GetRecipeAsync(picked.Id) ?? picked;
+            RandomRecipe = candidates[randomIndex];
             HasResult = true;
             OldID = RandomRecipe.Id;
 
