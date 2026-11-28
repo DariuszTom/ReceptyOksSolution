@@ -30,10 +30,7 @@ public partial class CategoryEditViewModel : ObservableObject, IQueryAttributabl
         "soup.png"
     ];
 
-    public CategoryEditViewModel(LocalDatabase database)
-    {
-        _database = database;
-    }
+    public CategoryEditViewModel(LocalDatabase database) => _database = database;
 
     public void ApplyQueryAttributes(IDictionary<string, object> query)
     {

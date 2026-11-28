@@ -485,16 +485,16 @@ public partial class ChatBotViewModel : ObservableObject
             var conversations = await _conversationStore.GetConversationsAsync().ConfigureAwait(false);
 
             await MainThread.InvokeOnMainThreadAsync(() =>
-  {
-      Conversations.Clear();
-      foreach (var conv in conversations)
-      {
-          Conversations.Add(new ConversationHistoryItemViewModel(
-        conv.Id,
-             conv.Title ?? "Rozmowa bez tytułu",
-                   conv.UpdatedAt));
-      }
-  });
+              {
+                  Conversations.Clear();
+                  foreach (var conv in conversations)
+                  {
+                      Conversations.Add(new ConversationHistoryItemViewModel(
+                    conv.Id,
+                         conv.Title ?? "Rozmowa bez tytułu",
+                               conv.UpdatedAt));
+                  }
+              });
         }
         catch (Exception ex)
         {
@@ -512,10 +512,7 @@ public partial class ChatBotViewModel : ObservableObject
     [RelayCommand]
     private async Task LoadConversationAsync(ConversationHistoryItemViewModel item)
     {
-        if (item is null || _agent is null)
-        {
-            return;
-        }
+        if (item is null || _agent is null) return;
 
         IsHistorySheetOpen = false;
         IsBusy = true;
@@ -608,10 +605,7 @@ public partial class ChatBotViewModel : ObservableObject
     [RelayCommand]
     private async Task SaveConversationAsync()
     {
-        if (_agent is null || Messages.Count == 0)
-        {
-            return;
-        }
+        if (_agent is null || Messages.Count == 0) return;
 
         IsBusy = true;
 
@@ -623,7 +617,7 @@ public partial class ChatBotViewModel : ObservableObject
             // Generate a title from the first user message
             var firstUserMessage = Messages.FirstOrDefault(m => m.IsUser);
             var title = firstUserMessage?.Content?.Length > 50
-           ? firstUserMessage.Content[..50] + "..."
+            ? firstUserMessage.Content[..50] + "..."
             : firstUserMessage?.Content ?? "Rozmowa";
 
             await _conversationStore.SaveConversationAsync(_currentConversationId, title, serializedThread).ConfigureAwait(false);
@@ -651,19 +645,16 @@ public partial class ChatBotViewModel : ObservableObject
     [RelayCommand]
     private async Task DeleteConversationAsync(ConversationHistoryItemViewModel item)
     {
-        if (item is null)
-        {
-            return;
-        }
+        if (item is null) return;
 
         try
         {
             await _conversationStore.DeleteConversationAsync(item.Id).ConfigureAwait(false);
 
             await MainThread.InvokeOnMainThreadAsync(() =>
-      {
-          Conversations.Remove(item);
-      });
+                  {
+                      Conversations.Remove(item);
+                  });
 
             // If the deleted conversation is the current one, clear it
             if (_currentConversationId == item.Id)

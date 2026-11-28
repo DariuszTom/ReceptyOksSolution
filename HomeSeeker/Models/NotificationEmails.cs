@@ -21,10 +21,9 @@ public static class NotificationEmails
         if (string.IsNullOrWhiteSpace(value))
             return [];
 
-        return value
+        return [.. value
             .Split(Separators, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToArray();
+            .Distinct(StringComparer.OrdinalIgnoreCase)];
     }
 
     /// <summary>

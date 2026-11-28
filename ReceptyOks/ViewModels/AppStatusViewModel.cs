@@ -80,10 +80,7 @@ public partial class AppStatusViewModel : ObservableObject
     [RelayCommand]
     public async Task CheckHealthAsync()
     {
-        if (IsLoading)
-        {
-            return;
-        }
+        if (IsLoading) return;
 
         IsLoading = true;
         ErrorMessage = null;

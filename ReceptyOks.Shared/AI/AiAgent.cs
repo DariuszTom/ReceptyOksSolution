@@ -15,7 +15,6 @@ public sealed class AiAgent : IAiAgent
     // Absolute ceiling on function-call iterations per ChatAsync, applied even
     // when callers forget to set a lower maxToolRounds (CODE_REVIEW.md C5).
     private const int AbsoluteMaxToolRounds = 10;
-
     private readonly IChatClient _chatClient;
     private readonly List<AITool> _tools = [];
     private string? _systemPrompt;
@@ -347,10 +346,7 @@ public sealed class AiAgent : IAiAgent
     /// </summary>
     public void Dispose()
     {
-        if (_disposed)
-        {
-            return;
-        }
+        if (_disposed) return;
 
         _disposed = true;
         _agent = null;
