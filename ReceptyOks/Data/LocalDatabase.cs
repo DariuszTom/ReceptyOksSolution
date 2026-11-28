@@ -8,15 +8,14 @@ public class LocalDatabase : ILocalDatabase
 {
     private SQLiteAsyncConnection? _database;
     private readonly string _dbPath;
-
-    // Every Recipes column except the Image blob, for queries that don't display images.
-    private const string RecipeColumnsWithoutImage =
-        "Id, Title, Description, Instructions, PreparationTimeMinutes, CookingTimeMinutes, Servings, " +
-        "ImageContentType, CategoryId, CreatedAt, UpdatedAt, LastSyncedAt, IsDeleted, IsDirty";
+    private static readonly string RecipeColumnsWithoutImage = string.Join(", ",
+        new TableMapping(typeof(RecipeLocal)).Columns
+            .Where(c => c.PropertyName != nameof(RecipeLocal.Image))
+            .Select(c => $"\"{c.Name}\""));
 
     public LocalDatabase(AppSettings settings)
     {
-        _dbPath = Path.Combine(Microsoft.Maui.Storage.FileSystem.AppDataDirectory, settings.Database.LocalDatabaseName);
+        _dbPath = Path.Combine(FileSystem.AppDataDirectory, settings.Database.LocalDatabaseName);
     }
 
     private async Task<SQLiteAsyncConnection> GetConnectionAsync()
